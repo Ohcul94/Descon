@@ -26,14 +26,24 @@ function getTalentBonuses(skillTree, talentsConfig) {
         dash_distance: 0
     };
 
-    if (!skillTree || !talentsConfig || !Array.isArray(talentsConfig.talents)) {
+    // Asegurar que skillTree tenga arrays para todas las categorías conocidas
+    const talentsConfig2 = talentsConfig || {};
+    const categories = talentsConfig2.categories || [];
+    const tree = skillTree || {};
+    categories.forEach(c => {
+        if (!tree[c.id] || !Array.isArray(tree[c.id])) {
+            tree[c.id] = [0,0,0,0,0,0,0,0];
+        }
+    });
+
+    if (!talentsConfig2.talents || !Array.isArray(talentsConfig2.talents)) {
         return bonuses;
     }
 
-    const talents = talentsConfig.talents;
+    const talents = talentsConfig2.talents;
     for (const t of talents) {
         const cat = t.category || '';
-        const branch = skillTree[cat] || [];
+        const branch = tree[cat] || [];
         const talentsInCat = talents.filter(x => x.category === cat);
         const idx = talentsInCat.indexOf(t);
         if (idx === -1 || idx >= branch.length) continue;
@@ -156,7 +166,7 @@ function calculateFinalStats(player, config) {
 
     // 3. Bonificaciones de Talentos (dinámico desde config)
     const talentsConfig = config?.talentsConfig;
-    const skillTree = player.skillTree || { engineering: [0,0,0,0,0,0,0,0], combat: [0,0,0,0,0,0,0,0], science: [0,0,0,0,0,0,0,0] };
+    const skillTree = player.skillTree || {};
     const talentBonuses = getTalentBonuses(skillTree, talentsConfig);
 
     // 4. Aplicar Modificadores de Equipamiento

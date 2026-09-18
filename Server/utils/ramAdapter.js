@@ -63,7 +63,7 @@ function getPlayerRAMAdapter(p) {
             get skillPoints() { return p.skillPoints || 0; },
             set skillPoints(v) { p.skillPoints = v; },
 
-            get skillTree() { return p.skillTree || { engineering: [], combat: [], science: [] }; },
+            get skillTree() { return p.skillTree || {}; },
             set skillTree(v) { p.skillTree = v; },
 
             get zone() { return p.zone || 1; },

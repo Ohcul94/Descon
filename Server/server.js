@@ -672,11 +672,7 @@ const handleUserLogin = async (socket, user, username) => {
         maxShield: baseSh,
         level: user.gameData.level || 1,
         skillPoints: user.gameData.skillPoints || 0,
-        skillTree: JSON.parse(JSON.stringify(user.gameData.skillTree || {
-            engineering: [0, 0, 0, 0, 0, 0, 0, 0],
-            combat: [0, 0, 0, 0, 0, 0, 0, 0],
-            science: [0, 0, 0, 0, 0, 0, 0, 0]
-        })),
+        skillTree: JSON.parse(JSON.stringify(user.gameData.skillTree || {})),
         baseHp: baseHp,
         baseShield: baseSh,
         ammo: JSON.parse(JSON.stringify(user.gameData.ammo)),
@@ -892,6 +888,20 @@ global.serverClearProjectiles = (zone, bossId) => {
 // Cargar configuraci├│n inicial
 fs.readJson(CONFIG_FILE).then(config => {
     state.SERVER_CONFIG = config || {};
+    
+    // Migración: asegurar que talentsConfig.categories exista
+    if (!state.SERVER_CONFIG.talentsConfig) state.SERVER_CONFIG.talentsConfig = {};
+    if (!state.SERVER_CONFIG.talentsConfig.categories || !Array.isArray(state.SERVER_CONFIG.talentsConfig.categories) || state.SERVER_CONFIG.talentsConfig.categories.length === 0) {
+        state.SERVER_CONFIG.talentsConfig.categories = [
+            { id: 'engineering', name: 'Ingeniería', color: '#00d2ff', emoji: '🛠️' },
+            { id: 'combat', name: 'Combate', color: '#ff3131', emoji: '⚔️' },
+            { id: 'science', name: 'Ciencia', color: '#be31ff', emoji: '🔬' }
+        ];
+        fs.writeJson(CONFIG_FILE, state.SERVER_CONFIG, { spaces: 4 }).catch(err => {
+            console.error("[SERVER] Error al guardar migración categories:", err);
+        });
+        console.log('[SERVER] Migración: talentsConfig.categories inyectado y guardado');
+    }
     
     // Inyectar Configuración del Modo Arenas (PvP) por defecto si falta
     if (!state.SERVER_CONFIG.gameModes) state.SERVER_CONFIG.gameModes = {};

@@ -59,11 +59,7 @@ const UserSchema = new mongoose.Schema({
         level: { type: Number, default: 1 },
         exp: { type: Number, default: 0 },
         skillPoints: { type: Number, default: 0 },
-        skillTree: {
-            engineering: { type: [Number], default: [0, 0, 0, 0, 0, 0, 0, 0] },
-            combat: { type: [Number], default: [0, 0, 0, 0, 0, 0, 0, 0] },
-            science: { type: [Number], default: [0, 0, 0, 0, 0, 0, 0, 0] }
-        },
+        skillTree: { type: Object, default: {} },
         zone: { type: Number, default: 1 },
         hudConfig: { type: Object, default: {} },
         hudPositions: { type: Object, default: {} },

@@ -39,20 +39,19 @@ var pending_label: Label
 var save_btn: Button
 var cancel_btn: Button
 var reset_btn: Button
+var summary_btn: Button
+var summary_panel: PanelContainer
+var summary_rtl: RichTextLabel
+var summary_header_label: Label
 var tooltip_rtl: RichTextLabel
 var tooltip_panel: PanelContainer
 
-# Colores
-var cat_colors: Dictionary = {
-	"engineering": Color("00d2ff"),
-	"combat": Color("ff3131"),
-	"science": Color("be31ff")
-}
-var cat_colors_dark: Dictionary = {
-	"engineering": Color("005a7a"),
-	"combat": Color("7a1717"),
-	"science": Color("5a1777")
-}
+# Categorías dinámicas
+var categories_list: Array = []
+
+# Colores (dinámicos desde config)
+var cat_colors: Dictionary = {}
+var cat_colors_dark: Dictionary = {}
 
 # Tamaños de nodo
 var node_types: Dictionary = {
@@ -105,25 +104,53 @@ func _load_talents_config():
 		nodes_data = tc.get("nodes", {})
 		connections_data = tc.get("connections", [])
 		locked_config = NetworkManager.server_config.get("talentsLockedConfig", [])
+		# Cargar categorías dinámicas
+		_load_categories_from_config(tc)
 
 	if is_instance_valid(talent_system):
 		player_skill_tree = talent_system.skill_tree.duplicate(true)
 		skill_points = talent_system.skill_points
 
+func _load_categories_from_config(tc: Dictionary):
+	cat_colors.clear()
+	cat_colors_dark.clear()
+	var categories = tc.get("categories", [])
+	# Si no hay categorías en config, usar las defaults
+	if categories.size() == 0:
+		categories = [
+			{"id": "engineering", "name": "Ingeniería", "color": "#00d2ff", "emoji": "🛠️"},
+			{"id": "combat", "name": "Combate", "color": "#ff3131", "emoji": "⚔️"},
+			{"id": "science", "name": "Ciencia", "color": "#be31ff", "emoji": "🔬"}
+		]
+	categories_list = categories.duplicate(true)
+	for cat in categories_list:
+		var id = cat.get("id", "")
+		var hex = cat.get("color", "#888888")
+		if id != "":
+			cat_colors[id] = Color.html(hex)
+			var c = Color.html(hex)
+			cat_colors_dark[id] = Color(c.r * 0.3, c.g * 0.3, c.b * 0.3)
+
 func _build_ui():
+	# Evitar que cualquier elemento de la pestaña desborde hacia los lados
+	clip_contents = true
+
 	var master_v = VBoxContainer.new()
+	master_v.name = "TalentsMasterVBox"
 	master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	master_v.mouse_filter = Control.MOUSE_FILTER_PASS
+	master_v.clip_contents = true
 	add_child(master_v)
 
 	# ═══ Header ═══
 	var header = HBoxContainer.new()
+	header.name = "TalentsHeader"
 	header.mouse_filter = Control.MOUSE_FILTER_PASS
-	header.add_theme_constant_override("separation", 12)
+	header.add_theme_constant_override("separation", 6)
 	master_v.add_child(header)
 
 	points_label = Label.new()
-	points_label.add_theme_font_size_override("font_size", 14)
+	points_label.add_theme_font_size_override("font_size", 13)
 	header.add_child(points_label)
 
 	var sep1 = VSeparator.new()
@@ -139,6 +166,13 @@ func _build_ui():
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
 
+	# Botón de resumen de beneficios (texto compacto para no desbordar)
+	summary_btn = Button.new()
+	summary_btn.text = "📊 RESUMEN"
+	summary_btn.tooltip_text = "Ver desglose detallado de bonificaciones activas del árbol"
+	summary_btn.pressed.connect(_toggle_summary_panel)
+	header.add_child(summary_btn)
+
 	# Botones de acción
 	save_btn = Button.new()
 	save_btn.text = "💾 GUARDAR"
@@ -153,9 +187,20 @@ func _build_ui():
 	header.add_child(cancel_btn)
 
 	reset_btn = Button.new()
-	reset_btn.text = "🔄 RESETEAR (5K OHCU)"
+	reset_btn.text = "🔄 RESET (5K)"
+	reset_btn.tooltip_text = "Restablecer todos los talentos por 5.000 OHCU"
 	reset_btn.pressed.connect(_on_reset_pressed)
 	header.add_child(reset_btn)
+
+	# ═══ Contenedor Horizontal para Canvas + Panel Lateral (evita overflow fuera de ventana) ═══
+	var body_h = HBoxContainer.new()
+	body_h.name = "BodyHBox"
+	body_h.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body_h.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body_h.mouse_filter = Control.MOUSE_FILTER_PASS
+	body_h.add_theme_constant_override("separation", 6)
+	body_h.clip_contents = true
+	master_v.add_child(body_h)
 
 	# ═══ Canvas ═══
 	tree_canvas = Control.new()
@@ -163,7 +208,8 @@ func _build_ui():
 	tree_canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tree_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tree_canvas.mouse_filter = Control.MOUSE_FILTER_STOP
-	master_v.add_child(tree_canvas)
+	tree_canvas.clip_contents = true
+	body_h.add_child(tree_canvas)
 
 	tree_canvas.draw.connect(_on_tree_draw)
 	tree_canvas.gui_input.connect(_on_tree_input)
@@ -207,6 +253,81 @@ func _build_ui():
 	tooltip_rtl.add_theme_color_override("default_color", Color(0.85, 0.85, 0.85))
 	tooltip_panel.add_child(tooltip_rtl)
 
+	# ═══ Panel Lateral de Resumen de Beneficios (contenido 100% dentro de la ventana) ═══
+	summary_panel = PanelContainer.new()
+	summary_panel.name = "SummaryPanel"
+	summary_panel.visible = false
+	summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	summary_panel.custom_minimum_size = Vector2(280, 0)
+	summary_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	var sum_style = StyleBoxFlat.new()
+	sum_style.bg_color = Color(0.03, 0.05, 0.09, 0.96)
+	sum_style.border_width_left = 2
+	sum_style.border_width_top = 1
+	sum_style.border_width_right = 1
+	sum_style.border_width_bottom = 1
+	sum_style.border_color = Color(0, 0.82, 1, 0.4)
+	sum_style.corner_radius_top_left = 6
+	sum_style.corner_radius_bottom_left = 6
+	sum_style.corner_radius_top_right = 6
+	sum_style.corner_radius_bottom_right = 6
+	sum_style.content_margin_left = 12
+	sum_style.content_margin_right = 12
+	sum_style.content_margin_top = 10
+	sum_style.content_margin_bottom = 10
+	sum_style.shadow_color = Color(0, 0, 0, 0.5)
+	sum_style.shadow_size = 10
+	summary_panel.add_theme_stylebox_override("panel", sum_style)
+	body_h.add_child(summary_panel)
+
+	var sum_vbox = VBoxContainer.new()
+	sum_vbox.mouse_filter = Control.MOUSE_FILTER_PASS
+	sum_vbox.add_theme_constant_override("separation", 8)
+	summary_panel.add_child(sum_vbox)
+
+	var sum_top = HBoxContainer.new()
+	sum_top.mouse_filter = Control.MOUSE_FILTER_PASS
+	sum_vbox.add_child(sum_top)
+
+	var sum_title = Label.new()
+	sum_title.text = "📊 BENEFICIOS DEL ÁRBOL"
+	sum_title.add_theme_font_size_override("font_size", 14)
+	sum_title.modulate = Color(0, 0.82, 1)
+	sum_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sum_top.add_child(sum_title)
+
+	var sum_close_btn = Button.new()
+	sum_close_btn.text = "✕"
+	sum_close_btn.custom_minimum_size = Vector2(28, 24)
+	sum_close_btn.pressed.connect(func(): _set_summary_panel_visible(false))
+	sum_top.add_child(sum_close_btn)
+
+	summary_header_label = Label.new()
+	summary_header_label.add_theme_font_size_override("font_size", 11)
+	summary_header_label.modulate = Color(0.7, 0.75, 0.85)
+	sum_vbox.add_child(summary_header_label)
+
+	var sum_sep = HSeparator.new()
+	sum_sep.modulate = Color(0, 0.82, 1, 0.3)
+	sum_vbox.add_child(sum_sep)
+
+	var sum_scroll = ScrollContainer.new()
+	sum_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sum_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sum_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sum_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	sum_vbox.add_child(sum_scroll)
+
+	summary_rtl = RichTextLabel.new()
+	summary_rtl.name = "SummaryRTL"
+	summary_rtl.bbcode_enabled = true
+	summary_rtl.fit_content = true
+	summary_rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	summary_rtl.mouse_filter = Control.MOUSE_FILTER_PASS
+	summary_rtl.add_theme_font_size_override("normal_font_size", 12)
+	sum_scroll.add_child(summary_rtl)
+
 	_update_header_display()
 	tree_canvas.queue_redraw()
 
@@ -223,7 +344,7 @@ func _update_header_display():
 	points_label.modulate = Color.GREEN if skill_points > 0 else Color.GRAY
 
 	if total_pending_cost > 0:
-		pending_label.text = "📝 Pendientes: " + str(total_pending_cost) + " pts"
+		pending_label.text = "📝 Pend: " + str(total_pending_cost) + " pts"
 		pending_label.modulate = Color("ffd700")
 		pending_label.visible = true
 		save_btn.visible = true
@@ -232,6 +353,222 @@ func _update_header_display():
 		pending_label.visible = false
 		save_btn.visible = false
 		cancel_btn.visible = false
+
+	if summary_panel and summary_panel.visible:
+		_update_summary_display()
+
+# ═══════════════════════════════════════════════════════
+# RESUMEN DETALLADO DE BENEFICIOS DEL ÁRBOL
+# ═══════════════════════════════════════════════════════
+
+func _toggle_summary_panel():
+	if not summary_panel:
+		return
+	_set_summary_panel_visible(not summary_panel.visible)
+
+func _set_summary_panel_visible(v: bool):
+	if not summary_panel:
+		return
+	summary_panel.visible = v
+	if summary_btn:
+		if v:
+			summary_btn.text = "📊 CERRAR"
+			summary_btn.modulate = Color(0, 0.82, 1)
+		else:
+			summary_btn.text = "📊 RESUMEN"
+			summary_btn.modulate = Color.WHITE
+	if v:
+		_update_summary_display()
+	call_deferred("_clamp_pan")
+	if tree_canvas:
+		tree_canvas.queue_redraw()
+
+# ═══════════════════════════════════════════════════════
+# FORMATEO NUMÉRICO LIMPIO (sin .0 innecesario)
+# ═══════════════════════════════════════════════════════
+
+func _format_clean_number(val: float, max_decimals: int = 2) -> String:
+	var factor = pow(10.0, max_decimals)
+	var rounded = round(val * factor) / factor
+	# Si es entero exacto (ej. 10.0 -> "10")
+	if is_equal_approx(rounded, round(rounded)):
+		return str(int(round(rounded)))
+	# Si tiene decimales significativos (ej. 10.1, 10.25)
+	var s = ("%." + str(max_decimals) + "f") % rounded
+	if "." in s:
+		while s.ends_with("0"):
+			s = s.substr(0, s.length() - 1)
+		if s.ends_with("."):
+			s = s.substr(0, s.length() - 1)
+	return s
+
+func _format_stat_value(val: float, is_flat: bool = false, show_plus: bool = true) -> String:
+	var prefix = ("+" if val > 0.0001 and show_plus else ("-" if val < -0.0001 else ""))
+	var abs_val = abs(val)
+	if is_flat:
+		return prefix + _format_clean_number(abs_val, 2) + "s"
+	else:
+		return prefix + _format_clean_number(abs_val * 100.0, 2) + "%"
+
+func _update_summary_display():
+	if not summary_rtl or not is_instance_valid(summary_rtl):
+		return
+
+	# Metadatos para presentación clara y limpia de cada efecto
+	var effect_meta = {
+		"hp_pct": {"name": "Vida Máxima", "icon": "🛡️", "unit": "%"},
+		"sh_pct": {"name": "Escudo Máximo", "icon": "🔵", "unit": "%"},
+		"hp_regen": {"name": "Regen. de Vida", "icon": "🔧", "unit": "%"},
+		"shield_regen": {"name": "Regen. de Escudo", "icon": "🔋", "unit": "%"},
+		"armor_pct": {"name": "Armadura Total", "icon": "⚙️", "unit": "%"},
+		"energy_efficiency": {"name": "Eficiencia de Energía", "icon": "⚛️", "unit": "%"},
+		"repair_cost_reduction": {"name": "Costo de Reparación", "icon": "💸", "unit": "%"},
+		"stability": {"name": "Estabilidad de Vuelo", "icon": "🛸", "unit": "%"},
+		"laser_dmg_pct": {"name": "Daño Láser", "icon": "🔫", "unit": "%"},
+		"crit_chance": {"name": "Probabilidad Crítica", "icon": "🎯", "unit": "%"},
+		"crit_dmg": {"name": "Daño Crítico", "icon": "🔥", "unit": "%"},
+		"ammo_bonus_pct": {"name": "Bonus de Munición", "icon": "💣", "unit": "%"},
+		"accuracy_pct": {"name": "Puntería de Disparo", "icon": "👁️", "unit": "%"},
+		"ignore_shield_pct": {"name": "Perforación de Escudo", "icon": "⚡", "unit": "%"},
+		"fire_rate_pct": {"name": "Cadencia de Fuego", "icon": "⚔️", "unit": "%"},
+		"evasion_pct": {"name": "Evasión en Combate", "icon": "💨", "unit": "%"},
+		"speed_pct": {"name": "Velocidad Base", "icon": "🚀", "unit": "%"},
+		"minimap_range": {"name": "Rango de Radar", "icon": "📡", "unit": "%"},
+		"ohcu_kill_bonus": {"name": "Bonus OHCU por Bajas", "icon": "💎", "unit": "%"},
+		"shop_discount": {"name": "Descuento en Tiendas", "icon": "🏪", "unit": "%"},
+		"cooldown_reduction": {"name": "Reducción Enfriamiento", "icon": "❄️", "unit": "%"},
+		"cooldown_reduction_flat": {"name": "Reducción Enfriamiento (Fijo)", "icon": "⏱️", "unit": "s"},
+		"cast_time_reduction": {"name": "Reducción Tiempo Cast", "icon": "⚡", "unit": "%"},
+		"cast_time_reduction_flat": {"name": "Reducción Tiempo Cast (Fijo)", "icon": "⏱️", "unit": "s"},
+		"group_bonus": {"name": "Bonus en Escuadrón", "icon": "👥", "unit": "%"},
+		"boss_loot_bonus": {"name": "Botín de Jefes", "icon": "👑", "unit": "%"},
+		"dash_distance": {"name": "Distancia de Dash", "icon": "🌀", "unit": "%"}
+	}
+
+	var saved_effects: Dictionary = {}
+	var pend_effects: Dictionary = {}
+	var active_by_cat: Dictionary = {}
+	var total_points_spent: int = 0
+	var total_active_talents: int = 0
+
+	for t in talents_list:
+		var tid = t.get("id", "")
+		var saved = _get_saved_level(tid)
+		var pend = pending_points.get(tid, 0)
+		var total = saved + pend
+		if total <= 0:
+			continue
+
+		total_points_spent += total
+		total_active_talents += 1
+
+		var cat = t.get("category", "general")
+		if not active_by_cat.has(cat):
+			active_by_cat[cat] = []
+		active_by_cat[cat].append({
+			"talent": t,
+			"saved": int(saved),
+			"pend": int(pend),
+			"total": int(total),
+			"max": int(t.get("maxLevel", 5))
+		})
+
+		var effects = t.get("effects", {})
+		for key in effects:
+			var base_val = float(effects[key])
+			if saved > 0:
+				saved_effects[key] = saved_effects.get(key, 0.0) + (base_val * saved)
+			if pend > 0:
+				pend_effects[key] = pend_effects.get(key, 0.0) + (base_val * pend)
+
+	# Actualizar cabecera del panel
+	if summary_header_label:
+		var pend_info = " (+" + str(total_pending_cost) + " pend.)" if total_pending_cost > 0 else ""
+		summary_header_label.text = "Invertidos: " + str(total_points_spent) + " pts" + pend_info + " | " + str(total_active_talents) + " talentos"
+
+	summary_rtl.clear()
+	var bb = ""
+
+	# ═══ 1. BONIFICADORES TOTALES ACUMULADOS ═══
+	bb += "[center][color=#00d2ff][font_size=13][b]⚡ BONIFICADORES TOTALES ACUMULADOS[/b][/font_size][/color][/center]\n\n"
+
+	var all_stat_keys = []
+	for k in saved_effects.keys():
+		if not all_stat_keys.has(k): all_stat_keys.append(k)
+	for k in pend_effects.keys():
+		if not all_stat_keys.has(k): all_stat_keys.append(k)
+
+	if all_stat_keys.is_empty():
+		bb += "[center][color=#778899][i]Aún no tienes talentos activos.\nAsigna puntos en los nodos del árbol para obtener bonificaciones permanentes para tu nave.[/i][/color][/center]\n\n"
+	else:
+		for key in all_stat_keys:
+			var s_val = saved_effects.get(key, 0.0)
+			var p_val = pend_effects.get(key, 0.0)
+			if abs(s_val) < 0.0001 and abs(p_val) < 0.0001:
+				continue
+
+			var meta = effect_meta.get(key, {"name": key, "icon": "✨", "unit": "%"})
+			var is_flat = key.ends_with("_flat")
+			var icon = meta.get("icon", "✨")
+			var name = meta.get("name", key)
+
+			var s_str = _format_stat_value(s_val, is_flat, true)
+			bb += icon + " [b]" + name + ":[/b] [color=#10b981][b]" + s_str + "[/b][/color]"
+			if abs(p_val) > 0.0001:
+				var p_str = _format_stat_value(p_val, is_flat, true)
+				bb += " [color=#ffd700](" + p_str + " pend.)[/color]"
+			bb += "\n"
+
+	# ═══ 2. DESGLOSE DETALLADO POR RAMAS ═══
+	if not active_by_cat.is_empty():
+		# Separador centrado ubicado CORRECTAMENTE entre las dos secciones
+		bb += "\n[center][color=#1e2d3d]──────────────────────[/color][/center]\n\n"
+		bb += "[center][color=#00d2ff][font_size=13][b]📁 DESGLOSE POR RAMAS[/b][/font_size][/color][/center]\n"
+
+		for cat_id in active_by_cat.keys():
+			var cat_obj = {}
+			for c in categories_list:
+				if c.get("id", "") == cat_id:
+					cat_obj = c
+					break
+
+			var cat_name = cat_obj.get("name", cat_id.capitalize())
+			var cat_emoji = cat_obj.get("emoji", "📁")
+			var cat_color_hex = cat_obj.get("color", "#00d2ff")
+
+			var items = active_by_cat[cat_id]
+			var cat_pts = 0
+			for it in items:
+				cat_pts += int(it["total"])
+
+			bb += "\n[color=" + cat_color_hex + "][b]" + cat_emoji + " " + cat_name.to_upper() + "[/b][/color] [color=#778899](" + str(cat_pts) + " pts)[/color]\n"
+
+			for it in items:
+				var t = it["talent"]
+				var s = int(it["saved"])
+				var p = int(it["pend"])
+				var m = int(it["max"])
+				var icon = t.get("icon", "🌳")
+				var tname = t.get("name", "Talento")
+
+				var lvl_str = "Nvl " + str(s)
+				if p > 0:
+					lvl_str += " [color=#ffd700](+" + str(p) + ")[/color]"
+				lvl_str += "/" + str(m)
+
+				bb += "  [color=#667788]•[/color] " + icon + " [b]" + tname + "[/b] — [color=#aaccff]" + lvl_str + "[/color]\n"
+
+				# Efectos individuales de este talento multiplicados por su nivel
+				var effs = t.get("effects", {})
+				for ek in effs:
+					var base_eff = float(effs[ek])
+					var cur_eff = base_eff * it["total"]
+					var em = effect_meta.get(ek, {"name": ek, "unit": "%"})
+					var is_flat = ek.ends_with("_flat")
+					var eff_str = _format_stat_value(cur_eff, is_flat, true)
+					bb += "    [color=#556677]↳[/color] [color=#8899aa]" + em.get("name", ek) + ":[/color] [color=#10b981]" + eff_str + "[/color]\n"
+
+	summary_rtl.append_text(bb)
 
 # ═══════════════════════════════════════════════════════
 # DIBUJADO
@@ -341,7 +678,7 @@ func _draw_nodes():
 		var saved_lvl = _get_saved_level(node_id)
 		var pend = pending_points.get(node_id, 0)
 		var current_lvl = saved_lvl + pend
-		var max_lvl = talent.get("maxLevel", 5)
+		var max_lvl = int(talent.get("maxLevel", 5))
 		var is_maxed = current_lvl >= max_lvl
 		var is_locked = _is_node_locked(node_id)
 		var is_hovered = hovered_node_id == node_id
@@ -349,153 +686,147 @@ func _draw_nodes():
 		var can_remove = pend > 0
 		var alpha = 0.4 if is_locked else 1.0
 
-		# ════════════ SMALL ════════════
+		# ════════════ HOVER Y GLOW PREMIUM POLIGONAL ════════════
+		# Resplandor cristalino armónico con la categoría del nodo (sin colores discordantes ni formas circulares)
+		var hover_rim = cc.lerp(Color.WHITE, 0.65)
+		var hover_glow = cc.lerp(Color.WHITE, 0.35)
+
+		# ════════════ SMALL (Hexágono compacto con puntas) ════════════
 		if ntype == "small":
-			# Glow hover
 			if is_hovered:
-				var glow_col = Color(cc.r, cc.g, cc.b, 0.25 * alpha)
-				if can_add:
-					glow_col = Color(0, 1, 0, 0.25)  # Verde = puede agregar
-				elif can_remove:
-					glow_col = Color(1, 0.3, 0.3, 0.25)  # Rojo = puede quitar
-				tree_canvas.draw_circle(scr, radius + 8, glow_col)
+				# Doble contorno fino hexagonal que acaricia las 6 puntas
+				_draw_hexagon_border(scr, radius + 3.0 * zoom_level, Color(hover_glow.r, hover_glow.g, hover_glow.b, 0.45 * alpha), 1.4)
+				_draw_hexagon_border(scr, radius + 6.0 * zoom_level, Color(cc.r, cc.g, cc.b, 0.20 * alpha), 1.0)
+				_draw_hexagon(scr, radius, Color(ccd.r * 1.25, ccd.g * 1.25, ccd.b * 1.25, alpha), hover_rim, ti["border"] + 0.6)
+				# Micro-destellos sutiles en los 6 vértices
+				for i in range(6):
+					var a = PI / 3.0 * i - PI / 6.0
+					var p1 = scr + Vector2(cos(a), sin(a)) * radius
+					var p2 = scr + Vector2(cos(a), sin(a)) * (radius + 3.5 * zoom_level)
+					tree_canvas.draw_line(p1, p2, hover_rim, 1.2)
+			else:
+				_draw_hexagon(scr, radius, Color(ccd.r, ccd.g, ccd.b, alpha), Color(cc.r, cc.g, cc.b, alpha * 0.8), ti["border"])
 
-			# Círculo base
-			tree_canvas.draw_circle(scr, radius, Color(0.02, 0.05, 0.1, alpha))
-
-			# Borde
-			var bc = Color.WHITE if is_hovered else cc
-			_draw_circle_border(scr, radius, Color(bc.r, bc.g, bc.b, alpha * 0.8), ti["border"])
-
-			# Borde punteado si tiene pendientes
+			# Borde hexagonal punteado si tiene pendientes
 			if pend > 0:
-				_draw_circle_border_dashed(scr, radius + 4 * zoom_level, Color(1, 0.84, 0, 0.7 * alpha), 2.0)
+				_draw_hexagon_dashed(scr, radius + 4.0 * zoom_level, Color(1, 0.84, 0, 0.85 * alpha), 1.8)
 
-		# ════════════ NOTABLE ════════════
+		# ════════════ NOTABLE (Hexágono reforzado de doble borde con rayos) ════════════
 		elif ntype == "notable":
-			var gp = 0.7 + sin(time * 2.0) * 0.3
+			var gp = 0.7 + sin(time * 2.5) * 0.3
 
 			if is_hovered:
-				var glow_col = Color(cc.r, cc.g, cc.b, 0.3 * alpha)
-				if can_add:
-					glow_col = Color(0, 1, 0, 0.3)
-				elif can_remove:
-					glow_col = Color(1, 0.3, 0.3, 0.3)
-				tree_canvas.draw_circle(scr, radius + 12, glow_col)
+				# Doble contorno hexagonal exterior fino y delicado
+				_draw_hexagon_border(scr, radius + 3.5 * zoom_level, Color(hover_glow.r, hover_glow.g, hover_glow.b, 0.50 * alpha), 1.6)
+				_draw_hexagon_border(scr, radius + 7.0 * zoom_level, Color(cc.r, cc.g, cc.b, 0.22 * alpha), 1.0)
+				_draw_hexagon(scr, radius, Color(ccd.r * 1.25, ccd.g * 1.25, ccd.b * 1.25, alpha), hover_rim, ti["border"] + 0.6)
+				# 6 rayos de energía cristalina que nacen de los vértices
+				for i in range(6):
+					var a = PI / 3.0 * i - PI / 6.0
+					var p1 = scr + Vector2(cos(a), sin(a)) * (radius - 1 * zoom_level)
+					var p2 = scr + Vector2(cos(a), sin(a)) * (radius + 6.5 * zoom_level)
+					tree_canvas.draw_line(p1, p2, hover_rim, 1.8)
 			else:
-				tree_canvas.draw_circle(scr, radius + 6, Color(cc.r, cc.g, cc.b, 0.06 * gp * alpha))
-
-			_draw_hexagon(scr, radius, Color(ccd.r, ccd.g, ccd.b, alpha), Color(cc.r, cc.g, cc.b, alpha * 0.8), ti["border"])
-
-			for i in range(6):
-				var a = PI / 3.0 * i - PI / 6.0
-				var p1 = scr + Vector2(cos(a), sin(a)) * (radius - 3 * zoom_level)
-				var p2 = scr + Vector2(cos(a), sin(a)) * (radius + 4 * zoom_level)
-				tree_canvas.draw_line(p1, p2, Color(cc.r, cc.g, cc.b, 0.4 * alpha), 1.5)
+				# Pulso suave en aristas exteriores
+				_draw_hexagon_border(scr, radius + 2 * zoom_level, Color(cc.r, cc.g, cc.b, 0.18 * gp * alpha), 1.0)
+				_draw_hexagon(scr, radius, Color(ccd.r, ccd.g, ccd.b, alpha), Color(cc.r, cc.g, cc.b, alpha * 0.85), ti["border"])
+				# Rayos normales en los 6 vértices
+				for i in range(6):
+					var a = PI / 3.0 * i - PI / 6.0
+					var p1 = scr + Vector2(cos(a), sin(a)) * (radius - 2 * zoom_level)
+					var p2 = scr + Vector2(cos(a), sin(a)) * (radius + 4 * zoom_level)
+					tree_canvas.draw_line(p1, p2, Color(cc.r, cc.g, cc.b, 0.45 * alpha), 1.5)
 
 			if pend > 0:
-				_draw_hexagon_dashed(scr, radius + 5 * zoom_level, Color(1, 0.84, 0, 0.6 * alpha), 2.0)
+				_draw_hexagon_dashed(scr, radius + 5.5 * zoom_level, Color(1, 0.84, 0, 0.85 * alpha), 2.0)
 
-		# ════════════ KEYSTONE ════════════
+		# ════════════ KEYSTONE (Escudo octogonal con diamantes angulares) ════════════
 		elif ntype == "keystone":
-			var gp = 0.6 + sin(time * 1.5) * 0.4
-
-			# Aura animada
-			for i in range(12):
-				var a = PI / 6.0 * i + time * 0.3
-				var r1 = radius + 12 * zoom_level
-				var r2 = radius + 16 * zoom_level
-				var p1 = scr + Vector2(cos(a), sin(a)) * r1
-				var p2 = scr + Vector2(cos(a), sin(a)) * r2
-				tree_canvas.draw_line(p1, p2, Color(cc.r, cc.g, cc.b, 0.2 * gp * alpha), 1.5)
-
-			_draw_circle_border(scr, radius + 10 * zoom_level, Color(1, 0.84, 0, 0.2 * alpha), 1.0)
+			var gp = 0.6 + sin(time * 1.8) * 0.4
 
 			if is_hovered:
-				var glow_col = Color(cc.r, cc.g, cc.b, 0.35 * alpha)
-				if can_add:
-					glow_col = Color(0, 1, 0, 0.35)
-				elif can_remove:
-					glow_col = Color(1, 0.3, 0.3, 0.35)
-				tree_canvas.draw_circle(scr, radius + 14, glow_col)
+				# Halo octagonal exterior delicado (sigue con exactitud las 8 puntas del escudo)
+				_draw_octagon_outline(scr, radius + 4.5 * zoom_level, Color(hover_glow.r, hover_glow.g, hover_glow.b, 0.55 * alpha), 1.8)
+				_draw_octagon_outline(scr, radius + 8.5 * zoom_level, Color(cc.r, cc.g, cc.b, 0.22 * alpha), 1.2)
+				# Escudo octogonal principal iluminado con el color de su rama
+				_draw_octagon_shield(scr, radius, Color(ccd.r * 1.25, ccd.g * 1.25, ccd.b * 1.25, alpha), hover_rim, 2.8)
 			else:
-				tree_canvas.draw_circle(scr, radius + 8, Color(1, 0.84, 0, 0.08 * gp * alpha))
+				_draw_octagon_outline(scr, radius + 3 * zoom_level, Color(cc.r, cc.g, cc.b, 0.18 * gp * alpha), 1.0)
+				_draw_octagon_shield(scr, radius, Color(ccd.r, ccd.g, ccd.b, alpha), Color(cc.r, cc.g, cc.b, alpha), 2.4)
 
-			_draw_octagon_shield(scr, radius, cc, alpha)
-
-			# Brillo
-			tree_canvas.draw_rect(Rect2(scr.x - radius * 0.6, scr.y - radius, radius * 1.2, radius * 0.5), Color(1, 1, 1, 0.06 * alpha))
-
-			# Diamantes
+			# 4 Diamantes flotantes en las diagonales (puntas de las 4 esquinas)
 			for i in range(4):
 				var a = PI / 2.0 * i + PI / 4.0
-				var dx = scr.x + (radius + 6 * zoom_level) * cos(a)
-				var dy = scr.y + (radius + 6 * zoom_level) * sin(a)
-				var ds = 3.0 * zoom_level
+				var dist_d = radius + (7.0 if is_hovered else 6.0) * zoom_level
+				var dx = scr.x + dist_d * cos(a)
+				var dy = scr.y + dist_d * sin(a)
+				var ds = (3.8 if is_hovered else 3.0) * zoom_level
 				var diamond = PackedVector2Array([
 					Vector2(dx, dy - ds), Vector2(dx + ds, dy),
 					Vector2(dx, dy + ds), Vector2(dx - ds, dy)
 				])
-				tree_canvas.draw_colored_polygon(diamond, Color(cc.r, cc.g, cc.b, 0.6 * gp * alpha))
+				var d_col = hover_rim if is_hovered else Color(cc.r, cc.g, cc.b, 0.8 * gp * alpha)
+				tree_canvas.draw_colored_polygon(diamond, d_col)
+
+			# 4 Micro-diamantes en las puntas cardinales (arriba, abajo, izquierda, derecha)
+			for i in range(4):
+				var a = PI / 2.0 * i
+				var dist_d = radius + (5.5 if is_hovered else 5.0) * zoom_level
+				var dx = scr.x + dist_d * cos(a)
+				var dy = scr.y + dist_d * sin(a)
+				var ds = (2.4 if is_hovered else 2.0) * zoom_level
+				var diamond = PackedVector2Array([
+					Vector2(dx, dy - ds), Vector2(dx + ds, dy),
+					Vector2(dx, dy + ds), Vector2(dx - ds, dy)
+				])
+				var d_col = hover_glow if is_hovered else Color(cc.r, cc.g, cc.b, 0.55 * gp * alpha)
+				tree_canvas.draw_colored_polygon(diamond, d_col)
 
 			if pend > 0:
-				_draw_circle_border_dashed(scr, radius + 18 * zoom_level, Color(1, 0.84, 0, 0.5 * alpha), 2.0)
+				_draw_octagon_outline_dashed(scr, radius + 6.5 * zoom_level, Color(1, 0.84, 0, 0.85 * alpha), 2.0)
+
+		# ═══════ Barritas de nivel (justo debajo del nodo con margen generoso) ═══════
+		var bar_h = 3.5 * zoom_level
+		var bar_gap = (12.0 if ntype == "keystone" else (9.0 if ntype == "notable" else 7.0)) * zoom_level
+		var bar_y = scr.y + radius + bar_gap
+		_draw_level_bars(scr.x, bar_y, saved_lvl, pend, max_lvl, cc, alpha)
 
 		# ═══════ Texto e icono ═══════
 		var default_font = ThemeDB.fallback_font
 		if default_font:
+			# Fondo poligonal oscuro detrás del icono para nitidez
+			_draw_hexagon(scr, radius * 0.52, Color(0.01, 0.02, 0.06, 0.65 * alpha), Color(cc.r, cc.g, cc.b, 0.2 * alpha), 1.0)
+
 			# Icono (centrado manualmente)
 			var icon = talent.get("icon", "🌳")
 			var icon_fs = max(int(16 * zoom_level), 8) if ntype == "small" else (max(int(20 * zoom_level), 10) if ntype == "notable" else max(int(28 * zoom_level), 14))
-			tree_canvas.draw_circle(scr, radius * 0.5, Color(0, 0, 0, 0.4 * alpha))
 			var icon_sz = default_font.get_string_size(icon, HORIZONTAL_ALIGNMENT_CENTER, -1, icon_fs)
 			tree_canvas.draw_string(default_font, Vector2(scr.x - icon_sz.x * 0.45, scr.y + icon_sz.y * 0.35), icon, HORIZONTAL_ALIGNMENT_LEFT, -1, icon_fs, Color(1, 1, 1, alpha))
 
-			# Nombre
+			# Nombre: ubicado de manera limpia y con espacio DEBAJO de las barritas (sin taparse jamás)
 			var nm = talent.get("name", "")
 			var nm_fs = max(int(9 * zoom_level), 6)
 			var nm_sz = default_font.get_string_size(nm, HORIZONTAL_ALIGNMENT_CENTER, -1, nm_fs)
-			tree_canvas.draw_string(default_font, Vector2(scr.x - nm_sz.x / 2, scr.y + radius + 4 * zoom_level + nm_sz.y), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nm_fs, Color(1, 1, 1, 0.8 * alpha))
+			var bg_pad = 2.0 * zoom_level
+			var bar_bottom = bar_y + bar_h + bg_pad
+			var name_gap = 5.0 * zoom_level
+			var name_y = bar_bottom + name_gap + (nm_sz.y * 0.8)
+			tree_canvas.draw_string(default_font, Vector2(scr.x - nm_sz.x / 2, name_y), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nm_fs, Color(1, 1, 1, 0.85 * alpha))
 
-			# Indicador de nivel
-			if saved_lvl > 0 or pend > 0:
-				var lvl_text = str(int(saved_lvl))
-				if pend > 0:
-					lvl_text += "(+" + str(int(pend)) + ")"
-				lvl_text += "/" + str(int(max_lvl))
-				var lvl_fs = max(int(8 * zoom_level), 5)
-				var lvl_sz = default_font.get_string_size(lvl_text, HORIZONTAL_ALIGNMENT_CENTER, -1, lvl_fs)
-				var lvl_col = Color(1, 0.84, 0, 0.9) if is_maxed else Color(1, 1, 1, 0.7)
-				if pend > 0 and saved_lvl == 0:
-					lvl_col = Color(1, 0.84, 0, 0.8)
-				tree_canvas.draw_string(default_font, Vector2(scr.x - lvl_sz.x / 2, scr.y - radius - 12 * zoom_level + lvl_sz.y), lvl_text, HORIZONTAL_ALIGNMENT_LEFT, -1, lvl_fs, Color(lvl_col.r, lvl_col.g, lvl_col.b, lvl_col.a * alpha))
-
-			# Indicador de bloqueado
+			# Indicador de bloqueado (al centro del nodo si está sellado)
 			if is_locked:
 				var lk = "🔒"
-				var lk_fs = max(int(14 * zoom_level), 5)
+				var lk_fs = max(int(16 * zoom_level), 6)
 				var lk_sz = default_font.get_string_size(lk, HORIZONTAL_ALIGNMENT_CENTER, -1, lk_fs)
-				tree_canvas.draw_string(default_font, scr - lk_sz / 2, lk, HORIZONTAL_ALIGNMENT_LEFT, -1, lk_fs, Color(1, 0.84, 0, 0.7))
+				tree_canvas.draw_string(default_font, scr - lk_sz / 2, lk, HORIZONTAL_ALIGNMENT_LEFT, -1, lk_fs, Color(1, 0.84, 0, 0.85))
 
-		# Barras de nivel
-		var bar_y = scr.y + radius + (18 if ntype == "keystone" else 14) * zoom_level
-		_draw_level_bars(scr.x, bar_y, saved_lvl, pend, max_lvl, cc, alpha)
-
-func _draw_circle_border(center: Vector2, radius: float, color: Color, width: float):
+func _draw_hexagon_border(center: Vector2, radius: float, color: Color, width: float):
 	var pts = PackedVector2Array()
-	for i in range(33):
-		var a = PI * 2.0 * i / 32.0
+	for i in range(6):
+		var a = PI / 3.0 * i - PI / 6.0
 		pts.append(center + Vector2(cos(a), sin(a)) * radius)
-	for i in range(32):
-		tree_canvas.draw_line(pts[i], pts[i + 1], color, width)
-
-func _draw_circle_border_dashed(center: Vector2, radius: float, color: Color, width: float):
-	var pts = PackedVector2Array()
-	for i in range(33):
-		var a = PI * 2.0 * i / 32.0
-		pts.append(center + Vector2(cos(a), sin(a)) * radius)
-	for i in range(16):
-		tree_canvas.draw_line(pts[i * 2], pts[i * 2 + 1], color, width)
+	for i in range(6):
+		tree_canvas.draw_line(pts[i], pts[(i + 1) % 6], color, width)
 
 func _draw_hexagon(center: Vector2, radius: float, fill: Color, border: Color, bw: float):
 	var pts = PackedVector2Array()
@@ -511,10 +842,10 @@ func _draw_hexagon_dashed(center: Vector2, radius: float, color: Color, width: f
 	for i in range(6):
 		var a = PI / 3.0 * i - PI / 6.0
 		pts.append(center + Vector2(cos(a), sin(a)) * radius)
-	for i in range(3):
-		tree_canvas.draw_line(pts[i * 2], pts[i * 2 + 1], color, width)
+	for i in range(6):
+		_draw_dashed_line(pts[i], pts[(i + 1) % 6], color, width, 4.0 * zoom_level, 3.0 * zoom_level)
 
-func _draw_octagon_shield(center: Vector2, radius: float, cat_color: Color, alpha: float):
+func _draw_octagon_shield(center: Vector2, radius: float, fill_color: Color, border_color: Color, width: float = 2.4):
 	var outer_r = radius
 	var inner_r = radius * 0.82
 	var pts = PackedVector2Array()
@@ -523,20 +854,48 @@ func _draw_octagon_shield(center: Vector2, radius: float, cat_color: Color, alph
 		var ai = ao + PI / 8.0
 		pts.append(center + Vector2(cos(ao), sin(ao)) * outer_r)
 		pts.append(center + Vector2(cos(ai), sin(ai)) * inner_r)
-	tree_canvas.draw_colored_polygon(pts, Color(0.08, 0.14, 0.22, alpha))
-	var bc = Color(1, 0.84, 0, alpha)
+	tree_canvas.draw_colored_polygon(pts, fill_color)
 	for i in range(pts.size()):
 		var ni = (i + 1) % pts.size()
-		var t = float(i) / float(pts.size())
-		var c = bc.lerp(Color(cat_color.r, cat_color.g, cat_color.b, alpha), t)
-		tree_canvas.draw_line(pts[i], pts[ni], c, 3.0)
+		tree_canvas.draw_line(pts[i], pts[ni], border_color, width)
+
+func _draw_octagon_outline(center: Vector2, radius: float, color: Color, width: float):
+	var outer_r = radius
+	var inner_r = radius * 0.82
+	var pts = PackedVector2Array()
+	for i in range(8):
+		var ao = PI / 4.0 * i - PI / 8.0
+		var ai = ao + PI / 8.0
+		pts.append(center + Vector2(cos(ao), sin(ao)) * outer_r)
+		pts.append(center + Vector2(cos(ai), sin(ai)) * inner_r)
+	for i in range(pts.size()):
+		tree_canvas.draw_line(pts[i], pts[(i + 1) % pts.size()], color, width)
+
+func _draw_octagon_outline_dashed(center: Vector2, radius: float, color: Color, width: float):
+	var outer_r = radius
+	var inner_r = radius * 0.82
+	var pts = PackedVector2Array()
+	for i in range(8):
+		var ao = PI / 4.0 * i - PI / 8.0
+		var ai = ao + PI / 8.0
+		pts.append(center + Vector2(cos(ao), sin(ao)) * outer_r)
+		pts.append(center + Vector2(cos(ai), sin(ai)) * inner_r)
+	for i in range(pts.size()):
+		_draw_dashed_line(pts[i], pts[(i + 1) % pts.size()], color, width, 4.0 * zoom_level, 3.0 * zoom_level)
 
 func _draw_level_bars(cx: float, y: float, saved: int, pending: int, max_val: int, cat_color: Color, alpha: float):
-	var bw = 12.0 * zoom_level
-	var bh = 3.0 * zoom_level
+	if max_val <= 0:
+		return
+	var bw = 10.0 * zoom_level
+	var bh = 3.5 * zoom_level
 	var sep = 2.0 * zoom_level
 	var total_w = max_val * bw + (max_val - 1) * sep
 	var start_x = cx - total_w / 2.0
+
+	# Fondo oscuro estilizado para contraste limpio
+	var bg_pad = 2.0 * zoom_level
+	tree_canvas.draw_rect(Rect2(start_x - bg_pad, y - bg_pad, total_w + bg_pad * 2, bh + bg_pad * 2), Color(0.02, 0.03, 0.06, 0.85 * alpha))
+	tree_canvas.draw_rect(Rect2(start_x - bg_pad, y - bg_pad, total_w + bg_pad * 2, bh + bg_pad * 2), Color(0.12, 0.18, 0.28, 0.5 * alpha), false, 1.0)
 
 	for i in range(max_val):
 		var bx = start_x + i * (bw + sep)
@@ -545,18 +904,18 @@ func _draw_level_bars(cx: float, y: float, saved: int, pending: int, max_val: in
 			# Nivel guardado: color sólido de categoría
 			col = Color(cat_color.r, cat_color.g, cat_color.b, alpha)
 		elif i < saved + pending:
-			# Nivel pendiente: dorado con borde punteado
-			col = Color(1, 0.84, 0, 0.8 * alpha)
+			# Nivel pendiente: dorado
+			col = Color(1, 0.84, 0, 0.9 * alpha)
 		else:
 			# Vacío
-			col = Color(1, 1, 1, 0.12 * alpha)
+			col = Color(1, 1, 1, 0.15 * alpha)
 		tree_canvas.draw_rect(Rect2(bx, y, bw, bh), col)
 
 	# Borde punteado para barras pendientes
 	if pending > 0:
 		var pend_start = start_x + saved * (bw + sep)
 		var pend_width = pending * bw + (pending - 1) * sep
-		_draw_rect_dashed_border(Rect2(pend_start - 1, y - 1, pend_width + 2, bh + 2), Color(1, 0.84, 0, 0.6 * alpha), 1.0)
+		_draw_rect_dashed_border(Rect2(pend_start - 1, y - 1, pend_width + 2, bh + 2), Color(1, 0.84, 0, 0.8 * alpha), 1.0)
 
 func _draw_rect_dashed_border(rect: Rect2, color: Color, width: float):
 	var p0 = rect.position
@@ -575,6 +934,13 @@ func _draw_rect_dashed_border(rect: Rect2, color: Color, width: float):
 func _on_tree_input(event: InputEvent):
 	if not tree_canvas:
 		return
+
+	# Cerrar panel de resumen con tecla ESC
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if summary_panel and summary_panel.visible:
+			_set_summary_panel_visible(false)
+			accept_event()
+			return
 
 	if event is InputEventMouseButton:
 		# ═══ ZOOM (rueda) ═══
@@ -660,7 +1026,7 @@ func _try_add_pending(node_id: String):
 	var saved = _get_saved_level(node_id)
 	var pend = pending_points.get(node_id, 0)
 	var current = saved + pend
-	var max_lvl = talent.get("maxLevel", 5)
+	var max_lvl = int(talent.get("maxLevel", 5))
 
 	if current >= max_lvl:
 		return
@@ -801,8 +1167,12 @@ func _update_tooltip(screen_pos: Vector2):
 	var ntype = nd.get("nodeType", "small")
 	var type_label = "Pequeño" if ntype == "small" else ("Notable" if ntype == "notable" else "Clave")
 	var cat = talent.get("category", "")
-	var cat_labels = {"engineering": "Ingeniería", "combat": "Combate", "science": "Ciencia"}
-	var cat_label = cat_labels.get(cat, cat)
+	var cat_label = cat  # fallback
+	var categories = talents_config.get("categories", [])
+	for c in categories:
+		if c.get("id", "") == cat:
+			cat_label = c.get("name", cat)
+			break
 	var cc = cat_colors.get(cat, Color.CYAN)
 	var saved = _get_saved_level(hovered_node_id)
 	var pend = pending_points.get(hovered_node_id, 0)
@@ -826,47 +1196,55 @@ func _update_tooltip(screen_pos: Vector2):
 		"group_bonus": "Bonus Grupo", "boss_loot_bonus": "Loot Bosses",
 		"dash_distance": "Distancia Dash"
 	}
-	for key in talent.get("effects", {}):
-		var val = talent["effects"][key]
-		var label = effect_labels.get(key, key)
-		var is_flat = key.ends_with("_flat")
-		var total_val = val * max_lvl
-		if is_flat:
-			effects_text += "  [color=#7ee8a0]▸[/color] " + label + ": [color=#10b981]" + str(int(total_val * 100) / 100.0) + "s[/color]\n"
-		else:
-			var pct = int(val * 100 * max_lvl)
-			effects_text += "  [color=#7ee8a0]▸[/color] " + label + ": [color=#10b981]+" + str(pct) + "%[/color]\n"
+	# Efectos aplicados actualmente (solo si tiene puntos asignados o pendientes)
+	var current_effects_text = ""
+	if (saved + pend) > 0:
+		for key in talent.get("effects", {}):
+			var val = float(talent["effects"][key])
+			var label = effect_labels.get(key, key)
+			var is_flat = key.ends_with("_flat")
+			var applied_val = val * saved
+			var pend_val = val * pend
+			var applied_str = _format_stat_value(applied_val, is_flat, true)
+			current_effects_text += "  [color=#7ee8a0]▸[/color] " + label + ": [color=#10b981][b]" + applied_str + "[/b][/color]"
+			if pend > 0:
+				var p_str = _format_stat_value(pend_val, is_flat, true)
+				current_effects_text += " [color=#ffd700](" + p_str + " pend.)[/color]"
+			current_effects_text += "\n"
 
 	var lock_text = "\n[color=#ff4444]🔒 BLOQUEADO[/color]" if is_locked else ""
 	var pend_text = ""
-	if pend > 0:
+	if pend > 0 and saved == 0:
 		pend_text = "\n[color=#ffd700]📝 Pendiente: +" + str(pend) + " punto(s)[/color]"
-
-	# Barra de progreso visual
-	var bar_len = 10
-	var filled = clampi(int(float(saved) / float(max_lvl) * bar_len) if max_lvl > 0 else 0, 0, bar_len)
-	var bar = "[color=#2a3a4a]" + "●".repeat(bar_len) + "[/color]"
-	if filled > 0:
-		bar = "[color=#10b981]" + "●".repeat(filled) + "[/color][color=#2a3a4a]" + "●".repeat(bar_len - filled) + "[/color]"
 
 	tooltip_rtl.clear()
 	tooltip_rtl.append_text("[center][color=#" + cc.to_html(false) + "][font_size=16]" + talent.get("name", "") + "[/font_size][/color][/center]")
 	tooltip_rtl.append_text("\n[center][color=#667788]" + cat_label.to_upper() + " — " + type_label.to_upper() + "[/color][/center]")
-	tooltip_rtl.append_text("\n[center]" + bar + "[/center]")
 	tooltip_rtl.append_text("\n[center][color=#8899aa]Nivel [color=#ffffff]" + str(int(saved)) + "[/color] / " + str(int(max_lvl)) + "[/color][/center]")
 	if pend > 0:
 		tooltip_rtl.append_text("\n[center][color=#ffd700](+" + str(pend) + " pendiente)[/color][/center]")
 	tooltip_rtl.append_text("\n[color=#556677]─────────────────────[/color]")
-	tooltip_rtl.append_text("\n[i][color=#8899aa]" + talent.get("desc", "Sin descripción") + "[/i][/color]")
-	if effects_text != "":
+
+	# Sanitizar descripción eliminando cualquier tag residual de cursiva roto
+	var raw_desc = talent.get("desc", "Sin descripción").replace("[/i]", "").replace("[i]", "")
+	tooltip_rtl.append_text("\n[center][color=#8899aa][i]" + raw_desc + "[/i][/color][/center]")
+
+	if current_effects_text != "":
 		tooltip_rtl.append_text("\n[color=#556677]─────────────────────[/color]")
-		tooltip_rtl.append_text("\n[color=#aabbcc][font_size=11]EFECTOS POR NIVEL[/font_size][/color]")
-		tooltip_rtl.append_text("\n" + effects_text)
+		tooltip_rtl.append_text("\n[color=#aabbcc][font_size=11]EFECTO APLICADO ACTUALMENTE[/font_size][/color]")
+		tooltip_rtl.append_text("\n" + current_effects_text)
 	tooltip_rtl.append_text(lock_text)
 	tooltip_rtl.append_text(pend_text)
 
 	tooltip_rtl.position = Vector2.ZERO
-	tooltip_panel.position = screen_pos + Vector2(20, -10)
+	var tip_pos = screen_pos + Vector2(20, -10)
+	if tree_canvas:
+		var c_sz = tree_canvas.size
+		if tip_pos.x + 280 > c_sz.x:
+			tip_pos.x = max(10.0, screen_pos.x - 290)
+		if tip_pos.y + 220 > c_sz.y:
+			tip_pos.y = max(10.0, c_sz.y - 230)
+	tooltip_panel.position = tip_pos
 	tooltip_panel.visible = true
 	tooltip_rtl.visible = true
 	# Ajustar tamaño del panel al contenido

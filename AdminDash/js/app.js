@@ -178,13 +178,42 @@ function showTab(tabId) {
     // Refrescar tab actual
     refreshCurrentTab();
 
+    // v2.1: Si es el mapa de talentos, garantizar sincronización de resolución y centrado
+    if (tabId === 'talent-mapper') {
+        setTimeout(() => {
+            if (typeof syncTalentCanvasSize === 'function') syncTalentCanvasSize();
+            if (typeof renderTalentMapper === 'function') renderTalentMapper();
+        }, 60);
+    }
+
     // Sincronizar el árbol del sidebar en caliente
     if (typeof updateSidebar === 'function') {
         updateSidebar();
     }
 }
 
+window.enterOfflineMode = function(targetTab = 'talent-mapper') {
+    const overlay = document.getElementById('login-overlay');
+    if (overlay) overlay.style.display = 'none';
+    if (!config || Object.keys(config).length === 0) {
+        config = {};
+        patchMechanicsLib();
+    }
+    document.getElementById('conn-dot').classList.add('online');
+    document.getElementById('conn-text').innerText = '💻 MODO PREVIEW';
+    if (typeof showTab === 'function') {
+        showTab(targetTab);
+    }
+};
+
 window.onload = () => {
+    // Soporte para apertura directa en modo offline/preview (útil para desarrollo o verificación)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('preview') || urlParams.get('offline') || urlParams.get('bypass')) {
+        window.enterOfflineMode(urlParams.get('tab') || 'talent-mapper');
+        return;
+    }
+
     // Inicializar el selector de entorno al cargar
     setEnv(activeEnv);
 
@@ -1480,8 +1509,13 @@ function patchMechanicsLib() {
         config.talentsConfig = {
             talents: [],
             nodes: {},
-            connections: []
+            connections: [],
+            categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
         };
+    }
+
+    if (!config.talentsConfig.categories || !Array.isArray(config.talentsConfig.categories) || config.talentsConfig.categories.length === 0) {
+        config.talentsConfig.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
     }
 
     if (!config.talentsConfig.talents || config.talentsConfig.talents.length === 0) {
@@ -2985,13 +3019,18 @@ function initMapRadar() {
 // LOGICA DE TALENTOS Y MAPA DE CONEXIONES (TREE MAP)
 // ============================================================================
 
-let talentMapperTool = 'select'; // 'select' o 'connect'
-let selectedTalentNodeId = null;
-let connectStartNodeId = null;
-let talentPanOffset = { x: 0, y: 0 };
-let talentZoom = 1.0; // Zoom level (1.0 = 100%)
-const TALENT_ZOOM_MIN = 0.2;
-const TALENT_ZOOM_MAX = 3.0;
+var talentMapperTool = 'select'; // 'select' o 'connect'
+var selectedTalentNodeId = null;
+var connectStartNodeId = null;
+var talentPanOffset = { x: 0, y: 0 };
+var talentZoom = 1.0; // Zoom level (1.0 = 100%)
+window.talentMapperTool = talentMapperTool;
+window.selectedTalentNodeId = selectedTalentNodeId;
+window.connectStartNodeId = connectStartNodeId;
+window.talentPanOffset = talentPanOffset;
+window.talentZoom = talentZoom;
+const TALENT_ZOOM_MIN = 0.15;
+const TALENT_ZOOM_MAX = 4.0;
 
 // Bounds del árbol - calculados a partir de los nodos colocados
 function getNodeBounds() {
@@ -3022,13 +3061,15 @@ function clampPanOffset() {
     // No forzar nada — solo evitar que se pierda completamente la vista
     // El usuario puede mover libremente, solo se limita al zoom reset
 }
-let isPanningTalents = false;
-let panStart = { x: 0, y: 0 };
-let isDraggingTalentNode = false;
-let dragNodeId = null;
-let talentMapperCanvasInitialized = false;
-let talentMapperHoveredNode = null; // Nodo bajo el cursor
-let talentMapperSearchTerm = ''; // Filtro de búsqueda
+var isPanningTalents = false;
+var panStart = { x: 0, y: 0 };
+var isDraggingTalentNode = false;
+var dragNodeId = null;
+var talentMapperCanvasInitialized = false;
+var talentMapperHoveredNode = null; // Nodo bajo el cursor
+var talentMapperSearchTerm = ''; // Filtro de búsqueda
+window.talentMapperHoveredNode = talentMapperHoveredNode;
+window.talentMapperSearchTerm = talentMapperSearchTerm;
 
 // Tamaños de nodos por tipo (estilo POE2)
 const NODE_TYPES = {
@@ -3037,12 +3078,277 @@ const NODE_TYPES = {
     keystone: { radius: 40, iconSize: '28px', labelSize: '12px', glowIntensity: 1.0, borderWidth: 4, label: 'Clave' }
 };
 
+// ═══════════════════════════════════════════════
+// SISTEMA DE CATEGORÍAS / RAMAS DINÁMICAS
+// ═══════════════════════════════════════════════
+
+const DEFAULT_CATEGORIES = [
+    { id: 'engineering', name: 'Ingeniería', color: '#00d2ff', emoji: '🛠️' },
+    { id: 'combat', name: 'Combate', color: '#ff3131', emoji: '⚔️' },
+    { id: 'science', name: 'Ciencia', color: '#be31ff', emoji: '🔬' }
+];
+
+window.darkenHexColor = function(hex, factor = 0.35) {
+    if (!hex || typeof hex !== 'string') return '#0a1428';
+    let clean = hex.replace('#', '');
+    if (clean.length === 3) clean = clean.split('').map(c => c + c).join('');
+    if (clean.length !== 6) return '#0a1428';
+    const num = parseInt(clean, 16);
+    let r = Math.max(0, Math.floor(((num >> 16) & 255) * factor));
+    let g = Math.max(0, Math.floor(((num >> 8) & 255) * factor));
+    let b = Math.max(0, Math.floor((num & 255) * factor));
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+};
+
+window.getCategories = function() {
+    if (!config.talentsConfig) config.talentsConfig = {};
+    if (!config.talentsConfig.categories || !Array.isArray(config.talentsConfig.categories) || config.talentsConfig.categories.length === 0) {
+        config.talentsConfig.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    }
+    return config.talentsConfig.categories;
+};
+
+window.getCategoryById = function(id) {
+    const cats = window.getCategories();
+    return cats.find(c => c.id === id) || cats[0] || { id: 'default', name: 'General', color: '#00d2ff', emoji: '⭐' };
+};
+
+window.getCategoryColor = function(catId) {
+    return window.getCategoryById(catId).color || '#00d2ff';
+};
+
+window.getCategoryEmoji = function(catId) {
+    return window.getCategoryById(catId).emoji || '⭐';
+};
+
+window.getCategoryName = function(catId) {
+    return window.getCategoryById(catId).name || catId;
+};
+
+window.renderCategoriesPanel = function() {
+    const targets = [
+        document.getElementById('talent-categories-panel'),
+        document.getElementById('talent-categories-modal-content')
+    ].filter(Boolean);
+
+    if (targets.length === 0) return;
+
+    const cats = window.getCategories();
+    const talents = (config.talentsConfig && config.talentsConfig.talents) ? config.talentsConfig.talents : [];
+
+    const html = `
+        <div class="card" style="background: rgba(12, 20, 36, 0.7); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 10px; padding: 1.2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <div style="color: var(--primary); font-size: 0.95rem; font-weight: bold; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                        <span>📁 RAMAS DEL ÁRBOL DE TALENTOS</span>
+                        <span style="font-size: 0.7rem; background: rgba(0,210,255,0.15); color: var(--primary); padding: 2px 8px; border-radius: 12px; font-weight: normal;">${cats.length} activas</span>
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 3px;">
+                        Personaliza los nombres, colores, iconos e identificadores de tus ramas. Todo cambio actualiza el mapa y los filtros en vivo.
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.75rem;" onclick="addCategory()">
+                    ➕ NUEVA RAMA
+                </button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                ${cats.map((c, i) => {
+                    const assignedCount = talents.filter(t => t.category === c.id).length;
+                    return `
+                    <div style="display: flex; gap: 10px; align-items: center; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 8px; border: 1px solid ${c.color}40; flex-wrap: wrap; transition: border-color 0.2s;">
+                        <!-- Emoji/Icono -->
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 0.65rem; color: #888; margin-bottom: 2px;">Icono</span>
+                            <input type="text" value="${c.emoji || '⭐'}" title="Emoji o Icono" style="width: 44px; text-align: center; font-size: 1.25rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 4px;" onchange="updateCategory(${i}, 'emoji', this.value)">
+                        </div>
+
+                        <!-- Nombre de la Rama -->
+                        <div style="flex: 2; min-width: 150px; display: flex; flex-direction: column;">
+                            <span style="font-size: 0.65rem; color: #888; margin-bottom: 2px;">Nombre de la Rama</span>
+                            <input type="text" value="${reqAttrEscape(c.name)}" placeholder="Nombre de la rama" style="width: 100%; font-size: 0.85rem; font-weight: bold; color: white; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 10px;" onchange="updateCategory(${i}, 'name', this.value)">
+                        </div>
+
+                        <!-- ID Técnico -->
+                        <div style="flex: 1; min-width: 130px; display: flex; flex-direction: column;">
+                            <span style="font-size: 0.65rem; color: #888; margin-bottom: 2px;">ID Técnico (slug)</span>
+                            <input type="text" value="${reqAttrEscape(c.id)}" placeholder="id_unico" style="width: 100%; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: var(--accent); background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 8px;" onchange="updateCategory(${i}, 'id', this.value)">
+                        </div>
+
+                        <!-- Selector de Color -->
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <span style="font-size: 0.65rem; color: #888; margin-bottom: 2px;">Color</span>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <input type="color" value="${c.color || '#00d2ff'}" title="Color de la rama" style="width: 36px; height: 32px; border: none; border-radius: 6px; cursor: pointer; background: transparent; padding: 0;" onchange="updateCategory(${i}, 'color', this.value)">
+                                <span style="font-size: 0.7rem; font-family: 'JetBrains Mono'; color: ${c.color};">${c.color}</span>
+                            </div>
+                        </div>
+
+                        <!-- Contador de Talentos -->
+                        <div style="display: flex; flex-direction: column; align-items: center; min-width: 70px;">
+                            <span style="font-size: 0.65rem; color: #888; margin-bottom: 2px;">Talentos</span>
+                            <span style="font-size: 0.72rem; padding: 4px 8px; border-radius: 12px; background: ${c.color}20; color: ${c.color}; border: 1px solid ${c.color}40; font-weight: bold;">
+                                ${assignedCount}
+                            </span>
+                        </div>
+
+                        <!-- Botón Eliminar -->
+                        <div style="display: flex; flex-direction: column; justify-content: flex-end;">
+                            <button class="btn btn-secondary" style="background: rgba(255,59,48,0.1); border-color: rgba(255,59,48,0.3); color: #ff3b30; padding: 6px 10px; font-size: 0.75rem;" onclick="removeCategory(${i})" title="Eliminar esta rama">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+
+    targets.forEach(el => { el.innerHTML = html; });
+};
+
+window.addCategory = function() {
+    const cats = window.getCategories();
+    const newIdx = cats.length + 1;
+    const colors = ['#00d2ff', '#ff3131', '#be31ff', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'];
+    const chosenColor = colors[newIdx % colors.length];
+    const emojis = ['🌟', '🛡️', '⚡', '🌀', '🔮', '🧬', '🚀', '🔥'];
+    const chosenEmoji = emojis[newIdx % emojis.length];
+
+    const id = 'rama_' + Date.now().toString(36);
+    cats.push({
+        id: id,
+        name: `Nueva Rama ${newIdx}`,
+        color: chosenColor,
+        emoji: chosenEmoji
+    });
+
+    window.renderCategoriesPanel();
+    if (typeof renderTalentCreator === 'function') renderTalentCreator();
+    if (typeof renderTalentMapper === 'function') renderTalentMapper();
+    if (typeof updateBranchStats === 'function') updateBranchStats();
+};
+
+window.removeCategory = function(idx) {
+    const cats = window.getCategories();
+    if (cats.length <= 1) {
+        alert('Debe existir al menos una rama de talentos.');
+        return;
+    }
+
+    const targetCat = cats[idx];
+    const talents = (config.talentsConfig && config.talentsConfig.talents) ? config.talentsConfig.talents : [];
+    const assignedCount = talents.filter(t => t.category === targetCat.id).length;
+
+    const remainingCats = cats.filter((_, i) => i !== idx);
+    const fallbackCat = remainingCats[0];
+
+    const confirmMsg = assignedCount > 0
+        ? `¿Eliminar la rama "${targetCat.name}"? Los ${assignedCount} talentos asignados se reasignarán automáticamente a "${fallbackCat.name}".`
+        : `¿Eliminar la rama "${targetCat.name}"?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    cats.splice(idx, 1);
+
+    // Reasignar talentos huérfanos a la rama remanente
+    talents.forEach(t => {
+        if (t.category === targetCat.id) {
+            t.category = fallbackCat.id;
+        }
+    });
+
+    // Reasignar en talentos sellados si aplica
+    if (config.talentsLockedConfig && Array.isArray(config.talentsLockedConfig)) {
+        config.talentsLockedConfig.forEach(t => {
+            if (t.category === targetCat.id) t.category = fallbackCat.id;
+        });
+    }
+
+    window.renderCategoriesPanel();
+    if (typeof renderTalentCreator === 'function') renderTalentCreator();
+    if (typeof renderTalentMapper === 'function') renderTalentMapper();
+    if (typeof updateBranchStats === 'function') updateBranchStats();
+};
+
+window.updateCategory = function(idx, field, value) {
+    const cats = window.getCategories();
+    if (!cats[idx]) return;
+
+    const oldCat = cats[idx];
+    const oldId = oldCat.id;
+
+    if (field === 'id') {
+        const cleanId = String(value).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        if (!cleanId) return;
+        if (cleanId !== oldId && cats.some((c, i) => i !== idx && c.id === cleanId)) {
+            alert('El ID técnico ya está en uso por otra rama.');
+            window.renderCategoriesPanel();
+            return;
+        }
+        oldCat.id = cleanId;
+
+        // Migrar automáticamente todos los talentos vinculados al nuevo ID
+        const talents = (config.talentsConfig && config.talentsConfig.talents) ? config.talentsConfig.talents : [];
+        talents.forEach(t => {
+            if (t.category === oldId) t.category = cleanId;
+        });
+
+        if (config.talentsLockedConfig && Array.isArray(config.talentsLockedConfig)) {
+            config.talentsLockedConfig.forEach(t => {
+                if (t.category === oldId) t.category = cleanId;
+            });
+        }
+    } else {
+        oldCat[field] = value;
+    }
+
+    window.renderCategoriesPanel();
+    if (typeof renderTalentCreator === 'function') renderTalentCreator();
+    if (typeof renderTalentMapper === 'function') renderTalentMapper();
+    if (typeof updateBranchStats === 'function') updateBranchStats();
+};
+
+window.openTalentCategoriesModal = function() {
+    let modal = document.getElementById('talent-categories-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'talent-categories-modal';
+        modal.style.cssText = 'display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;';
+        modal.innerHTML = `
+            <div style="background: #091220; border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 14px; width: 100%; max-width: 820px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+                    <h3 style="margin: 0; color: var(--primary); font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+                        <span>📁 CONFIGURACIÓN DE RAMAS DE TALENTOS</span>
+                    </h3>
+                    <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="closeTalentCategoriesModal()">✕ CERRAR</button>
+                </div>
+                <div id="talent-categories-modal-content" style="flex: 1; overflow-y: auto; padding: 1.5rem;"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
+    window.renderCategoriesPanel();
+};
+
+window.closeTalentCategoriesModal = function() {
+    const modal = document.getElementById('talent-categories-modal');
+    if (modal) modal.style.display = 'none';
+};
+
 function addNewTalent() {
     document.getElementById('talent-create-modal').style.display = 'flex';
     document.getElementById('cm-name').value = '';
     document.getElementById('cm-desc').value = '';
     document.getElementById('cm-icon').value = '🌳';
-    document.getElementById('cm-category').value = 'engineering';
+    // Poblar categorías dinámicamente
+    const catSelect = document.getElementById('cm-category');
+    const cats = (typeof getCategories === 'function') ? getCategories() : [];
+    catSelect.innerHTML = cats.map(c => `<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
+    catSelect.value = cats[0]?.id || 'default';
     document.getElementById('cm-nodeType').value = 'small';
     document.getElementById('cm-maxLevel').value = '1';
     window._cmEffects = [];
@@ -3078,7 +3384,8 @@ window.cmUpdateEffectKey = function(i, newKey) {
 };
 
 window.cmUpdateEffectVal = function(i, newVal) {
-    window._cmEffects[i].val = (parseFloat(newVal) || 0) / 100;
+    const isFlat = window._cmEffects[i].key && window._cmEffects[i].key.endsWith('_flat');
+    window._cmEffects[i].val = isFlat ? (parseFloat(newVal) || 0) : ((parseFloat(newVal) || 0) / 100);
 };
 
 function cmRenderEffects() {
@@ -3095,15 +3402,20 @@ function cmRenderEffects() {
         {k:'cooldown_reduction_flat',l:'CD Habilidades (fijo)'},{k:'cast_time_reduction',l:'Cast Time (-%)'},{k:'cast_time_reduction_flat',l:'Cast Time (fijo)'},
         {k:'group_bonus',l:'Bonus Grupo (+%)'},{k:'boss_loot_bonus',l:'Loot Bosses (+%)'},{k:'dash_distance',l:'Distancia Dash (+%)'}
     ];
-    container.innerHTML = (window._cmEffects || []).map((e, i) => `
+    container.innerHTML = (window._cmEffects || []).map((e, i) => {
+        const isFlat = e.key && e.key.endsWith('_flat');
+        const numVal = isFlat ? e.val : (e.val * 100);
+        const cleanVal = formatCleanNumber(numVal, 2);
+        return `
         <div style="display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
             <select style="flex:1; background:transparent; border:none; color:white; font-size:0.78rem;" onchange="cmUpdateEffectKey(${i}, this.value)">
                 ${allKeys.map(opt => `<option value="${opt.k}" ${e.key===opt.k?'selected':''}>${opt.l}</option>`).join('')}
             </select>
-            <input type="number" step="0.1" value="${(e.val * 100).toFixed(1).replace(/\.0$/,'')}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="cmUpdateEffectVal(${i}, this.value)">
+            <input type="number" step="0.1" value="${cleanVal}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="cmUpdateEffectVal(${i}, this.value)">
             <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="cmRemoveEffect(${i})">✕</button>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 window.confirmCreateTalent = function() {
@@ -3183,18 +3495,20 @@ function clearTalentMapperSelections() {
 
 // ─── ZOOM FUNCTIONS ───
 window.talentMapperZoom = function(delta) {
-    const oldZoom = talentZoom;
-    talentZoom = Math.max(TALENT_ZOOM_MIN, Math.min(TALENT_ZOOM_MAX, talentZoom + delta));
-    
-    // Ajustar pan offset para hacer zoom hacia el centro del canvas
     const canvas = document.getElementById('talent-mapper-canvas');
-    if (canvas) {
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const zoomRatio = talentZoom / oldZoom;
-        talentPanOffset.x = centerX - (centerX - talentPanOffset.x) * zoomRatio;
-        talentPanOffset.y = centerY - (centerY - talentPanOffset.y) * zoomRatio;
-    }
+    const parent = canvas ? canvas.parentElement : null;
+    const rect = parent ? parent.getBoundingClientRect() : { width: 800, height: 600 };
+    const centerX = (rect.width > 0 ? rect.width : 800) / 2;
+    const centerY = (rect.height > 0 ? rect.height : 600) / 2;
+
+    const oldZoom = talentZoom;
+    const zoomFactor = delta > 0 ? 1.25 : 0.8;
+    talentZoom = Math.max(TALENT_ZOOM_MIN, Math.min(TALENT_ZOOM_MAX, parseFloat((talentZoom * zoomFactor).toFixed(2))));
+    
+    // Ajustar pan offset para hacer zoom hacia el centro del visor
+    const zoomRatio = talentZoom / oldZoom;
+    talentPanOffset.x = centerX - (centerX - talentPanOffset.x) * zoomRatio;
+    talentPanOffset.y = centerY - (centerY - talentPanOffset.y) * zoomRatio;
     
     updateZoomDisplay();
     renderTalentMapper();
@@ -3202,13 +3516,14 @@ window.talentMapperZoom = function(delta) {
 
 window.talentMapperZoomReset = function() {
     talentZoom = 1.0;
-    // Centrar la vista en el origen (0,0) del mundo
+    // Centrar la vista en el origen (0,0) del mundo con precisión
     const canvas = document.getElementById('talent-mapper-canvas');
-    if (canvas) {
-        talentPanOffset.x = canvas.width / 2;
-        talentPanOffset.y = canvas.height / 2;
+    if (canvas && canvas.parentElement) {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        talentPanOffset.x = (rect.width > 0 ? rect.width : 800) / 2;
+        talentPanOffset.y = (rect.height > 0 ? rect.height : 600) / 2;
     } else {
-        talentPanOffset = { x: 0, y: 0 };
+        talentPanOffset = { x: 400, y: 300 };
     }
     updateZoomDisplay();
     renderTalentMapper();
@@ -3226,21 +3541,71 @@ window.filterTalentMapperList = function() {
     renderTalentMapper();
 };
 
+// ─── FORMATEO NUMÉRICO LIMPIO (sin .0 innecesario) ───
+window.formatCleanNumber = function(val, maxDecimals = 2) {
+    if (val === null || val === undefined || isNaN(val)) return '0';
+    const num = parseFloat(val);
+    const factor = Math.pow(10, maxDecimals);
+    const rounded = Math.round(num * factor) / factor;
+    return Number(rounded.toFixed(maxDecimals)).toString();
+};
+
+window.formatCleanStat = function(val, isFlat = false, showPlus = true) {
+    const num = parseFloat(val) || 0;
+    const prefix = (num > 0.0001 && showPlus) ? '+' : (num < -0.0001 ? '-' : '');
+    const absVal = Math.abs(num);
+    if (isFlat) {
+        return prefix + formatCleanNumber(absVal, 2) + 's';
+    } else {
+        return prefix + formatCleanNumber(absVal * 100, 2) + '%';
+    }
+};
+
+// ─── ORDENAMIENTO DE TALENTOS: MAPEADOS PRIMERO, LUEGO POR TAMAÑO ───
+window.getNodeTypeRank = function(nodeType) {
+    if (nodeType === 'keystone') return 3;
+    if (nodeType === 'notable') return 2;
+    return 1; // 'small'
+};
+
+window.sortTalentsMappedAndSize = function(talentsList, nodesMap) {
+    return talentsList.slice().sort((a, b) => {
+        const aMapped = !!(nodesMap && nodesMap[a.id]);
+        const bMapped = !!(nodesMap && nodesMap[b.id]);
+        
+        // 1. Primero los ya mapeados
+        if (aMapped !== bMapped) {
+            return aMapped ? -1 : 1;
+        }
+        
+        // 2. Ordenados por tamaño (keystone > notable > small)
+        const aType = (nodesMap && nodesMap[a.id]?.nodeType) || a.nodeType || 'small';
+        const bType = (nodesMap && nodesMap[b.id]?.nodeType) || b.nodeType || 'small';
+        const aRank = window.getNodeTypeRank(aType);
+        const bRank = window.getNodeTypeRank(bType);
+        if (aRank !== bRank) {
+            return bRank - aRank; // Mayor tamaño primero
+        }
+        
+        // 3. Desempate alfabético
+        return (a.name || '').localeCompare(b.name || '');
+    });
+};
+
 // ─── TOOLTIP ───
 function showTalentTooltip(nodeId, mouseX, mouseY) {
     const tooltip = document.getElementById('talent-node-tooltip');
     if (!tooltip) return;
     
+    const node = config.talentsConfig.nodes[nodeId];
+    if (!node) return;
+    
     const talent = (config.talentsConfig.talents || []).find(t => t.id === nodeId);
-    if (!talent) { hideTalentTooltip(); return; }
+    if (!talent) return;
     
-    const nodeData = (config.talentsConfig.nodes || {})[nodeId];
-    const nodeType = nodeData?.nodeType || 'small';
-    const typeInfo = NODE_TYPES[nodeType] || NODE_TYPES.small;
-    
-    const catColors = { engineering: '#00d2ff', combat: '#ff3131', science: '#be31ff' };
-    const catLabels = { engineering: '🛠️ Ingeniería', combat: '⚔️ Combate', science: '🔬 Ciencia' };
-    const catColor = catColors[talent.category] || '#00d2ff';
+    const typeInfo = NODE_TYPES[node.nodeType || 'small'] || NODE_TYPES.small;
+    const catColor = getCategoryColor(talent.category) || '#888888';
+    const catLabel = getCategoryName(talent.category) || talent.category;
     
     let effectsHTML = '';
     if (talent.effects && Object.keys(talent.effects).length > 0) {
@@ -3260,9 +3625,11 @@ function showTalentTooltip(nodeId, mouseX, mouseY) {
         effectsHTML = Object.entries(talent.effects).map(([key, val]) => {
             const label = effectLabels[key] || key;
             const isFlat = key.endsWith('_flat');
-            const display = isFlat 
-                ? `${(val * (talent.maxLevel || 5)).toFixed(2)}s por nivel`
-                : `+${(val * 100 * (talent.maxLevel || 5)).toFixed(1)}% por nivel`;
+            const maxLvl = talent.maxLevel || 5;
+            const totalVal = val * maxLvl;
+            const perLvlStr = formatCleanStat(val, isFlat, true);
+            const maxStr = formatCleanStat(totalVal, isFlat, true);
+            const display = `${perLvlStr}/nvl <span style="color:#8899aa;">(máx ${maxStr})</span>`;
             return `<div style="color: #10b981; font-size: 0.75rem;">${label}: <strong>${display}</strong></div>`;
         }).join('');
     }
@@ -3272,7 +3639,7 @@ function showTalentTooltip(nodeId, mouseX, mouseY) {
             <span style="font-size: 1.8rem;">${talent.icon || '🌳'}</span>
             <div>
                 <div style="font-weight: bold; color: ${catColor}; font-size: 0.9rem;">${talent.name}</div>
-                <div style="font-size: 0.7rem; color: #888;">${catLabels[talent.category] || talent.category} • ${typeInfo.label} (Nivel ${(talent.currentLevel || 0)}/${talent.maxLevel || 5})</div>
+                <div style="font-size: 0.7rem; color: #888;">${catLabel} • ${typeInfo.label} (Nivel ${(talent.currentLevel || 0)}/${talent.maxLevel || 5})</div>
             </div>
         </div>
         <div style="font-size: 0.78rem; color: #ccc; margin-bottom: 8px;">${talent.desc || 'Sin descripción'}</div>
@@ -3305,7 +3672,9 @@ function hideTalentTooltip() {
 // ─── BRANCH STATS ───
 function updateBranchStats() {
     const talents = config.talentsConfig.talents || [];
-    let stats = { engineering: 0, combat: 0, science: 0 };
+    const cats = getCategories();
+    let stats = {};
+    cats.forEach(c => stats[c.id] = 0);
     
     talents.forEach(t => {
         if (t.currentLevel && t.currentLevel > 0) {
@@ -3313,26 +3682,50 @@ function updateBranchStats() {
         }
     });
     
-    const engEl = document.getElementById('stat-engineering');
-    const comEl = document.getElementById('stat-combat');
-    const sciEl = document.getElementById('stat-science');
-    const totalEl = document.getElementById('stat-total');
-    
-    if (engEl) engEl.textContent = stats.engineering;
-    if (comEl) comEl.textContent = stats.combat;
-    if (sciEl) sciEl.textContent = stats.science;
-    if (totalEl) totalEl.textContent = stats.engineering + stats.combat + stats.science;
+    const container = document.getElementById('talent-branch-stats');
+    if (!container) return;
+    let html = cats.map(c => 
+        `<span style="color: ${c.color};">${c.emoji} ${c.name}: <strong id="stat-${c.id}">${stats[c.id] || 0}</strong> pts</span>`
+    ).join('');
+    const total = Object.values(stats).reduce((a, b) => a + b, 0);
+    html += `<span style="color: var(--accent);">📊 Total: <strong id="stat-total">${total}</strong> pts</span>`;
+    container.innerHTML = html;
 }
+
+// ─── SINCRONIZACIÓN DE RESOLUCIÓN Y TAMAÑO HIDPI ───
+window.syncTalentCanvasSize = function() {
+    const canvas = document.getElementById('talent-mapper-canvas');
+    if (!canvas || !canvas.parentElement) return { w: 800, h: 600, dpr: 1 };
+    
+    const parent = canvas.parentElement;
+    const rect = parent.getBoundingClientRect();
+    const w = Math.floor(rect.width > 0 ? rect.width : (parent.clientWidth || 800));
+    const h = Math.floor(rect.height > 0 ? rect.height : (parent.clientHeight || 600));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5); // Soporte HiDPI / Retina nítido
+    
+    const targetW = Math.round(w * dpr);
+    const targetH = Math.round(h * dpr);
+    
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+    }
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    
+    return { w, h, dpr };
+};
 
 function placeTalentOnMap(talentId) {
     if (!config.talentsConfig.nodes) config.talentsConfig.nodes = {};
     
     const canvas = document.getElementById('talent-mapper-canvas');
-    let cx = 400;
-    let cy = 300;
-    if (canvas) {
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
+    let cx = 0;
+    let cy = 0;
+    if (canvas && canvas.parentElement) {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const centerX = (rect.width > 0 ? rect.width : 800) / 2;
+        const centerY = (rect.height > 0 ? rect.height : 600) / 2;
         cx = (centerX - talentPanOffset.x) / talentZoom;
         cy = (centerY - talentPanOffset.y) / talentZoom;
     }
@@ -3343,6 +3736,7 @@ function placeTalentOnMap(talentId) {
         nodeType: 'small'
     };
     clampPanOffset();
+    if (typeof renderTalentCreator === 'function') renderTalentCreator();
     renderTalentMapper();
 }
 
@@ -3358,48 +3752,53 @@ function removeTalentFromMap(talentId) {
         document.getElementById('talent-node-editor-card').style.display = 'none';
     }
     clampPanOffset();
+    if (typeof renderTalentCreator === 'function') renderTalentCreator();
     renderTalentMapper();
 }
 
 function initTalentMapper() {
     const canvas = document.getElementById('talent-mapper-canvas');
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const container = document.getElementById('talent-mapper-container');
+    if (canvas._talentMapperInitialized) return;
+    canvas._talentMapperInitialized = true;
 
     const updateCanvasSize = () => {
-        const w = canvas.parentElement.clientWidth;
-        const h = canvas.parentElement.clientHeight;
-        if (w > 0 && h > 0) {
-            canvas.width = w;
-            canvas.height = h;
-        }
+        syncTalentCanvasSize();
+        renderTalentMapper();
     };
     
     if (!talentMapperCanvasInitialized) {
         window.addEventListener('resize', updateCanvasSize);
         talentMapperCanvasInitialized = true;
     }
-    updateCanvasSize();
+    const { w, h } = syncTalentCanvasSize();
 
     // Centrar cámara en el origen (0,0) la primera vez
     if (talentPanOffset.x === 0 && talentPanOffset.y === 0) {
-        talentPanOffset.x = canvas.width / 2;
-        talentPanOffset.y = canvas.height / 2;
+        talentPanOffset.x = w / 2;
+        talentPanOffset.y = h / 2;
     }
+
+    // Desactivar menú contextual del navegador para permitir paneo limpio con click derecho
+    canvas.oncontextmenu = (e) => e.preventDefault();
 
     // Mouse event positions
     let mousePos = { x: 0, y: 0 };
 
-    // Convertir coordenadas de pantalla a coordenadas del mundo (teniendo en cuenta zoom y pan)
+    // Convertir coordenadas de pantalla a coordenadas del mundo
     const screenToWorld = (screenX, screenY) => ({
         x: (screenX - talentPanOffset.x) / talentZoom,
         y: (screenY - talentPanOffset.y) / talentZoom
     });
 
+    // Helper inverso para hit-testing preciso en pantalla
+    const worldToScreen = (wx, wy) => ({
+        x: wx * talentZoom + talentPanOffset.x,
+        y: wy * talentZoom + talentPanOffset.y
+    });
+
     const getNodeAtPosition = (mx, my) => {
         if (!config.talentsConfig.nodes) return null;
-        const world = screenToWorld(mx, my);
         
         // Buscar en orden inverso (últimos dibujados primero)
         const nodeEntries = Object.entries(config.talentsConfig.nodes);
@@ -3407,35 +3806,39 @@ function initTalentMapper() {
             const [id, pos] = nodeEntries[i];
             const nodeType = pos.nodeType || 'small';
             const typeInfo = NODE_TYPES[nodeType] || NODE_TYPES.small;
-            const radius = typeInfo.radius;
-            const dist = Math.hypot(pos.x - world.x, pos.y - world.y);
-            if (dist <= radius + 5) {
+            
+            // Hit-test en coordenadas visibles de pantalla
+            const s = worldToScreen(pos.x, pos.y);
+            const radiusOnScreen = Math.max(typeInfo.radius * talentZoom, typeInfo.radius * 0.35);
+            const dist = Math.hypot(s.x - mx, s.y - my);
+            if (dist <= radiusOnScreen + 6) {
                 return id;
             }
         }
         return null;
     };
 
-    // Buscar conexión más cercana a un punto (para desconectar)
+    // Buscar conexión más cercana a un punto (en píxeles de pantalla)
     const getConnectionAtPosition = (mx, my) => {
         const conns = config.talentsConfig.connections || [];
         const nds = config.talentsConfig.nodes || {};
-        const world = screenToWorld(mx, my);
-        let bestDist = 12; // radio de tolerancia en world coords
+        let bestDist = 14; // radio de tolerancia en píxeles de pantalla
         let bestIdx = -1;
         conns.forEach((conn, i) => {
             const from = nds[conn.from];
             const to = nds[conn.to];
             if (!from || !to) return;
-            // Distancia punto-segmento
-            const dx = to.x - from.x;
-            const dy = to.y - from.y;
+            const start = worldToScreen(from.x, from.y);
+            const end = worldToScreen(to.x, to.y);
+            
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
             const lenSq = dx * dx + dy * dy;
-            let t = lenSq > 0 ? ((world.x - from.x) * dx + (world.y - from.y) * dy) / lenSq : 0;
+            let t = lenSq > 0 ? ((mx - start.x) * dx + (my - start.y) * dy) / lenSq : 0;
             t = Math.max(0, Math.min(1, t));
-            const px = from.x + t * dx;
-            const py = from.y + t * dy;
-            const dist = Math.hypot(world.x - px, world.y - py);
+            const px = start.x + t * dx;
+            const py = start.y + t * dy;
+            const dist = Math.hypot(mx - px, my - py);
             if (dist < bestDist) {
                 bestDist = dist;
                 bestIdx = i;
@@ -3450,7 +3853,7 @@ function initTalentMapper() {
         const my = e.clientY - rect.top;
         mousePos = { x: mx, y: my };
 
-        // CLICK DERECHO: desconectar si toca una conexión
+        // Click derecho: si toca conexión, desconecta; si no, inicia paneo libre
         if (e.button === 2) {
             e.preventDefault();
             const connIdx = getConnectionAtPosition(mx, my);
@@ -3459,6 +3862,19 @@ function initTalentMapper() {
                 renderTalentMapper();
                 return;
             }
+            isPanningTalents = true;
+            panStart = { x: e.clientX, y: e.clientY };
+            canvas.style.cursor = 'move';
+            return;
+        }
+
+        // Click con rueda del ratón (botón central): paneo libre
+        if (e.button === 1) {
+            e.preventDefault();
+            isPanningTalents = true;
+            panStart = { x: e.clientX, y: e.clientY };
+            canvas.style.cursor = 'move';
+            return;
         }
 
         const clickedNodeId = getNodeAtPosition(mx, my);
@@ -3492,7 +3908,7 @@ function initTalentMapper() {
                     return;
                 }
             }
-            // Panning
+            // Panning normal con click izquierdo en fondo vacío
             isPanningTalents = true;
             panStart = { x: e.clientX, y: e.clientY };
             canvas.style.cursor = 'move';
@@ -3537,7 +3953,6 @@ function initTalentMapper() {
                 }
                 renderTalentMapper();
             } else if (hoveredNode) {
-                // Actualizar posición del tooltip
                 showTalentTooltip(hoveredNode, mx, my);
             }
         }
@@ -3576,18 +3991,18 @@ function initTalentMapper() {
         }
     };
 
-    // Zoom con rueda del mouse
+    // Zoom fluido exponencial con rueda del mouse hacia la posición del cursor
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.08 : 0.08;
-        const oldZoom = talentZoom;
-        talentZoom = Math.max(TALENT_ZOOM_MIN, Math.min(TALENT_ZOOM_MAX, talentZoom + delta));
-        
-        // Zoom hacia la posición del mouse
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         
+        const oldZoom = talentZoom;
+        const zoomFactor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
+        talentZoom = Math.max(TALENT_ZOOM_MIN, Math.min(TALENT_ZOOM_MAX, parseFloat((talentZoom * zoomFactor).toFixed(2))));
+        
+        // Zoom focalizado en la posición del cursor del ratón
         const zoomRatio = talentZoom / oldZoom;
         talentPanOffset.x = mouseX - (mouseX - talentPanOffset.x) * zoomRatio;
         talentPanOffset.y = mouseY - (mouseY - talentPanOffset.y) * zoomRatio;
@@ -3597,8 +4012,10 @@ function initTalentMapper() {
         renderTalentMapper();
     }, { passive: false });
 
-    // Ocultar tooltip al salir del canvas
+    // Ocultar tooltip y detener paneo al salir del canvas
     canvas.onmouseleave = () => {
+        isPanningTalents = false;
+        isDraggingTalentNode = false;
         hideTalentTooltip();
     };
 
@@ -3621,20 +4038,22 @@ function initTalentMapper() {
             y: Math.round(world.y),
             nodeType: 'small'
         };
-        renderTalentCreator();
+        if (typeof renderTalentCreator === 'function') renderTalentCreator();
         renderTalentMapper();
     };
 
     // Loop de animación para nodos notable/keystone (glow pulsante, aura rotatoria)
     let lastTalentAnimFrame = 0;
     const talentAnimLoop = (ts) => {
-        // Limitar a ~30fps para no gastar CPU
         if (ts - lastTalentAnimFrame > 33) {
             lastTalentAnimFrame = ts;
-            const nodes = config.talentsConfig.nodes || {};
-            const hasAnimatedNodes = Object.values(nodes).some(n => n.nodeType === 'notable' || n.nodeType === 'keystone');
-            if (hasAnimatedNodes || selectedTalentNodeId || talentMapperHoveredNode) {
-                renderTalentMapper();
+            const canvasEl = document.getElementById('talent-mapper-canvas');
+            if (canvasEl && canvasEl.offsetParent !== null) {
+                const nodes = config.talentsConfig.nodes || {};
+                const hasAnimatedNodes = Object.values(nodes).some(n => n.nodeType === 'notable' || n.nodeType === 'keystone');
+                if (hasAnimatedNodes || selectedTalentNodeId || talentMapperHoveredNode || connectStartNodeId) {
+                    renderTalentMapper();
+                }
             }
         }
         requestAnimationFrame(talentAnimLoop);

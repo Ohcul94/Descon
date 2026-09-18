@@ -12123,6 +12123,14 @@
             {
                 "from": "talent_1789670530374",
                 "to": "eng_2"
+            },
+            {
+                "from": "sci_1",
+                "to": "talent_1789670570933"
+            },
+            {
+                "from": "talent_1789670520551",
+                "to": "com_7"
             }
         ],
         "nodes": {
@@ -12147,8 +12155,8 @@
                 "nodeType": "keystone"
             },
             "com_1": {
-                "x": 1,
-                "y": 190,
+                "x": -54,
+                "y": 186,
                 "nodeType": "notable"
             },
             "eng_1": {
@@ -12160,11 +12168,21 @@
                 "x": -186,
                 "y": -58,
                 "nodeType": "notable"
+            },
+            "sci_1": {
+                "x": 187,
+                "y": -56,
+                "nodeType": "notable"
+            },
+            "com_7": {
+                "x": 61,
+                "y": 189,
+                "nodeType": "notable"
             }
         },
         "talents": [
             {
-                "category": "engineering",
+                "category": "fender",
                 "desc": "+10% HP por nivel",
                 "effects": {
                     "hp_pct": 0.1
@@ -12175,7 +12193,7 @@
                 "name": "REFUERZO DE CASCO"
             },
             {
-                "category": "engineering",
+                "category": "fender",
                 "desc": "+10% Escudo por nivel",
                 "effects": {
                     "sh_pct": 0.1
@@ -12186,7 +12204,7 @@
                 "name": "ESCUDO DINÁMICO"
             },
             {
-                "category": "engineering",
+                "category": "fender",
                 "desc": "+5% HP Reparación",
                 "effects": {
                     "hp_regen": 0.05
@@ -12197,7 +12215,7 @@
                 "name": "REGEN EMERGENGIA"
             },
             {
-                "category": "engineering",
+                "category": "fender",
                 "desc": "+5% Shield Regen",
                 "effects": {
                     "shield_regen": 0.05
@@ -12208,7 +12226,7 @@
                 "name": "CAPACITOR OHCU"
             },
             {
-                "category": "engineering",
+                "category": "fender",
                 "desc": "+1% Estabilidad (Vel)",
                 "effects": {
                     "stability": 0.01
@@ -12219,18 +12237,18 @@
                 "name": "ESTABL FLOTANTE"
             },
             {
-                "category": "combat",
+                "category": "attack",
                 "desc": "+3% Daño Láser",
                 "effects": {
                     "laser_dmg_pct": 0.03
                 },
                 "icon": "🔫",
                 "id": "com_1",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "name": "LÁSER SOBRECARGA"
             },
             {
-                "category": "combat",
+                "category": "attack",
                 "desc": "+3% Ignorar Escudo",
                 "effects": {
                     "ignore_shield_pct": 0.03
@@ -12241,29 +12259,29 @@
                 "name": "PERFORACIÓN TÉRM"
             },
             {
-                "category": "combat",
+                "category": "attack",
                 "desc": "-2% CD de Disparo",
                 "effects": {
                     "fire_rate_pct": 0.02
                 },
                 "icon": "⚔️",
                 "id": "com_7",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "name": "CADENCIA MILITAR"
             },
             {
-                "category": "science",
+                "category": "utility",
                 "desc": "+1.5% Velocidad Base",
                 "effects": {
                     "speed_pct": 0.015
                 },
                 "icon": "🚀",
                 "id": "sci_1",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "name": "MOTORES FUSIÓN"
             },
             {
-                "category": "science",
+                "category": "utility",
                 "desc": "+10% Rango Minimapa",
                 "effects": {
                     "minimap_range": 0.1
@@ -12274,7 +12292,7 @@
                 "name": "ESCÁNER TÁCTICO"
             },
             {
-                "category": "science",
+                "category": "utility",
                 "desc": "+5% OHCU de Kills",
                 "effects": {
                     "ohcu_kill_bonus": 0.05
@@ -12285,7 +12303,7 @@
                 "name": "MINERÍA OHCU"
             },
             {
-                "category": "science",
+                "category": "utility",
                 "desc": "-2% Descuento Tienda",
                 "effects": {
                     "shop_discount": 0.02
@@ -12296,7 +12314,7 @@
                 "name": "MERCADO GALÁXIA"
             },
             {
-                "category": "science",
+                "category": "utility",
                 "desc": "-3% CD Habilidades",
                 "effects": {
                     "cooldown_reduction": 0.03
@@ -12307,7 +12325,7 @@
                 "name": "ENFRIAMIENTO RÁP"
             },
             {
-                "category": "science",
+                "category": "utility",
                 "desc": "+1% Bonus en Grupo",
                 "effects": {
                     "group_bonus": 0.01
@@ -12318,7 +12336,7 @@
                 "name": "SINCRONÍA TACT"
             },
             {
-                "category": "science",
+                "category": "utility",
                 "desc": "+10% Distancia Dash",
                 "effects": {
                     "dash_distance": 0.1
@@ -12331,8 +12349,8 @@
             {
                 "id": "talent_1789670520551",
                 "name": "ATAQUE",
-                "desc": "",
-                "category": "engineering",
+                "desc": "Nodo Principal de Ataque",
+                "category": "attack",
                 "maxLevel": 1,
                 "effects": {},
                 "icon": "🌳"
@@ -12340,8 +12358,8 @@
             {
                 "id": "talent_1789670530374",
                 "name": "DEFENSA",
-                "desc": "",
-                "category": "engineering",
+                "desc": "Nodo Principal de Defensa",
+                "category": "fender",
                 "maxLevel": 1,
                 "effects": {},
                 "icon": "🌳"
@@ -12349,8 +12367,8 @@
             {
                 "id": "talent_1789670540532",
                 "name": "CURACION",
-                "desc": "",
-                "category": "engineering",
+                "desc": "Nodo Principal de Curacion",
+                "category": "healing",
                 "maxLevel": 1,
                 "effects": {},
                 "icon": "🌳"
@@ -12358,11 +12376,37 @@
             {
                 "id": "talent_1789670570933",
                 "name": "UTILIDAD",
-                "desc": "",
-                "category": "engineering",
+                "desc": "Nodo Principal de Utilidad",
+                "category": "utility",
                 "maxLevel": 1,
                 "effects": {},
                 "icon": "🌳"
+            }
+        ],
+        "categories": [
+            {
+                "id": "fender",
+                "name": "Defensa",
+                "color": "#0011ff",
+                "emoji": "🛠️"
+            },
+            {
+                "id": "attack",
+                "name": "Ataque",
+                "color": "#ff3131",
+                "emoji": "⚔️"
+            },
+            {
+                "id": "utility",
+                "name": "Utilidad",
+                "color": "#ffea00",
+                "emoji": "🔬"
+            },
+            {
+                "id": "healing",
+                "name": "Curacion",
+                "color": "#29bd00",
+                "emoji": "🔮"
             }
         ]
     },

@@ -2149,7 +2149,7 @@ window.renderInlineItemPickerList = function(idx) {
         const el = document.createElement('div');
         el.style.cssText = 'display:flex; align-items:center; gap:12px; padding:9px 12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; cursor:pointer; transition:background 0.15s, border-color 0.15s;';
         el.innerHTML = `
-            <span style="font-size:0.62rem; color:#0b0f1a; background:var(--accent); padding:2px 8px; border-radius:20px; white-space:nowrap; font-weight:bold;">${{engineering:'Ingeniería',combat:'Combate',science:'Ciencia'}[c.category]||c.category}</span>
+            <span style="font-size:0.62rem; color:#0b0f1a; background:var(--accent); padding:2px 8px; border-radius:20px; white-space:nowrap; font-weight:bold;">${(typeof getCategoryName === 'function' ? getCategoryName(c.category) : c.category)}</span>
             <span style="flex:1; min-width:0; color:#fff; font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</span>
             <span style="font-size:0.72rem; color:#888; font-family:'JetBrains Mono';">${c.id}</span>
         `;
@@ -2317,16 +2317,21 @@ window.renderTalentCreator = function() {
     if (!grid) return;
     grid.innerHTML = '';
 
+    // Renderizar panel de gestión de ramas dinámicas
+    if (typeof renderCategoriesPanel === 'function') {
+        renderCategoriesPanel();
+    }
+
+    const availableCats = (typeof getCategories === 'function') ? getCategories() : [];
+
     // Panel de talentos sellados
     if (!config.talentsLockedConfig) config.talentsLockedConfig = [];
     const lockedPanel = document.getElementById('talents-locked-panel');
     if (lockedPanel) {
         const rows = config.talentsLockedConfig.map((t, ti) => `
             <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; background:rgba(255,255,255,0.02); padding:6px; border-radius:6px; flex-wrap:wrap;">
-                <select style="flex:1; min-width:100px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.talentsLockedConfig[${ti}].category = this.value">
-                    <option value="engineering" ${t.category==='engineering'?'selected':''}>🛠️ Ingeniería</option>
-                    <option value="combat" ${t.category==='combat'?'selected':''}>⚔️ Combate</option>
-                    <option value="science" ${t.category==='science'?'selected':''}>🔬 Ciencia</option>
+                <select style="flex:1; min-width:120px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.talentsLockedConfig[${ti}].category = this.value">
+                    ${availableCats.map(c => `<option value="${c.id}" ${t.category === c.id ? 'selected' : ''}>${c.emoji || '⭐'} ${c.name}</option>`).join('')}
                 </select>
                 <select style="flex:1; min-width:90px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.talentsLockedConfig[${ti}].index = parseInt(this.value)">
                     ${Array.from({length: 8}, (_, i) => `<option value="${i}" ${Number(t.index) === i ? 'selected' : ''}>Ranura ${i+1}</option>`).join('')}
@@ -2335,11 +2340,12 @@ window.renderTalentCreator = function() {
                 <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:11px;" title="Quitar talento sellado" onclick="config.talentsLockedConfig.splice(${ti}, 1); renderTalentCreator();">✕</button>
             </div>
         `).join('');
+        const defaultLockedCat = availableCats[0]?.id || 'combat';
         lockedPanel.innerHTML = `
             <div class="card" style="background:rgba(255,215,0,0.03); border:1px solid rgba(255,215,0,0.2);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <label style="color:#ffd700; font-size:0.8rem; font-weight:bold; letter-spacing:1px;">🔒 TALENTOS SELLADOS (requieren misión para desbloquearse)</label>
-                    <button class="btn btn-primary" style="padding:3px 10px; font-size:0.65rem; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3);" onclick="config.talentsLockedConfig.push({category:'combat', index:0, name:'Talento Sellado'}); renderTalentCreator();">+ SELLAR TALENTO</button>
+                    <button class="btn btn-primary" style="padding:3px 10px; font-size:0.65rem; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3);" onclick="config.talentsLockedConfig.push({category:'${defaultLockedCat}', index:0, name:'Talento Sellado'}); renderTalentCreator();">+ SELLAR TALENTO</button>
                 </div>
                 <div style="font-size:0.68rem; color:#888; margin-bottom:8px;">Los talentos sellados no se pueden invertir puntos hasta que una misión otorgue su desbloqueo.</div>
                 ${rows || '<div style="font-size:0.68rem; opacity:0.45;">Ningún talento sellado.</div>'}
@@ -2355,31 +2361,41 @@ window.renderTalentCreator = function() {
     const connections = config.talentsConfig.connections || [];
 
     // ═══════════════════════════════════════════════════
-    // RENDERIZAR TALENTOS (lista plana por categoría)
+    // RENDERIZAR TALENTOS (agrupados por ramas dinámicas)
     // ═══════════════════════════════════════════════════
     const filteredAll = talents.filter(t => {
         if (filterTerm && !t.name.toLowerCase().includes(filterTerm) && !t.desc.toLowerCase().includes(filterTerm) && !t.id.toLowerCase().includes(filterTerm)) return false;
         return true;
     });
 
-    // Agrupar por categoría de forma simple
-    const cats = ['engineering', 'combat', 'science'];
-    const catColors = { engineering: '#00d2ff', combat: '#ff3131', science: '#be31ff' };
-    const catEmoji = { engineering: '🛠️', combat: '⚔️', science: '🔬' };
-    const catLabels = { engineering: 'INGENIERÍA', combat: 'COMBATE', science: 'CIENCIA' };
-
     if (!window._collapsedCats) window._collapsedCats = new Set();
 
-    cats.forEach(cat => {
-        const catTalents = filteredAll.filter(t => t.category === cat);
+    // Recolectar ramas para agrupar (las configuradas + cualquier rama huérfana en uso)
+    const allCatIdsInTalents = [...new Set(talents.map(t => t.category))];
+    const allRenderCats = [...availableCats];
+    allCatIdsInTalents.forEach(orphanId => {
+        if (orphanId && !allRenderCats.some(c => c.id === orphanId)) {
+            allRenderCats.push({ id: orphanId, name: orphanId.toUpperCase(), color: '#888888', emoji: '📁' });
+        }
+    });
+
+    allRenderCats.forEach(catObj => {
+        const cat = catObj.id;
+        const catColor = catObj.color || '#00d2ff';
+        const catEmoji = catObj.emoji || '⭐';
+        const catName = catObj.name || cat;
+        const catTalentsRaw = filteredAll.filter(t => t.category === cat);
+        const catTalents = (typeof window.sortTalentsMappedAndSize === 'function')
+            ? window.sortTalentsMappedAndSize(catTalentsRaw, nodes)
+            : catTalentsRaw;
         if (catTalents.length === 0) return;
 
         const collapsed = window._collapsedCats.has(cat);
 
         // Separador de categoría (clickeable)
         const sep = document.createElement('div');
-        sep.style.cssText = 'grid-column: 1 / -1; padding: 6px 12px; margin-top: 8px; border-radius: 6px; background: ' + catColors[cat] + '10; border: 1px solid ' + catColors[cat] + '30; cursor: pointer; user-select: none; transition: opacity 0.15s;';
-        sep.innerHTML = `<span style="font-weight:bold; color:${catColors[cat]}; font-size:0.8rem; letter-spacing:1px;">${collapsed ? '▶' : '▼'} ${catEmoji[cat]} ${catLabels[cat]} (${catTalents.length})</span>`;
+        sep.style.cssText = 'grid-column: 1 / -1; padding: 6px 12px; margin-top: 8px; border-radius: 6px; background: ' + catColor + '10; border: 1px solid ' + catColor + '30; cursor: pointer; user-select: none; transition: opacity 0.15s;';
+        sep.innerHTML = `<span style="font-weight:bold; color:${catColor}; font-size:0.8rem; letter-spacing:1px;">${collapsed ? '▶' : '▼'} ${catEmoji} ${catName.toUpperCase()} (${catTalents.length})</span>`;
         sep.onmouseenter = () => sep.style.opacity = '0.8';
         sep.onmouseleave = () => sep.style.opacity = '1';
         sep.onclick = () => {
@@ -2419,27 +2435,22 @@ window.renderTalentCreator = function() {
 
             const card = document.createElement('div');
             card.className = 'card';
-            card.style.borderLeft = '3px solid ' + nodeTypeColor;
+            card.style.borderTop = `3px solid ${catColor}`;
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <span style="font-family:'JetBrains Mono'; font-size:0.72rem; color:#888;">${t.id}</span>
-                        <span style="background:rgba(255,255,255,0.05); color:#aaa; padding:2px 6px; border-radius:4px; font-size:0.65rem;">${nodeTypeLabel}</span>
-                    </div>
-                    <div style="display:flex; gap:8px; align-items:center;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span style="font-size:0.72rem; font-family:'JetBrains Mono'; color:#888;">ID: ${t.id}</span>
+                    <div style="display:flex; gap:6px; align-items:center;">
                         ${statusBadge}
-                        <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.8rem;" onclick="deleteTalent('${t.id}')">✕</button>
+                        <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:14px;" onclick="deleteTalent('${t.id}')" title="Eliminar talento">🗑️</button>
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns: 80px 1fr; gap:12px;">
-                    <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-                        <label style="width:100%; font-size:0.7rem;">Icono</label>
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+                    <div style="width:50px; text-align:center;">
                         <input type="text" value="${t.icon || '🌳'}" style="font-size:1.5rem; text-align:center; width:100%;" onchange="config.talentsConfig.talents[${idx}].icon = this.value; renderTalentCreator();">
-                        <button class="btn" style="padding:2px 4px; font-size:0.6rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; width:100%;" onclick="triggerAssetUpload(${idx}, 'talent_icon')">🖼️ PNG</button>
                     </div>
-                    <div>
-                        <div style="margin-bottom:8px;">
+                    <div style="flex:1;">
+                        <div style="margin-bottom:6px;">
                             <label style="font-size:0.7rem; color:#aaa;">Nombre</label>
                             <input type="text" value="${t.name}" onchange="config.talentsConfig.talents[${idx}].name = this.value" style="width:100%;">
                         </div>
@@ -2452,11 +2463,9 @@ window.renderTalentCreator = function() {
 
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:10px;">
                     <div>
-                        <label style="font-size:0.7rem; color:#aaa;">Categoría</label>
+                        <label style="font-size:0.7rem; color:#aaa;">Rama / Categoría</label>
                         <select onchange="config.talentsConfig.talents[${idx}].category = this.value; renderTalentCreator();" style="width:100%; background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:white; padding:8px; font-size:0.78rem;">
-                            <option value="engineering" ${t.category==='engineering'?'selected':''}>🛠️ Ingeniería</option>
-                            <option value="combat" ${t.category==='combat'?'selected':''}>⚔️ Combate</option>
-                            <option value="science" ${t.category==='science'?'selected':''}>🔬 Ciencia</option>
+                            ${availableCats.map(c => `<option value="${c.id}" ${t.category === c.id ? 'selected' : ''}>${c.emoji || '⭐'} ${c.name}</option>`).join('')}
                         </select>
                     </div>
                     <div>
@@ -2512,7 +2521,7 @@ window.renderTalentCreator = function() {
                                     <option value="boss_loot_bonus" ${key==='boss_loot_bonus'?'selected':''}>Loot Bosses (+%)</option>
                                     <option value="dash_distance" ${key==='dash_distance'?'selected':''}>Distancia Dash (+%)</option>
                                 </select>
-                                <input type="number" step="0.01" value="${(val * 100).toFixed(1).replace(/\.0$/,'')}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = parseFloat(this.value) / 100">
+                                <input type="number" step="0.01" value="${typeof formatCleanNumber === 'function' ? formatCleanNumber(key.endsWith('_flat') ? val : val * 100, 2) : (val * 100)}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = ${key.endsWith('_flat')} ? parseFloat(this.value) : (parseFloat(this.value) / 100)">
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="deleteTalentEffect(${idx}, '${key}')">✕</button>
                             </div>
                         `).join('')}
@@ -2570,38 +2579,99 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    // Limpiar canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Inicializar canvas y listeners del mapper si aún no están listos
+    if (!canvas._talentMapperInitialized && typeof initTalentMapper === 'function') {
+        initTalentMapper();
+        return;
+    }
 
-    // Helper: world to screen conversion
+    // Sincronizar dimensiones con resolución HiDPI / Retina
+    const { w, h, dpr } = (typeof syncTalentCanvasSize === 'function') 
+        ? syncTalentCanvasSize() 
+        : { w: canvas.width, h: canvas.height, dpr: 1 };
+
+    // Resetear transformada a píxeles lógicos con escala de alta definición
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const talentZoom = (typeof window.talentZoom !== 'undefined') ? window.talentZoom : (typeof window['talentZoom'] !== 'undefined' ? window['talentZoom'] : 1.0);
+    const talentPanOffset = (typeof window.talentPanOffset !== 'undefined') ? window.talentPanOffset : (typeof window['talentPanOffset'] !== 'undefined' ? window['talentPanOffset'] : { x: 0, y: 0 });
+
+    // Limpiar canvas
+    ctx.clearRect(0, 0, w, h);
+
+    // Helper: world to screen conversion (en coordenadas lógicas)
     const worldToScreen = (wx, wy) => ({
         x: wx * talentZoom + talentPanOffset.x,
         y: wy * talentZoom + talentPanOffset.y
     });
 
-    // Dibujar rejilla (Grid) adaptativa al zoom
-    ctx.strokeStyle = 'rgba(0, 210, 255, 0.04)';
-    ctx.lineWidth = 1;
-    const gridSpacing = Math.max(40 * talentZoom, 15);
-    const offsetX = talentPanOffset.x % gridSpacing;
-    const offsetY = talentPanOffset.y % gridSpacing;
+    // ─── REJILLA TÁCTICA SCI-FI ANCLADA AL MUNDO ───
+    const minorStep = 40;
+    const majorStep = 200;
+    const minWorldX = -talentPanOffset.x / talentZoom;
+    const maxWorldX = (w - talentPanOffset.x) / talentZoom;
+    const minWorldY = -talentPanOffset.y / talentZoom;
+    const maxWorldY = (h - talentPanOffset.y) / talentZoom;
 
-    for (let x = offsetX; x < canvas.width; x += gridSpacing) {
+    // Cuadrícula menor (se atenúa suavemente al alejar la cámara)
+    if (talentZoom > 0.35) {
+        const minorAlpha = Math.min(0.06, (talentZoom - 0.35) * 0.12);
+        ctx.strokeStyle = `rgba(0, 210, 255, ${minorAlpha})`;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+        const startX = Math.floor(minWorldX / minorStep) * minorStep;
+        for (let wx = startX; wx <= maxWorldX; wx += minorStep) {
+            const sx = Math.round(wx * talentZoom + talentPanOffset.x);
+            ctx.moveTo(sx, 0);
+            ctx.lineTo(sx, h);
+        }
+        const startY = Math.floor(minWorldY / minorStep) * minorStep;
+        for (let wy = startY; wy <= maxWorldY; wy += minorStep) {
+            const sy = Math.round(wy * talentZoom + talentPanOffset.y);
+            ctx.moveTo(0, sy);
+            ctx.lineTo(w, sy);
+        }
         ctx.stroke();
     }
-    for (let y = offsetY; y < canvas.height; y += gridSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
+
+    // Cuadrícula mayor (siempre nítida y sutil)
+    ctx.strokeStyle = 'rgba(0, 210, 255, 0.12)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    const startMajorX = Math.floor(minWorldX / majorStep) * majorStep;
+    for (let wx = startMajorX; wx <= maxWorldX; wx += majorStep) {
+        const sx = Math.round(wx * talentZoom + talentPanOffset.x);
+        ctx.moveTo(sx, 0);
+        ctx.lineTo(sx, h);
     }
+    const startMajorY = Math.floor(minWorldY / majorStep) * majorStep;
+    for (let wy = startMajorY; wy <= maxWorldY; wy += majorStep) {
+        const sy = Math.round(wy * talentZoom + talentPanOffset.y);
+        ctx.moveTo(0, sy);
+        ctx.lineTo(w, sy);
+    }
+    ctx.stroke();
+
+    // Ejes cartesianos de origen (0, 0)
+    const axisX = Math.round(talentPanOffset.x);
+    const axisY = Math.round(talentPanOffset.y);
+    ctx.strokeStyle = 'rgba(0, 210, 255, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (axisX >= 0 && axisX <= w) {
+        ctx.moveTo(axisX, 0);
+        ctx.lineTo(axisX, h);
+    }
+    if (axisY >= 0 && axisY <= h) {
+        ctx.moveTo(0, axisY);
+        ctx.lineTo(w, axisY);
+    }
+    ctx.stroke();
 
     // Datos del mapper
     const connections = config.talentsConfig.connections || [];
     const nodes = config.talentsConfig.nodes || {};
+    const talents = config.talentsConfig.talents || [];
 
     // ═══ Bounds del árbol + Centro visual (centro siempre en 0,0) ═══
     const ctr = worldToScreen(0, 0);
@@ -2649,29 +2719,45 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
-    ctx.fillText('CENTRO', ctr.x, ctr.y - MARK * 0.6 - 4);
+    ctx.fillText('CENTRO (0,0)', ctr.x, ctr.y - MARK * 0.6 - 4);
 
-    ctx.lineWidth = 3;
+    // Conexiones de talentos (Estilo conductos de energía estelar)
     connections.forEach(conn => {
         const fromNode = nodes[conn.from];
         const toNode = nodes[conn.to];
-        if (fromNode && toNode) {
-            const start = worldToScreen(fromNode.x, fromNode.y);
-            const end = worldToScreen(toNode.x, toNode.y);
+        if (!fromNode || !toNode) return;
 
-            const grad = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
-            grad.addColorStop(0, 'rgba(0, 210, 255, 0.6)');
-            grad.addColorStop(1, 'rgba(6, 182, 212, 0.6)');
-            
-            ctx.strokeStyle = grad;
-            ctx.shadowColor = 'rgba(0, 210, 255, 0.5)';
-            ctx.shadowBlur = 8;
-            ctx.beginPath();
-            ctx.moveTo(start.x, start.y);
-            ctx.lineTo(end.x, end.y);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
+        const start = worldToScreen(fromNode.x, fromNode.y);
+        const end = worldToScreen(toNode.x, toNode.y);
+
+        const fromTalent = talents.find(t => t.id === conn.from);
+        const toTalent = talents.find(t => t.id === conn.to);
+        const col1 = fromTalent ? (getCategoryColor(fromTalent.category) || '#00d2ff') : '#00d2ff';
+        const col2 = toTalent ? (getCategoryColor(toTalent.category) || '#00d2ff') : '#00d2ff';
+
+        const lineW = Math.max(2, Math.min(5, 3 * talentZoom));
+
+        ctx.save();
+        const grad = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
+        grad.addColorStop(0, col1);
+        grad.addColorStop(1, col2);
+
+        // Resplandor exterior
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = lineW;
+        ctx.shadowColor = col1;
+        ctx.shadowBlur = Math.max(4, 10 * talentZoom);
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+
+        // Núcleo brillante de plasma blanco
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.lineWidth = Math.max(1, lineW * 0.35);
+        ctx.shadowBlur = 0;
+        ctx.stroke();
+        ctx.restore();
     });
 
     // Dibujar previsualización de conexión en progreso
@@ -2690,7 +2776,6 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     }
 
     // Dibujar Nodos
-    const talents = config.talentsConfig.talents || [];
     ctx.shadowBlur = 0;
 
     const searchTerm = talentMapperSearchTerm || '';
@@ -2718,11 +2803,9 @@ window.renderTalentMapper = function(connectingMousePos = null) {
             continue;
         }
 
-        // Colores por categoría
-        let catColor = '#00d2ff';
-        let catColorDark = '#005a7a';
-        if (t.category === 'combat') { catColor = '#ff3131'; catColorDark = '#7a1717'; }
-        else if (t.category === 'science') { catColor = '#be31ff'; catColorDark = '#5a1777'; }
+        // Colores dinámicos por rama/categoría
+        const catColor = (typeof getCategoryColor === 'function') ? (getCategoryColor(t.category) || '#00d2ff') : '#00d2ff';
+        const catColorDark = (typeof darkenHexColor === 'function') ? darkenHexColor(catColor, 0.35) : '#005a7a';
 
         const isSelected = selectedTalentNodeId === id;
         const isHovered = talentMapperHoveredNode === id;
@@ -2952,80 +3035,133 @@ window.renderTalentMapper = function(connectingMousePos = null) {
 
         ctx.shadowBlur = 0;
 
-        // Nombre del talento abajo (común a todos)
-        ctx.font = `bold ${labelSize}px Outfit, sans-serif`;
-        ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.8)';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(t.name, screen.x, screen.y + radius + 8 * talentZoom);
+        // Nombre del talento abajo (con sombra para nitidez cristalina)
+        if (talentZoom > 0.28) {
+            ctx.save();
+            ctx.font = `bold ${labelSize}px Outfit, -apple-system, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillText(t.name, screen.x + 1, screen.y + radius + 8 * talentZoom + 1);
+            ctx.fillStyle = isSelected ? '#ffffff' : (isHovered ? '#00ffff' : 'rgba(240, 248, 255, 0.9)');
+            ctx.fillText(t.name, screen.x, screen.y + radius + 8 * talentZoom);
+            ctx.restore();
+        }
     }
 
     // Actualizar estadísticas de ramas
     updateBranchStats();
 
-    // Renderizar listado de talentos no colocados en el panel lateral
+    // Renderizar listado de talentos en el panel lateral (agrupados por rama, mapeados primero, ordenados por tamaño)
     const unplacedList = document.getElementById('talent-mapper-unplaced-list');
     if (unplacedList) {
         unplacedList.innerHTML = '';
-        const filteredTalents = talents.filter(t => {
-            if (nodes[t.id]) return false;
+        const cats = (typeof getCategories === 'function') ? getCategories() : [];
+        const allTalents = talents.filter(t => {
             if (searchTerm && !t.name.toLowerCase().includes(searchTerm) && !t.id.toLowerCase().includes(searchTerm)) return false;
             return true;
         });
 
-        filteredTalents.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'card';
-            item.draggable = true;
-            item.dataset.talentId = t.id;
-            item.style.padding = '12px 14px';
-            item.style.margin = '0';
-            item.style.cursor = 'grab';
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
-            item.style.justifyContent = 'space-between';
-            item.style.border = '1px solid rgba(255,255,255,0.08)';
-            item.style.background = 'rgba(255,255,255,0.03)';
-            item.style.borderRadius = '8px';
-            item.style.minHeight = '60px';
-            
-            const catColors = { engineering: '#00d2ff', combat: '#ff3131', science: '#be31ff' };
-            const catColor = catColors[t.category] || '#00d2ff';
-            const catEmoji = { engineering: '🛠️', combat: '⚔️', science: '🔬' };
-            const emoji = catEmoji[t.category] || '⚙️';
-            const catLabels = { engineering: 'Ingeniería', combat: 'Combate', science: 'Ciencia' };
-            
-            // Drag start: guardar talent id
-            item.ondragstart = (ev) => {
-                ev.dataTransfer.setData('text/plain', t.id);
-                ev.dataTransfer.effectAllowed = 'copy';
-            };
-            item.ondblclick = () => placeTalentOnMap(t.id);
-            item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.06)'; item.style.borderColor = catColor; };
-            item.onmouseleave = () => { item.style.background = 'rgba(255,255,255,0.03)'; item.style.borderColor = 'rgba(255,255,255,0.08)'; };
-            
-            item.innerHTML = `
-                <div style="display:flex; gap:12px; align-items:center; flex: 1; min-width: 0;">
-                    <span style="font-size: 1.6rem; flex-shrink: 0;">${t.icon || '🌳'}</span>
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: bold; font-size: 0.88rem; color: var(--text); line-height: 1.2; margin-bottom: 2px;">${t.name}</div>
-                        <div style="font-size: 0.7rem; color: ${catColor}; opacity: 0.8;">${emoji} ${catLabels[t.category] || t.category}</div>
-                        <div style="font-size: 0.68rem; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.desc || ''}</div>
-                    </div>
-                </div>
-                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.72rem; margin: 0; flex-shrink: 0; border-radius: 6px;" onclick="placeTalentOnMap('${t.id}')">+ Colocar</button>
+        // Recolectar ramas en orden
+        const catIds = [...new Set([...cats.map(c => c.id), ...allTalents.map(t => t.category)])];
+
+        catIds.forEach(catId => {
+            const catObj = cats.find(c => c.id === catId) || { id: catId, name: catId.toUpperCase(), color: '#00d2ff', emoji: '📁' };
+            const catColor = catObj.color || '#00d2ff';
+            const catEmoji = catObj.emoji || '📁';
+            const catName = catObj.name || catId;
+
+            const branchTalents = allTalents.filter(t => t.category === catId);
+            if (branchTalents.length === 0) return;
+
+            // Ordenar: primero los ya mapeados, luego no mapeados, ambos por tamaño (keystone > notable > small)
+            const sortedBranch = (typeof window.sortTalentsMappedAndSize === 'function')
+                ? window.sortTalentsMappedAndSize(branchTalents, nodes)
+                : branchTalents;
+
+            const mappedCount = sortedBranch.filter(t => !!nodes[t.id]).length;
+
+            // Encabezado de rama
+            const groupHeader = document.createElement('div');
+            groupHeader.style.cssText = `padding: 6px 10px; margin-top: 10px; margin-bottom: 4px; border-radius: 6px; background: ${catColor}15; border: 1px solid ${catColor}35; display: flex; justify-content: space-between; align-items: center;`;
+            groupHeader.innerHTML = `
+                <span style="font-weight: bold; color: ${catColor}; font-size: 0.78rem;">${catEmoji} ${catName.toUpperCase()}</span>
+                <span style="font-size: 0.68rem; color: #aaa;">${mappedCount}/${sortedBranch.length} mapeados</span>
             `;
-            unplacedList.appendChild(item);
+            unplacedList.appendChild(groupHeader);
+
+            sortedBranch.forEach(t => {
+                const isPlaced = !!nodes[t.id];
+                const nd = nodes[t.id] || {};
+                const nodeType = nd.nodeType || t.nodeType || 'small';
+                const typeLabel = nodeType === 'keystone' ? '🔴 Clave' : (nodeType === 'notable' ? '🟡 Notable' : '🟢 Pequeño');
+
+                const item = document.createElement('div');
+                item.className = 'card';
+                item.dataset.talentId = t.id;
+                item.style.padding = '8px 10px';
+                item.style.margin = '0';
+                item.style.display = 'flex';
+                item.style.alignItems = 'center';
+                item.style.justifyContent = 'space-between';
+                item.style.border = isPlaced ? `1px solid ${catColor}40` : '1px dashed rgba(255,255,255,0.15)';
+                item.style.background = isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)';
+                item.style.borderRadius = '6px';
+                item.style.cursor = isPlaced ? 'pointer' : 'grab';
+
+                if (!isPlaced) {
+                    item.draggable = true;
+                    item.ondragstart = (ev) => {
+                        ev.dataTransfer.setData('text/plain', t.id);
+                        ev.dataTransfer.effectAllowed = 'copy';
+                    };
+                    item.ondblclick = () => placeTalentOnMap(t.id);
+                } else {
+                    item.onclick = () => {
+                        selectedTalentNodeId = t.id;
+                        if (typeof showTalentNodeEditor === 'function') showTalentNodeEditor(t.id);
+                        if (nodes[t.id] && canvas) {
+                            const { w, h } = (typeof syncTalentCanvasSize === 'function') ? syncTalentCanvasSize() : { w: 800, h: 600 };
+                            talentPanOffset.x = w / 2 - nodes[t.id].x * talentZoom;
+                            talentPanOffset.y = h / 2 - nodes[t.id].y * talentZoom;
+                            clampPanOffset();
+                        }
+                        renderTalentMapper();
+                    };
+                }
+
+                item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.08)'; item.style.borderColor = catColor; };
+                item.onmouseleave = () => { item.style.background = isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)'; item.style.borderColor = isPlaced ? `${catColor}40` : 'rgba(255,255,255,0.15)'; };
+
+                const actionBtn = isPlaced
+                    ? `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.68rem; margin: 0; border-color: ${catColor}60; color: ${catColor};" onclick="event.stopPropagation(); selectedTalentNodeId='${t.id}'; if(typeof showTalentNodeEditor==='function') showTalentNodeEditor('${t.id}'); renderTalentMapper();">🔍 Ver</button>`
+                    : `<button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.68rem; margin: 0;" onclick="event.stopPropagation(); placeTalentOnMap('${t.id}')">+ Colocar</button>`;
+
+                const statusTag = isPlaced
+                    ? `<span style="font-size: 0.65rem; color: #10b981; font-weight: bold;">📍 Mapeado</span>`
+                    : `<span style="font-size: 0.65rem; color: #ef4444; font-weight: bold;">⚠️ Sin Mapear</span>`;
+
+                item.innerHTML = `
+                    <div style="display:flex; gap:8px; align-items:center; flex: 1; min-width: 0;">
+                        <span style="font-size: 1.4rem; flex-shrink: 0;">${t.icon || '🌳'}</span>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: bold; font-size: 0.82rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.name}</div>
+                            <div style="font-size: 0.68rem; color: #aaa; display: flex; gap: 6px; align-items: center;">
+                                <span>${typeLabel}</span>
+                                <span>•</span>
+                                ${statusTag}
+                            </div>
+                        </div>
+                    </div>
+                    ${actionBtn}
+                `;
+                unplacedList.appendChild(item);
+            });
         });
 
         if (unplacedList.children.length === 0) {
             unplacedList.innerHTML = '<div style="color:var(--text-dim); text-align:center; padding:2rem; font-size:0.85rem;">No se encontraron talentos.</div>';
         }
-    }
-
-    // Inicializar canvas del mapper la primera vez que se renderice
-    if (!canvas.onmousedown) {
-        initTalentMapper();
     }
 };
 

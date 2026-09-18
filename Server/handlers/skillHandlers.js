@@ -15,8 +15,10 @@ function registerSkillHandlers(socket, io, state) {
         const cat = data.category;
         const idx = parseInt(data.index);
         
-        // Blindaje de Seguridad v314.0: Validar categoría e índice
-        const validCategories = ["engineering", "combat", "science"];
+        // Blindaje de Seguridad: Validar categoría e índice
+        const talentsConfig = state.SERVER_CONFIG?.talentsConfig || {};
+        const validCategories = (talentsConfig.categories || []).map(c => c.id);
+        if (validCategories.length === 0) validCategories.push('default');
         if (!validCategories.includes(cat) || isNaN(idx) || idx < 0 || idx > 7) {
             console.warn(`[SECURITY-ALERT] Intento de inyección de talento inválido por parte de: ${players[socket.id].user} (Categoría: ${cat}, Índice: ${data.index})`);
             return socket.emit('gameNotification', { msg: 'ACCIÓN DENEGADA: Parámetros de talento corruptos.', type: 'error' });
@@ -40,7 +42,10 @@ function registerSkillHandlers(socket, io, state) {
                 }
             }
             
-            if (!user.gameData.skillTree) user.gameData.skillTree = { engineering: [0,0,0,0,0,0,0,0], combat: [0,0,0,0,0,0,0,0], science: [0,0,0,0,0,0,0,0] };
+            if (!user.gameData.skillTree) {
+                user.gameData.skillTree = {};
+                validCategories.forEach(c => user.gameData.skillTree[c] = [0,0,0,0,0,0,0,0]);
+            }
             
             const branch = user.gameData.skillTree[cat] || [];
             
@@ -97,9 +102,9 @@ function registerSkillHandlers(socket, io, state) {
             }
             
             let spent = 0;
-            const tree = user.gameData.skillTree || { engineering: [], combat: [], science: [] };
+            const tree = user.gameData.skillTree || {};
             
-            ['engineering', 'combat', 'science'].forEach(cat => {
+            validCategories.forEach(cat => {
                 if (tree[cat] && Array.isArray(tree[cat])) {
                     tree[cat].forEach(lvl => { spent += lvl; });
                 }

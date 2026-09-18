@@ -6,11 +6,7 @@ extends Node
 
 signal talents_updated
 
-var skill_tree: Dictionary = {
-	"engineering": [0,0,0,0,0,0,0,0],
-	"combat": [0,0,0,0,0,0,0,0],
-	"science": [0,0,0,0,0,0,0,0]
-}
+var skill_tree: Dictionary = {}
 var skill_points: int = 0
 var unlocks: Array = []
 
@@ -151,17 +147,21 @@ func get_bonuses() -> Dictionary:
 					bonuses[key] += val
 		return bonuses
 	
-	# Fallback: cálculo hardcoded (compatibilidad con configs viejas)
-	if skill_tree.has("engineering") and typeof(skill_tree["engineering"]) == TYPE_ARRAY and skill_tree["engineering"].size() > 0:
-		bonuses["hp_pct"] = (skill_tree["engineering"][0] * 0.02)
-		if skill_tree["engineering"].size() > 1:
-			bonuses["sh_pct"] = (skill_tree["engineering"][1] * 0.02)
-	
-	if skill_tree.has("combat") and typeof(skill_tree["combat"]) == TYPE_ARRAY and skill_tree["combat"].size() > 0:
-		bonuses["dmg_pct"] = (skill_tree["combat"][0] * 0.03)
-	
-	if skill_tree.has("science") and typeof(skill_tree["science"]) == TYPE_ARRAY and skill_tree["science"].size() > 0:
-		bonuses["speed_pct"] = (skill_tree["science"][0] * 0.015)
+	# Fallback: si no hay config visual, calcular desde skill_tree directamente
+	# Solo funciona si la config tiene categorías conocidas
+	for cat in skill_tree:
+		var branch = skill_tree[cat]
+		if typeof(branch) != TYPE_ARRAY or branch.size() == 0:
+			continue
+		var cat_talents = talents_list.filter(func(t): return t.get("category") == cat)
+		for i in range(min(branch.size(), cat_talents.size())):
+			var lvl = branch[i]
+			if lvl <= 0:
+				continue
+			var effects = cat_talents[i].get("effects", {})
+			for key in effects:
+				if bonuses.has(key):
+					bonuses[key] += effects[key] * lvl
 	
 	return bonuses
 
