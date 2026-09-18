@@ -7298,7 +7298,7 @@
             "color": "#ffff00",
             "desc": "Sector hostil con recursos de nivel medio.",
             "friendlyFire": false,
-            "height": 4000,
+            "height": 5000,
             "minLevel": 1,
             "music": {
                 "enabled": true,
@@ -7397,8 +7397,8 @@
                     "radius": 300,
                     "spawnMode": "fixed",
                     "type": "102",
-                    "x": 2008,
-                    "y": 2010
+                    "x": 1989,
+                    "y": 2013
                 },
                 {
                     "count": 8,
@@ -7412,7 +7412,7 @@
                 }
             ],
             "warpCost": 0,
-            "width": 4000
+            "width": 5000
         },
         "4": {
             "allowedHours": [

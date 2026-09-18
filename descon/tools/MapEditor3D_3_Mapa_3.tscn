@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
 [ext_resource type="Texture2D" uid="uid://dwanhpfvjms3w" path="res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/Rocas de Arena Costeras.png" id="2_303il"]
 [ext_resource type="Texture2D" uid="uid://dotpd685ssjpd" path="res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/packed_normal_roughness.png" id="3_7bc5u"]
+[ext_resource type="PackedScene" uid="uid://dsgcgwbrmyoc1" path="res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb" id="4_7bc5u"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
@@ -139,3 +140,20 @@ material = SubResource("Terrain3DMaterial_mvx5v")
 assets = SubResource("Terrain3DAssets_d7lmv")
 free_editor_textures = false
 top_level = true
+
+[node name="CuevaCalaberas" parent="." unique_id=828808755 instance=ExtResource("4_7bc5u")]
+transform = Transform3D(29.248796, 0, 27.285667, 0, 40, 0, -27.285667, 0, 29.248796, -17.504284, 3.814697e-06, -103.70088)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb"
+metadata/label = &"CuevaCalaberas"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="CuevaCalaberas" unique_id=185616863]
+transform = Transform3D(0.99932027, 0, -0.0368872, 0, 1, 0, 0.0368872, 0, 0.99932027, -0.22894728, 0.03049245, -0.084756136)
+size = Vector3(0.25502014, 0.001, 0.5164962)
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="CuevaCalaberas" unique_id=41561848]
+transform = Transform3D(0.99032795, 0, 0.138753, 0, 1, 0, -0.138753, 0, 0.99032795, 0.22714889, 0.03049245, -0.0141198635)
+size = Vector3(0.22708511, 0.001, 0.38522756)
