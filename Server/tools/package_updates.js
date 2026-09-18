@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
 // Rutas base
 const SERVER_DIR = path.resolve(__dirname, '..');
@@ -12,7 +12,7 @@ const GODOT_PROJECT_DIR = path.resolve(SERVER_DIR, '../descon');
 const PUBLIC_KEY_GD_PATH = path.join(GODOT_PROJECT_DIR, 'scripts', 'autoloads', 'PublicKey.gd');
 
 // Configuración de Godot
-const DEFAULT_GODOT_PATH = 'E:\\PROGRAMAS\\Godot\\Godot_v4.7-stable_win64_console.exe';
+const DEFAULT_GODOT_PATH = 'E:\\PROGRAMAS\\Godot\\Godot_v4.7.2-stable_win64_console.exe';
 const GODOT_BIN = process.env.GODOT_BIN || (fs.existsSync(DEFAULT_GODOT_PATH) ? DEFAULT_GODOT_PATH : 'godot');
 
 console.log('--- SISTEMA DE ACTUALIZACIÓN DESCON V2.0 ---');
@@ -76,10 +76,9 @@ const PUBLIC_KEY_PEM = """${publicKeyPem.trim()}"""
 const exportPCK = (presetName, outputPath) => {
     console.log(`[EXPORT] Exportando PCK para preset "${presetName}"...`);
     const fullOutputPath = path.resolve(CDN_DIR, outputPath);
-    const cmd = `"${GODOT_BIN}" --headless --path "${GODOT_PROJECT_DIR}" --export-pack "${presetName}" "${fullOutputPath}"`;
     
     try {
-        execSync(cmd, { stdio: 'inherit' });
+        execFileSync(GODOT_BIN, ['--headless', '--path', GODOT_PROJECT_DIR, '--export-pack', presetName, fullOutputPath], { stdio: 'inherit' });
         console.log(`[EXPORT] PCK creado con éxito: ${outputPath}`);
         return true;
     } catch (err) {
