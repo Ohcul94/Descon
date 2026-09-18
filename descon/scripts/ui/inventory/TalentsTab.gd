@@ -510,10 +510,10 @@ func _update_summary_display():
 			var meta = effect_meta.get(key, {"name": key, "icon": "✨", "unit": "%"})
 			var is_flat = key.ends_with("_flat")
 			var icon = meta.get("icon", "✨")
-			var name = meta.get("name", key)
+			var stat_name = meta.get("name", key)
 
 			var s_str = _format_stat_value(s_val, is_flat, true)
-			bb += icon + " [b]" + name + ":[/b] [color=#10b981][b]" + s_str + "[/b][/color]"
+			bb += icon + " [b]" + stat_name + ":[/b] [color=#10b981][b]" + s_str + "[/b][/color]"
 			if abs(p_val) > 0.0001:
 				var p_str = _format_stat_value(p_val, is_flat, true)
 				bb += " [color=#ffd700](" + p_str + " pend.)[/color]"
@@ -682,8 +682,6 @@ func _draw_nodes():
 		var is_maxed = current_lvl >= max_lvl
 		var is_locked = _is_node_locked(node_id)
 		var is_hovered = hovered_node_id == node_id
-		var can_add = skill_points - total_pending_cost > 0 and not is_maxed and not is_locked
-		var can_remove = pend > 0
 		var alpha = 0.4 if is_locked else 1.0
 
 		# ════════════ HOVER Y GLOW PREMIUM POLIGONAL ════════════
@@ -1179,7 +1177,6 @@ func _update_tooltip(screen_pos: Vector2):
 	var max_lvl = talent.get("maxLevel", 5)
 	var is_locked = _is_node_locked(hovered_node_id)
 
-	var effects_text = ""
 	var effect_labels = {
 		"hp_pct": "Vida Máxima", "sh_pct": "Escudo Máximo",
 		"hp_regen": "Regen Vida", "shield_regen": "Regen Escudo",
