@@ -1,0 +1,4 @@
+1-Difuso o Albedo
+2-Normal
+3-Bruto o Rougghness
+4-Desplazamiento o Height
