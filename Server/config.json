@@ -1763,7 +1763,8 @@
                     "targetSphereColor": "",
                     "debuffsList": [],
                     "startDelay": 0,
-                    "isHoming": 0
+                    "isHoming": 0,
+                    "beamWidth": 40
                 }
             ],
             "movementPhases": [
@@ -2976,7 +2977,54 @@
             "chaseIdleTimeout": 30000,
             "chaseUntilDeath": true,
             "chestDropChance": 0.5,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "shield_steal",
+                    "castTimeMs": 0,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 20000,
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 15000,
+                    "startDelay": 0,
+                    "fireRange": 1000,
+                    "bulletSpeed": 150,
+                    "stealMode": "flat",
+                    "stealAmount": 2,
+                    "stealIntervalMs": 900,
+                    "targetMode": "proximity",
+                    "targetSphereColor": "",
+                    "giveToEnemy": true,
+                    "bulletDamage": 5,
+                    "isPointAndClick": true,
+                    "_collapsed": true
+                },
+                {
+                    "type": "boss_water_orbs",
+                    "castTimeMs": 0,
+                    "castInterruptible": true,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        50
+                    ],
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 7000,
+                    "cooldown": 30000,
+                    "startDelay": 0,
+                    "orbCount": 5,
+                    "spawnRadius": 1000,
+                    "orbSpeed": 200,
+                    "playerDamage": 5,
+                    "bossHealPercent": 10,
+                    "_collapsed": true
+                }
+            ],
             "fireRange": 1500,
             "fireRate": 900,
             "hp": 3000,
@@ -3015,7 +3063,8 @@
                     "duration": 5000,
                     "tick_interval": 900,
                     "damage_per_tick": 2,
-                    "slow_amount": 50
+                    "slow_amount": 50,
+                    "_collapsed": true
                 },
                 {
                     "type": "mega_laser",
@@ -3035,7 +3084,46 @@
                     "lifetimeMs": 2000,
                     "turnSpeed": 1.2,
                     "lockTimeMs": 1500,
-                    "isHoming": 0
+                    "isHoming": 0,
+                    "beamWidth": 80,
+                    "_collapsed": false
+                },
+                {
+                    "type": "meteor",
+                    "castTimeMs": 0,
+                    "castInterruptible": false,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "bulletDamage": 4,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "startDelay": 0,
+                    "cooldown": 3000,
+                    "meteorCount": 1,
+                    "fallHeight": 800,
+                    "fallSpeed": 900,
+                    "meteorSize": 60,
+                    "explosionRadius": 60,
+                    "warnTimeMs": 1500,
+                    "targetMode": "random",
+                    "targetSphereColor": "",
+                    "debuffsList": [
+                        {
+                            "type": "poison",
+                            "dps": 1,
+                            "duration": 3000,
+                            "tickInterval": 990
+                        }
+                    ],
+                    "persistentZone": false,
+                    "zoneDamage": 25,
+                    "zoneTickMs": 500,
+                    "zoneDuration": 4000,
+                    "_collapsed": true
                 }
             ],
             "movementPhases": [
@@ -3647,7 +3735,8 @@
                     "lifetimeMs": 1000,
                     "turnSpeed": 1.2,
                     "lockTimeMs": 1500,
-                    "isHoming": 0
+                    "isHoming": 0,
+                    "beamWidth": 40
                 }
             ],
             "movementPhases": [
@@ -4564,7 +4653,8 @@
                     "lockTimeMs": 1000,
                     "startDelay": 1000,
                     "turnSpeed": 0,
-                    "type": "mega_laser"
+                    "type": "mega_laser",
+                    "beamWidth": 40
                 }
             ],
             "movementPhases": [
@@ -4695,7 +4785,8 @@
                     "turnSpeed": 1,
                     "type": "mega_laser",
                     "activationMode": "time",
-                    "activationIntervalMs": 0
+                    "activationIntervalMs": 0,
+                    "beamWidth": 40
                 }
             ],
             "movementPhases": [
@@ -8875,7 +8966,10 @@
                 "isHoming"
             ],
             "icon": "ðŸ”†",
-            "label": "Mega Láser"
+            "label": "Mega Láser",
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 1400
         },
         "melee_slash": {
             "desc": "Corte cuerpo a cuerpo instantáneo: el enemigo levanta el hacha (anticipación) y pega en el área en forma de arco o giro 360°. Pega directo, no carga un área.",

@@ -492,3 +492,31 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(6, 182, 21
     opacity: 0;
     pointer-events: none;
 }
+
+/* --- Enemy Detail Mechanic Card Collapsible --- */
+.mech-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+}
+.mech-card-header:hover { opacity: 0.8; }
+.mech-card-chevron {
+    font-size: 0.55rem;
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+.mech-card-chevron.collapsed { transform: rotate(-90deg); }
+.mech-card-body {
+    overflow: hidden;
+    max-height: 5000px;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    opacity: 1;
+}
+.mech-card-body.collapsed {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}

@@ -586,6 +586,22 @@ function toggleFolder(id, event) {
     }
 }
 
+window.toggleMechCard = function(enemyId, listName, idx) {
+    const m = config.enemyModels[enemyId]?.[listName]?.[idx];
+    if (!m) return;
+    m._collapsed = !m._collapsed;
+    const chevron = document.getElementById(`mc-chevron-${enemyId}-${listName}-${idx}`);
+    const body = document.getElementById(`mc-body-${enemyId}-${listName}-${idx}`);
+    if (chevron) chevron.classList.toggle('collapsed', !!m._collapsed);
+    if (body) body.classList.toggle('collapsed', !!m._collapsed);
+};
+window.toggleAllMechCards = function(enemyId, listName, collapse) {
+    const list = config.enemyModels[enemyId]?.[listName];
+    if (!list) return;
+    list.forEach(m => { m._collapsed = collapse; });
+    renderEnemyDetail();
+};
+
 function selectMap(id) {
     selectedMapId = id;
     localStorage.setItem('admin_last_map', id);

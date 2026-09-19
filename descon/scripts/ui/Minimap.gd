@@ -452,27 +452,58 @@ func _draw():
 	for ent in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(ent) and not ent.get("is_dead") and ent.visible:
 			# Validar si está en rango de visión real
-			if is_instance_valid(player) and player.global_position.distance_to(ent.global_position) > vision_r:
+			var dist_to_player_w = player.global_position.distance_to(ent.global_position) if is_instance_valid(player) else 99999.0
+			if dist_to_player_w > vision_r:
 				continue
 
 			var pos = Vector2(ent.global_position.x * scale_x, ent.global_position.y * scale_y)
 			var ent_type = int(ent.get("entity_type"))
 			var is_boss = ent.get("isBoss") == true
-			# Puntito proporcional a la escala 3D real del enemigo (2.0 comunes, 6.0 bosses, 8.0 guardian, 9.0 pilares)
-			var ent_scale = 3.0
+
+			# 1. Escala del modelo o configuración del enemigo
+			var ent_scale = 2.0
 			var mdl_3d = ent.get("_3d_model")
 			if is_instance_valid(mdl_3d) and mdl_3d.scale.x > 0.0:
 				ent_scale = mdl_3d.scale.x
 			elif ent.get("_enemy_scale") != null:
 				ent_scale = float(ent.get("_enemy_scale"))
-			if ent_scale <= 0.0: ent_scale = 3.0
-			var dot_r = 2.0
-			# v269.162: Solo bosses (>=101, pilares 200/201) y mini-bosses reales (10 y 11). El tipo 4 es común.
-			if is_boss or ent_type >= 101 or ent_type == 10 or ent_type == 11:
-				dot_r = max(4.0, ent_scale * 1.5)
-				draw_circle(pos, dot_r, Color(0.65, 0.25, 1.0)) # #a640ff Violeta
+			if ent_scale <= 0.0: ent_scale = 2.0
+
+			# 2. Espacio físico real que ocupa el enemigo en el mundo 2D
+			var world_radius: float = 0.0
+			var col_shape = ent.get("_collision_shape")
+			if is_instance_valid(col_shape) and col_shape.shape is CircleShape2D and col_shape.shape.radius > 0.0:
+				world_radius = col_shape.shape.radius
 			else:
-				draw_circle(pos, dot_r, Color(1, 0.4, 0)) # #ff6600
+				world_radius = ent_scale * 15.0
+
+			# 3. Radio físico proyectado al minimapa según la escala de dibujo
+			var physical_minimap_r = world_radius * scale_x
+			var dist_minimap = dist_to_player_w * scale_x
+
+			var is_special = is_boss or ent_type >= 101 or ent_type == 10 or ent_type == 11
+			var dot_r = 2.0
+
+			if is_special:
+				# Crece conforme crezca la escala del enemigo, respetando el espacio físico en el minimapa
+				var tactical_r = clampf(3.5 * (ent_scale / 6.0), 3.5, 12.0)
+				dot_r = max(tactical_r, physical_minimap_r)
+
+				# Fidelidad espacial: si el jugador NO está colisionando con el enemigo en el mundo físico,
+				# el círculo violeta jamás debe sobrepasar ni cubrir la posición de la nave en el minimapa
+				if dist_to_player_w > world_radius:
+					dot_r = min(dot_r, max(2.5, dist_minimap - 2.5))
+
+				# Renderizado táctico de Boss: cuerpo violeta + borde de colisión nítido + núcleo central
+				draw_circle(pos, dot_r, Color(0.65, 0.25, 1.0, 0.85))
+				draw_circle(pos, dot_r, Color(0.85, 0.45, 1.0, 0.95), false, 1.0)
+				draw_circle(pos, min(2.0, dot_r * 0.35), Color.WHITE)
+			else:
+				# Enemigo común: proporcional al tamaño físico con visibilidad mínima
+				dot_r = max(2.0, physical_minimap_r)
+				if dist_to_player_w > world_radius:
+					dot_r = min(dot_r, max(1.5, dist_minimap - 1.5))
+				draw_circle(pos, dot_r, Color(1.0, 0.4, 0.0))
 
 	# 4. Dibujar Portales de Extracción (Cian de Neón con efecto de pulso!)
 	var is_extraction_zone = false

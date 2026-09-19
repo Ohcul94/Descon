@@ -251,21 +251,29 @@ function renderEnemyDetail() {
                 </div>
                 <div style="margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
                     <label style="color:#eab308; font-size: 0.8rem; font-weight:bold;">🏃 CICLO DE MOVIMIENTO</label>
-                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#eab308; box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);" onclick="addMovementPhase('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR FASE</button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button class="btn" style="padding:3px 8px; font-size:0.6rem; background:rgba(234,179,8,0.1); border:1px solid rgba(234,179,8,0.2); color:#eab308;" onclick="toggleAllMechCards('${selectedEnemyId}', 'movementPhases', false)">▼ Expandir</button>
+                        <button class="btn" style="padding:3px 8px; font-size:0.6rem; background:rgba(234,179,8,0.1); border:1px solid rgba(234,179,8,0.2); color:#eab308;" onclick="toggleAllMechCards('${selectedEnemyId}', 'movementPhases', true)">▶ Colapsar</button>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#eab308; box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);" onclick="addMovementPhase('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR FASE</button>
+                    </div>
                 </div>
                 <div id="move-list-${selectedEnemyId}">
                     ${en.movementPhases.map((m, idx) => `
-                        <div class="card" style="margin-bottom:1rem; position:relative; padding: 1rem; background: rgba(234, 179, 8, 0.05); border: 1px solid rgba(234, 179, 8, 0.2);">
-                            <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
-                                <button style="background:none; border:none; color:#eab308; cursor:pointer; font-weight:bold;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
-                                <button style="background:none; border:none; color:#eab308; cursor:pointer; font-weight:bold;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMovementPhase('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
+                        <div class="card" style="margin-bottom:1rem; padding: 1rem; background: rgba(234, 179, 8, 0.05); border: 1px solid rgba(234, 179, 8, 0.2);">
+                            <div class="mech-card-header" onclick="toggleMechCard('${selectedEnemyId}', 'movementPhases', ${idx})">
+                                <span id="mc-chevron-${selectedEnemyId}-movementPhases-${idx}" class="mech-card-chevron ${m._collapsed ? 'collapsed' : ''}" style="color:#eab308;">▶</span>
+                                <div class="field full" style="margin:0; flex:1;">
+                                    <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onclick="event.stopPropagation();" onchange="event.stopPropagation(); updateMovementPhaseType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
+                                        ${Object.keys(MOVEMENT_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MOVEMENT_LIB[type].icon} ${MOVEMENT_LIB[type].label}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div style="display:flex; gap:10px; flex-shrink:0;">
+                                    <button style="background:none; border:none; color:#eab308; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveMovementPhase('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
+                                    <button style="background:none; border:none; color:#eab308; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveMovementPhase('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
+                                    <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="event.stopPropagation(); removeMovementPhase('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
+                                </div>
                             </div>
-                            <div class="field full">
-                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateMovementPhaseType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
-                                    ${Object.keys(MOVEMENT_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MOVEMENT_LIB[type].icon} ${MOVEMENT_LIB[type].label}</option>`).join('')}
-                                </select>
-                            </div>
+                            <div id="mc-body-${selectedEnemyId}-movementPhases-${idx}" class="mech-card-body ${m._collapsed ? 'collapsed' : ''}">
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${(MOVEMENT_LIB[m.type] || MOVEMENT_LIB['chase']).fields.map(f => {
                                     const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso Inicio (ms)", explodeOnDeath: "Explotar al morir", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "Afectar a otros Enemigos", affectsBosses: "Afectar a Bosses", patrolRange: "Rango de Patrulla (px)", changeInterval: "Frecuencia del Cambio (ms / px)", amplitude: "Amplitud (px)", frequency: "Frecuencia (Hz)", visionRange: "Rango de Visión (px)", targetPriority: "Prioridad de Objetivo" };
@@ -312,6 +320,7 @@ function renderEnemyDetail() {
                                     }).join('')}
                                 </div>
                             </div>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -319,21 +328,29 @@ function renderEnemyDetail() {
             <div class="col">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                     <label style="color:#ef4444; font-size: 0.8rem; font-weight:bold;">⚔️ MECÁNICAS DE ATAQUE ACTIVAS</label>
-                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="addMechanic('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR ARMA</button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button class="btn" style="padding:3px 8px; font-size:0.6rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444;" onclick="toggleAllMechCards('${selectedEnemyId}', 'mechanics', false)">▼ Expandir</button>
+                        <button class="btn" style="padding:3px 8px; font-size:0.6rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444;" onclick="toggleAllMechCards('${selectedEnemyId}', 'mechanics', true)">▶ Colapsar</button>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="addMechanic('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR ARMA</button>
+                    </div>
                 </div>
                 <div id="mech-list-${selectedEnemyId}">
                     ${en.mechanics.map((m, idx) => `
-                        <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2);">
-                            <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
-                                <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
-                                <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMechanic('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
+                        <div class="card" style="margin-bottom: 1rem; padding: 1rem; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2);">
+                            <div class="mech-card-header" onclick="toggleMechCard('${selectedEnemyId}', 'mechanics', ${idx})">
+                                <span id="mc-chevron-${selectedEnemyId}-mechanics-${idx}" class="mech-card-chevron ${m._collapsed ? 'collapsed' : ''}" style="color:#ef4444;">▶</span>
+                                <div class="field full" style="margin:0; flex:1;">
+                                    <select style="background:#0f172a; border:none; color:#ef4444; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onclick="event.stopPropagation();" onchange="event.stopPropagation(); updateMechanicType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
+                                        ${Object.keys(MECHANICS_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MECHANICS_LIB[type].icon} ${MECHANICS_LIB[type].label}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div style="display:flex; gap:10px; flex-shrink:0;">
+                                    <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
+                                    <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveMechanic('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
+                                    <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="event.stopPropagation(); removeMechanic('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
+                                </div>
                             </div>
-                            <div class="field full">
-                                <select style="background:#0f172a; border:none; color:#ef4444; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateMechanicType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
-                                    ${Object.keys(MECHANICS_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MECHANICS_LIB[type].icon} ${MECHANICS_LIB[type].label}</option>`).join('')}
-                                </select>
-                            </div>
+                            <div id="mc-body-${selectedEnemyId}-mechanics-${idx}" class="mech-card-body ${m._collapsed ? 'collapsed' : ''}">
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${(MECHANICS_LIB[m.type] || MECHANICS_LIB['laser']).fields.map(f => {
 const fieldLabelsMap = { 
@@ -714,27 +731,36 @@ if (f === 'targetMode') {
                                      return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseFloat(this.value); if ('${f}' === 'summonCount') renderEnemyDetail();"></div>`;
                                 }).join('')}
                             </div>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2rem; margin-bottom:1rem;">
                     <label style="color:#3b82f6; font-size: 0.8rem; font-weight:bold;">🛡️ MECÁNICAS DE DEFENSA ACTIVAS</label>
-                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background: #3b82f6; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);" onclick="addDefenseMechanic('${selectedEnemyId}')">+ AGREGAR DEFENSA</button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button class="btn" style="padding:3px 8px; font-size:0.6rem; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); color:#3b82f6;" onclick="toggleAllMechCards('${selectedEnemyId}', 'defenseMechanics', false)">▼ Expandir</button>
+                        <button class="btn" style="padding:3px 8px; font-size:0.6rem; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); color:#3b82f6;" onclick="toggleAllMechCards('${selectedEnemyId}', 'defenseMechanics', true)">▶ Colapsar</button>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background: #3b82f6; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);" onclick="addDefenseMechanic('${selectedEnemyId}')">+ AGREGAR DEFENSA</button>
+                    </div>
                 </div>
                 <div id="defense-mech-list-${selectedEnemyId}">
                     ${en.defenseMechanics.map((m, idx) => `
-                        <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2);">
-                            <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
-                                <button style="background:none; border:none; color:#3b82f6; cursor:pointer; font-weight:bold;" onclick="moveDefenseMechanic('${selectedEnemyId}', ${idx}, -1)">SUBIR</button>
-                                <button style="background:none; border:none; color:#3b82f6; cursor:pointer; font-weight:bold;" onclick="moveDefenseMechanic('${selectedEnemyId}', ${idx}, 1)">BAJAR</button>
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeDefenseMechanic('${selectedEnemyId}', ${idx})">✕</button>
+                        <div class="card" style="margin-bottom: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2);">
+                            <div class="mech-card-header" onclick="toggleMechCard('${selectedEnemyId}', 'defenseMechanics', ${idx})">
+                                <span id="mc-chevron-${selectedEnemyId}-defenseMechanics-${idx}" class="mech-card-chevron ${m._collapsed ? 'collapsed' : ''}" style="color:#3b82f6;">▶</span>
+                                <div class="field full" style="margin:0; flex:1;">
+                                    <select style="background:#0f172a; border:none; color:#3b82f6; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onclick="event.stopPropagation();" onchange="event.stopPropagation(); updateDefenseMechanicType('${selectedEnemyId}', ${idx}, this.value)">
+                                        ${Object.keys(DEFENSE_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${DEFENSE_LIB[type].icon} ${DEFENSE_LIB[type].label}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div style="display:flex; gap:10px; flex-shrink:0;">
+                                    <button style="background:none; border:none; color:#3b82f6; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveDefenseMechanic('${selectedEnemyId}', ${idx}, -1)">SUBIR</button>
+                                    <button style="background:none; border:none; color:#3b82f6; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveDefenseMechanic('${selectedEnemyId}', ${idx}, 1)">BAJAR</button>
+                                    <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="event.stopPropagation(); removeDefenseMechanic('${selectedEnemyId}', ${idx})">✕</button>
+                                </div>
                             </div>
-                            <div class="field full">
-                                <select style="background:#0f172a; border:none; color:#3b82f6; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateDefenseMechanicType('${selectedEnemyId}', ${idx}, this.value)">
-                                    ${Object.keys(DEFENSE_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${DEFENSE_LIB[type].icon} ${DEFENSE_LIB[type].label}</option>`).join('')}
-                                </select>
-                            </div>
+                            <div id="mc-body-${selectedEnemyId}-defenseMechanics-${idx}" class="mech-card-body ${m._collapsed ? 'collapsed' : ''}">
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${(DEFENSE_LIB[m.type] || DEFENSE_LIB['basic_defense']).fields.map(f => {
                                     const defLabels = { 
@@ -1006,7 +1032,8 @@ if (f === 'targetMode') {
                                          </div>
                                      </div>
                                  `;
-                             })() : ''}
+                              })() : ''}
+                        </div>
                         </div>
                     `).join('')}
                 </div>
@@ -1036,7 +1063,8 @@ if (f === 'targetMode') {
                     if (card.querySelector('.mech-sound-override')) return;
                     const m = config.enemyModels[selectedEnemyId]?.mechanics?.[idx];
                     if (!m) return;
-                    card.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'mechanics', idx, m));
+                    const body = card.querySelector('.mech-card-body');
+                    if (body) body.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'mechanics', idx, m));
                 });
             }
             const dList = document.getElementById(`defense-mech-list-${selectedEnemyId}`);
@@ -1045,7 +1073,8 @@ if (f === 'targetMode') {
                     if (card.querySelector('.mech-sound-override')) return;
                     const m = config.enemyModels[selectedEnemyId]?.defenseMechanics?.[idx];
                     if (!m) return;
-                    card.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'defenseMechanics', idx, m));
+                    const body = card.querySelector('.mech-card-body');
+                    if (body) body.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'defenseMechanics', idx, m));
                 });
             }
             const movList = document.getElementById(`move-list-${selectedEnemyId}`);
@@ -1054,7 +1083,8 @@ if (f === 'targetMode') {
                     if (card.querySelector('.mech-sound-override')) return;
                     const m = config.enemyModels[selectedEnemyId]?.movementPhases?.[idx];
                     if (!m) return;
-                    card.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'movementPhases', idx, m));
+                    const body = card.querySelector('.mech-card-body');
+                    if (body) body.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'movementPhases', idx, m));
                 });
             }
         } catch(e) { console.warn('sound inject', e); }
