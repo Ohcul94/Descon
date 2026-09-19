@@ -2979,14 +2979,14 @@
             "chestDropChance": 0.5,
             "defenseMechanics": [
                 {
-                    "_collapsed": true,
+                    "_collapsed": false,
                     "activationHPs": [
                         50
                     ],
                     "activationIntervalMs": 20000,
                     "activationMode": "time",
                     "bulletDamage": 5,
-                    "bulletSpeed": 150,
+                    "bulletSpeed": 200,
                     "castInterruptible": true,
                     "castTimeMs": 0,
                     "cooldown": 15000,
@@ -3061,7 +3061,7 @@
                     "fireRate": 900,
                     "lockTimeMs": 0,
                     "radius": 400,
-                    "slow_amount": 1000,
+                    "slow_amount": 100,
                     "startDelay": 5000,
                     "tick_interval": 900,
                     "type": "ice_storm"
@@ -3089,7 +3089,7 @@
                     "type": "mega_laser"
                 },
                 {
-                    "_collapsed": false,
+                    "_collapsed": true,
                     "activationHPs": [
                         50
                     ],
