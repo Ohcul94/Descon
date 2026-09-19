@@ -253,7 +253,29 @@ func _on_canvas_gui_input(event: InputEvent):
 				print("[WorldMap] Rumbo fijado desde mapa completo a: ", target_world_pos)
 
 static var terrain_cache_by_zone: Dictionary = {}
+static var terrain_image_by_zone: Dictionary = {}
 static var terrain_bounds_by_zone: Dictionary = {}
+
+static func export_terrain_texture_to_png(zone_id: Variant, tree: SceneTree, file_path: String) -> bool:
+	var z_key = str(zone_id)
+	var img: Image = null
+	if terrain_image_by_zone.has(z_key):
+		img = terrain_image_by_zone[z_key]
+	else:
+		get_or_create_terrain_texture(zone_id, tree)
+		if terrain_image_by_zone.has(z_key):
+			img = terrain_image_by_zone[z_key]
+	if img:
+		var dir_path = file_path.get_base_dir()
+		if not DirAccess.dir_exists_absolute(dir_path):
+			DirAccess.make_dir_recursive_absolute(dir_path)
+		var err = img.save_png(file_path)
+		if err == OK:
+			print("[WorldMap] 💾 Textura PNG exportada exitosamente a: ", file_path)
+			return true
+		else:
+			print("[WorldMap] ❌ Error guardando PNG: ", err)
+	return false
 
 static func _find_terrain_node_recursive(node: Node) -> Node:
 	if not is_instance_valid(node):
@@ -660,6 +682,7 @@ static func get_or_create_terrain_texture(zone_id: Variant, rect_or_width: Varia
 				
 			img.set_pixel(x, y, c)
 		
+	terrain_image_by_zone[z_key] = img
 	var tex = ImageTexture.create_from_image(img)
 	terrain_cache_by_zone[z_key] = tex
 	print("[WorldMap] ✅ Textura relieve AAA generada para Zona ", z_key, " Rect: ", world_rect)

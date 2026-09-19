@@ -1378,6 +1378,24 @@ func save_to_server():
 	# Reemplazar en la configuración
 	maps_config[zone_id]["objects"] = objects_array
 	
+	# Sincronizar límites reales del terreno y exportar textura topográfica para AdminDash
+	var world_map_dialog_script = load("res://scripts/ui/WorldMapDialog.gd")
+	if world_map_dialog_script:
+		var zone_rect = world_map_dialog_script.get_zone_rect(zone_id, get_tree())
+		if zone_rect.size.x > 0 and zone_rect.size.y > 0:
+			maps_config[zone_id]["minX"] = zone_rect.position.x
+			maps_config[zone_id]["minY"] = zone_rect.position.y
+			maps_config[zone_id]["width"] = zone_rect.size.x
+			maps_config[zone_id]["height"] = zone_rect.size.y
+			
+			# Exportar textura de relieve topográfico en PNG para AdminDash y cliente
+			var png_admin_path = "res://../AdminDash/assets/maps/terrain_zone_" + str(zone_id) + ".png"
+			var png_game_path = "res://assets/maps/terrain_zone_" + str(zone_id) + ".png"
+			world_map_dialog_script.export_terrain_texture_to_png(zone_id, get_tree(), png_admin_path)
+			world_map_dialog_script.export_terrain_texture_to_png(zone_id, get_tree(), png_game_path)
+			maps_config[zone_id]["terrainImage"] = "assets/maps/terrain_zone_" + str(zone_id) + ".png"
+			print("MapEditor3D: 🗺️ Límites y textura topográfica sincronizados para AdminDash: Rect ", zone_rect)
+	
 	# v700.5: Sincronizar propiedad local para guardarla físicamente en el archivo .tscn
 	json_to_import = JSON.stringify(objects_array)
 	

@@ -72,10 +72,15 @@ function renderMapDetail() {
                         </div>
                     </div>
                     <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.05);">
-                        <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; display:block; margin-bottom:0.8rem;">📐 DIMENSIONES DEL MAPA EN PÍXELES</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+                            <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; margin:0;">📐 DIMENSIONES Y LÍMITES REALES DEL TERRENO</label>
+                            ${m.terrainImage ? `<span style="font-size:0.6rem; color:#10b981; font-family:'JetBrains Mono', monospace;">🗺️ Terreno 3D Sincronizado</span>` : ''}
+                        </div>
                         <div class="form-grid">
-                            <div class="field"><label>Ancho (Width - px)</label><input type="number" value="${m.width || 10000}" oninput="config.mapsConfig['${selectedMapId}'].width = parseInt(this.value)"></div>
-                            <div class="field"><label>Alto (Height - px)</label><input type="number" value="${m.height || 10000}" oninput="config.mapsConfig['${selectedMapId}'].height = parseInt(this.value)"></div>
+                            <div class="field"><label>Origen X (Min X - px)</label><input type="number" value="${m.minX !== undefined ? Math.round(m.minX) : 0}" oninput="config.mapsConfig['${selectedMapId}'].minX = parseFloat(this.value) || 0"></div>
+                            <div class="field"><label>Origen Y (Min Y - px)</label><input type="number" value="${m.minY !== undefined ? Math.round(m.minY) : 0}" oninput="config.mapsConfig['${selectedMapId}'].minY = parseFloat(this.value) || 0"></div>
+                            <div class="field"><label>Ancho (Width - px)</label><input type="number" value="${m.width || 10000}" oninput="config.mapsConfig['${selectedMapId}'].width = parseFloat(this.value) || 10000"></div>
+                            <div class="field"><label>Alto (Height - px)</label><input type="number" value="${m.height || 10000}" oninput="config.mapsConfig['${selectedMapId}'].height = parseFloat(this.value) || 10000"></div>
                         </div>
                     </div>
                     ${(() => {

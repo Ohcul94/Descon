@@ -1020,7 +1020,7 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'fallSpeed') mech[f] = 600;
             else if (f === 'meteorSize') mech[f] = 60;
             else if (f === 'explosionRadius') mech[f] = 150;
-            else if (f === 'warnTimeMs') mech[f] = 1200;
+             else if (f === 'warnTimeMs') mech[f] = 1200;
             else if (f === 'persistentZone') mech[f] = false;
             else if (f === 'zoneDamage') mech[f] = 25;
             else if (f === 'zoneTickMs') mech[f] = 1000;
@@ -2744,25 +2744,39 @@ function initMapRadar() {
     window.addEventListener('resize', updateCanvasSize);
     updateCanvasSize();
 
-    // Convertir de coordenadas de mundo a coordenadas de canvas leyendo dinámicamente las dimensiones del mapa
+    // Límites reales del terreno (sincronizados desde Godot o fallback)
+    const minX = m.minX !== undefined ? Number(m.minX) : 0;
+    const minY = m.minY !== undefined ? Number(m.minY) : 0;
+    const worldW = (m.width && Number(m.width) > 0) ? Number(m.width) : 10000;
+    const worldH = (m.height && Number(m.height) > 0) ? Number(m.height) : 10000;
+
+    // Convertir de coordenadas de mundo a coordenadas de canvas respetando el origen minX, minY
     const worldToCanvas = (wx, wy) => {
-        const worldW = m.width || 10000;
-        const worldH = m.height || 10000;
         return {
-            x: (wx / worldW) * canvas.width,
-            y: (wy / worldH) * canvas.height
+            x: ((wx - minX) / worldW) * canvas.width,
+            y: ((wy - minY) / worldH) * canvas.height
         };
     };
 
-    // Convertir de canvas a mundo leyendo dinámicamente las dimensiones del mapa
+    // Convertir de canvas a mundo respetando el origen minX, minY
     const canvasToWorld = (cx, cy) => {
-        const worldW = m.width || 10000;
-        const worldH = m.height || 10000;
         return {
-            wx: (cx / canvas.width) * worldW,
-            wy: (cy / canvas.height) * worldH
+            wx: minX + (cx / canvas.width) * worldW,
+            wy: minY + (cy / canvas.height) * worldH
         };
     };
+
+    // Caché de imágenes de terreno del radar para rendimiento óptimo
+    if (!window._radarTerrainImages) window._radarTerrainImages = {};
+    const imgKey = 'zone_' + selectedMapId;
+    let terrainImg = window._radarTerrainImages[imgKey];
+    const expectedSrc = m.terrainImage || ('assets/maps/terrain_zone_' + selectedMapId + '.png');
+    if (!terrainImg || terrainImg.datasetSrc !== expectedSrc) {
+        terrainImg = new Image();
+        terrainImg.datasetSrc = expectedSrc;
+        terrainImg.src = expectedSrc;
+        window._radarTerrainImages[imgKey] = terrainImg;
+    }
 
     canvas.onmousedown = (e) => {
         const rect = canvas.getBoundingClientRect();
@@ -2787,7 +2801,7 @@ function initMapRadar() {
         for (let i = 0; i < objects.length; i++) {
             const obj = objects[i];
             const pos = worldToCanvas(obj.x || 0, obj.y || 0);
-            if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 12) {
+            if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 14) {
                 isDragging = true;
                 dragItem = { type: 'map-obj', index: i };
                 canvas.style.cursor = 'grabbing';
@@ -2800,16 +2814,14 @@ function initMapRadar() {
         const spawns = m.spawns || [];
         for (let i = 0; i < spawns.length; i++) {
             const s = spawns[i];
-            // Omitir spawns globales (random sin radio) ya que no tienen posición física real en el radar
             if (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) continue;
 
-            const sx = s.x !== undefined ? s.x : 1000;
-            const sy = s.y !== undefined ? s.y : 1000;
+            const sx = s.x !== undefined ? s.x : 0;
+            const sy = s.y !== undefined ? s.y : 0;
             const pos = worldToCanvas(sx, sy);
             const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
             
-            // Si hace clic en un spawn (dentro de 15px del centro)
-            if (dist < 15) {
+            if (dist < 16) {
                 isDragging = true;
                 dragItem = { type: 'map-spawn', index: i };
                 canvas.style.cursor = 'grabbing';
@@ -2838,8 +2850,8 @@ function initMapRadar() {
                 if (obj) {
                     obj.x = Math.round(world.wx);
                     obj.y = Math.round(world.wy);
-                    const ix = document.getElementById(`map-obj-x-${dragItem.index}`);
-                    const iy = document.getElementById(`map-obj-y-${dragItem.index}`);
+                    const ix = document.querySelector(`input[onchange*="objects[${dragItem.index}].x"], input[oninput*="objects[${dragItem.index}].x"]`);
+                    const iy = document.querySelector(`input[onchange*="objects[${dragItem.index}].y"], input[oninput*="objects[${dragItem.index}].y"]`);
                     if (ix) ix.value = obj.x;
                     if (iy) iy.value = obj.y;
                     const rxInput = document.getElementById('map-radar-x');
@@ -2849,16 +2861,18 @@ function initMapRadar() {
                 }
             } else if (dragItem.type === 'map-spawn') {
                 const s = m.spawns[dragItem.index];
-                s.x = Math.round(world.wx);
-                s.y = Math.round(world.wy);
-                const ix = document.querySelector(`input[onchange*="spawns[${dragItem.index}].x"], input[oninput*="spawns[${dragItem.index}].x"]`);
-                const iy = document.querySelector(`input[onchange*="spawns[${dragItem.index}].y"], input[oninput*="spawns[${dragItem.index}].y"]`);
-                if (ix) ix.value = s.x;
-                if (iy) iy.value = s.y;
-                const rxInput = document.getElementById('map-radar-x');
-                const ryInput = document.getElementById('map-radar-y');
-                if (rxInput) rxInput.value = s.x;
-                if (ryInput) ryInput.value = s.y;
+                if (s) {
+                    s.x = Math.round(world.wx);
+                    s.y = Math.round(world.wy);
+                    const ix = document.querySelector(`input[onchange*="spawns[${dragItem.index}].x"], input[oninput*="spawns[${dragItem.index}].x"]`);
+                    const iy = document.querySelector(`input[onchange*="spawns[${dragItem.index}].y"], input[oninput*="spawns[${dragItem.index}].y"]`);
+                    if (ix) ix.value = s.x;
+                    if (iy) iy.value = s.y;
+                    const rxInput = document.getElementById('map-radar-x');
+                    const ryInput = document.getElementById('map-radar-y');
+                    if (rxInput) rxInput.value = s.x;
+                    if (ryInput) ryInput.value = s.y;
+                }
             }
         } else {
             // Mostrar coordenadas flotantes al mover el mouse si no arrastra
@@ -2879,65 +2893,85 @@ function initMapRadar() {
         if (!document.getElementById('map-radar-canvas')) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const worldW = m.width || 10000;
-        const worldH = m.height || 10000;
-
-        // Fondo del radar oscuro de alta gama
-        ctx.fillStyle = '#0a0f1d';
+        // 1. Fondo del radar oscuro de alta gama
+        ctx.fillStyle = '#060a14';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Dibujar Grid cibernético fino
-        ctx.strokeStyle = m.color ? m.color + '15' : 'rgba(6, 182, 212, 0.08)';
+        // 2. Textura topográfica real de Godot (relieve 3D) si está cargada
+        if (terrainImg && terrainImg.complete && terrainImg.naturalWidth > 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.88;
+            ctx.drawImage(terrainImg, 0, 0, canvas.width, canvas.height);
+            ctx.restore();
+        }
+
+        // 3. Grid cibernético alineado con las coordenadas reales del mundo (cada 2000px)
+        const gridSpacing = 2000;
+        ctx.strokeStyle = m.color ? m.color + '20' : 'rgba(6, 182, 212, 0.12)';
         ctx.lineWidth = 1;
-        const gridDivisions = 10;
-        for (let i = 1; i < gridDivisions; i++) {
+        ctx.font = '9px monospace';
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.5)';
+        ctx.textAlign = 'left';
+
+        const startX = Math.ceil(minX / gridSpacing) * gridSpacing;
+        for (let gx = startX; gx <= minX + worldW; gx += gridSpacing) {
+            const pos = worldToCanvas(gx, minY);
             ctx.beginPath();
-            ctx.moveTo((canvas.width / gridDivisions) * i, 0);
-            ctx.lineTo((canvas.width / gridDivisions) * i, canvas.height);
+            ctx.moveTo(pos.x, 0);
+            ctx.lineTo(pos.x, canvas.height);
             ctx.stroke();
+            ctx.fillText(Math.round(gx).toString(), pos.x + 3, 11);
+        }
+
+        const startY = Math.ceil(minY / gridSpacing) * gridSpacing;
+        for (let gy = startY; gy <= minY + worldH; gy += gridSpacing) {
+            const pos = worldToCanvas(minX, gy);
             ctx.beginPath();
-            ctx.moveTo(0, (canvas.height / gridDivisions) * i);
-            ctx.lineTo(canvas.width, (canvas.height / gridDivisions) * i);
+            ctx.moveTo(0, pos.y);
+            ctx.lineTo(canvas.width, pos.y);
+            ctx.stroke();
+            ctx.fillText(Math.round(gy).toString(), 4, pos.y - 3);
+        }
+
+        // Ejes X=0 y Y=0 sutilmente destacados si están dentro de los límites
+        if (minX <= 0 && minX + worldW >= 0) {
+            const pos0 = worldToCanvas(0, 0);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(pos0.x, 0);
+            ctx.lineTo(pos0.x, canvas.height);
+            ctx.stroke();
+        }
+        if (minY <= 0 && minY + worldH >= 0) {
+            const pos0 = worldToCanvas(0, 0);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, pos0.y);
+            ctx.lineTo(canvas.width, pos0.y);
             ctx.stroke();
         }
 
-        // Líneas divisoria centrales
-        ctx.strokeStyle = m.color ? m.color + '40' : 'rgba(6, 182, 212, 0.35)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, 0);
-        ctx.lineTo(canvas.width / 2, canvas.height);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height / 2);
-        ctx.lineTo(canvas.width, canvas.height / 2);
-        ctx.stroke();
-
-        // Círculos concéntricos de radar sonar
-        ctx.strokeStyle = m.color ? m.color + '20' : 'rgba(6, 182, 212, 0.15)';
-        ctx.lineWidth = 1.5;
-        const circles = [0.15, 0.3, 0.45];
-        circles.forEach(rMult => {
-            ctx.beginPath();
-            ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width * rMult, 0, Math.PI * 2);
-            ctx.stroke();
-        });
-
-        // ========== DIBUJAR SPAWNS ==========
+        // ========== 4. DIBUJAR SPAWNS ==========
         const spawns = m.spawns || [];
         spawns.forEach((s, idx) => {
             if (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) return;
 
-            const sx = s.x !== undefined ? s.x : 1000;
-            const sy = s.y !== undefined ? s.y : 1000;
+            const sx = s.x !== undefined ? s.x : 0;
+            const sy = s.y !== undefined ? s.y : 0;
             const pos = worldToCanvas(sx, sy);
             const isFocused = focusedRadarItem && focusedRadarItem.type === 'map-spawn' && focusedRadarItem.index === idx;
             const isSelected = isDragging && dragItem && dragItem.type === 'map-spawn' && dragItem.index === idx;
 
+            const model = config.enemyModels ? (config.enemyModels[s.type] || { name: 'Enemigo ' + s.type }) : { name: 'Enemigo ' + s.type };
+            const isBoss = (model.isBoss === true) || (Number(s.type) >= 101) || (s.type === '10' || s.type === '11');
+
+            // Radio de dispersión de spawn si existe
             if (s.spawnMode === 'random' && s.radius > 0) {
                 const radiusCanvas = (s.radius / worldW) * canvas.width;
-                ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
-                ctx.strokeStyle = 'rgba(16, 185, 129, 0.2)';
+                ctx.fillStyle = isBoss ? 'rgba(168, 85, 247, 0.08)' : 'rgba(16, 185, 129, 0.05)';
+                ctx.strokeStyle = isBoss ? 'rgba(168, 85, 247, 0.35)' : 'rgba(16, 185, 129, 0.25)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
@@ -2945,42 +2979,61 @@ function initMapRadar() {
                 ctx.stroke();
             }
 
+            // Escala y radio proporcional acorde al espacio físico en el minimapa
+            const entScale = model.scale ? Number(model.scale) : (isBoss ? 6.0 : 2.0);
+            const dotR = isBoss ? Math.max(5.0, Math.min(12.0, 4.0 * (entScale / 6.0))) : 4.0;
+            const mainColor = isBoss ? '#a640ff' : '#10b981';
+            const ringColor = isBoss ? '#c084fc' : '#34d399';
+
             if (isSelected || isFocused) {
                 const pulse = 3 + Math.sin(Date.now() / 180) * 2;
                 ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 14 + pulse, 0, Math.PI * 2);
-                ctx.strokeStyle = '#10b981';
+                ctx.arc(pos.x, pos.y, dotR + 8 + pulse, 0, Math.PI * 2);
+                ctx.strokeStyle = mainColor;
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
 
-            ctx.fillStyle = (isSelected || isFocused) ? '#fff' : 'rgba(16, 185, 129, 0.2)';
-            ctx.strokeStyle = '#10b981';
-            ctx.lineWidth = 2;
+            // Halo exterior translúcido
+            ctx.fillStyle = (isSelected || isFocused) ? '#fff' : (isBoss ? 'rgba(168, 85, 247, 0.25)' : 'rgba(16, 185, 129, 0.2)');
+            ctx.strokeStyle = ringColor;
+            ctx.lineWidth = isSelected ? 2.5 : 1.5;
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
+            ctx.arc(pos.x, pos.y, dotR + 3, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
-            ctx.fillStyle = '#10b981';
+            // Núcleo del enemigo
+            ctx.fillStyle = mainColor;
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 3.5, 0, Math.PI * 2);
+            ctx.arc(pos.x, pos.y, dotR, 0, Math.PI * 2);
             ctx.fill();
 
-            const model = config.enemyModels[s.type] || { name: 'Enemigo ' + s.type };
-            ctx.fillStyle = '#10b981';
-            ctx.font = 'bold 9px Outfit';
+            // Núcleo blanco nítido para bosses
+            if (isBoss) {
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, Math.min(2.5, dotR * 0.35), 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Etiqueta de nombre
+            ctx.fillStyle = isBoss ? '#e9d5ff' : '#10b981';
+            ctx.font = `bold ${isBoss ? 10 : 9}px Outfit`;
             ctx.textAlign = 'center';
-            ctx.fillText(model.name, pos.x, pos.y - 14);
+            ctx.fillText(model.name, pos.x, pos.y - (dotR + 7));
         });
 
-        // ========== DIBUJAR OBJETOS DEL MUNDO ==========
+        // ========== 5. DIBUJAR OBJETOS DEL MUNDO ==========
         const OBJECT_STYLES = {
-            chest: { color: '#ffd700', glow: 'rgba(255,215,0,0.3)', icon: 'B', size: 9 },
-            door:  { color: '#00d2ff', glow: 'rgba(0,210,255,0.3)', icon: 'P', size: 10 },
-            tower: { color: '#ff8c00', glow: 'rgba(255,140,0,0.3)', icon: 'T', size: 9 },
-            wall:  { color: '#a87c52', glow: 'rgba(168,124,82,0.3)', icon: '🧱', size: 9 },
-            market: { color: '#ffd700', glow: 'rgba(255,215,0,0.35)', icon: '🛒', size: 10 }
+            chest:  { color: '#ffd700', glow: 'rgba(255,215,0,0.3)', icon: 'B', size: 9 },
+            door:   { color: '#00d2ff', glow: 'rgba(0,210,255,0.3)', icon: 'P', size: 10 },
+            tower:  { color: '#ff8c00', glow: 'rgba(255,140,0,0.3)', icon: 'T', size: 9 },
+            wall:   { color: '#a87c52', glow: 'rgba(168,124,82,0.3)', icon: '🧱', size: 9 },
+            market: { color: '#ffd700', glow: 'rgba(255,215,0,0.35)', icon: '🛒', size: 10 },
+            altar:  { color: '#00ff88', glow: 'rgba(0,255,136,0.35)', icon: 'A', size: 10 },
+            nexus:  { color: '#ef4444', glow: 'rgba(239,68,68,0.35)', icon: 'N', size: 10 },
+            pillar: { color: '#3b82f6', glow: 'rgba(59,130,246,0.35)', icon: 'P', size: 9 }
         };
         const objects = m.objects || [];
         objects.forEach((obj, idx) => {
@@ -3031,8 +3084,9 @@ function initMapRadar() {
             }
         });
 
+        // Coordenadas flotantes y límites mundiales en la barra inferior
         if (window.lastMouseWorldX !== undefined && window.lastMouseWorldY !== undefined) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.font = '10px monospace';
             ctx.textAlign = 'left';
             ctx.fillText(`X: ${window.lastMouseWorldX} Y: ${window.lastMouseWorldY}`, 10, canvas.height - 10);
