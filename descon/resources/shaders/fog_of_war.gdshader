@@ -13,7 +13,8 @@ uniform sampler2D vision_texture  : filter_linear, repeat_disable;
 uniform sampler2D history_texture : filter_linear, repeat_disable;
 uniform sampler2D noise_texture   : filter_linear, repeat_enable;
 
-uniform vec2  map_size_3d = vec2(80.0, 113.0);
+uniform vec2  map_offset_3d = vec2(0.0, 0.0);
+uniform vec2  map_size_3d   = vec2(80.0, 113.0);
 uniform float fog_opacity    : hint_range(0.0, 1.0) = 0.80;
 uniform float shroud_opacity : hint_range(0.0, 1.0) = 0.32;
 
@@ -74,7 +75,7 @@ void fragment() {
 		float height_factor = 1.0 - smoothstep(0.0, fog_height, max(frag_world.y, 0.0));
 
 		vec2 sample_xz = frag_world.xz;
-		vec2 fog_uv    = sample_xz / map_size_3d;
+		vec2 fog_uv    = (sample_xz - map_offset_3d) / map_size_3d;
 		bool in_map    = (fog_uv.x >= 0.0 && fog_uv.x <= 1.0 &&
 		                  fog_uv.y >= 0.0 && fog_uv.y <= 1.0);
 

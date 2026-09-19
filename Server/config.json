@@ -3061,7 +3061,7 @@
                     "fireRate": 900,
                     "lockTimeMs": 0,
                     "radius": 400,
-                    "slow_amount": 50,
+                    "slow_amount": 1000,
                     "startDelay": 5000,
                     "tick_interval": 900,
                     "type": "ice_storm"
@@ -3083,7 +3083,7 @@
                     "fireRate": 6300,
                     "isHoming": 0,
                     "lifetimeMs": 2000,
-                    "lockTimeMs": 1500,
+                    "lockTimeMs": 1000,
                     "startDelay": 1500,
                     "turnSpeed": 1.2,
                     "type": "mega_laser"
@@ -3099,7 +3099,7 @@
                     "bulletSpeed": 800,
                     "castInterruptible": false,
                     "castTimeMs": 0,
-                    "cooldown": 3000,
+                    "cooldown": 2000,
                     "debuffsList": [
                         {
                             "dps": 1,
@@ -7581,8 +7581,8 @@
                     "radius": 300,
                     "spawnMode": "fixed",
                     "type": "105",
-                    "x": 1783,
-                    "y": 213
+                    "x": 730,
+                    "y": -2850
                 }
             ],
             "terrainImage": "assets/maps/terrain_zone_3.png",

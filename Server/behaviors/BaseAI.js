@@ -4145,6 +4145,8 @@ module.exports = class BaseAI {
 
         const maps = (this.state && this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig) ? this.state.SERVER_CONFIG.mapsConfig : {};
         const mapCfg = maps[this.enemy.zone] || {};
+        const minX = (mapCfg.minX !== undefined) ? Number(mapCfg.minX) : 0;
+        const minY = (mapCfg.minY !== undefined) ? Number(mapCfg.minY) : 0;
         const mapWidth = Number(mapCfg.width) || 4000;
         const mapHeight = Number(mapCfg.height) || 4000;
         const margin = 80;
@@ -4153,24 +4155,26 @@ module.exports = class BaseAI {
         let nextX = this.enemy.x + Math.cos(this._prowlerAngle) * speed;
         let nextY = this.enemy.y + Math.sin(this._prowlerAngle) * speed;
 
-        if (nextX <= margin) {
-            nextX = margin;
+        if (nextX <= minX + margin) {
+            nextX = minX + margin;
             hitBorder = true;
-        } else if (nextX >= mapWidth - margin) {
-            nextX = mapWidth - margin;
+        } else if (nextX >= minX + mapWidth - margin) {
+            nextX = minX + mapWidth - margin;
             hitBorder = true;
         }
 
-        if (nextY <= margin) {
-            nextY = margin;
+        if (nextY <= minY + margin) {
+            nextY = minY + margin;
             hitBorder = true;
-        } else if (nextY >= mapHeight - margin) {
-            nextY = mapHeight - margin;
+        } else if (nextY >= minY + mapHeight - margin) {
+            nextY = minY + mapHeight - margin;
             hitBorder = true;
         }
 
         if (hitBorder) {
-            this._prowlerAngle = Math.atan2(mapHeight / 2 - this.enemy.y, mapWidth / 2 - this.enemy.x);
+            const centerX = minX + mapWidth / 2;
+            const centerY = minY + mapHeight / 2;
+            this._prowlerAngle = Math.atan2(centerY - this.enemy.y, centerX - this.enemy.x);
             while (this._prowlerAngle < -Math.PI) this._prowlerAngle += Math.PI * 2;
             while (this._prowlerAngle > Math.PI) this._prowlerAngle -= Math.PI * 2;
 

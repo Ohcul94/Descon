@@ -19,34 +19,36 @@ const getMapBounds = (zone, state) => {
         const cfg = maps[zStr];
         const w = parseFloat(cfg.width);
         const h = parseFloat(cfg.height);
+        const minX = parseFloat(cfg.minX) || 0;
+        const minY = parseFloat(cfg.minY) || 0;
         if (!isNaN(w) && w > 0) {
-            return { w: w, h: (!isNaN(h) && h > 0) ? h : w };
+            return { w: w, h: (!isNaN(h) && h > 0) ? h : w, minX, minY };
         }
     }
     const gm = state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes;
     if (gm) {
         if (gm.extraction && Array.isArray(gm.extraction.maps) && gm.extraction.maps.map(n => String(n)).includes(zStr)) {
-            return { w: parseFloat(gm.extraction.width) || 20000, h: parseFloat(gm.extraction.height) || 20000 };
+            return { w: parseFloat(gm.extraction.width) || 20000, h: parseFloat(gm.extraction.height) || 20000, minX: 0, minY: 0 };
         }
         if (gm.altar_defense && Array.isArray(gm.altar_defense.maps) && gm.altar_defense.maps.map(n => String(n)).includes(zStr)) {
-            return { w: parseFloat(gm.altar_defense.width) || 10000, h: parseFloat(gm.altar_defense.height) || 10000 };
+            return { w: parseFloat(gm.altar_defense.width) || 10000, h: parseFloat(gm.altar_defense.height) || 10000, minX: 0, minY: 0 };
         }
         if (gm.arenas) {
             if (gm.arenas.mapConfigs && gm.arenas.mapConfigs[zStr]) {
                 const ac = gm.arenas.mapConfigs[zStr];
-                return { w: parseFloat(ac.width) || 10000, h: parseFloat(ac.height) || 10000 };
+                return { w: parseFloat(ac.width) || 10000, h: parseFloat(ac.height) || 10000, minX: 0, minY: 0 };
             }
             if (Array.isArray(gm.arenas.maps) && gm.arenas.maps.map(n => String(n)).includes(zStr)) {
-                return { w: 10000, h: 10000 };
+                return { w: 10000, h: 10000, minX: 0, minY: 0 };
             }
         }
     }
     if (typeof zone === 'string') {
-        if (zone.startsWith('arena_')) return { w: 10000, h: 10000 };
-        if (zone.startsWith('extract_')) return { w: parseFloat(maps['10'] && maps['10'].width) || 20000, h: parseFloat(maps['10'] && maps['10'].height) || 20000 };
-        if (zone.startsWith('dungeon')) return { w: 4000, h: 4000 };
+        if (zone.startsWith('arena_')) return { w: 10000, h: 10000, minX: 0, minY: 0 };
+        if (zone.startsWith('extract_')) return { w: parseFloat(maps['10'] && maps['10'].width) || 20000, h: parseFloat(maps['10'] && maps['10'].height) || 20000, minX: 0, minY: 0 };
+        if (zone.startsWith('dungeon')) return { w: 4000, h: 4000, minX: 0, minY: 0 };
     }
-    return { w: 4000, h: 4000 };
+    return { w: 4000, h: 4000, minX: 0, minY: 0 };
 };
 
 // Convierte índice de celda a coordenadas centradas en mundo
@@ -56,8 +58,8 @@ const cellToWorldPos = (cellIdx, bounds) => {
     const cellW = bounds.w / GRID_RES;
     const cellH = bounds.h / GRID_RES;
     return {
-        x: (x + 0.5) * cellW,
-        y: (y + 0.5) * cellH
+        x: (bounds.minX || 0) + (x + 0.5) * cellW,
+        y: (bounds.minY || 0) + (y + 0.5) * cellH
     };
 };
 

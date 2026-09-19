@@ -2726,9 +2726,75 @@ function initMapRadar() {
     const m = config.mapsConfig[selectedMapId];
     if (!m) return;
 
-    // Estado de arrastre
+    // Estado persistente de Zoom y Panning por zona
+    if (!window._mapRadarState) window._mapRadarState = {};
+    if (!window._mapRadarState[selectedMapId]) {
+        window._mapRadarState[selectedMapId] = { zoom: 1.0, pan: { x: 0, y: 0 } };
+    }
+    const radarState = window._mapRadarState[selectedMapId];
+
+    // Estados de interacción
     let isDragging = false;
     let dragItem = null;
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
+
+    const updateZoomBadge = () => {
+        const badge = document.getElementById('radar-zoom-badge');
+        if (badge) {
+            badge.innerText = Math.round(radarState.zoom * 100) + '%';
+        }
+    };
+    updateZoomBadge();
+
+    // Función para limitar zoom entre 100% y 500% y restringir paneo dentro del mapa
+    const clampPanAndZoom = () => {
+        radarState.zoom = Math.min(Math.max(1.0, radarState.zoom), 5.0);
+        if (radarState.zoom <= 1.0) {
+            radarState.pan.x = 0;
+            radarState.pan.y = 0;
+        } else {
+            const minPanX = canvas.width * (1 - radarState.zoom);
+            const maxPanX = 0;
+            radarState.pan.x = Math.min(maxPanX, Math.max(minPanX, radarState.pan.x));
+
+            const minPanY = canvas.height * (1 - radarState.zoom);
+            const maxPanY = 0;
+            radarState.pan.y = Math.min(maxPanY, Math.max(minPanY, radarState.pan.y));
+        }
+    };
+
+    // Controles globales accesibles por botones en la UI (Mínimo 100%, Máximo 500%)
+    window.zoomRadarIn = () => {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const oldZoom = radarState.zoom;
+        const newZoom = Math.min(5.0, oldZoom * 1.25);
+        radarState.pan.x = cx - (cx - radarState.pan.x) * (newZoom / oldZoom);
+        radarState.pan.y = cy - (cy - radarState.pan.y) * (newZoom / oldZoom);
+        radarState.zoom = newZoom;
+        clampPanAndZoom();
+        updateZoomBadge();
+    };
+
+    window.zoomRadarOut = () => {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const oldZoom = radarState.zoom;
+        const newZoom = Math.max(1.0, oldZoom / 1.25);
+        radarState.pan.x = cx - (cx - radarState.pan.x) * (newZoom / oldZoom);
+        radarState.pan.y = cy - (cy - radarState.pan.y) * (newZoom / oldZoom);
+        radarState.zoom = newZoom;
+        clampPanAndZoom();
+        updateZoomBadge();
+    };
+
+    window.resetRadarZoom = () => {
+        radarState.zoom = 1.0;
+        radarState.pan.x = 0;
+        radarState.pan.y = 0;
+        updateZoomBadge();
+    };
 
     const updateCanvasSize = () => {
         const w = container.clientWidth;
@@ -2750,19 +2816,23 @@ function initMapRadar() {
     const worldW = (m.width && Number(m.width) > 0) ? Number(m.width) : 10000;
     const worldH = (m.height && Number(m.height) > 0) ? Number(m.height) : 10000;
 
-    // Convertir de coordenadas de mundo a coordenadas de canvas respetando el origen minX, minY
+    // Convertir de coordenadas de mundo a coordenadas de canvas respetando el origen minX, minY, zoom y pan
     const worldToCanvas = (wx, wy) => {
+        const baseX = ((wx - minX) / worldW) * canvas.width;
+        const baseY = ((wy - minY) / worldH) * canvas.height;
         return {
-            x: ((wx - minX) / worldW) * canvas.width,
-            y: ((wy - minY) / worldH) * canvas.height
+            x: (baseX * radarState.zoom) + radarState.pan.x,
+            y: (baseY * radarState.zoom) + radarState.pan.y
         };
     };
 
-    // Convertir de canvas a mundo respetando el origen minX, minY
+    // Convertir de canvas a mundo respetando el origen minX, minY, zoom y pan
     const canvasToWorld = (cx, cy) => {
+        const baseX = (cx - radarState.pan.x) / radarState.zoom;
+        const baseY = (cy - radarState.pan.y) / radarState.zoom;
         return {
-            wx: minX + (cx / canvas.width) * worldW,
-            wy: minY + (cy / canvas.height) * worldH
+            wx: minX + (baseX / canvas.width) * worldW,
+            wy: minY + (baseY / canvas.height) * worldH
         };
     };
 
@@ -2778,10 +2848,45 @@ function initMapRadar() {
         window._radarTerrainImages[imgKey] = terrainImg;
     }
 
+    // Zoom con la rueda del mouse centrado en la posición del cursor (Mínimo 100%, Máximo 500%)
+    canvas.onwheel = (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const zoomSpeed = 0.15;
+        const zoomFactor = e.deltaY < 0 ? (1 + zoomSpeed) : (1 / (1 + zoomSpeed));
+        const oldZoom = radarState.zoom;
+        const newZoom = Math.min(Math.max(1.0, oldZoom * zoomFactor), 5.0);
+
+        radarState.pan.x = mouseX - (mouseX - radarState.pan.x) * (newZoom / oldZoom);
+        radarState.pan.y = mouseY - (mouseY - radarState.pan.y) * (newZoom / oldZoom);
+        radarState.zoom = newZoom;
+
+        clampPanAndZoom();
+        updateZoomBadge();
+    };
+
+    // Evitar menú contextual para permitir paneo libre con clic derecho
+    canvas.oncontextmenu = (e) => {
+        e.preventDefault();
+        return false;
+    };
+
     canvas.onmousedown = (e) => {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
+
+        // Panning con clic derecho (2) o botón central de la rueda (1)
+        if (e.button === 1 || e.button === 2) {
+            e.preventDefault();
+            isPanning = true;
+            panStart = { x: e.clientX, y: e.clientY };
+            canvas.style.cursor = 'grabbing';
+            return;
+        }
 
         // Si hay un modal de agregado abierto, copiar las coordenadas del clic al modal
         const addOverlay = document.getElementById('map-add-overlay');
@@ -2830,12 +2935,16 @@ function initMapRadar() {
             }
         }
 
-        // Si no agarró nada, capturar coordenadas del radar para mostrar
+        // Si no agarró ningún objeto ni spawn, capturar coordenadas del radar e iniciar paneo con clic izquierdo
         const world = canvasToWorld(mouseX, mouseY);
         const rxInput = document.getElementById('map-radar-x');
         const ryInput = document.getElementById('map-radar-y');
         if (rxInput) rxInput.value = Math.round(world.wx);
         if (ryInput) ryInput.value = Math.round(world.wy);
+
+        isPanning = true;
+        panStart = { x: e.clientX, y: e.clientY };
+        canvas.style.cursor = 'grabbing';
     };
 
     window.onmousemove = (e) => {
@@ -2843,6 +2952,18 @@ function initMapRadar() {
         const mouseX = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
         const mouseY = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
         const world = canvasToWorld(mouseX, mouseY);
+
+        if (isPanning) {
+            if (radarState.zoom > 1.0) {
+                const dx = e.clientX - panStart.x;
+                const dy = e.clientY - panStart.y;
+                radarState.pan.x += dx;
+                radarState.pan.y += dy;
+                clampPanAndZoom();
+            }
+            panStart = { x: e.clientX, y: e.clientY };
+            return;
+        }
 
         if (isDragging && dragItem) {
             if (dragItem.type === 'map-obj') {
@@ -2875,9 +2996,31 @@ function initMapRadar() {
                 }
             }
         } else {
-            // Mostrar coordenadas flotantes al mover el mouse si no arrastra
             window.lastMouseWorldX = Math.round(world.wx);
             window.lastMouseWorldY = Math.round(world.wy);
+
+            if (e.target === canvas) {
+                let hoveringItem = false;
+                const objects = m.objects || [];
+                for (let i = 0; i < objects.length; i++) {
+                    const pos = worldToCanvas(objects[i].x || 0, objects[i].y || 0);
+                    if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 14) {
+                        hoveringItem = true;
+                        break;
+                    }
+                }
+                if (!hoveringItem) {
+                    const spawns = m.spawns || [];
+                    for (let i = 0; i < spawns.length; i++) {
+                        const pos = worldToCanvas(spawns[i].x || 0, spawns[i].y || 0);
+                        if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 16) {
+                            hoveringItem = true;
+                            break;
+                        }
+                    }
+                }
+                canvas.style.cursor = hoveringItem ? 'grab' : 'crosshair';
+            }
         }
     };
 
@@ -2887,23 +3030,42 @@ function initMapRadar() {
             dragItem = null;
             canvas.style.cursor = 'crosshair';
         }
+        if (isPanning) {
+            isPanning = false;
+            canvas.style.cursor = 'crosshair';
+        }
     };
 
     const draw = () => {
         if (!document.getElementById('map-radar-canvas')) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 1. Fondo del radar oscuro de alta gama
+        // 1. Fondo del canvas oscuro de alta gama
         ctx.fillStyle = '#060a14';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Coordenadas en pantalla del rectángulo del terreno con zoom y pan
+        const pTopLeft = worldToCanvas(minX, minY);
+        const pBottomRight = worldToCanvas(minX + worldW, minY + worldH);
+        const terrainW = pBottomRight.x - pTopLeft.x;
+        const terrainH = pBottomRight.y - pTopLeft.y;
+
+        // Tinte de fondo del terreno delimitado
+        ctx.fillStyle = m.color ? m.color + '12' : 'rgba(6, 182, 212, 0.05)';
+        ctx.fillRect(pTopLeft.x, pTopLeft.y, terrainW, terrainH);
 
         // 2. Textura topográfica real de Godot (relieve 3D) si está cargada
         if (terrainImg && terrainImg.complete && terrainImg.naturalWidth > 0) {
             ctx.save();
             ctx.globalAlpha = 0.88;
-            ctx.drawImage(terrainImg, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(terrainImg, pTopLeft.x, pTopLeft.y, terrainW, terrainH);
             ctx.restore();
         }
+
+        // Borde del sector de mapa
+        ctx.strokeStyle = m.color || 'rgba(6, 182, 212, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(pTopLeft.x, pTopLeft.y, terrainW, terrainH);
 
         // 3. Grid cibernético alineado con las coordenadas reales del mundo (cada 2000px)
         const gridSpacing = 2000;
@@ -2915,41 +3077,49 @@ function initMapRadar() {
 
         const startX = Math.ceil(minX / gridSpacing) * gridSpacing;
         for (let gx = startX; gx <= minX + worldW; gx += gridSpacing) {
-            const pos = worldToCanvas(gx, minY);
+            const pTop = worldToCanvas(gx, minY);
+            const pBot = worldToCanvas(gx, minY + worldH);
             ctx.beginPath();
-            ctx.moveTo(pos.x, 0);
-            ctx.lineTo(pos.x, canvas.height);
+            ctx.moveTo(pTop.x, pTop.y);
+            ctx.lineTo(pBot.x, pBot.y);
             ctx.stroke();
-            ctx.fillText(Math.round(gx).toString(), pos.x + 3, 11);
+            if (pTop.x >= 0 && pTop.x <= canvas.width) {
+                ctx.fillText(Math.round(gx).toString(), pTop.x + 3, Math.max(12, Math.min(canvas.height - 4, pTop.y + 11)));
+            }
         }
 
         const startY = Math.ceil(minY / gridSpacing) * gridSpacing;
         for (let gy = startY; gy <= minY + worldH; gy += gridSpacing) {
-            const pos = worldToCanvas(minX, gy);
+            const pLeft = worldToCanvas(minX, gy);
+            const pRight = worldToCanvas(minX + worldW, gy);
             ctx.beginPath();
-            ctx.moveTo(0, pos.y);
-            ctx.lineTo(canvas.width, pos.y);
+            ctx.moveTo(pLeft.x, pLeft.y);
+            ctx.lineTo(pRight.x, pRight.y);
             ctx.stroke();
-            ctx.fillText(Math.round(gy).toString(), 4, pos.y - 3);
+            if (pLeft.y >= 0 && pLeft.y <= canvas.height) {
+                ctx.fillText(Math.round(gy).toString(), Math.max(4, pLeft.x + 4), pLeft.y - 3);
+            }
         }
 
         // Ejes X=0 y Y=0 sutilmente destacados si están dentro de los límites
         if (minX <= 0 && minX + worldW >= 0) {
-            const pos0 = worldToCanvas(0, 0);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            const p0_top = worldToCanvas(0, minY);
+            const p0_bot = worldToCanvas(0, minY + worldH);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(pos0.x, 0);
-            ctx.lineTo(pos0.x, canvas.height);
+            ctx.moveTo(p0_top.x, p0_top.y);
+            ctx.lineTo(p0_bot.x, p0_bot.y);
             ctx.stroke();
         }
         if (minY <= 0 && minY + worldH >= 0) {
-            const pos0 = worldToCanvas(0, 0);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            const p0_left = worldToCanvas(minX, 0);
+            const p0_right = worldToCanvas(minX + worldW, 0);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(0, pos0.y);
-            ctx.lineTo(canvas.width, pos0.y);
+            ctx.moveTo(p0_left.x, p0_left.y);
+            ctx.lineTo(p0_right.x, p0_right.y);
             ctx.stroke();
         }
 
@@ -2967,9 +3137,9 @@ function initMapRadar() {
             const model = config.enemyModels ? (config.enemyModels[s.type] || { name: 'Enemigo ' + s.type }) : { name: 'Enemigo ' + s.type };
             const isBoss = (model.isBoss === true) || (Number(s.type) >= 101) || (s.type === '10' || s.type === '11');
 
-            // Radio de dispersión de spawn si existe
+            // Radio de dispersión de spawn si existe (escalado con zoom)
             if (s.spawnMode === 'random' && s.radius > 0) {
-                const radiusCanvas = (s.radius / worldW) * canvas.width;
+                const radiusCanvas = ((s.radius / worldW) * canvas.width) * radarState.zoom;
                 ctx.fillStyle = isBoss ? 'rgba(168, 85, 247, 0.08)' : 'rgba(16, 185, 129, 0.05)';
                 ctx.strokeStyle = isBoss ? 'rgba(168, 85, 247, 0.35)' : 'rgba(16, 185, 129, 0.25)';
                 ctx.lineWidth = 1;
@@ -2981,7 +3151,7 @@ function initMapRadar() {
 
             // Escala y radio proporcional acorde al espacio físico en el minimapa
             const entScale = model.scale ? Number(model.scale) : (isBoss ? 6.0 : 2.0);
-            const dotR = isBoss ? Math.max(5.0, Math.min(12.0, 4.0 * (entScale / 6.0))) : 4.0;
+            const dotR = isBoss ? Math.max(5.0, Math.min(14.0, 4.0 * (entScale / 6.0))) : 4.0;
             const mainColor = isBoss ? '#a640ff' : '#10b981';
             const ringColor = isBoss ? '#c084fc' : '#34d399';
 
@@ -3059,38 +3229,37 @@ function initMapRadar() {
             ctx.fill();
             ctx.stroke();
 
-            ctx.fillStyle = isSelected ? '#fff' : style.color;
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#fff';
-            ctx.font = `bold ${style.size}px Outfit`;
+            ctx.fillStyle = style.color;
+            ctx.font = 'bold 10px Outfit';
             ctx.textAlign = 'center';
-            ctx.fillText(style.icon, pos.x, pos.y + 3);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(style.icon, pos.x, pos.y);
+            ctx.textBaseline = 'alphabetic';
 
-            const label = obj.label || (obj.type === 'door' ? 'Puerta' : obj.type === 'chest' ? 'Baúl' : obj.type === 'market' ? 'Mercado' : 'Torre');
+            const labelText = obj.label || obj.type.toUpperCase();
             ctx.fillStyle = style.color;
             ctx.font = '8px Outfit';
             ctx.textAlign = 'center';
-            ctx.fillText(label, pos.x, pos.y - 16);
+            ctx.fillText(labelText, pos.x, pos.y + 19);
 
             if (obj.type === 'door' && obj.targetZoneId) {
-                const destZoneName = config.mapsConfig[obj.targetZoneId]?.name || `Zona ${obj.targetZoneId}`;
+                const destZoneName = config.mapsConfig[obj.targetZoneId] ? config.mapsConfig[obj.targetZoneId].name : `Zona ${obj.targetZoneId}`;
                 ctx.fillStyle = 'rgba(0,210,255,0.7)';
                 ctx.font = '7px Outfit';
                 ctx.textAlign = 'center';
-                ctx.fillText(`→ ${destZoneName}`, pos.x, pos.y + 22);
+                ctx.fillText(`→ ${destZoneName}`, pos.x, pos.y + 28);
             }
         });
 
-        // Coordenadas flotantes y límites mundiales en la barra inferior
-        if (window.lastMouseWorldX !== undefined && window.lastMouseWorldY !== undefined) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.font = '10px monospace';
-            ctx.textAlign = 'left';
-            ctx.fillText(`X: ${window.lastMouseWorldX} Y: ${window.lastMouseWorldY}`, 10, canvas.height - 10);
-        }
+        // Coordenadas flotantes y nivel de zoom en la barra inferior
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'left';
+        const coordsText = (window.lastMouseWorldX !== undefined && window.lastMouseWorldY !== undefined)
+            ? `X: ${window.lastMouseWorldX} Y: ${window.lastMouseWorldY}`
+            : `X: 0 Y: 0`;
+        const zoomText = `🔍 ${Math.round(radarState.zoom * 100)}%`;
+        ctx.fillText(`${coordsText}  |  ${zoomText}`, 10, canvas.height - 10);
 
         requestAnimationFrame(draw);
     };

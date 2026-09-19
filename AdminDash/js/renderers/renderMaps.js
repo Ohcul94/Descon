@@ -72,15 +72,9 @@ function renderMapDetail() {
                         </div>
                     </div>
                     <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.05);">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
-                            <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; margin:0;">📐 DIMENSIONES Y LÍMITES REALES DEL TERRENO</label>
-                            ${m.terrainImage ? `<span style="font-size:0.6rem; color:#10b981; font-family:'JetBrains Mono', monospace;">🗺️ Terreno 3D Sincronizado</span>` : ''}
-                        </div>
-                        <div class="form-grid">
-                            <div class="field"><label>Origen X (Min X - px)</label><input type="number" value="${m.minX !== undefined ? Math.round(m.minX) : 0}" oninput="config.mapsConfig['${selectedMapId}'].minX = parseFloat(this.value) || 0"></div>
-                            <div class="field"><label>Origen Y (Min Y - px)</label><input type="number" value="${m.minY !== undefined ? Math.round(m.minY) : 0}" oninput="config.mapsConfig['${selectedMapId}'].minY = parseFloat(this.value) || 0"></div>
-                            <div class="field"><label>Ancho (Width - px)</label><input type="number" value="${m.width || 10000}" oninput="config.mapsConfig['${selectedMapId}'].width = parseFloat(this.value) || 10000"></div>
-                            <div class="field"><label>Alto (Height - px)</label><input type="number" value="${m.height || 10000}" oninput="config.mapsConfig['${selectedMapId}'].height = parseFloat(this.value) || 10000"></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; margin:0;">📐 DIMENSIONES Y LÍMITES DEL TERRENO</label>
+                            <span style="font-size:0.6rem; color:#10b981; font-family:'JetBrains Mono', monospace; background:rgba(16,185,129,0.1); padding:2px 8px; border-radius:4px; border:1px solid rgba(16,185,129,0.2);">🗺️ Gestionado automáticamente desde Godot 3D</span>
                         </div>
                     </div>
                     ${(() => {
@@ -218,16 +212,29 @@ function renderMapDetail() {
             
             <div class="col">
                 <div class="card" style="width:100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
-                    <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold; letter-spacing:1px; width:100%; text-align:left;">🛰️ RADAR TÁCTICO DEL MAPA</label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold; letter-spacing:1px; margin:0;">🛰️ RADAR TÁCTICO DEL MAPA</label>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <button class="btn btn-secondary" onclick="window.zoomRadarIn()" title="Acercar (Zoom In)" style="padding:2px 8px; font-size:0.85rem; font-weight:bold; height:24px; line-height:1; min-width:24px;">＋</button>
+                            <span id="radar-zoom-badge" style="font-size:0.65rem; font-family:'JetBrains Mono', monospace; color:var(--accent); min-width:38px; text-align:center;">100%</span>
+                            <button class="btn btn-secondary" onclick="window.zoomRadarOut()" title="Alejar (Zoom Out)" style="padding:2px 8px; font-size:0.85rem; font-weight:bold; height:24px; line-height:1; min-width:24px;">－</button>
+                            <button class="btn btn-secondary" onclick="window.resetRadarZoom()" title="Restablecer Vista (100%)" style="padding:2px 8px; font-size:0.75rem; height:24px; line-height:1;">⟲</button>
+                        </div>
+                    </div>
                     <div id="map-radar-container" style="position:relative; width:100%; aspect-ratio: 1; background:#000; border:2px solid var(--accent); border-radius:10px; overflow:hidden; cursor:crosshair; box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);">
                         <canvas id="map-radar-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                        <div style="position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:4px; z-index:10;">
+                            <button onclick="window.zoomRadarIn()" title="Acercar (Zoom In)" style="width:28px; height:28px; background:rgba(15,23,42,0.85); border:1px solid var(--accent); color:var(--accent); border-radius:6px; cursor:pointer; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.5); backdrop-filter:blur(4px); transition:all 0.15s;">＋</button>
+                            <button onclick="window.zoomRadarOut()" title="Alejar (Zoom Out)" style="width:28px; height:28px; background:rgba(15,23,42,0.85); border:1px solid var(--accent); color:var(--accent); border-radius:6px; cursor:pointer; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.5); backdrop-filter:blur(4px); transition:all 0.15s;">－</button>
+                            <button onclick="window.resetRadarZoom()" title="Restablecer Vista (100%)" style="width:28px; height:28px; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.5); backdrop-filter:blur(4px); transition:all 0.15s;">⟲</button>
+                        </div>
                     </div>
                     <div style="display:flex; gap:10px; width:100%;">
                         <div class="field" style="flex:1;"><label>Radar X</label><input type="number" id="map-radar-x" value="0" readonly></div>
                         <div class="field" style="flex:1;"><label>Radar Y</label><input type="number" id="map-radar-y" value="0" readonly></div>
                     </div>
                     <div id="map-radar-mode-hint" style="font-size:0.65rem; color:#888; text-align:center; width:100%;">
-                        🖱️ Arrastrá puertas/spawns para moverlos. Hacé clic para fijar coordenadas. Agregá con "+ AGREGAR", duplicá lo seleccionado con <strong style="color:var(--accent);">CTRL+D</strong> y eliminá lo seleccionado con la tecla <strong style="color:#ff4444;">SUPR</strong>.
+                        🖱️ <strong>Rueda</strong>: Zoom In/Out | <strong>Clic Derecho / Fondo</strong>: Desplazar mapa (Pan) | <strong>Clic Izq</strong>: Arrastrar items | <strong>CTRL+D</strong>: Duplicar | <strong>SUPR</strong>: Eliminar
                     </div>
                 </div>
             </div>

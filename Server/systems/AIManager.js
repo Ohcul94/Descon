@@ -61,11 +61,13 @@ class AIManager {
         const initialHp = (cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 101 ? 100000 : (numericType * 2000))))) * hpMult;
         const initialShield = (cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 101 ? 50000 : (numericType * 1000))))) * hpMult;
 
-        const mapWidth = (mapCfg && mapCfg.width) ? mapCfg.width : 4000;
-        const mapHeight = (mapCfg && mapCfg.height) ? mapCfg.height : 4000;
+        const minX = (mapCfg && mapCfg.minX !== undefined) ? Number(mapCfg.minX) : 0;
+        const minY = (mapCfg && mapCfg.minY !== undefined) ? Number(mapCfg.minY) : 0;
+        const mapWidth = (mapCfg && mapCfg.width) ? Number(mapCfg.width) : 4000;
+        const mapHeight = (mapCfg && mapCfg.height) ? Number(mapCfg.height) : 4000;
 
-        let finalX = posX !== null ? posX : (zone === 9 ? 2000 : (Math.random() * (mapWidth - 600) + 300));
-        let finalY = posY !== null ? posY : (zone === 9 ? 2000 : (Math.random() * (mapHeight - 600) + 300));
+        let finalX = posX !== null ? posX : (zone === 9 ? 2000 : (minX + Math.random() * (mapWidth - 600) + 300));
+        let finalY = posY !== null ? posY : (zone === 9 ? 2000 : (minY + Math.random() * (mapHeight - 600) + 300));
 
         // Validación final: si el punto calculado cae dentro de collider, intentar recolocar
         // (cubre el fallback random sin spawner y cualquier pos forzada que no pasó por findValidSpawnPosition)
@@ -76,8 +78,8 @@ class AIManager {
                 // último recurso: muestreo dentro del mapa hasta hallar punto libre
                 let found = false;
                 for (let k = 0; k < 40; k++) {
-                    const rx = Math.random() * (mapWidth - 600) + 300;
-                    const ry = Math.random() * (mapHeight - 600) + 300;
+                    const rx = minX + Math.random() * (mapWidth - 600) + 300;
+                    const ry = minY + Math.random() * (mapHeight - 600) + 300;
                     if (!spawnValidator.isPointBlocked(rx, ry, zone, this.state)) { finalX = rx; finalY = ry; found = true; break; }
                 }
                 if (!found) Logger.warn('SPAWN', `serverSpawnEnemy zona ${zone} no encontró punto libre, mantiene [${Math.round(finalX)},${Math.round(finalY)}] dentro de colisión`);

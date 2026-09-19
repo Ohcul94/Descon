@@ -289,9 +289,11 @@ function isPointBlocked(px, py, zoneId, state, enemyRadius = DEFAULT_ENEMY_RADIU
     // Límites del mapa (evitar spawnear fuera con margen)
     const cfg = _resolveMapCfg(zoneId, state);
     if (cfg) {
+        const minX = cfg.minX !== undefined ? Number(cfg.minX) : 0;
+        const minY = cfg.minY !== undefined ? Number(cfg.minY) : 0;
         const w = Number(cfg.width) || 4000;
         const h = Number(cfg.height) || 4000;
-        if (px < margin || py < margin || px > w - margin || py > h - margin) return true;
+        if (px < minX + margin || py < minY + margin || px > minX + w - margin || py > minY + h - margin) return true;
     }
     for (const obs of obstacles) {
         if (obs.kind === 'rect') {

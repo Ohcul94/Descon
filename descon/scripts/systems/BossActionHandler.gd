@@ -792,7 +792,7 @@ func handle_meteor_action(data: Dictionary) -> void:
 			var key = str(tx) + "_" + str(ty)
 			var warn = _spawn_meteor_warning_3d(vp, tx, ty, radius, s_factor, correction_z)
 			var meteor = _spawn_meteor_model_3d(vp, tx, ty, fall_height, meteor_size, s_factor, correction_z)
-			var entry = {"warn_3d": warn, "meteor_3d": meteor, "fall_s": fall_s, "landed": false}
+			var entry = {"warn_3d": warn, "meteor_3d": meteor, "fall_s": fall_s, "landed": false, "tx": tx, "ty": ty, "radius": radius, "meteor_size": meteor_size, "vp": vp, "s_factor": s_factor, "correction_z": correction_z}
 			active_meteors[key] = entry
 			var tw = create_tween()
 			tw.tween_interval(warn_time_s)
@@ -803,16 +803,10 @@ func handle_meteor_action(data: Dictionary) -> void:
 		var radius = float(data.get("radius", 150))
 		var meteor_size = float(data.get("meteorSize", 60))
 		var key = str(tx) + "_" + str(ty)
-		_spawn_meteor_impact_3d(vp, tx, ty, radius, meteor_size, s_factor, correction_z)
-		if is_instance_valid(VFXSystem):
-			VFXSystem.spawn_explosion(Vector2(tx, ty), max(0.5, radius / 100.0))
+		var already_landed = false
 		if active_meteors.has(key):
 			var entry = active_meteors[key]
-			if is_instance_valid(entry.get("warn_3d")):
-				entry["warn_3d"].queue_free()
-			if is_instance_valid(entry.get("meteor_3d")):
-				entry["meteor_3d"].queue_free()
-			active_meteors.erase(key)
+			already_landed = entry.get("landed", false)
 		else:
 			var best_key := ""
 			var best_dist := INF
@@ -825,12 +819,20 @@ func handle_meteor_action(data: Dictionary) -> void:
 					best_dist = d
 					best_key = k
 			if best_key != "" and best_dist < 1.0:
-				var entry = active_meteors[best_key]
-				if is_instance_valid(entry.get("warn_3d")):
-					entry["warn_3d"].queue_free()
-				if is_instance_valid(entry.get("meteor_3d")):
-					entry["meteor_3d"].queue_free()
-				active_meteors.erase(best_key)
+				key = best_key
+				already_landed = active_meteors[best_key].get("landed", false)
+		if already_landed:
+			return
+		_spawn_meteor_impact_3d(vp, tx, ty, radius, meteor_size, s_factor, correction_z)
+		if is_instance_valid(VFXSystem):
+			VFXSystem.spawn_explosion(Vector2(tx, ty), max(0.5, radius / 100.0))
+		if active_meteors.has(key):
+			var entry = active_meteors[key]
+			if is_instance_valid(entry.get("warn_3d")):
+				entry["warn_3d"].queue_free()
+			if is_instance_valid(entry.get("meteor_3d")):
+				entry["meteor_3d"].queue_free()
+			active_meteors.erase(key)
 
 func _start_meteor_fall(key: String) -> void:
 	if not active_meteors.has(key):
@@ -844,6 +846,29 @@ func _start_meteor_fall(key: String) -> void:
 	tw.set_parallel(true)
 	tw.tween_property(meteor, "position:y", 0.02, fall_s).set_trans(Tween.TRANS_LINEAR)
 	tw.tween_property(meteor, "rotation_degrees", Vector3(720, 480, 360), fall_s).set_trans(Tween.TRANS_LINEAR)
+	tw.chain().tween_callback(_on_meteor_landed.bind(key))
+
+func _on_meteor_landed(key: String) -> void:
+	if not active_meteors.has(key):
+		return
+	var entry = active_meteors[key]
+	entry["landed"] = true
+	var tx = float(entry.get("tx", 0.0))
+	var ty = float(entry.get("ty", 0.0))
+	var radius = float(entry.get("radius", 150))
+	var meteor_size = float(entry.get("meteor_size", 60))
+	var lvp = entry.get("vp")
+	var ls_f = float(entry.get("s_factor", 0.02))
+	var lcz = float(entry.get("correction_z", 1.41421356))
+	if is_instance_valid(lvp):
+		_spawn_meteor_impact_3d(lvp, tx, ty, radius, meteor_size, ls_f, lcz)
+		if is_instance_valid(VFXSystem):
+			VFXSystem.spawn_explosion(Vector2(tx, ty), max(0.5, radius / 100.0))
+	if is_instance_valid(entry.get("warn_3d")):
+		entry["warn_3d"].queue_free()
+	if is_instance_valid(entry.get("meteor_3d")):
+		entry["meteor_3d"].queue_free()
+	active_meteors.erase(key)
 
 func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor: float, correction_z: float) -> Node3D:
 	var root = Node3D.new()

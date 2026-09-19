@@ -7,6 +7,7 @@ class_name FogOfWarManager
 
 var parent_map: BaseMap = null
 var map_size: Vector2 = Vector2(4000.0, 4000.0)
+var map_offset: Vector2 = Vector2(0.0, 0.0)
 
 # Grid config compartido con servidor (Server/systems/fogHandlers.js GRID_RES)
 const GRID_RES: int = 64
@@ -64,6 +65,7 @@ class HistoryDrawer extends Node2D:
 func setup(map: BaseMap):
 	parent_map = map
 	map_size = Vector2(map.world_size, map.map_height)
+	map_offset = Vector2(map.map_min_x, map.map_min_y) if "map_min_x" in map else Vector2.ZERO
 	current_zone_id = str(map.zone_id) if "zone_id" in map else "1"
 	
 	_init_gradient_texture()
@@ -209,6 +211,11 @@ func _setup_post_process_quad():
 		parent_map.world_size * parent_map.scale_factor,
 		parent_map.map_height * parent_map.scale_factor * parent_map.correction_z
 	)
+	var map_offset_3d = Vector2(
+		(parent_map.map_min_x if "map_min_x" in parent_map else 0.0) * parent_map.scale_factor,
+		(parent_map.map_min_y if "map_min_y" in parent_map else 0.0) * parent_map.scale_factor * parent_map.correction_z
+	)
+	shader_mat.set_shader_parameter("map_offset_3d", map_offset_3d)
 	shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
 	shader_mat.set_shader_parameter("vision_texture", vision_viewport.get_texture())
 	shader_mat.set_shader_parameter("history_texture", history_viewport.get_texture())
@@ -259,21 +266,25 @@ func get_vision_providers() -> Array:
 func _world_to_cell_idx(pos: Vector2) -> int:
 	var mx = map_size.x if map_size.x > 0.0 else 4000.0
 	var my = map_size.y if map_size.y > 0.0 else 4000.0
-	var cx = clampi(int((pos.x / mx) * float(GRID_RES)), 0, GRID_RES - 1)
-	var cy = clampi(int((pos.y / my) * float(GRID_RES)), 0, GRID_RES - 1)
+	var ox = map_offset.x
+	var oy = map_offset.y
+	var cx = clampi(int(((pos.x - ox) / mx) * float(GRID_RES)), 0, GRID_RES - 1)
+	var cy = clampi(int(((pos.y - oy) / my) * float(GRID_RES)), 0, GRID_RES - 1)
 	return cy * GRID_RES + cx
 
 func _get_cells_in_circle(center: Vector2, radius: float) -> Array[int]:
 	var cells: Array[int] = []
 	var mx = map_size.x if map_size.x > 0.0 else 4000.0
 	var my = map_size.y if map_size.y > 0.0 else 4000.0
+	var ox = map_offset.x
+	var oy = map_offset.y
 	var cell_w = mx / float(GRID_RES)
 	var cell_h = my / float(GRID_RES)
 	# Radio en celdas
 	var r_cells_x = int(ceil(radius / cell_w)) + 1
 	var r_cells_y = int(ceil(radius / cell_h)) + 1
-	var center_cx = clampi(int((center.x / mx) * float(GRID_RES)), 0, GRID_RES - 1)
-	var center_cy = clampi(int((center.y / my) * float(GRID_RES)), 0, GRID_RES - 1)
+	var center_cx = clampi(int(((center.x - ox) / mx) * float(GRID_RES)), 0, GRID_RES - 1)
+	var center_cy = clampi(int(((center.y - oy) / my) * float(GRID_RES)), 0, GRID_RES - 1)
 	var r_sq = radius * radius
 	for dy in range(-r_cells_y, r_cells_y + 1):
 		for dx in range(-r_cells_x, r_cells_x + 1):
@@ -282,8 +293,8 @@ func _get_cells_in_circle(center: Vector2, radius: float) -> Array[int]:
 			if cx < 0 or cx >= GRID_RES or cy < 0 or cy >= GRID_RES:
 				continue
 			# Centro de la celda en mundo
-			var cell_center_x = (float(cx) + 0.5) * cell_w
-			var cell_center_y = (float(cy) + 0.5) * cell_h
+			var cell_center_x = ox + (float(cx) + 0.5) * cell_w
+			var cell_center_y = oy + (float(cy) + 0.5) * cell_h
 			var ddx = cell_center_x - center.x
 			var ddy = cell_center_y - center.y
 			if ddx * ddx + ddy * ddy <= r_sq:
@@ -354,8 +365,10 @@ func _draw_all_vision_circles(drawer: Node2D):
 		
 		var mx = map_size.x if map_size.x > 0.0 else 4000.0
 		var my = map_size.y if map_size.y > 0.0 else 4000.0
-		var x = (pos_2d.x / mx) * float(GRID_TEX_SIZE)
-		var y = (pos_2d.y / my) * float(GRID_TEX_SIZE)
+		var ox = map_offset.x
+		var oy = map_offset.y
+		var x = ((pos_2d.x - ox) / mx) * float(GRID_TEX_SIZE)
+		var y = ((pos_2d.y - oy) / my) * float(GRID_TEX_SIZE)
 		var rx = (visual_vr / mx) * float(GRID_TEX_SIZE)
 		var ry = (visual_vr / my) * float(GRID_TEX_SIZE)
 		var rect = Rect2(x - rx, y - ry, rx * 2.0, ry * 2.0)
@@ -373,13 +386,20 @@ func _process(_delta):
 			_vision_dirty = true
 			request_fog_data()
 		var new_map_size = Vector2(parent_map.world_size, parent_map.map_height)
-		if new_map_size != map_size:
+		var new_map_offset = Vector2(parent_map.map_min_x, parent_map.map_min_y) if "map_min_x" in parent_map else Vector2.ZERO
+		if new_map_size != map_size or new_map_offset != map_offset:
 			map_size = new_map_size
+			map_offset = new_map_offset
 			var map_size_3d = Vector2(
 				parent_map.world_size * parent_map.scale_factor,
 				parent_map.map_height * parent_map.scale_factor * parent_map.correction_z
 			)
+			var map_offset_3d = Vector2(
+				(parent_map.map_min_x if "map_min_x" in parent_map else 0.0) * parent_map.scale_factor,
+				(parent_map.map_min_y if "map_min_y" in parent_map else 0.0) * parent_map.scale_factor * parent_map.correction_z
+			)
 			if is_instance_valid(shader_mat):
+				shader_mat.set_shader_parameter("map_offset_3d", map_offset_3d)
 				shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
 	
 	# --- DIRTY FLAG: detectar movimiento del jugador ---

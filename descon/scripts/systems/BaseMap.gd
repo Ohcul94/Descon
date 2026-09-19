@@ -19,6 +19,8 @@ const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofr
 
 @export var world_size: float = 4000.0
 @export var map_height: float = 4000.0
+@export var map_min_x: float = 0.0
+@export var map_min_y: float = 0.0
 @export var zone_name: String = "SECTOR DESCONOCIDO"
 @export var zone_id: Variant = 1:  # Variant: acepta int (zonas normales) y String (arena_x, extract_x)
 	set(val):
@@ -389,6 +391,10 @@ func _setup_dynamic_3d_map_layout():
 	var map_cfg = {}
 	if GameConstants.MAPS_CONFIG.has(z_id_str):
 		map_cfg = GameConstants.MAPS_CONFIG[z_id_str]
+		if map_cfg.has("minX"):
+			map_min_x = float(map_cfg.minX)
+		if map_cfg.has("minY"):
+			map_min_y = float(map_cfg.minY)
 		if map_cfg.has("width") and float(map_cfg.width) > 0:
 			local_map_width = float(map_cfg.width)
 			local_map_height = float(map_cfg.width)
