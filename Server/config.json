@@ -3347,6 +3347,29 @@
                     "type": "laser",
                     "activationMode": "time",
                     "activationIntervalMs": 0
+                },
+                {
+                    "type": "choque_devastador",
+                    "castTimeMs": 1000,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 1000,
+                    "startDelay": 0,
+                    "cooldown": 5000,
+                    "chargeSpeed": 0,
+                    "chargeDurationMs": 0,
+                    "chargeRange": 0,
+                    "width": 0,
+                    "pushOnHit": 0,
+                    "pushForce": 250,
+                    "telegraphDurationMs": 0
                 }
             ],
             "movementPhases": [
@@ -9130,6 +9153,32 @@
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
+        },
+        "choque_devastador": {
+            "label": "Choque Devastador",
+            "icon": "💥",
+            "desc": "El enemigo carga en línea recta dañando todo lo que embiste. Muestra un marcador direccional en el piso antes de cargar.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "bulletDamage",
+                "fireRange",
+                "castTimeMs",
+                "castInterruptible",
+                "chargeSpeed",
+                "chargeDurationMs",
+                "chargeRange",
+                "width",
+                "pushOnHit",
+                "pushForce",
+                "telegraphDurationMs",
+                "startDelay"
+            ],
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 1400
         }
     },
     "movementLib": {
@@ -9502,20 +9551,15 @@
             "name": "El Despertar del Piloto",
             "portalGate": "",
             "reward": {
-                "exp": 500,
-                "hubs": 1000,
-                "items": [
-                    {
-                        "id": "",
-                        "qty": 1
-                    }
-                ],
+                "exp": 100,
+                "hubs": 50,
+                "items": [],
                 "ohcu": 5,
                 "unlocks": []
             },
             "targetAmount": 5,
             "targetId": "1",
-            "targetType": "explore",
+            "targetType": "kill",
             "type": "story"
         },
         {

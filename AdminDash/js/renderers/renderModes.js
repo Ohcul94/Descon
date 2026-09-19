@@ -1295,6 +1295,19 @@ window.removeHousingItem = function(idx) {
     renderHousing();
 };
 
+if (!window._questCollapsed) window._questCollapsed = {};
+window.toggleQuestCollapse = function(idx) {
+    window._questCollapsed[idx] = !window._questCollapsed[idx];
+    const chevron = document.getElementById('qchevron-' + idx);
+    const body = document.getElementById('qbody-' + idx);
+    if (chevron) chevron.classList.toggle('collapsed', !!window._questCollapsed[idx]);
+    if (body) body.classList.toggle('collapsed', !!window._questCollapsed[idx]);
+};
+window.toggleAllQuests = function(collapse) {
+    config.questsConfig.forEach((_, i) => { window._questCollapsed[i] = collapse; });
+    renderQuests();
+};
+
 window.renderQuests = function() {
     if (!config.questsConfig) {
         config.questsConfig = JSON.parse(JSON.stringify(DEFAULT_QUESTS_CONFIG));
@@ -1319,10 +1332,12 @@ window.renderQuests = function() {
     config.questsConfig.forEach((quest, idx) => {
         if (f && !quest.name.toLowerCase().includes(f) && !quest.id.toLowerCase().includes(f) && !quest.desc.toLowerCase().includes(f)) return;
         
+        const isCollapsed = !!window._questCollapsed[idx];
+        
         const div = document.createElement('div');
         div.className = 'card';
         div.style.background = 'rgba(255,255,255,0.02)';
-        div.style.padding = '1.5rem';
+        div.style.padding = '0';
         div.style.border = '1px solid rgba(255,255,255,0.05)';
         div.style.position = 'relative';
         
@@ -1505,119 +1520,134 @@ window.renderQuests = function() {
             portalGateHint = '⚠️ El objetivo de la misión es explorar el mismo destino del portal sellado: se permitirá la entrada (no se auto-bloquea).';
         }
 
+        const targetTypeLabels = { kill: '⚔️ Matar', collect: '📦 Recolectar', explore: '🗺️ Explorar', event: '🏆 Evento', housing: '🏠 Housing' };
+        const targetTypeLabel = targetTypeLabels[quest.targetType] || quest.targetType;
+        const targetSummary = quest.targetId ? `${targetTypeLabel} ${quest.targetAmount || 1}x ${quest.targetId}` : targetTypeLabel;
+
         div.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px;">
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:15px; flex:1;">
-                    <div class="field"><label>ID Misión</label><input type="text" value="${quest.id}" onchange="config.questsConfig[${idx}].id = this.value"></div>
-                    <div class="field"><label>Nombre</label><input type="text" value="${quest.name}" onchange="config.questsConfig[${idx}].name = this.value"></div>
-                    <div class="field">
-                        <label>Clasificación</label>
-                        <select onchange="config.questsConfig[${idx}].type = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
-                            <option value="story" ${quest.type === 'story' ? 'selected' : ''}>Historia 📖</option>
-                            <option value="daily" ${quest.type === 'daily' ? 'selected' : ''}>Diaria ⏳</option>
-                            <option value="weekly" ${quest.type === 'weekly' ? 'selected' : ''}>Semanal 📅</option>
-                        </select>
-                    </div>
+            <div class="quest-card-header" onclick="toggleQuestCollapse(${idx})">
+                <span id="qchevron-${idx}" class="quest-card-chevron ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                <div class="quest-card-summary">
+                    <span class="qcs-id">${quest.id || '?'}</span>
+                    <span class="qcs-name">${quest.name || 'Sin nombre'}</span>
+                    <span class="qcs-type" data-type="${quest.type}">${quest.type === 'story' ? 'Historia' : quest.type === 'daily' ? 'Diaria' : 'Semanal'}</span>
+                    <span class="qcs-target">${targetSummary}</span>
                 </div>
-                <button class="btn btn-secondary" style="background:var(--danger); border:none; padding:6px 12px; white-space:nowrap;" onclick="removeQuest(${idx})">✕ ELIMINAR MISIÓN</button>
+                <button class="btn btn-secondary" style="background:var(--danger); border:none; padding:4px 10px; font-size:0.7rem; white-space:nowrap; pointer-events:auto;" onclick="event.stopPropagation(); removeQuest(${idx})">✕ ELIMINAR</button>
             </div>
-
-            <div class="field" style="margin-top:12px;"><label>Descripción</label><input type="text" value="${quest.desc}" onchange="config.questsConfig[${idx}].desc = this.value"></div>
-
-            <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:1.5rem; margin-top:1.5rem;">
-                <!-- ══ COLUMNA IZQUIERDA ══ -->
-                <div style="display:flex; flex-direction:column; gap:1.2rem;">
-                    <!-- 🎯 OBJETIVO -->
-                    <div style="border:1px solid rgba(0,210,255,0.15); border-radius:12px; padding:1rem 1.2rem; background:rgba(0,210,255,0.03);">
-                        <h4 style="color:var(--accent); font-size:0.8rem; font-weight:bold; margin-bottom:12px;">🎯 OBJETIVO DE LA MISIÓN</h4>
-                        <div class="form-grid" style="grid-template-columns: 1fr; gap:12px;">
-                            <div class="field">
-                                <label>Tipo de Objetivo</label>
-                                <select onchange="config.questsConfig[${idx}].targetType = this.value; config.questsConfig[${idx}].targetId = ''; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
-                                    <option value="kill" ${quest.targetType === 'kill' ? 'selected' : ''}>⚔️ Matar Enemigos</option>
-                                    <option value="collect" ${quest.targetType === 'collect' ? 'selected' : ''}>📦 Recolectar Ítems</option>
-                                    <option value="explore" ${quest.targetType === 'explore' ? 'selected' : ''}>🗺️ Explorar Zona</option>
-                                    <option value="event" ${quest.targetType === 'event' ? 'selected' : ''}>🏆 Evento Especial</option>
-                                    <option value="housing" ${quest.targetType === 'housing' ? 'selected' : ''}>🏠 Colocar Housing</option>
-                                </select>
-                            </div>
-                            ${targetSelectorHTML}
-                            <div class="field">
-                                <label>Cantidad Requerida</label>
-                                <input type="number" value="${quest.targetAmount || 1}" onchange="config.questsConfig[${idx}].targetAmount = Math.floor(Math.max(1, parseInt(this.value) || 1))">
-                            </div>
+            <div id="qbody-${idx}" class="quest-card-body ${isCollapsed ? 'collapsed' : ''}" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px;">
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:15px; flex:1;">
+                        <div class="field"><label>ID Misión</label><input type="text" value="${quest.id}" onchange="config.questsConfig[${idx}].id = this.value"></div>
+                        <div class="field"><label>Nombre</label><input type="text" value="${quest.name}" onchange="config.questsConfig[${idx}].name = this.value"></div>
+                        <div class="field">
+                            <label>Clasificación</label>
+                            <select onchange="config.questsConfig[${idx}].type = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                                <option value="story" ${quest.type === 'story' ? 'selected' : ''}>Historia 📖</option>
+                                <option value="daily" ${quest.type === 'daily' ? 'selected' : ''}>Diaria ⏳</option>
+                                <option value="weekly" ${quest.type === 'weekly' ? 'selected' : ''}>Semanal 📅</option>
+                            </select>
                         </div>
                     </div>
-
                 </div>
 
-                <!-- ══ COLUMNA DERECHA: RECOMPENSAS ══ -->
-                <div style="border:1px solid rgba(0,255,170,0.15); border-radius:12px; padding:1rem 1.2rem; background:rgba(0,255,170,0.03); align-self:start;">
-                    <h4 style="color:var(--success); font-size:0.8rem; font-weight:bold; margin-bottom:12px;">🎁 RECOMPENSAS</h4>
-                    <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
-                        <div class="field"><label>EXP</label><input type="number" value="${quest.reward.exp}" onchange="config.questsConfig[${idx}].reward.exp = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
-                        <div class="field"><label>HUBS</label><input type="number" value="${quest.reward.hubs}" onchange="config.questsConfig[${idx}].reward.hubs = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
-                        <div class="field"><label>OHCU</label><input type="number" value="${quest.reward.ohcu}" onchange="config.questsConfig[${idx}].reward.ohcu = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
-                    </div>
+                <div class="field" style="margin-top:12px;"><label>Descripción</label><input type="text" value="${quest.desc}" onchange="config.questsConfig[${idx}].desc = this.value"></div>
 
-                    <div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <label style="font-size:0.75rem; color:#aaa; font-weight:bold;">📦 Ítems Recompensa</label>
-                            <button class="btn btn-primary" style="padding:3px 10px; font-size:0.7rem;" onclick="toggleInlineItemPicker(${idx})">+ Agregar Ítem</button>
-                        </div>
-                        <div style="max-height:120px; overflow-y:auto; padding-right:5px;">
-                            ${rewardItemsHTML}
-                        </div>
-                        <div id="item-inline-picker-${idx}" style="display:${ipOpen ? 'block' : 'none'}; margin-top:8px; border:1px solid rgba(0,210,255,0.25); border-radius:10px; padding:10px; background:rgba(0,210,255,0.05);">
-                            <div id="item-inline-mode-${idx}" style="display:none; font-size:0.72rem; color:#9fe; font-weight:bold; margin-bottom:8px; padding:6px 10px; background:rgba(0,210,255,0.1); border-radius:6px;"></div>
-                            <input id="item-inline-search-${idx}" type="text" placeholder="🔍 Buscar por nombre o ID (ej: Arma Laser)..." value="${ipQuery}" oninput="updateInlineItemPickerQuery(${idx}, this.value)" style="width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:10px 14px; color:white; font-size:0.9rem; outline:none; margin-bottom:8px;">
-                            <select id="item-inline-cat-${idx}" onchange="updateInlineItemPickerCat(${idx}, this.value)" style="width:100%; box-sizing:border-box; background:#0b0f19; border:1px solid rgba(255,255,255,0.12); color:white; padding:8px 12px; border-radius:8px; font-size:0.85rem; cursor:pointer; margin-bottom:8px;">
-                                ${catOptionsHTML}
-                            </select>
-                            <div id="item-inline-list-${idx}" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;"></div>
-                            <div style="margin-top:8px; text-align:right;">
-                                <button class="btn btn-secondary" style="padding:4px 14px; font-size:0.72rem;" onclick="toggleInlineItemPicker(${idx}, ${(ip && ip.itemIdx !== null && ip.itemIdx !== undefined) ? ip.itemIdx : 'null'})">CERRAR</button>
+                <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:1.5rem; margin-top:1.5rem;">
+                    <!-- ══ COLUMNA IZQUIERDA ══ -->
+                    <div style="display:flex; flex-direction:column; gap:1.2rem;">
+                        <!-- 🎯 OBJETIVO -->
+                        <div style="border:1px solid rgba(0,210,255,0.15); border-radius:12px; padding:1rem 1.2rem; background:rgba(0,210,255,0.03);">
+                            <h4 style="color:var(--accent); font-size:0.8rem; font-weight:bold; margin-bottom:12px;">🎯 OBJETIVO DE LA MISIÓN</h4>
+                            <div class="form-grid" style="grid-template-columns: 1fr; gap:12px;">
+                                <div class="field">
+                                    <label>Tipo de Objetivo</label>
+                                    <select onchange="config.questsConfig[${idx}].targetType = this.value; config.questsConfig[${idx}].targetId = ''; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                                        <option value="kill" ${quest.targetType === 'kill' ? 'selected' : ''}>⚔️ Matar Enemigos</option>
+                                        <option value="collect" ${quest.targetType === 'collect' ? 'selected' : ''}>📦 Recolectar Ítems</option>
+                                        <option value="explore" ${quest.targetType === 'explore' ? 'selected' : ''}>🗺️ Explorar Zona</option>
+                                        <option value="event" ${quest.targetType === 'event' ? 'selected' : ''}>🏆 Evento Especial</option>
+                                        <option value="housing" ${quest.targetType === 'housing' ? 'selected' : ''}>🏠 Colocar Housing</option>
+                                    </select>
+                                </div>
+                                ${targetSelectorHTML}
+                                <div class="field">
+                                    <label>Cantidad Requerida</label>
+                                    <input type="number" value="${quest.targetAmount || 1}" onchange="config.questsConfig[${idx}].targetAmount = Math.floor(Math.max(1, parseInt(this.value) || 1))">
+                                </div>
                             </div>
                         </div>
-                        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.1);">
-                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                                <label style="font-size:0.72rem; color:#9fe; font-weight:bold;">🎯 ¿Cuántos ítems puede elegir el usuario?</label>
-                                <input type="number" min="0" value="${quest.reward.selectableCount || 0}" style="width:64px; background:#0f172a; border:1px solid rgba(0,210,255,0.25); border-radius:6px; padding:4px 6px; color:white; font-size:0.78rem; text-align:center;" onchange="config.questsConfig[${idx}].reward.selectableCount = Math.max(0, parseInt(this.value) || 0); renderQuests();">
+
+                    </div>
+
+                    <!-- ══ COLUMNA DERECHA: RECOMPENSAS ══ -->
+                    <div style="border:1px solid rgba(0,255,170,0.15); border-radius:12px; padding:1rem 1.2rem; background:rgba(0,255,170,0.03); align-self:start;">
+                        <h4 style="color:var(--success); font-size:0.8rem; font-weight:bold; margin-bottom:12px;">🎁 RECOMPENSAS</h4>
+                        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
+                            <div class="field"><label>EXP</label><input type="number" value="${quest.reward.exp}" onchange="config.questsConfig[${idx}].reward.exp = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
+                            <div class="field"><label>HUBS</label><input type="number" value="${quest.reward.hubs}" onchange="config.questsConfig[${idx}].reward.hubs = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
+                            <div class="field"><label>OHCU</label><input type="number" value="${quest.reward.ohcu}" onchange="config.questsConfig[${idx}].reward.ohcu = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
+                        </div>
+
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <label style="font-size:0.75rem; color:#aaa; font-weight:bold;">📦 Ítems Recompensa</label>
+                                <button class="btn btn-primary" style="padding:3px 10px; font-size:0.7rem;" onclick="toggleInlineItemPicker(${idx})">+ Agregar Ítem</button>
                             </div>
-                            <div style="font-size:0.64rem; color:#889; margin-top:5px; line-height:1.45;">0 = se entregan <b>TODOS</b> automáticamente. Si ponés un número menor a la cantidad de ítems, al cobrar la misión el jugador elegirá esa cantidad (recompensa por elección).</div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top:1.2rem;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <label style="font-size:0.75rem; color:#ffd700; font-weight:bold;">🔓 DESBLOQUEOS DE RECOMPENSA</label>
-                            <button class="btn btn-primary" style="padding:2px 8px; font-size:9px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3);" onclick="config.questsConfig[${idx}].reward.unlocks.push({type:'map', targetId:'', label:''}); renderQuests();">+ Añadir Desbloqueo</button>
-                        </div>
-                        <div style="font-size:0.68rem; color:#888; margin-bottom:6px;">Habilita portales, armas, habilidades o talentos al completar la misión. Ej: 🗺️ Portal al Sector 2, 🔫 Cañón de Plasma, ⭐ Talento sellado.</div>
-                        <div style="max-height:150px; overflow-y:auto; padding-right:5px;">
-                            ${unlockRowsHTML || '<div style="font-size:0.68rem; opacity:0.45;">Sin desbloqueos: solo EXP, HUBS, OHCU e ítems.</div>'}
-                        </div>
-                    </div>
-
-                    <!-- 🔒 PORTAL SELLADO (dentro de recompensas) -->
-                    <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05);">
-                        <label style="font-size:0.75rem; color:#ffb347; font-weight:bold; display:flex; align-items:center; gap:5px; margin-bottom:8px;">
-                            <span style="font-size:10px;">🔒</span> PORTAL SELLADO (opcional)
-                        </label>
-                        <div class="form-grid" style="grid-template-columns: 1fr; gap:8px;">
-                            <div class="field">
-                                <label>Sector donde está el portal</label>
-                                <select onchange="config.questsConfig[${idx}].portalGate = this.value === '' ? '' : this.value + '|'; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
-                                    ${pgZoneOptions}
+                            <div style="max-height:120px; overflow-y:auto; padding-right:5px;">
+                                ${rewardItemsHTML}
+                            </div>
+                            <div id="item-inline-picker-${idx}" style="display:${ipOpen ? 'block' : 'none'}; margin-top:8px; border:1px solid rgba(0,210,255,0.25); border-radius:10px; padding:10px; background:rgba(0,210,255,0.05);">
+                                <div id="item-inline-mode-${idx}" style="display:none; font-size:0.72rem; color:#9fe; font-weight:bold; margin-bottom:8px; padding:6px 10px; background:rgba(0,210,255,0.1); border-radius:6px;"></div>
+                                <input id="item-inline-search-${idx}" type="text" placeholder="🔍 Buscar por nombre o ID (ej: Arma Laser)..." value="${ipQuery}" oninput="updateInlineItemPickerQuery(${idx}, this.value)" style="width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:10px 14px; color:white; font-size:0.9rem; outline:none; margin-bottom:8px;">
+                                <select id="item-inline-cat-${idx}" onchange="updateInlineItemPickerCat(${idx}, this.value)" style="width:100%; box-sizing:border-box; background:#0b0f19; border:1px solid rgba(255,255,255,0.12); color:white; padding:8px 12px; border-radius:8px; font-size:0.85rem; cursor:pointer; margin-bottom:8px;">
+                                    ${catOptionsHTML}
                                 </select>
+                                <div id="item-inline-list-${idx}" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;"></div>
+                                <div style="margin-top:8px; text-align:right;">
+                                    <button class="btn btn-secondary" style="padding:4px 14px; font-size:0.72rem;" onclick="toggleInlineItemPicker(${idx}, ${(ip && ip.itemIdx !== null && ip.itemIdx !== undefined) ? ip.itemIdx : 'null'})">CERRAR</button>
+                                </div>
                             </div>
-                            <div class="field">
-                                <label>Portal a sellar</label>
-                                <select onchange="config.questsConfig[${idx}].portalGate = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;" ${!pgZone ? 'disabled' : ''}>
-                                    ${pgPortalOptions}
-                                </select>
+                            <div style="margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                                    <label style="font-size:0.72rem; color:#9fe; font-weight:bold;">🎯 ¿Cuántos ítems puede elegir el usuario?</label>
+                                    <input type="number" min="0" value="${quest.reward.selectableCount || 0}" style="width:64px; background:#0f172a; border:1px solid rgba(0,210,255,0.25); border-radius:6px; padding:4px 6px; color:white; font-size:0.78rem; text-align:center;" onchange="config.questsConfig[${idx}].reward.selectableCount = Math.max(0, parseInt(this.value) || 0); renderQuests();">
+                                </div>
+                                <div style="font-size:0.64rem; color:#889; margin-top:5px; line-height:1.45;">0 = se entregan <b>TODOS</b> automáticamente. Si ponés un número menor a la cantidad de ítems, al cobrar la misión el jugador elegirá esa cantidad (recompensa por elección).</div>
                             </div>
-                            <div style="font-size:9px; color:#888; margin-top:2px; line-height:1.5; padding:6px 8px; background:rgba(255,170,0,0.06); border-radius:6px;">${portalGateHint}</div>
+                        </div>
+
+                        <div style="margin-top:1.2rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <label style="font-size:0.75rem; color:#ffd700; font-weight:bold;">🔓 DESBLOQUEOS DE RECOMPENSA</label>
+                                <button class="btn btn-primary" style="padding:2px 8px; font-size:9px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3);" onclick="config.questsConfig[${idx}].reward.unlocks.push({type:'map', targetId:'', label:''}); renderQuests();">+ Añadir Desbloqueo</button>
+                            </div>
+                            <div style="font-size:0.68rem; color:#888; margin-bottom:6px;">Habilita portales, armas, habilidades o talentos al completar la misión. Ej: 🗺️ Portal al Sector 2, 🔫 Cañón de Plasma, ⭐ Talento sellado.</div>
+                            <div style="max-height:150px; overflow-y:auto; padding-right:5px;">
+                                ${unlockRowsHTML || '<div style="font-size:0.68rem; opacity:0.45;">Sin desbloqueos: solo EXP, HUBS, OHCU e ítems.</div>'}
+                            </div>
+                        </div>
+
+                        <!-- 🔒 PORTAL SELLADO (dentro de recompensas) -->
+                        <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05);">
+                            <label style="font-size:0.75rem; color:#ffb347; font-weight:bold; display:flex; align-items:center; gap:5px; margin-bottom:8px;">
+                                <span style="font-size:10px;">🔒</span> PORTAL SELLADO (opcional)
+                            </label>
+                            <div class="form-grid" style="grid-template-columns: 1fr; gap:8px;">
+                                <div class="field">
+                                    <label>Sector donde está el portal</label>
+                                    <select onchange="config.questsConfig[${idx}].portalGate = this.value === '' ? '' : this.value + '|'; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                                        ${pgZoneOptions}
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label>Portal a sellar</label>
+                                    <select onchange="config.questsConfig[${idx}].portalGate = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;" ${!pgZone ? 'disabled' : ''}>
+                                        ${pgPortalOptions}
+                                    </select>
+                                </div>
+                                <div style="font-size:9px; color:#888; margin-top:2px; line-height:1.5; padding:6px 8px; background:rgba(255,170,0,0.06); border-radius:6px;">${portalGateHint}</div>
+                            </div>
                         </div>
                     </div>
                 </div>

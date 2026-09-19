@@ -1767,6 +1767,12 @@ func die():
 		if aura_data.has("node_3d") and is_instance_valid(aura_data.node_3d):
 			aura_data.node_3d.queue_free()
 	active_auras.clear()
+	
+	# Limpiar marcador de Choque Devastador en muerte
+	if has_meta("choque_marker_3d"):
+		var ch_marker = get_meta("choque_marker_3d")
+		if is_instance_valid(ch_marker): ch_marker.queue_free()
+		remove_meta("choque_marker_3d")
 		
 	# 4. Spawnear la explosión (VFX) justo donde estaba la nave
 	_spawn_death_vfx()

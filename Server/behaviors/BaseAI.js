@@ -1312,7 +1312,7 @@ module.exports = class BaseAI {
 
     _isGenericCastType(type) {
         // Types with internal cast handling (their own charge) - generic runs in parallel (double bar)
-        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash"];
+        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador"];
         return !internal.includes(type);
     }
     _handleGenericCast(mech, mId, now, io) {
@@ -1419,6 +1419,10 @@ module.exports = class BaseAI {
         }
         if (mech.type === "ascension") {
             return this._handleAscensionLogic(mech, mId, target, dist, angle, now, io, players);
+        }
+
+        if (mech.type === "choque_devastador") {
+            return offensiveMechanics._handleChoqueDevastadorLogic.call(this, mech, mId, target, dist, angle, now, io, players);
         }
 
         if (mech.type === "meteor") {

@@ -306,7 +306,203 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
     return false;
 }
 
+function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, players) {
+    if (!io) return false;
+    const state = this.enemy.mechState[mId] || {
+        nextShotTime: 0, triggeredHPs: {},
+        phase: "idle", telegraphStart: 0, chargeStart: 0,
+        chargeAngle: 0, chargeDirX: 0, chargeDirY: 0,
+        hitPlayers: [], distanceTraveled: 0
+    };
+    this.enemy.mechState[mId] = state;
+
+    const zoneStr = `zone_${this.enemy.zone}`;
+    const fireRange = mech.range || 800;
+    const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 10000;
+    const chargeSpeed = Number(mech.speed) || 600;
+    const chargeDurationMs = Number(mech.duration) || 1200;
+    const chargeRange = Number(mech.range) || 900;
+    const width = Number(mech.radius) || 200;
+    const bulletDamage = (mech.damage !== undefined ? Number(mech.damage) : 200) * (this.damageMult || 1);
+    const telegraphDurationMs = Number(mech.warnTimeMs) || 0;
+    const pushOnHit = !!mech.pushOnHit;
+    const pushForce = Number(mech.pushForce) || 200;
+    const castTimeMs = Math.max(0, Number(mech.castTimeMs || 0));
+
+    // Generic cast gate (parallel, internal type)
+    if (castTimeMs > 0) {
+        const isBusy = this._handleGenericCast(mech, mId, now, io);
+        if (isBusy && this._isGenericCastType(mech.type)) {
+            return true;
+        }
+    }
+
+    // ---- IDLE: Verificar activation gate ----
+    if (state.phase === "idle") {
+        if (now < (state.nextShotTime || 0)) return false;
+        if (dist > fireRange) return false;
+        const hpPercent = this.enemy.maxHp > 0 ? (this.enemy.hp / this.enemy.maxHp) * 100 : 100;
+        if (!this._passesActivationGate(mech, state, now, hpPercent)) return false;
+
+        // Iniciar telegraph
+        state.phase = "telegraph";
+        state.telegraphStart = now;
+        state.chargeAngle = angle;
+        state.chargeDirX = Math.cos(angle);
+        state.chargeDirY = Math.sin(angle);
+        state.hitPlayers = [];
+        state.distanceTraveled = 0;
+
+        io.to(zoneStr).emit('serverEnemyAction', {
+            id: this.enemy.id,
+            action: "choque_devastador_start",
+            mId: mId,
+            x: Math.round(this.enemy.x),
+            y: Math.round(this.enemy.y),
+            angle: Math.round(angle * 100) / 100,
+            radius: width,
+            range: chargeRange,
+            warnTimeMs: telegraphDurationMs,
+            duration: chargeDurationMs
+        });
+        this.enemy.mechState[mId] = state;
+        return true;
+    }
+
+    // ---- TELEGRAPH: Esperar duración del marcador ----
+    if (state.phase === "telegraph") {
+        if (now - state.telegraphStart < telegraphDurationMs) {
+            return true; // seguir esperando
+        }
+        // Transición a charge
+        state.phase = "charging";
+        state.chargeStart = now;
+        state.hitPlayers = [];
+        state.distanceTraveled = 0;
+
+        io.to(zoneStr).emit('serverEnemyAction', {
+            id: this.enemy.id,
+            action: "choque_devastador_charge",
+            mId: mId,
+            angle: Math.round(state.chargeAngle * 100) / 100,
+            speed: chargeSpeed,
+            duration: chargeDurationMs
+        });
+        this.enemy.mechState[mId] = state;
+        return true;
+    }
+
+    // ---- CHARGING: Mover y detectar colisiones ----
+    if (state.phase === "charging") {
+        const elapsed = now - state.chargeStart;
+        if (elapsed >= chargeDurationMs || state.distanceTraveled >= chargeRange) {
+            // Fin de carga
+            state.phase = "idle";
+            state.nextShotTime = now + cooldown;
+            this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+
+            io.to(zoneStr).emit('serverEnemyAction', {
+                id: this.enemy.id,
+                action: "choque_devastador_end",
+                mId: mId
+            });
+            this.enemy.mechState[mId] = state;
+            return false;
+        }
+
+        // Mover enemigo
+        const step = chargeSpeed * 0.033; // ~30fps tick
+        this.enemy.x += state.chargeDirX * step;
+        this.enemy.y += state.chargeDirY * step;
+        state.distanceTraveled += step;
+        this.enemy.rotation = state.chargeAngle + Math.PI / 2;
+
+        // Broadcast posición durante la carga
+        io.to(zoneStr).emit('enemyUpdated', {
+            id: this.enemy.id,
+            x: Math.round(this.enemy.x),
+            y: Math.round(this.enemy.y),
+            rotation: Math.round(this.enemy.rotation * 100) / 100
+        });
+
+        // Detectar colisión con jugadores
+        const zonePlayers = Object.values(players || {}).filter(
+            p => p.zone === this.enemy.zone && !p.isDead && !p.socketId
+        );
+        const halfWidth = width / 2;
+
+        for (const p of zonePlayers) {
+            if (state.hitPlayers.includes(p.socketId)) continue;
+
+            const dx = p.x - this.enemy.x;
+            const dy = p.y - this.enemy.y;
+            const playerDist = Math.hypot(dx, dy);
+
+            if (playerDist <= halfWidth) {
+                state.hitPlayers.push(p.socketId);
+
+                // Aplicar daño
+                let actualDmg = bulletDamage;
+                if (p.shield >= actualDmg) {
+                    p.shield -= actualDmg;
+                } else {
+                    const remainder = actualDmg - p.shield;
+                    p.shield = 0;
+                    p.hp -= remainder;
+                }
+                if (p.hp < 0) p.hp = 0;
+                if (p.hp <= 0 && !p.isDead) {
+                    p.isDead = true;
+                }
+
+                io.to(p.socketId).emit('environmentDamage', { damage: Math.round(bulletDamage) });
+                io.to(p.socketId).emit('playerStatSync', {
+                    id: p.socketId,
+                    hp: Math.ceil(p.hp),
+                    shield: Math.ceil(p.shield),
+                    maxHp: p.maxHp,
+                    maxShield: p.maxShield,
+                    isDead: p.isDead,
+                    isInvulnerable: !!p.isInvulnerable,
+                    isInvisible: !!p.isInvisible
+                });
+
+                io.to(zoneStr).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "choque_devastador_impact",
+                    targetId: p.socketId,
+                    damage: Math.round(bulletDamage),
+                    x: Math.round(p.x),
+                    y: Math.round(p.y)
+                });
+
+                // Push opcional
+                if (pushOnHit && playerDist > 0) {
+                    const pushDirX = dx / playerDist;
+                    const pushDirY = dy / playerDist;
+                    p.x += pushDirX * pushForce;
+                    p.y += pushDirY * pushForce;
+                    io.to(p.socketId).emit('windPush', {
+                        victimId: p.socketId,
+                        dirX: pushDirX,
+                        dirY: pushDirY,
+                        distance: pushForce
+                    });
+                }
+
+                p.lastCombatTime = Date.now();
+            }
+        }
+
+        this.enemy.mechState[mId] = state;
+        return true;
+    }
+
+    return false;
+}
+
 module.exports = {
     _handleExecutionLogic,
-    _handleAscensionLogic
+    _handleAscensionLogic,
+    _handleChoqueDevastadorLogic
 };

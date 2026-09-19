@@ -421,3 +421,74 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(6, 182, 21
 
 .toast-title { font-weight: 700; font-size: 1.25rem; margin-bottom: 0.5rem; }
 .toast-msg { color: var(--text-dim); margin-bottom: 2rem; font-size: 0.95rem; }
+
+/* --- Quest Card Collapsible --- */
+.quest-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    transition: background 0.15s;
+}
+.quest-card-header:hover { background: rgba(255,255,255,0.04); }
+.quest-card-chevron {
+    font-size: 0.7rem;
+    color: var(--accent);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+.quest-card-chevron.collapsed { transform: rotate(-90deg); }
+.quest-card-summary {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.quest-card-summary .qcs-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    background: rgba(0,210,255,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+.quest-card-summary .qcs-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.quest-card-summary .qcs-type {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.quest-card-summary .qcs-type[data-type="story"] { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+.quest-card-summary .qcs-type[data-type="daily"] { background: rgba(245,158,11,0.2); color: #fcd34d; }
+.quest-card-summary .qcs-type[data-type="weekly"] { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+.quest-card-summary .qcs-target {
+    font-size: 0.65rem;
+    color: #888;
+    white-space: nowrap;
+}
+.quest-card-body {
+    overflow: hidden;
+    max-height: 2000px;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    opacity: 1;
+}
+.quest-card-body.collapsed {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}

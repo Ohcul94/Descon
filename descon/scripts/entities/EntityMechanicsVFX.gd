@@ -378,6 +378,16 @@ func handle_enemy_action(data: Dictionary) -> void:
 			if entity.has_method("_trigger_reflect_visual"):
 				entity._trigger_reflect_visual(visual_target if visual_target != Vector2.ZERO else entity.global_position + Vector2.UP)
 
+		# ==== CHOQUE DEVASTADOR ====
+		"choque_devastador_start":
+			_spawn_choque_marker(data)
+		"choque_devastador_charge":
+			_spawn_choque_charge_trail(data)
+		"choque_devastador_impact":
+			_spawn_choque_impact_vfx(data)
+		"choque_devastador_end":
+			_cleanup_choque_marker()
+
 func stop_orbital_orbit() -> void:
 	if not is_instance_valid(entity): return
 	var projs = get_tree().get_nodes_in_group("projectiles")
@@ -393,6 +403,333 @@ func fire_orbital_strike() -> void:
 		if is_instance_valid(p) and str(p.get("owner_id")) == entity.entity_id:
 			if p.has_method("release_orbit"):
 				p.release_orbit()
+
+# ==============================================================================
+# CHOQUE DEVASTADOR - VFX
+# ==============================================================================
+
+func _spawn_choque_marker(data: Dictionary) -> void:
+	if not is_instance_valid(entity): return
+	if not is_instance_valid(entity.world_root_3d): return
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node): return
+
+	var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+	var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
+
+	var marker_x = float(data.get("x", entity.global_position.x))
+	var marker_y = float(data.get("y", entity.global_position.y))
+	var ch_angle = float(data.get("angle", 0.0))
+	var ch_width = float(data.get("radius", 200.0))
+	var ch_range = float(data.get("range", 900.0))
+	var telegraph_ms = float(data.get("warnTimeMs", 0.0))
+	var charge_ms = float(data.get("duration", 1200.0))
+
+	var root_3d = entity.world_root_3d
+	var marker_3d = Node3D.new()
+	marker_3d.name = "ChoqueMarker3D"
+	root_3d.add_child(marker_3d)
+
+	# Posición central del marcador
+	var mid_x = marker_x + cos(ch_angle) * (ch_range * 0.5)
+	var mid_y = marker_y + sin(ch_angle) * (ch_range * 0.5)
+	var pos_3d = Vector3(mid_x * s_factor, 0.02, mid_y * s_factor * correction_z)
+	marker_3d.position = pos_3d
+
+	# Rotación del marcador para apuntar en la dirección de la carga
+	marker_3d.rotation.y = -ch_angle - PI / 2.0
+
+	# Rectángulo principal (BoxMesh)
+	var box_mesh = BoxMesh.new()
+	box_mesh.size = Vector3(ch_range * s_factor, 0.01, ch_width * s_factor)
+	var box_mat = StandardMaterial3D.new()
+	box_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.22)
+	box_mat.emission_enabled = true
+	box_mat.emission = Color(1.0, 0.2, 0.05)
+	box_mat.emission_energy_multiplier = 2.0
+	box_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	box_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	box_mat.no_depth_test = true
+	box_mat.render_priority = 2
+	box_mesh.material = box_mat
+	var box_inst = MeshInstance3D.new()
+	box_inst.mesh = box_mesh
+	box_inst.position.y = 0.01
+	marker_3d.add_child(box_inst)
+
+	# Borde del rectángulo (4 líneas ThinInstance o 4 BoxMesh delgados)
+	var border_w = ch_width * s_factor
+	var border_l = ch_range * s_factor
+	var corners = [
+		Vector3(-border_l * 0.5, 0.015, -border_w * 0.5),
+		Vector3(border_l * 0.5, 0.015, -border_w * 0.5),
+		Vector3(border_l * 0.5, 0.015, border_w * 0.5),
+		Vector3(-border_l * 0.5, 0.015, border_w * 0.5)
+	]
+	var border_mat = StandardMaterial3D.new()
+	border_mat.albedo_color = Color(1.0, 0.3, 0.1, 0.6)
+	border_mat.emission_enabled = true
+	border_mat.emission = Color(1.0, 0.3, 0.1)
+	border_mat.emission_energy_multiplier = 3.0
+	border_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	border_mat.no_depth_test = true
+	border_mat.render_priority = 3
+	for i in range(4):
+		var line_mesh = BoxMesh.new()
+		var is_horizontal = (i == 0 or i == 2)
+		if is_horizontal:
+			line_mesh.size = Vector3(border_l, 0.008, 0.015)
+		else:
+			line_mesh.size = Vector3(0.015, 0.008, border_w)
+		line_mesh.material = border_mat
+		var line_inst = MeshInstance3D.new()
+		line_inst.mesh = line_mesh
+		line_inst.position = corners[i]
+		marker_3d.add_child(line_inst)
+
+	# Flecha direccional en el extremo (triángulo simple con 2 cajas)
+	var arrow_size = ch_width * 0.3
+	var arrow_x = border_l * 0.5 + arrow_size * 0.5
+	var arrow_mat = StandardMaterial3D.new()
+	arrow_mat.albedo_color = Color(1.0, 0.4, 0.1, 0.7)
+	arrow_mat.emission_enabled = true
+	arrow_mat.emission = Color(1.0, 0.4, 0.1)
+	arrow_mat.emission_energy_multiplier = 4.0
+	arrow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	arrow_mat.no_depth_test = true
+	arrow_mat.render_priority = 3
+	# Ala superior
+	var arrow_up = BoxMesh.new()
+	arrow_up.size = Vector3(arrow_size, 0.008, border_w * 0.5)
+	arrow_up.material = arrow_mat
+	var arrow_up_inst = MeshInstance3D.new()
+	arrow_up_inst.mesh = arrow_up
+	arrow_up_inst.position = Vector3(arrow_x, 0.015, -border_w * 0.25)
+	arrow_up_inst.rotation.y = PI / 6.0
+	marker_3d.add_child(arrow_up_inst)
+	# Ala inferior
+	var arrow_down = BoxMesh.new()
+	arrow_down.size = Vector3(arrow_size, 0.008, border_w * 0.5)
+	arrow_down.material = arrow_mat
+	var arrow_down_inst = MeshInstance3D.new()
+	arrow_down_inst.mesh = arrow_down
+	arrow_down_inst.position = Vector3(arrow_x, 0.015, border_w * 0.25)
+	arrow_down_inst.rotation.y = -PI / 6.0
+	marker_3d.add_child(arrow_down_inst)
+
+	# Pulso de opacidad
+	var pulse_tw = marker_3d.create_tween().set_loops()
+	pulse_tw.tween_property(box_mat, "albedo_color:a", 0.38, 0.35)
+	pulse_tw.tween_property(box_mat, "albedo_color:a", 0.18, 0.35)
+
+	# Guardar referencia para cleanup
+	entity.set_meta("choque_marker_3d", marker_3d)
+
+	# Auto-destroy después de telegraph + charge + margen
+	var total_ms = telegraph_ms + charge_ms + 500.0
+	get_tree().create_timer(total_ms / 1000.0).timeout.connect(func():
+		if is_instance_valid(marker_3d):
+			marker_3d.queue_free()
+			if entity.has_meta("choque_marker_3d"):
+				entity.remove_meta("choque_marker_3d")
+	)
+
+func _spawn_choque_charge_trail(data: Dictionary) -> void:
+	if not is_instance_valid(entity): return
+	if not is_instance_valid(entity.world_root_3d): return
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node): return
+
+	var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+	var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
+
+	# Estela de partículas detrás del enemigo durante la carga
+	var trail = GPUParticles3D.new()
+	trail.name = "ChoqueTrail3D"
+	trail.emitting = true
+	trail.amount = 30
+	trail.lifetime = 0.6
+	trail.one_shot = false
+	trail.explosiveness = 0.0
+	trail.fixed_fps = 30
+
+	var trail_mat = ParticleProcessMaterial.new()
+	trail_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	trail_mat.emission_sphere_radius = 0.15
+	trail_mat.direction = Vector3(0, 0, 1)
+	trail_mat.spread = 15.0
+	trail_mat.initial_velocity_min = 0.5
+	trail_mat.initial_velocity_max = 1.5
+	trail_mat.gravity = Vector3.ZERO
+	trail_mat.scale_min = 0.3
+	trail_mat.scale_max = 0.8
+	trail_mat.color = Color(1.0, 0.4, 0.1)
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color(1.0, 0.5, 0.1, 0.7))
+	gradient.set_color(1, Color(1.0, 0.2, 0.0, 0.0))
+	trail_mat.color_ramp = gradient
+	trail.process_material = trail_mat
+
+	var trail_mesh = SphereMesh.new()
+	trail_mesh.radius = 0.08
+	trail_mesh.height = 0.16
+	var trail_mesh_mat = StandardMaterial3D.new()
+	trail_mesh_mat.albedo_color = Color(1.0, 0.5, 0.1, 0.6)
+	trail_mesh_mat.emission_enabled = true
+	trail_mesh_mat.emission = Color(1.0, 0.4, 0.1)
+	trail_mesh_mat.emission_energy_multiplier = 3.0
+	trail_mesh_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	trail_mesh_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	trail_mesh.material = trail_mesh_mat
+
+	trail.draw_pass_1 = trail_mesh
+
+	entity.world_root_3d.add_child(trail)
+	trail.position = Vector3(
+		entity.global_position.x * s_factor,
+		0.3,
+		entity.global_position.y * s_factor * correction_z
+	)
+
+	# Seguir al enemigo cada frame
+	var follow_tween = trail.create_tween().set_loops()
+	follow_tween.tween_method(func(_delta):
+		if is_instance_valid(trail) and is_instance_valid(entity):
+			trail.position.x = entity.global_position.x * s_factor
+			trail.position.z = entity.global_position.y * s_factor * correction_z
+			trail.position.y = 0.3
+	, 0.0, 1.0, 0.033)
+
+	# Auto-destroy al terminar la carga
+	var charge_ms = float(data.get("duration", 1200.0))
+	get_tree().create_timer(charge_ms / 1000.0 + 0.3).timeout.connect(func():
+		if is_instance_valid(trail):
+			trail.emitting = false
+			get_tree().create_timer(trail.lifetime + 0.1).timeout.connect(func():
+				if is_instance_valid(trail):
+					trail.queue_free()
+			)
+	)
+
+func _spawn_choque_impact_vfx(data: Dictionary) -> void:
+	if not is_instance_valid(entity): return
+	if not is_instance_valid(entity.world_root_3d): return
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node): return
+
+	var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+	var correction_z = map_node.correction_z if "map_node" in map_node and "correction_z" in map_node else 1.41421356
+
+	var impact_x = float(data.get("x", entity.global_position.x))
+	var impact_y = float(data.get("y", entity.global_position.y))
+	var pos_3d = Vector3(impact_x * s_factor, 0.3, impact_y * s_factor * correction_z)
+
+	var vp = map_node.sub_viewport if map_node.get("sub_viewport") else null
+	if not is_instance_valid(vp):
+		vp = entity.world_root_3d
+
+	# Flash de impacto
+	var flash = MeshInstance3D.new()
+	var flash_s = SphereMesh.new()
+	flash_s.radius = 0.3
+	flash_s.height = 0.6
+	flash.mesh = flash_s
+	var flash_mat = StandardMaterial3D.new()
+	flash_mat.albedo_color = Color(1.0, 0.6, 0.15, 0.95)
+	flash_mat.emission_enabled = true
+	flash_mat.emission = Color(1.0, 0.6, 0.15)
+	flash_mat.emission_energy_multiplier = 10.0
+	flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	flash.material_override = flash_mat
+	flash.position = pos_3d
+	vp.add_child(flash)
+	var tw_f = flash.create_tween()
+	tw_f.tween_property(flash, "scale", Vector3(3.0, 3.0, 3.0), 0.25)
+	tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.25)
+	tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.25)
+	tw_f.finished.connect(flash.queue_free)
+
+	# Shockwave
+	var shockwave = MeshInstance3D.new()
+	var ring_mesh = TorusMesh.new()
+	ring_mesh.inner_radius = 0.2
+	ring_mesh.outer_radius = 0.25
+	shockwave.mesh = ring_mesh
+	var sw_mat = StandardMaterial3D.new()
+	sw_mat.albedo_color = Color(1.0, 0.45, 0.1, 0.85)
+	sw_mat.emission_enabled = true
+	sw_mat.emission = Color(1.0, 0.45, 0.1)
+	sw_mat.emission_energy_multiplier = 4.0
+	sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	shockwave.material_override = sw_mat
+	shockwave.position = pos_3d + Vector3(0, 0.02, 0)
+	vp.add_child(shockwave)
+	var tw_sw = shockwave.create_tween()
+	tw_sw.tween_property(shockwave, "scale", Vector3(2.5, 2.5, 2.5), 0.35)
+	tw_sw.parallel().tween_property(sw_mat, "albedo_color:a", 0.0, 0.35)
+	tw_sw.parallel().tween_property(sw_mat, "emission_energy_multiplier", 0.0, 0.35)
+	tw_sw.finished.connect(shockwave.queue_free)
+
+	# Partículas de impacto
+	var particles = GPUParticles3D.new()
+	particles.emitting = true
+	particles.one_shot = true
+	particles.amount = 25
+	particles.lifetime = 0.4
+	particles.explosiveness = 0.9
+	var p_mat = ParticleProcessMaterial.new()
+	p_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	p_mat.emission_sphere_radius = 0.1
+	p_mat.direction = Vector3(0, 1, 0)
+	p_mat.spread = 180.0
+	p_mat.initial_velocity_min = 2.0
+	p_mat.initial_velocity_max = 5.0
+	p_mat.gravity = Vector3(0, -3.0, 0)
+	p_mat.scale_min = 0.4
+	p_mat.scale_max = 1.0
+	p_mat.color = Color(1.0, 0.5, 0.1)
+	particles.process_material = p_mat
+	var p_mesh = BoxMesh.new()
+	p_mesh.size = Vector3(0.12, 0.12, 0.12)
+	var p_mesh_mat = StandardMaterial3D.new()
+	p_mesh_mat.albedo_color = Color(1.0, 0.5, 0.1)
+	p_mesh_mat.emission_enabled = true
+	p_mesh_mat.emission = Color(1.0, 0.5, 0.1)
+	p_mesh_mat.emission_energy_multiplier = 5.0
+	p_mesh_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	p_mesh.material = p_mesh_mat
+	particles.draw_pass_1 = p_mesh
+	particles.position = pos_3d
+	vp.add_child(particles)
+	get_tree().create_timer(0.6).timeout.connect(func():
+		if is_instance_valid(particles): particles.queue_free()
+	)
+
+	# Luz de impacto
+	var light = OmniLight3D.new()
+	light.position = pos_3d + Vector3(0, 0.5, 0)
+	light.light_color = Color(1.0, 0.5, 0.15)
+	light.light_energy = 12.0
+	light.omni_range = 4.0
+	vp.add_child(light)
+	var tw_l = light.create_tween()
+	tw_l.tween_property(light, "light_energy", 0.0, 0.5)
+	tw_l.finished.connect(light.queue_free)
+
+	# Shake a la cámara si el jugador local está cerca
+	var local_player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(local_player):
+		var dist = local_player.global_position.distance_to(Vector2(impact_x, impact_y))
+		if dist < 500.0:
+			local_player.apply_shake(3.5)
+
+func _cleanup_choque_marker() -> void:
+	if not is_instance_valid(entity): return
+	if entity.has_meta("choque_marker_3d"):
+		var marker = entity.get_meta("choque_marker_3d")
+		if is_instance_valid(marker):
+			marker.queue_free()
+		entity.remove_meta("choque_marker_3d")
 
 # ==============================================================================
 # 2. ENEMY AURA (Auras 3D de Estado / Buffs)

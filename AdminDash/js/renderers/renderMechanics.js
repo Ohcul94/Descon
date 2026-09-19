@@ -49,7 +49,10 @@ function renderMechanicsLib() {
         "returnDamage": "Daño de Vuelta (pts)",
         "wallWidth": "Ancho de la Pared (px)",
         "wallStartOffset": "Spawn Adelante del Enemigo (px)",
-        "pushForce": "Distancia de Expulsión (px)"
+        "pushForce": "Distancia de Expulsión (px)",
+        "speed": "Velocidad (px/s)",
+        "warnTimeMs": "Tiempo de Aviso (ms)",
+        "pushOnHit": "Expulsar al Colisionar"
     };
 
     if (currentMechTab === 'attack') {
