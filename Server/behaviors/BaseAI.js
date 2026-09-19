@@ -1553,7 +1553,8 @@ module.exports = class BaseAI {
                     bulletType: "mega_laser",
                     damage: (mech.bulletDamage || 500) * (this.damageMult || 1),
                     lifetimeMs: lifetime,
-                    range: mech.fireRange || 800 // v266.715: Sincronía de Rango para el Proyectil
+                    range: mech.fireRange || 800, // v266.715: Sincronía de Rango para el Proyectil
+                    beamWidth: mech.beamWidth || 40 // Ancho del rayo en píxeles
                 });
             } else if (state.isFiring && now > state.fireEndTime) {
                 state.isFiring = false;
@@ -1990,7 +1991,8 @@ module.exports = class BaseAI {
             const duration = (mech.duration !== undefined) ? mech.duration : 5000;
             const tickInterval = (mech.tick_interval !== undefined) ? mech.tick_interval : 1000;
             const dmgPerTick = (mech.damage_per_tick !== undefined) ? mech.damage_per_tick : 50;
-            const slowAmount = (mech.slow_amount !== undefined) ? mech.slow_amount : 0.4;
+            const slowAmount = (mech.slow_amount !== undefined) ? mech.slow_amount : 0;
+            const isPct = !!mech.slowIsPercentage;
 
             if (!state.isActive && !state.isCharging && now > state.nextShotTime) {
                 // FASE 1: INICIO DE CARGA — elegir un jugador objetivo dentro del alcance
@@ -2096,12 +2098,15 @@ module.exports = class BaseAI {
                         zonePlayers.forEach(p => {
                             const d = Math.hypot(p.x - state.lockedX, p.y - state.lockedY);
                             if (d <= stormRadius) {
-                                // Aplicar slow
-                                const prevSlow = p.isSlowed;
-                                p.isSlowed = true;
-                                p.lastSlowTime = now;
-                                p.slowPoints = slowAmount * 100;
-                                if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
+                                // Aplicar slow (solo si slow_amount > 0)
+                                if (slowAmount > 0) {
+                                    const prevSlow = p.isSlowed;
+                                    p.isSlowed = true;
+                                    p.lastSlowTime = now;
+                                    p.slowPoints = slowAmount;
+                                    p.slowIsPercentage = isPct;
+                                    if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: slowAmount, isPercentage: isPct });
+                                }
 
                                 // Aplicar daño
                                 p.lastCombatTime = Date.now();

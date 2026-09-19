@@ -1273,10 +1273,11 @@ func _setup_visual_sprite():
 			modulate = Color(0.3, 1.0, 0.4)
 		"mega_laser":
 			var length = max_range if max_range > 0.0 else 1000.0
+			var beam_w = _safe_float(_current_data.get("beamWidth"), 40.0)
 
 			for child in get_children():
 				if child is CollisionShape2D and child.shape is RectangleShape2D:
-					child.shape.size = Vector2(length, 40.0)
+					child.shape.size = Vector2(length, beam_w)
 					child.position.x = child.shape.size.x / 2.0
 
 			var map_node = get_tree().get_first_node_in_group("map")
@@ -1290,10 +1291,11 @@ func _setup_visual_sprite():
 
 				var beam_len_3d = length * s_factor
 				var half_len = beam_len_3d / 2.0
+				var w3d = beam_w * s_factor
 
 				var glow = MeshInstance3D.new()
 				var glow_box = BoxMesh.new()
-				glow_box.size = Vector3(0.5, 0.5, beam_len_3d)
+				glow_box.size = Vector3(w3d * 2.5, w3d * 2.5, beam_len_3d)
 				glow.mesh = glow_box
 				var glow_mat = StandardMaterial3D.new()
 				glow_mat.albedo_color = Color(1.0, 0.2, 0.05, 0.3)
@@ -1310,7 +1312,7 @@ func _setup_visual_sprite():
 
 				var beam_mesh = MeshInstance3D.new()
 				var box = BoxMesh.new()
-				box.size = Vector3(0.18, 0.18, beam_len_3d)
+				box.size = Vector3(w3d * 0.9, w3d * 0.9, beam_len_3d)
 				beam_mesh.mesh = box
 				var mat = StandardMaterial3D.new()
 				mat.albedo_color = Color(1.0, 0.25, 0.1)
@@ -1326,7 +1328,7 @@ func _setup_visual_sprite():
 
 				var core = MeshInstance3D.new()
 				var core_box = BoxMesh.new()
-				core_box.size = Vector3(0.05, 0.05, beam_len_3d * 0.97)
+				core_box.size = Vector3(w3d * 0.25, w3d * 0.25, beam_len_3d * 0.97)
 				core.mesh = core_box
 				var core_mat = StandardMaterial3D.new()
 				core_mat.albedo_color = Color(1.0, 1.0, 1.0)
@@ -1364,12 +1366,12 @@ func _setup_visual_sprite():
 				return
 
 			var beam_2d = Line2D.new()
-			beam_2d.width = 40.0
+			beam_2d.width = beam_w
 			beam_2d.default_color = Color(1, 0.2, 0.2, 0.8) 
 			beam_2d.points = PackedVector2Array([Vector2.ZERO, Vector2(length, 0)])
 
 			var glow_2d = Line2D.new()
-			glow_2d.width = 15.0
+			glow_2d.width = beam_w * 0.375
 			glow_2d.default_color = Color(1, 1, 1, 0.9) 
 			glow_2d.points = beam_2d.points
 			beam_2d.add_child(glow_2d)

@@ -441,12 +441,13 @@ const fieldLabelsMap = {
                                            summonsList: "Lista de Esbirros Invocados",
                                             tick_interval: "Intervalo de Tick (ms)",
                                             damage_per_tick: "Daño por Tick (pts)",
-                                            slow_amount: "Ralentización (0-1)",
+                                            slow_amount: "Ralentización",
                                             projectileCount: "Cantidad de Gusanos (uds)",
                                             spreadAngle: "Ángulo del Abanico (grados)",
                                             parkTimeMs: "Tiempo Quieto en el Extremo (ms)",
                                             returnDamage: "Daño de Vuelta (pts)",
                                              wallWidth: "Ancho de la Pared (px)",
+                                             beamWidth: "Ancho del Rayo (px)",
                                              wallStartOffset: "Spawn Adelante del Enemigo (px)",
                                              pushForce: "Distancia de Expulsión (px)",
                                              burrowSpeed: "Vel. Viaje Subterráneo (px/s)",
@@ -704,6 +705,12 @@ if (f === 'targetMode') {
                                      }
                                       if (f === 'turnSpeed' && m.type !== 'execution') return '';
                                       if ((f === 'zoneTickMs' || f === 'zoneDuration' || f === 'zoneDamage') && (m.burstMode || 'burst') !== 'zone' && !m.persistentZone) return '';
+                                      if (f === 'slowIsPercentage') return '';
+                                      if (f === 'slow_amount') {
+                                          const isPct = m.slowIsPercentage;
+                                          const prefix = (m.type === 'ice_storm') ? '❄️ ' : '';
+                                          return `<div class="field" style="display:flex; flex-direction:column; gap:4px;"><label>${prefix}Ralentización</label><div style="display:flex; gap:6px; align-items:center;"><input type="number" step="0.1" min="0" value="${m[f] || 0}" style="flex:1; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.8rem; padding:4px 6px; border-radius:4px; text-align:center;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].slow_amount = parseFloat(this.value);"><select style="background:#0f172a; border:1px solid var(--accent); color:var(--accent); font-size:0.75rem; padding:4px; border-radius:4px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].slowIsPercentage = this.value === 'pct'; renderEnemyDetail();"><option value="fixed" ${!isPct ? 'selected' : ''}>Fijo (px/s)</option><option value="pct" ${isPct ? 'selected' : ''}>Porcentaje (%)</option></select></div></div>`;
+                                      }
                                      return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseFloat(this.value); if ('${f}' === 'summonCount') renderEnemyDetail();"></div>`;
                                 }).join('')}
                             </div>

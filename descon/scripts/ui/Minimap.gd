@@ -25,64 +25,14 @@ var minimap_zoom: float = 1.0
 const MIN_ZOOM: float = 1.0
 const MAX_ZOOM: float = 4.0
 
-func get_current_world_dimensions() -> Vector2:
+func get_current_world_rect() -> Rect2:
 	var player = get_tree().get_first_node_in_group("player")
-	if not is_instance_valid(player):
-		return Vector2(WORLD_DEFAULT_SIZE, WORLD_DEFAULT_SIZE)
-		
-	var current_zone_id = str(player.current_zone) if "current_zone" in player else "1"
-	var worldW: float = WORLD_DEFAULT_SIZE
-	var worldH: float = WORLD_DEFAULT_SIZE
-	
-	var full_cfg_temp = GameConstants.get("FULL_CONFIG")
-	
-	# 1. PRIORIDAD: leer width/height desde mapsConfig del servidor
-	if current_zone_id in GameConstants.MAPS_CONFIG:
-		var mc = GameConstants.MAPS_CONFIG[current_zone_id]
-		if mc.has("width") and float(mc.width) > 0:
-			worldW = float(mc.width)
-		if mc.has("height") and float(mc.height) > 0:
-			worldH = float(mc.height)
-	
-	# 2. Sobreescribir con dimensiones de modos de juego especiales
-	var is_altar_def_mode = false
-	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("altar_defense"):
-		var ad_maps = full_cfg_temp.gameModes.altar_defense.get("maps", [])
-		for m in ad_maps:
-			if int(m) == int(current_zone_id):
-				is_altar_def_mode = true
-				break
-		if is_altar_def_mode:
-			var ad = full_cfg_temp.gameModes.altar_defense
-			if ad.has("width") and float(ad.width) > 0:
-				worldW = float(ad.width)
-			if ad.has("height") and float(ad.height) > 0:
-				worldH = float(ad.height)
-	
-	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("extraction"):
-		var ext_maps = full_cfg_temp.gameModes.extraction.get("maps", [])
-		for em in ext_maps:
-			if int(em) == int(current_zone_id):
-				var ext = full_cfg_temp.gameModes.extraction
-				if ext.has("width") and float(ext.width) > 0:
-					worldW = float(ext.width)
-				if ext.has("height") and float(ext.height) > 0:
-					worldH = float(ext.height)
-				break
-	
-	# 3. Fallback final: mapa cargado en escena
-	var current_map = get_tree().get_first_node_in_group("map")
-	if not is_instance_valid(current_map):
-		var p_parent = player.get_parent()
-		if is_instance_valid(p_parent) and "current_map_node" in p_parent and is_instance_valid(p_parent.current_map_node):
-			current_map = p_parent.current_map_node
-	if is_instance_valid(current_map) and "world_size" in current_map and float(current_map.world_size) > 0:
-		if worldW == WORLD_DEFAULT_SIZE:
-			worldW = float(current_map.world_size)
-		if worldH == WORLD_DEFAULT_SIZE:
-			worldH = float(current_map.world_size)
-			
-	return Vector2(worldW, worldH)
+	var current_zone_id = str(player.current_zone) if is_instance_valid(player) and "current_zone" in player else "1"
+	return WorldMapDialog.get_zone_rect(current_zone_id, get_tree())
+
+func get_current_world_dimensions() -> Vector2:
+	return get_current_world_rect().size
+
 
 
 
@@ -144,9 +94,9 @@ func _input(event):
 				var is_rotate = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
 				var p = get_tree().get_first_node_in_group("player")
 				
-				var dims = get_current_world_dimensions()
-				var worldW = dims.x
-				var worldH = dims.y
+				var world_rect = get_current_world_rect()
+				var worldW = world_rect.size.x
+				var worldH = world_rect.size.y
 				
 				var base_scale = min(size.x / worldW, size.y / worldH)
 				var effective_scale = base_scale * minimap_zoom
@@ -159,10 +109,10 @@ func _input(event):
 				elif is_instance_valid(p):
 					target_world_pos = p.global_position + (delta_mouse / max(effective_scale, 0.001))
 				else:
-					target_world_pos = local_m_pos / max(effective_scale, 0.001)
+					target_world_pos = world_rect.position + (local_m_pos / max(effective_scale, 0.001))
 				
-				target_world_pos.x = clamp(target_world_pos.x, 0.0, worldW)
-				target_world_pos.y = clamp(target_world_pos.y, 0.0, worldH)
+				target_world_pos.x = clamp(target_world_pos.x, world_rect.position.x, world_rect.end.x)
+				target_world_pos.y = clamp(target_world_pos.y, world_rect.position.y, world_rect.end.y)
 				
 				if is_instance_valid(p) and p.has_method("set_autopilot"):
 					if p.get_meta("spawn_locked", false):
@@ -175,6 +125,7 @@ func _input(event):
 
 func _ready():
 	WorldMapDialog.terrain_cache_by_zone.clear()
+	WorldMapDialog.terrain_bounds_by_zone.clear()
 	add_to_group("minimap")
 	world_size = GameConstants.GAME_CONFIG.get("worldSize", WORLD_DEFAULT_SIZE)
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -328,12 +279,11 @@ func _draw():
 		local_m_pos = g_tr_draw.affine_inverse() * global_m_pos
 	
 	# =====================================================================
-	# SYNC FIX v200.0: Calcular worldW/worldH desde MAPS_CONFIG del servidor
-	# El AdminDash usa `m.width || 10000` — ahora Godot usa la misma fuente.
+	# TERRENO DINÁMICO DE GODOT (Sin límites hardcodeados)
 	# =====================================================================
-	var dims = get_current_world_dimensions()
-	var worldW: float = dims.x
-	var worldH: float = dims.y
+	var world_rect = get_current_world_rect()
+	var worldW: float = world_rect.size.x
+	var worldH: float = world_rect.size.y
 	
 	# Mantener world_size por compatibilidad legado
 	world_size = worldW
@@ -396,16 +346,21 @@ func _draw():
 
 	var world_m_pos = canvas_tr.affine_inverse() * local_m_pos if is_hovered else Vector2.ZERO
 
-	var map_rect = Rect2(0, 0, worldW * scale_x, worldH * scale_y)
+	var map_rect = Rect2(
+		world_rect.position.x * scale_x,
+		world_rect.position.y * scale_y,
+		worldW * scale_x,
+		worldH * scale_y
+	)
 
 	# Terreno con relieves reales 1:1 en espacio-mundo
-	var terrain_tex = WorldMapDialog.get_or_create_terrain_texture(current_zone_id, worldW, worldH, get_tree())
+	var terrain_tex = WorldMapDialog.get_or_create_terrain_texture(current_zone_id, world_rect, get_tree())
 	if is_instance_valid(terrain_tex):
 		draw_texture_rect(terrain_tex, map_rect, false)
 
 	# Niebla encima del terreno y bajo las naves
 	if fog_overlay_needed and fog_rendering_enabled:
-		_draw_minimap_fog(scale_x, scale_y, fog_grid_res, fog_explored, worldW, worldH, player)
+		_draw_minimap_fog(scale_x, scale_y, fog_grid_res, fog_explored, world_rect, player)
 
 
 	
@@ -827,14 +782,23 @@ func _draw():
 		# Renderizar texto
 		draw_string(font, rect_pos + Vector2(6, 14), radar_tooltip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.0, 1.0, 1.0))
 
-func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: Dictionary, worldW: float, worldH: float, player):
-	# v801.1 NIEBLA PANTANO minimapa OPTIMIZADA (Bounding-box & early rejection)
-	# Mantiene 100% el estilo artístico, colores y nubes, pero evita 4096 iteraciones de CPU innecesarias
+func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: Dictionary, world_rect_or_w: Variant, worldH_or_player: Variant, maybe_player: Variant = null):
+	var world_rect: Rect2
+	var player = null
+	if world_rect_or_w is Rect2:
+		world_rect = world_rect_or_w
+		player = worldH_or_player
+	else:
+		world_rect = Rect2(0.0, 0.0, float(world_rect_or_w), float(worldH_or_player))
+		player = maybe_player
+		
 	if not is_instance_valid(player):
 		return
 	var vr = 1300.0
 	if "vision_range" in player:
 		vr = float(player.vision_range)
+	var worldW = world_rect.size.x
+	var worldH = world_rect.size.y
 	var cell_w = (worldW * scale_x) / float(grid_res)
 	var cell_h = (worldH * scale_y) / float(grid_res)
 	var px = player.global_position.x
@@ -848,21 +812,21 @@ func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: 
 	var fade_end_sq = fade_end * fade_end
 	var fade_inv_range = 1.0 / max(fade_end - fade_start, 1.0)
 	
-	# Bounding box inteligente: solo iterar celdas en el rango donde la niebla puede ser visible
-	var min_cx = clampi(int((px - fade_end) / world_cell_w), 0, grid_res - 1)
-	var max_cx = clampi(int((px + fade_end) / world_cell_w) + 1, 0, grid_res)
-	var min_cy = clampi(int((py - fade_end) / world_cell_h), 0, grid_res - 1)
-	var max_cy = clampi(int((py + fade_end) / world_cell_h) + 1, 0, grid_res)
+	# Bounding box inteligente teniendo en cuenta el origen real del mundo
+	var min_cx = clampi(int(((px - fade_end) - world_rect.position.x) / world_cell_w), 0, grid_res - 1)
+	var max_cx = clampi(int(((px + fade_end) - world_rect.position.x) / world_cell_w) + 1, 0, grid_res)
+	var min_cy = clampi(int(((py - fade_end) - world_rect.position.y) / world_cell_h), 0, grid_res - 1)
+	var max_cy = clampi(int(((py + fade_end) - world_rect.position.y) / world_cell_h) + 1, 0, grid_res)
 	
 	# Tiempo para elevación (niebla que se mueve lenta)
 	var t = Time.get_ticks_msec() * 0.00018
 	
 	for cy in range(min_cy, max_cy):
-		var cw_y = (float(cy) + 0.5) * world_cell_h
+		var cw_y = world_rect.position.y + (float(cy) + 0.5) * world_cell_h
 		var dy = cw_y - py
 		var dy_sq = dy * dy
 		for cx in range(min_cx, max_cx):
-			var cw_x = (float(cx) + 0.5) * world_cell_w
+			var cw_x = world_rect.position.x + (float(cx) + 0.5) * world_cell_w
 			var dx = cw_x - px
 			var dist_sq = dx * dx + dy_sq
 			
@@ -906,7 +870,9 @@ func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: 
 			pal.r += (n1 - 0.5) * 0.04
 			pal.g += (n2 - 0.5) * 0.04
 			pal.b += (cell_hash - 0.5) * 0.03
-			var rect = Rect2(float(cx) * cell_w, float(cy) * cell_h, cell_w + 0.6, cell_h + 0.6)
+			var world_cell_x = world_rect.position.x + float(cx) * world_cell_w
+			var world_cell_y = world_rect.position.y + float(cy) * world_cell_h
+			var rect = Rect2(world_cell_x * scale_x, world_cell_y * scale_y, cell_w + 0.6, cell_h + 0.6)
 			if not is_explored:
 				# NO EXPLORADO: 80% opacidad pantano denso, degradé por edge_fade
 				pal.a = 0.80 * edge_fade * (0.88 + cloud_edge * 0.12)

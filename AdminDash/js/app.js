@@ -1016,6 +1016,7 @@ function updateMechanicType(enemyId, idx, newType) {
              else if (f === 'airTimeMs') mech[f] = newType === 'ascension' ? 2000 : 2000;
              else if (f === 'warnDelayMs') mech[f] = newType === 'ascension' ? 0 : 600;
              else if (f === 'slowAmount') mech[f] = 30;
+             else if (f === 'slowIsPercentage') mech[f] = false;
              else if (f === 'stunDuration') mech[f] = 1500;
              else if (f === 'arcAngle') mech[f] = 120;
              else if (f === 'fullCircle') mech[f] = false;
@@ -1684,6 +1685,17 @@ function patchMechanicsLib() {
         if (!ml.fields.includes("turnSpeed")) ml.fields.push("turnSpeed");
         if (!ml.fields.includes("lockTimeMs")) ml.fields.push("lockTimeMs");
         if (!ml.fields.includes("isHoming")) ml.fields.push("isHoming");
+        if (!ml.fields.includes("beamWidth")) ml.fields.push("beamWidth");
+    }
+    if (config.enemyModels) {
+        for (const eid in config.enemyModels) {
+            const mechs = config.enemyModels[eid].mechanics || [];
+            for (const m of mechs) {
+                if (m.type === 'mega_laser' && (m.beamWidth === undefined || m.beamWidth === null)) {
+                    m.beamWidth = 40;
+                }
+            }
+        }
     }
     if (config.skillsData && config.skillsData["VÍNCULO VITAL"]) {
         const s = config.skillsData["VÍNCULO VITAL"];

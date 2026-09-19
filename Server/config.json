@@ -2525,7 +2525,9 @@
                     "lockTimeMs": 800,
                     "startDelay": 0,
                     "turnSpeed": 1.2,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "bulletDamage": 10,
@@ -2544,7 +2546,9 @@
                     "targetCount": 1,
                     "targetMode": "missing_hp",
                     "type": "sleep",
-                    "wakeOnDamage": 0
+                    "wakeOnDamage": 0,
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "bulletDamage": 20,
@@ -2559,7 +2563,9 @@
                     "slowDuration": 2000,
                     "startDelay": 1350,
                     "turnSpeed": 1,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2634,7 +2640,9 @@
                     "fireRange": 1000,
                     "fireRate": 4000,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "bulletDamage": 0,
@@ -2650,7 +2658,9 @@
                     "startDelay": 6300,
                     "stunDuration": 1500,
                     "turnSpeed": 1.2,
-                    "type": "hook"
+                    "type": "hook",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "bulletDamage": 10,
@@ -2673,7 +2683,9 @@
                     "postCastWaitMs": 1000,
                     "safeRadius": 200,
                     "startDelay": 7660,
-                    "type": "survival_dome"
+                    "type": "survival_dome",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "activationIntervalMs": 30000,
@@ -2961,17 +2973,17 @@
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5.glb",
             "bulletDamage": 10000,
             "bulletSpeed": 1100,
-            "chaseIdleTimeout": 10000,
+            "chaseIdleTimeout": 30000,
             "chaseUntilDeath": true,
             "chestDropChance": 0.5,
             "defenseMechanics": [],
             "fireRange": 1500,
             "fireRate": 900,
-            "hp": 400000,
+            "hp": 3000,
             "hpRegenPercent": 25,
             "icon": "res://assets/Enemigos/2D/Bosses/Boss5/Boss5.png",
             "isBoss": true,
-            "leashRange": 2500,
+            "leashRange": 3000,
             "lootDrops": [
                 {
                     "chance": 0.5,
@@ -2989,16 +3001,46 @@
                     "bulletDamage": 1,
                     "bulletSpeed": 950,
                     "castInterruptible": true,
-                    "castTimeMs": 0,
+                    "castTimeMs": 1000,
                     "fireRange": 1500,
                     "fireRate": 900,
-                    "startDelay": 0,
-                    "type": "laser"
+                    "startDelay": 5000,
+                    "type": "ice_storm",
+                    "activationHPs": [
+                        50
+                    ],
+                    "cooldown": 10000,
+                    "radius": 400,
+                    "lockTimeMs": 0,
+                    "duration": 5000,
+                    "tick_interval": 900,
+                    "damage_per_tick": 2,
+                    "slow_amount": 50
+                },
+                {
+                    "type": "mega_laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 1700,
+                    "fireRate": 6300,
+                    "startDelay": 1500,
+                    "chargeTimeMs": 2500,
+                    "lifetimeMs": 2000,
+                    "turnSpeed": 1.2,
+                    "lockTimeMs": 1500,
+                    "isHoming": 0
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 180,
+                    "speed": 100,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -3007,20 +3049,20 @@
             "name": "Titán Carmesí",
             "posY": 0.1,
             "rageTimer": 20,
-            "rankingPoints": 500,
-            "regenDelayMs": 20000,
-            "regenIntervalMs": 2000,
-            "rewardExp": 150000,
-            "rewardHubs": 750000,
-            "rewardOhcu": 7500,
+            "rankingPoints": 600,
+            "regenDelayMs": 30000,
+            "regenIntervalMs": 1000,
+            "rewardExp": 2000,
+            "rewardHubs": 1800,
+            "rewardOhcu": 500,
             "rotX": 0,
             "rotY": 180,
             "rotZ": 0,
-            "scale": 6,
-            "shield": 200000,
+            "scale": 15,
+            "shield": 2500,
             "shieldRegenPercent": 30,
             "speed": 240,
-            "visionRange": 2000
+            "visionRange": 3000
         },
         "106": {
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/AnimacionesBoss6.glb",
@@ -7321,7 +7363,7 @@
             "color": "#ffff00",
             "desc": "Sector hostil con recursos de nivel medio.",
             "friendlyFire": false,
-            "height": 5000,
+            "height": 7000,
             "minLevel": 1,
             "music": {
                 "enabled": true,
@@ -7432,10 +7474,20 @@
                     "type": "3-A",
                     "x": 0,
                     "y": 0
+                },
+                {
+                    "id": "spawn_1789785568496206",
+                    "type": "105",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 1783,
+                    "y": 213,
+                    "radius": 300
                 }
             ],
             "warpCost": 0,
-            "width": 5000
+            "width": 7000
         },
         "4": {
             "allowedHours": [
@@ -8770,6 +8822,7 @@
                 "tick_interval",
                 "damage_per_tick",
                 "slow_amount",
+                "slowIsPercentage",
                 "startDelay"
             ],
             "icon": "❄️",
@@ -8812,6 +8865,7 @@
                 "bulletDamage",
                 "bulletSpeed",
                 "fireRange",
+                "beamWidth",
                 "fireRate",
                 "chargeTimeMs",
                 "startDelay",
@@ -9163,17 +9217,16 @@
                 "activationHPs",
                 "activationIntervalMs",
                 "cooldown",
-                "bulletDamage",
-                "fireRange",
+                "damage",
+                "range",
                 "castTimeMs",
                 "castInterruptible",
-                "chargeSpeed",
-                "chargeDurationMs",
-                "chargeRange",
-                "width",
+                "speed",
+                "duration",
+                "radius",
                 "pushOnHit",
                 "pushForce",
-                "telegraphDurationMs",
+                "warnTimeMs",
                 "startDelay"
             ],
             "sound": "",

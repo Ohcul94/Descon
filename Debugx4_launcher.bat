@@ -4,7 +4,7 @@
 :: para que no queden cortadas por la barra de titulo.
 title Descon QUAD-Launcher
 
-set GODOT="E:\PROGRAMAS\Godot\Godot_v4.6.2-stable_win64.exe"
+set GODOT="E:\PROGRAMAS\Godot\Godot_v4.7.2-stable_win64.exe"
 set PROJECT_PATH="E:\Descon\descon"
 
 :: --- CONFIGURA TUS CUENTAS AQUI ---
