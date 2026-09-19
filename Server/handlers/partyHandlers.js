@@ -37,7 +37,7 @@ function registerPartyHandlers(socket, io, state) {
             if (!partyId) {
                 // Crear nueva party
                 partyId = leaderUid;
-                parties[partyId] = { id: partyId, members: [leaderUid], names: [leaderSocket.dbUser.username.toUpperCase()] };
+                parties[partyId] = { id: partyId, members: [leaderUid], names: [leaderSocket.dbUser.username.toUpperCase()], roles: {} };
                 playerParty[leaderUid] = partyId;
             }
 
@@ -67,6 +67,7 @@ function registerPartyHandlers(socket, io, state) {
             const name = socket.dbUser.username.toUpperCase();
             parties[partyId].members = parties[partyId].members.filter(m => m !== myUid);
             parties[partyId].names = parties[partyId].names.filter(n => n !== name);
+            if (parties[partyId].roles) delete parties[partyId].roles[myUid];
 
             if (parties[partyId].members.length <= 1) {
                 parties[partyId].members.forEach(m => delete playerParty[m]);
@@ -97,6 +98,7 @@ function registerPartyHandlers(socket, io, state) {
 
             parties[partyId].members.splice(targetIndex, 1);
             parties[partyId].names.splice(targetIndex, 1);
+            if (parties[partyId].roles) delete parties[partyId].roles[targetUid];
             delete playerParty[targetUid];
 
             if (parties[partyId].members.length <= 1) {
@@ -113,6 +115,42 @@ function registerPartyHandlers(socket, io, state) {
             
         } catch (e) {
             console.error("Error en kickFromParty:", e);
+        }
+    });
+
+    // SISTEMA DE ROLES DE PARTY (Estilo WOW) v1.0
+    const VALID_ROLES = ['tank', 'healer', 'buffer', 'dps'];
+
+    socket.on('setPartyRole', (data) => {
+        try {
+            if (!socket.dbUser || !data) return;
+            const myUid = socket.dbUser._id.toString();
+            const partyId = playerParty[myUid];
+            
+            // Solo el líder puede asignar roles (id de la party == líderUid)
+            if (!partyId || partyId !== myUid || !parties[partyId]) return;
+
+            const targetUid = data.targetId;
+            const role = data.role;
+
+            if (!targetUid || typeof targetUid !== 'string') return;
+
+            // Validar que el target esté en la party
+            if (!parties[partyId].members.includes(targetUid)) return;
+
+            // Si el role es vacío, limpiar el rol
+            if (!role || role === '') {
+                if (parties[partyId].roles) delete parties[partyId].roles[targetUid];
+            } else {
+                // Validar que el rol sea válido
+                if (!VALID_ROLES.includes(role)) return;
+                if (!parties[partyId].roles) parties[partyId].roles = {};
+                parties[partyId].roles[targetUid] = role;
+            }
+
+            io.emit('partyUpdate', parties[partyId]);
+        } catch (e) {
+            console.error("Error en setPartyRole:", e);
         }
     });
 }

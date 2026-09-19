@@ -164,9 +164,7 @@ func _create_viewports():
 	vision_viewport.size = Vector2i(GRID_TEX_SIZE, GRID_TEX_SIZE)
 	vision_viewport.own_world_3d = false
 	vision_viewport.transparent_bg = false
-	# UPDATE_ONCE: solo renderiza cuando queue_redraw() activa el redibujado
-	# Ahorra un draw call por frame cuando el jugador no se mueve
-	vision_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	vision_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	vision_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
 	add_child(vision_viewport)
 	
@@ -180,9 +178,8 @@ func _create_viewports():
 	history_viewport.size = Vector2i(GRID_TEX_SIZE, GRID_TEX_SIZE)
 	history_viewport.own_world_3d = false
 	history_viewport.transparent_bg = false
-	# UPDATE_ONCE: CLEAR_MODE_NEVER garantiza que lo explorado persiste entre frames
-	history_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	history_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_NEVER
+	history_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	history_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
 	add_child(history_viewport)
 	
 	history_drawer = HistoryDrawer.new()
@@ -319,34 +316,22 @@ func _collect_new_explored_cells() -> Array[int]:
 	return new_cells
 
 func _draw_vision(drawer: Node2D):
-	# Solo ejecutado cuando _vision_dirty = true (optimizacion)
 	drawer.draw_rect(Rect2(0, 0, GRID_TEX_SIZE, GRID_TEX_SIZE), Color.BLACK)
 	_draw_all_vision_circles(drawer)
-	# Tras redibujar, disparar actualizacion del viewport
-	if is_instance_valid(vision_viewport):
-		vision_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func _draw_history(drawer: Node2D):
-	if not _history_cleared:
-		drawer.draw_rect(Rect2(0, 0, GRID_TEX_SIZE, GRID_TEX_SIZE), Color.BLACK)
-		_history_cleared = true
-	# Restaurar celdas persistidas (solo una vez, CLEAR_MODE_NEVER las mantiene)
-	if _restoration_pending:
-		if explored_by_zone.has(current_zone_id):
-			var zset = explored_by_zone[current_zone_id]
-			var overlap = 1.0
-			for ci in zset.keys():
-				var ci_int = int(ci)
-				var cx = ci_int % GRID_RES
-				var cy = int(float(ci_int) / float(GRID_RES))
-				var x = float(cx) * CELL_PX
-				var y = float(cy) * CELL_PX
-				drawer.draw_rect(Rect2(x - overlap*0.5, y - overlap*0.5, CELL_PX + overlap, CELL_PX + overlap), Color.WHITE)
-		_restoration_pending = false
+	drawer.draw_rect(Rect2(0, 0, GRID_TEX_SIZE, GRID_TEX_SIZE), Color.BLACK)
+	if explored_by_zone.has(current_zone_id):
+		var zset = explored_by_zone[current_zone_id]
+		var overlap = 1.0
+		for ci in zset.keys():
+			var ci_int = int(ci)
+			var cx = ci_int % GRID_RES
+			var cy = int(float(ci_int) / float(GRID_RES))
+			var x = float(cx) * CELL_PX
+			var y = float(cy) * CELL_PX
+			drawer.draw_rect(Rect2(x - overlap * 0.5, y - overlap * 0.5, CELL_PX + overlap, CELL_PX + overlap), Color.WHITE)
 	_draw_all_vision_circles(drawer)
-	# Tras redibujar, disparar actualizacion del viewport
-	if is_instance_valid(history_viewport):
-		history_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func _draw_all_vision_circles(drawer: Node2D):
 	var providers = get_vision_providers()
@@ -429,17 +414,17 @@ func _process(_delta):
 		_provider_update_timer = 0.5
 		_update_providers_cache()
 	
-	# Solo redibujar vision si el jugador se movio (_vision_dirty)
+	# Solo redibujar vision si el jugador se movio (_vision_dirty) o hay restauración
 	_draw_timer -= _delta
 	if _draw_timer <= 0.0:
 		_draw_timer = DRAW_INTERVAL
 		if _vision_dirty or _restoration_pending:
 			if is_instance_valid(vision_drawer):
 				vision_drawer.queue_redraw()
-			_vision_dirty = false
-		if _restoration_pending:
 			if is_instance_valid(history_drawer):
 				history_drawer.queue_redraw()
+			_vision_dirty = false
+			_restoration_pending = false
 
 func _flush_pending_sync():
 	if _pending_sync_cells.is_empty():

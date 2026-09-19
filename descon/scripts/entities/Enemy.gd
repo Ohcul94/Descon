@@ -1,4 +1,4 @@
-extends "res://scripts/entities/Entity.gd"
+extends Entity
 
 # Enemy.gd (Controlador de Enemigos Remotos v2.4 - Organic Orientation)
 # Sincronización de Identidad y Orientación Táctica Dinámica.

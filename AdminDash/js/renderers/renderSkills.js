@@ -10,8 +10,9 @@ function renderSkills() {
 
         if (f && !name.toLowerCase().includes(f) && !JSON.stringify(s).toLowerCase().includes(f)) continue;
         const card = document.createElement('div'); card.className = 'card';
-        if(!s.targetFilters) s.targetFilters = { allies: true, enemies: false, bosses: false, players: true, clan: false };
+        if(!s.targetFilters) s.targetFilters = { allies: true, enemies: false, bosses: false, players: true, clan: false, blockProjectiles: false };
         if(s.targetFilters.clan === undefined) s.targetFilters.clan = false;
+        if(s.targetFilters.blockProjectiles === undefined) s.targetFilters.blockProjectiles = false;
 
         // Ícono actual
         const skillIconWeb = resolveAssetWebUrl(s.icon || '');
@@ -76,6 +77,10 @@ function renderSkills() {
                     <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="this.querySelector('input').click()">
                         <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.clan?'checked':''} onchange="config.skillsData['${name}'].targetFilters.clan = this.checked" onclick="event.stopPropagation()">
                         <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Gente del Clan</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="this.querySelector('input').click()">
+                        <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.blockProjectiles?'checked':''} onchange="config.skillsData['${name}'].targetFilters.blockProjectiles = this.checked" onclick="event.stopPropagation()">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Detener Proyectiles</span>
                     </div>
                 </div>
             </div>

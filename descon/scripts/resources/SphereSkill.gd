@@ -9,18 +9,25 @@ class_name SphereSkill
 # v2.9: Propiedades dinámicas que priorizan el catálogo de Constants.gd (Admin Sync)
 var cooldown: float:
 	get:
-		if GameConstants.SKILLS_DATA.has(skill_name):
-			return GameConstants.SKILLS_DATA[skill_name].get("cd", _cooldown)
-		return _cooldown
-	set(v): _cooldown = v
+		if GameConstants and "SKILLS_DATA" in GameConstants and GameConstants.SKILLS_DATA.has(skill_name):
+			var cd_val = GameConstants.SKILLS_DATA[skill_name].get("cd", _cooldown)
+			if cd_val != null:
+				return float(cd_val)
+		return float(_cooldown)
+	set(v):
+		_cooldown = float(v) if v != null else 5.0
 
 var power_value: float:
 	get:
-		if GameConstants.SKILLS_DATA.has(skill_name):
+		if GameConstants and "SKILLS_DATA" in GameConstants and GameConstants.SKILLS_DATA.has(skill_name):
 			var data = GameConstants.SKILLS_DATA[skill_name]
-			return data.get("amount", data.get("speed", data.get("range", data.get("duration", _power_value))))
-		return _power_value
-	set(v): _power_value = v
+			if typeof(data) == TYPE_DICTIONARY:
+				for k in ["amount", "heal_amount", "speed", "range", "duration", "slow_amount", "reflect_mult", "revive_hp_pct", "taunt_duration"]:
+					if data.has(k) and data[k] != null:
+						return float(data[k])
+		return float(_power_value)
+	set(v):
+		_power_value = float(v) if v != null else 10.0
 
 var _cooldown: float = 5.0
 var _power_value: float = 10.0

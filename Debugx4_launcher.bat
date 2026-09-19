@@ -37,16 +37,16 @@ set /a bottomY=%OFFSET_Y% + %halfH%
 echo Iniciando 4 pilotos en formacion (offset Y=%OFFSET_Y%)...
 
 :: 1. Superior Izquierda
-start "" %GODOT% --path %PROJECT_PATH% --user %USER1% --pass %PASS1% --win_pos 0,%OFFSET_Y% --win_size %halfW%,%halfH%
+start "" %GODOT% --path %PROJECT_PATH% --local --user %USER1% --pass %PASS1% --win_pos 0,%OFFSET_Y% --win_size %halfW%,%halfH%
 
 :: 2. Superior Derecha
-start "" %GODOT% --path %PROJECT_PATH% --user %USER2% --pass %PASS2% --win_pos %halfW%,%OFFSET_Y% --win_size %halfW%,%halfH%
+start "" %GODOT% --path %PROJECT_PATH% --local --user %USER2% --pass %PASS2% --win_pos %halfW%,%OFFSET_Y% --win_size %halfW%,%halfH%
 
 :: 3. Inferior Izquierda
-start "" %GODOT% --path %PROJECT_PATH% --user %USER3% --pass %PASS3% --win_pos 0,%bottomY% --win_size %halfW%,%halfH%
+start "" %GODOT% --path %PROJECT_PATH% --local --user %USER3% --pass %PASS3% --win_pos 0,%bottomY% --win_size %halfW%,%halfH%
 
 :: 4. Inferior Derecha
-start "" %GODOT% --path %PROJECT_PATH% --user %USER4% --pass %PASS4% --win_pos %halfW%,%bottomY% --win_size %halfW%,%halfH%
+start "" %GODOT% --path %PROJECT_PATH% --local --user %USER4% --pass %PASS4% --win_pos %halfW%,%bottomY% --win_size %halfW%,%halfH%
 
 echo Despliegue completo.
 exit

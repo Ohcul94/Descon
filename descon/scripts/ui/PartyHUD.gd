@@ -1,4 +1,4 @@
-extends "res://scripts/systems/HUDWindow.gd"
+extends HUDWindow
 
 # PartyHUD.gd (HUD Draggable v1.50)
 # Administra la lista de aliados y el arrastre de la ventana.
@@ -73,11 +73,10 @@ func _create_drag_handler():
 	if box: box.offset_top = 30
 
 func _process(_delta):
-	# Actualización rápida para fluidez de barras
 	if visible and is_instance_valid(members_list):
 		for row in members_list.get_children():
-			if row.has_method("update_visuals"):
-				row.update_visuals()
+			if row.has_method("update_bars"):
+				row.update_bars()
 
 func _on_party_updated(_data):
 	visible = PartyManager.current_party != null

@@ -1555,7 +1555,7 @@
             "rankingPoints": 1,
             "regenDelayMs": 15000,
             "regenIntervalMs": 3000,
-            "rewardExp": 10,
+            "rewardExp": 100000,
             "rewardHubs": 10,
             "rewardOhcu": 1,
             "shield": 10,
@@ -11818,7 +11818,22 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Curación"
+            "type": "Curación",
+            "requirements": [
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "verde",
+                            "count": 1
+                        },
+                        {
+                            "color": "verde",
+                            "count": 1
+                        }
+                    ]
+                }
+            ]
         },
         "BALIZA DE CURACION": {
             "canTargetOthers": false,
@@ -11837,6 +11852,23 @@
                 {
                     "min": 1,
                     "type": "level"
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "verde",
+                            "count": 1
+                        },
+                        {
+                            "color": "verde",
+                            "count": 1
+                        },
+                        {
+                            "color": "verde",
+                            "count": 1
+                        }
+                    ]
                 }
             ],
             "sound": "",
@@ -11872,7 +11904,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": true,
-                "players": true
+                "players": true,
+                "blockProjectiles": true
             },
             "type": "Defensa",
             "width": 200
@@ -11909,7 +11942,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Utilidad"
         },
@@ -11946,7 +11980,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Defensa"
         },
@@ -11973,7 +12008,26 @@
                 "enemies": true,
                 "players": true
             },
-            "type": "Ataque"
+            "type": "Ataque",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 10
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "roja",
+                            "count": 1
+                        },
+                        {
+                            "color": "roja",
+                            "count": 1
+                        }
+                    ]
+                }
+            ]
         },
         "FROST-TRAIL": {
             "canTargetOthers": false,
@@ -12001,7 +12055,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": true,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Defensa"
         },
@@ -12024,7 +12079,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Utilidad"
         },
@@ -12039,8 +12095,25 @@
             "range": 0,
             "requirements": [
                 {
-                    "min": 100,
+                    "min": 10,
                     "type": "level"
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "amarilla",
+                            "count": 1
+                        },
+                        {
+                            "color": "amarilla",
+                            "count": 1
+                        },
+                        {
+                            "color": "verde",
+                            "count": 1
+                        }
+                    ]
                 }
             ],
             "sound": "",
@@ -12052,7 +12125,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Utilidad"
         },
@@ -12133,6 +12207,10 @@
                         {
                             "color": "roja",
                             "count": 1
+                        },
+                        {
+                            "color": "roja",
+                            "count": 1
                         }
                     ],
                     "type": "spheres"
@@ -12202,8 +12280,29 @@
             "range": 500,
             "requirements": [
                 {
-                    "min": 100,
+                    "min": 10,
                     "type": "level"
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "amarilla",
+                            "count": 1
+                        },
+                        {
+                            "color": "amarilla",
+                            "count": 1
+                        },
+                        {
+                            "color": "amarilla",
+                            "count": 1
+                        },
+                        {
+                            "color": "verde",
+                            "count": 1
+                        }
+                    ]
                 }
             ],
             "revive_hp_pct": 50,
@@ -12217,7 +12316,8 @@
                 "bosses": false,
                 "clan": true,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Utilidad"
         },
@@ -12234,8 +12334,25 @@
             "range": 0,
             "requirements": [
                 {
-                    "min": 100,
+                    "min": 5,
                     "type": "level"
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "azul",
+                            "count": 1
+                        },
+                        {
+                            "color": "azul",
+                            "count": 1
+                        },
+                        {
+                            "color": "azul",
+                            "count": 1
+                        }
+                    ]
                 }
             ],
             "sound": "",
@@ -12247,7 +12364,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Defensa"
         },
@@ -12262,8 +12380,21 @@
             "range": 0,
             "requirements": [
                 {
-                    "min": 100,
+                    "min": 10,
                     "type": "level"
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "amarilla",
+                            "count": 1
+                        },
+                        {
+                            "color": "amarilla",
+                            "count": 1
+                        }
+                    ]
                 }
             ],
             "sound": "",
@@ -12275,7 +12406,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Utilidad"
         },
@@ -12298,7 +12430,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Utilidad"
         },
@@ -12315,8 +12448,25 @@
             "range": 350,
             "requirements": [
                 {
-                    "min": 100,
+                    "min": 5,
                     "type": "level"
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "verde",
+                            "count": 1
+                        },
+                        {
+                            "color": "verde",
+                            "count": 1
+                        },
+                        {
+                            "color": "verde",
+                            "count": 1
+                        }
+                    ]
                 }
             ],
             "sound": "",

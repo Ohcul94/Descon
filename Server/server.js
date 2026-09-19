@@ -1109,7 +1109,8 @@ fs.readJson(CONFIG_FILE).then(config => {
                 "allies": false,
                 "enemies": true,
                 "bosses": false,
-                "players": false
+                "players": false,
+                "blockProjectiles": false
             }
         };
     }

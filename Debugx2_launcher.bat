@@ -48,7 +48,7 @@ echo ==========================================
 :: 1. Superior Izquierda
 if not "%USER1%"=="" (
     echo [1] Lanzando %USER1% en 0,%OFFSET_Y% - %halfW%x%halfH%
-    start "" %GODOT% --path %PROJECT_PATH% --user %USER1% --pass %PASS1% --win_pos 0,%OFFSET_Y% --win_size %halfW%,%halfH%
+    start "" %GODOT% --path %PROJECT_PATH% --local --user %USER1% --pass %PASS1% --win_pos 0,%OFFSET_Y% --win_size %halfW%,%halfH%
 ) else (
     echo [1] Slot 1 vacio - omitido
 )
@@ -56,7 +56,7 @@ if not "%USER1%"=="" (
 :: 2. Superior Derecha
 if not "%USER2%"=="" (
     echo [2] Lanzando %USER2% en %halfW%,%OFFSET_Y% - %halfW%x%halfH%
-    start "" %GODOT% --path %PROJECT_PATH% --user %USER2% --pass %PASS2% --win_pos %halfW%,%OFFSET_Y% --win_size %halfW%,%halfH%
+    start "" %GODOT% --path %PROJECT_PATH% --local --user %USER2% --pass %PASS2% --win_pos %halfW%,%OFFSET_Y% --win_size %halfW%,%halfH%
 ) else (
     echo [2] Slot 2 vacio - omitido
 )
@@ -64,13 +64,13 @@ if not "%USER2%"=="" (
 :: 3. Inferior Izquierda (opcional)
 if not "%USER3%"=="" (
     echo [3] Lanzando %USER3% en 0,%bottomY% - %halfW%x%halfH%
-    start "" %GODOT% --path %PROJECT_PATH% --user %USER3% --pass %PASS3% --win_pos 0,%bottomY% --win_size %halfW%,%halfH%
+    start "" %GODOT% --path %PROJECT_PATH% --local --user %USER3% --pass %PASS3% --win_pos 0,%bottomY% --win_size %halfW%,%halfH%
 )
 
 :: 4. Inferior Derecha (opcional)
 if not "%USER4%"=="" (
     echo [4] Lanzando %USER4% en %halfW%,%bottomY% - %halfW%x%halfH%
-    start "" %GODOT% --path %PROJECT_PATH% --user %USER4% --pass %PASS4% --win_pos %halfW%,%bottomY% --win_size %halfW%,%halfH%
+    start "" %GODOT% --path %PROJECT_PATH% --local --user %USER4% --pass %PASS4% --win_pos %halfW%,%bottomY% --win_size %halfW%,%halfH%
 )
 
 echo Despliegue DEBUG completo.

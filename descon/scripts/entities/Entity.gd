@@ -88,6 +88,16 @@ var is_dead: bool = false
 var is_god: bool = false
 var last_combat_time: float = 0
 
+var _last_rendered_hp: float = -1.0
+var _last_rendered_shield: float = -1.0
+var _last_rendered_max_hp: float = -1.0
+var _last_rendered_max_shield: float = -1.0
+var _last_rendered_username: String = ""
+var _last_rendered_clan_tag: String = ""
+var _last_rendered_is_rage: bool = false
+var _last_rendered_pvp_status: bool = false
+var _last_rendered_party_role: String = ""
+
 @onready var name_tag = get_node_or_null("NameTag")
 var _ui_wrapper: Node2D = null
 var sprite: Sprite2D = null
@@ -128,6 +138,31 @@ var _hit_flash_material_3d: StandardMaterial3D = null
 var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
 var _selection_outline_material: StandardMaterial3D = null # Outline dorado para target
 var _stealth_material: StandardMaterial3D = null
+var _status_material: StandardMaterial3D = null
+# v410.3: Flag autoritativo de polimorfia — solo se setea desde playerStatSync (isPolymorphed/polymorphed explícito)
+# Los ticks de movimiento (playerMoved) NO pueden cambiar este valor
+var _poly_authoritative: bool = false
+var _vfx_container_2d: Node2D = null
+var _is_currently_invisible: bool = false
+var is_burrowed: bool = false
+var _burrow_y_offset: float = 0.0
+var _burrow_emerging: bool = false
+var _burrow_diving: bool = false
+var _burrow_lock_free_rotation: bool = false
+var _ascension_y_offset: float = 0.0 # v414: Offset vertical de Ascensión (vuela hacia el cielo)
+
+var debuffs: Dictionary = {} # { type: {"time_left": float, "total": float, "stacks": int} }
+var _is_currently_camouflaged: bool = false
+var _is_ally: bool = false
+var _cached_viewport: SubViewport = null # Cache para frustum culling
+
+# Cache para optimización de rendimiento
+var _cached_map: Node = null
+var _cached_camera_3d: Camera3D = null
+var _cached_sub_viewport: SubViewport = null
+var _cached_camera_2d: Camera2D = null
+var _cached_player: Node = null
+var _cached_spheres_manager: Node = null
 
 # --- SISTEMA DE PUNTERÍA PROYECTADA (v2.5D) ---
 # Traduce la posición del mouse en pantalla a coordenadas 3D reales del mundo cuando la cámara está en perspectiva.
@@ -135,7 +170,7 @@ func get_aim_target_3d(mouse_pos_2d: Vector2) -> Vector3:
 	var map_node = _get_map_node()
 	if not is_instance_valid(map_node) or not is_instance_valid(_cached_camera_3d) or map_node.use_orthogonal:
 		# Modo 2D / Ortogonal: Retornar posición plana extendida al 3D (Z=0)
-		return Vector3(mouse_pos_2d.x * map_node.scale_factor, 0.0, mouse_pos_2d.y * map_node.scale_factor * 1.4142)
+		return Vector3(mouse_pos_2d.x * (map_node.scale_factor if map_node else 1.0), 0.0, mouse_pos_2d.y * (map_node.scale_factor if map_node else 1.0) * 1.4142)
 
 	# Modo Perspectiva: Realizar Raycast desde la cámara 3D
 	var cam = _cached_camera_3d
@@ -165,42 +200,6 @@ func get_aim_target_3d(mouse_pos_2d: Vector2) -> Vector3:
 	var intersect = plane.intersects_ray(from, to)
 	
 	return intersect if intersect != null else Vector3.ZERO
-
-var _status_material: StandardMaterial3D = null
-# v410.3: Flag autoritativo de polimorfia — solo se setea desde playerStatSync (isPolymorphed/polymorphed explícito)
-# Los ticks de movimiento (playerMoved) NO pueden cambiar este valor
-var _poly_authoritative: bool = false
-var _vfx_container_2d: Node2D = null
-var _is_currently_invisible: bool = false
-var is_burrowed: bool = false
-var _burrow_y_offset: float = 0.0
-var _burrow_emerging: bool = false
-var _burrow_diving: bool = false
-var _burrow_lock_free_rotation: bool = false
-var _ascension_y_offset: float = 0.0 # v414: Offset vertical de Ascensión (vuela hacia el cielo)
-
-var debuffs: Dictionary = {} # { type: {"time_left": float, "total": float, "stacks": int} }
-var _is_currently_camouflaged: bool = false
-var _is_ally: bool = false
-var _cached_viewport: SubViewport = null # Cache para frustum culling
-
-# Cache para optimización de rendimiento
-var _cached_map: Node = null
-var _cached_camera_3d: Camera3D = null
-var _cached_sub_viewport: SubViewport = null
-var _cached_camera_2d: Camera2D = null
-var _cached_player: Node = null
-var _cached_spheres_manager: Node = null
-
-# Estado para evitar recálculo redundante de tags UI
-var _last_rendered_hp: float = -1.0
-var _last_rendered_shield: float = -1.0
-var _last_rendered_max_hp: float = -1.0
-var _last_rendered_max_shield: float = -1.0
-var _last_rendered_username: String = ""
-var _last_rendered_clan_tag: String = ""
-var _last_rendered_is_rage: bool = false
-var _last_rendered_pvp_status: bool = false
 
 func _get_map_node() -> Node:
 	if not is_instance_valid(_cached_map):
@@ -1227,6 +1226,8 @@ func update_stats(data):
 
 func _force_update_tags():
 	_last_rendered_username = ""
+	_last_rendered_clan_tag = "__FORCE__"
+	_last_rendered_party_role = "__FORCE__"
 	_update_tags()
 
 func _update_tags():
@@ -1236,6 +1237,15 @@ func _update_tags():
 	var show_tag = SettingsManager.show_enemy_tags if is_enemy else SettingsManager.show_player_tags
 	var show_stats = SettingsManager.show_enemy_stats if is_enemy else SettingsManager.show_player_stats
 	
+	# Obtener rol de party si es un jugador aliado/party
+	var party_role = ""
+	if not is_enemy and has_node("/root/PartyManager"):
+		var pm = get_node("/root/PartyManager")
+		if db_id != "":
+			party_role = pm.get_member_role(db_id)
+		if party_role == "" and username != "":
+			party_role = pm.get_member_role(username)
+
 	# Verificar si los valores realmente cambiaron para evitar reconstruir el RichTextLabel innecesariamente
 	if (
 		roundi(current_hp) == roundi(_last_rendered_hp) and
@@ -1245,7 +1255,8 @@ func _update_tags():
 		username == _last_rendered_username and
 		clan_tag == _last_rendered_clan_tag and
 		is_rage == _last_rendered_is_rage and
-		pvp_status == _last_rendered_pvp_status
+		pvp_status == _last_rendered_pvp_status and
+		party_role == _last_rendered_party_role
 	):
 		# Aún así, actualizar visibilidad por si cambió el setting externamente
 		if is_instance_valid(name_tag):
@@ -1261,6 +1272,7 @@ func _update_tags():
 	_last_rendered_clan_tag = clan_tag
 	_last_rendered_is_rage = is_rage
 	_last_rendered_pvp_status = pvp_status
+	_last_rendered_party_role = party_role
 
 	if not name_tag is RichTextLabel:
 		var rtl = RichTextLabel.new()
@@ -1297,8 +1309,17 @@ func _update_tags():
 			var n_color = "#bf00ff" if is_rage else ("#ff3333" if pvp_status else "#ffffff")
 			var txt = "[center]"
 			
-			# v244.110: Mostrar TAG de Flota con color según relación
-			var name_str = username
+			# Badge de Rol de Party
+			var role_badge = ""
+			if party_role != "":
+				match party_role:
+					"tank": role_badge = "[color=#4d99ff][🛡️ TANQUE][/color] "
+					"healer": role_badge = "[color=#33e64d][💚 SANADOR][/color] "
+					"buffer": role_badge = "[color=#ffd933][⚡ BUFFER][/color] "
+					"dps": role_badge = "[color=#ff3333][⚔️ DPS][/color] "
+			
+			# v244.110: Mostrar TAG de Flota con color según relación + ROL de Party
+			var name_str = role_badge + username
 			if clan_tag != "":
 				var local_player = _get_player_node()
 				var my_tag = ""
@@ -1311,7 +1332,7 @@ func _update_tags():
 				
 				var wrap_b_start = "[b]" if name_bold else ""
 				var wrap_b_end = "[/b]" if name_bold else ""
-				name_str = wrap_b_start + "[color=" + tag_color + "][" + clan_tag + "][/color]" + wrap_b_end + " " + username
+				name_str = wrap_b_start + "[color=" + tag_color + "][" + clan_tag + "][/color]" + wrap_b_end + " " + role_badge + username
 			
 			if show_tag:
 				var wrap_name_start = "[b]" if name_bold else ""

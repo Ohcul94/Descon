@@ -337,7 +337,17 @@ func _draw():
 					draw_arc(Vector2.ZERO, radius_val * 1.05, 0, TAU, 64, Color(1.0, 1.0, 1.0, 0.4 + sin(Time.get_ticks_msec() / 80.0) * 0.3), 3.0)
 		return
 	
-	var range_val = current_skill.get("range", 500.0)
+	var range_val: float = 0.0
+	if GameConstants and "SKILLS_DATA" in GameConstants and GameConstants.SKILLS_DATA.has(s_name):
+		var r_data = GameConstants.SKILLS_DATA[s_name].get("range")
+		if r_data != null:
+			range_val = float(r_data)
+	if range_val <= 0.0:
+		var raw_r = current_skill.get("range", 500.0) if current_skill != null else 500.0
+		if raw_r != null:
+			range_val = float(raw_r)
+		else:
+			range_val = 500.0
 	var color = config.indicator_color
 	
 	# Obtener la posición visual del origen (la nave del jugador)
@@ -348,7 +358,7 @@ func _draw():
 			origin_vis = vp
 	
 	# Dibujar círculo de rango máximo (proyectando puntos individuales en perspectiva)
-	if range_val > 0:
+	if range_val > 0.0:
 		if use_perspective:
 			# Construir el arco punto a punto proyectado
 			var steps = 64

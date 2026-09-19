@@ -44,7 +44,7 @@ varying vec3 v_ray_dir;
 varying vec3 v_camera_pos;
 
 void vertex() {
-	POSITION = vec4(VERTEX.xy, 1.0, 1.0);
+	POSITION = vec4(VERTEX.xy, 0.0, 1.0);
 	vec4 vp_ray  = INV_PROJECTION_MATRIX * vec4(VERTEX.xy, 1.0, 1.0);
 	vp_ray /= vp_ray.w;
 	v_ray_dir    = (INV_VIEW_MATRIX * vec4(vp_ray.xyz, 0.0)).xyz;
@@ -53,24 +53,34 @@ void vertex() {
 
 void fragment() {
 	vec3 screen_color = texture(screen_texture, SCREEN_UV).rgb;
+	vec3 ray_dir      = normalize(v_ray_dir);
+	vec3 ray_origin   = v_camera_pos;
+	float cam_y       = ray_origin.y;
 
-	// === Depth buffer: si es cielo / fondo vacío, no hay nada de niebla (ahorro enorme de FPS) ===
+	vec3 frag_world = vec3(0.0);
+	bool has_valid_pos = false;
+
+	// 1. Intentar leer depth buffer real (PC / Desktop GL / Vulkan)
 	float raw_depth = texture(depth_texture, SCREEN_UV).r;
-	bool is_sky = (raw_depth >= 0.9999);
-
-	vec3 final_color = screen_color;
-
-	if (!is_sky) {
-		vec3 ray_dir    = normalize(v_ray_dir);
-		vec3 ray_origin = v_camera_pos;
-		float cam_y     = ray_origin.y;
-
-		// GEOMETRIA: reconstruir posicion en mundo
+	if (raw_depth < 0.9999 && raw_depth > 0.0001) {
 		vec3 ndc_d = vec3(SCREEN_UV * 2.0 - 1.0, raw_depth * 2.0 - 1.0);
 		vec4 vp_d  = INV_PROJECTION_MATRIX * vec4(ndc_d, 1.0);
 		vp_d /= vp_d.w;
-		vec3 frag_world = (INV_VIEW_MATRIX * vp_d).xyz;
+		frag_world = (INV_VIEW_MATRIX * vp_d).xyz;
+		has_valid_pos = true;
+	} else if (ray_dir.y < -0.0001) {
+		// 2. Fallback universal (Android GL Compatibility donde depth_texture es 1.0 / no soportado):
+		// Intersección analítica del rayo de la cámara con el plano del suelo Y=0
+		float t_ground = -cam_y / ray_dir.y;
+		if (t_ground > 0.0) {
+			frag_world = ray_origin + ray_dir * t_ground;
+			has_valid_pos = true;
+		}
+	}
 
+	vec3 final_color = screen_color;
+
+	if (has_valid_pos) {
 		// Altura de niebla: desvanecimiento suave hacia el tope de fog_height sin cortes abruptos en el suelo
 		float height_factor = 1.0 - smoothstep(0.0, fog_height, max(frag_world.y, 0.0));
 

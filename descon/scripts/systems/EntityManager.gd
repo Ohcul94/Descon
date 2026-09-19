@@ -3032,6 +3032,10 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	barrier.name = id
 	barrier.position = Vector3(pos.x * s_factor, 1.0, pos.y * s_factor * correction_z)
 	barrier.rotation.y = -angle
+	barrier.set_meta("barrier_angle", angle)
+	barrier.set_meta("barrier_width", width)
+	barrier.set_meta("barrier_pos", pos)
+	barrier.set_meta("targetFilters", _data.get("targetFilters", {}))
 	sub_vp.add_child(barrier)
 	active_areas[id] = barrier
 

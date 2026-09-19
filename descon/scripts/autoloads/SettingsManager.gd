@@ -104,10 +104,17 @@ func _ready():
 	apply_fps_limit(fps_limit)
 	cam_use_orthogonal = camera_use_orthogonal
 	
+	# Verificar si se pasaron posicion o tamano de ventana por linea de comandos (ej: lanzador debug)
+	var has_cmdline_win_args = false
+	for arg in OS.get_cmdline_args():
+		if arg == "--win_pos" or arg == "--win_size":
+			has_cmdline_win_args = true
+			break
+	
 	# v303.02: Si iniciamos en modo celular, ajustar ventana inmediatamente
 	if mobile_mode:
 		call_deferred("_apply_mobile_window_size")
-	else:
+	elif not has_cmdline_win_args:
 		call_deferred("apply_window_mode", window_mode)
 		if window_mode == 0 or window_mode == 2:
 			call_deferred("apply_resolution", screen_resolution)
@@ -279,7 +286,7 @@ func load_settings():
 		cast_mode_cache = config_file.get_value("combat", "cast_mode", 1)
 		graphics_quality = config_file.get_value("graphics", "quality", 1)
 		fps_limit = config_file.get_value("graphics", "fps_limit", 60)
-		camera_use_orthogonal = config_file.get_value("graphics", "camera_use_orthogonal", true)
+		camera_use_orthogonal = config_file.get_value("graphics", "camera_use_orthogonal", false)
 		show_stars = config_file.get_value("graphics", "show_stars", false)
 		minimap_rotate = config_file.get_value("graphics", "minimap_rotate", false)
 		window_mode = config_file.get_value("graphics", "window_mode", 0)

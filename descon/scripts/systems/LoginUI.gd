@@ -79,6 +79,10 @@ func _handle_debug_args():
 		elif arg == "--win_pos" and i + 1 < args.size(): d_pos = args[i+1]
 		elif arg == "--win_size" and i + 1 < args.size(): d_size = args[i+1]
 
+	if d_pos != "" or d_size != "":
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+
 	if d_pos != "":
 		var p = d_pos.split(",")
 		if p.size() == 2:
@@ -108,11 +112,9 @@ func _on_login_btn_pressed():
 	_save_user_state()
 
 	# Configuración de Conexión Inteligente (v145.0)
-	var target_ip = "138.2.241.76" # IP de Oracle 
+	var is_local = OS.has_feature("editor") or "--local" in OS.get_cmdline_args()
+	var target_ip = "127.0.0.1" if is_local else "138.2.241.76"
 	var target_port = 3333
-	
-	if OS.has_feature("editor"):
-		target_ip = "127.0.0.1" 
 
 	NetworkManager.connect_to_server(target_ip, target_port, u, p)
 
@@ -126,9 +128,9 @@ func _on_register_btn_pressed():
 	_show_status("Registrando identidad...", Color.CYAN)
 	
 	# v244.11: Configuración de Conexión para Registro
-	var target_ip = "138.2.241.76" # IP de Oracle 
+	var is_local = OS.has_feature("editor") or "--local" in OS.get_cmdline_args()
+	var target_ip = "127.0.0.1" if is_local else "138.2.241.76"
 	var target_port = 3333
-	if OS.has_feature("editor"): target_ip = "127.0.0.1" 
 
 	NetworkManager.connect_to_server(target_ip, target_port, u, p, true)
 

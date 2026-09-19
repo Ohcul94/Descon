@@ -1,10 +1,17 @@
 extends Node
 
-# PartyManager.gd (Escuadron v141.65)
-# Sincronización de HP/SH y gestión de invitaciones.
+# PartyManager.gd (Escuadron v141.66)
+# Sincronización de HP/SH, gestión de invitaciones y roles de party.
 
 signal party_updated(data)
 signal invitation_received(from_name, from_id)
+
+const ROLE_ICONS = {
+	"tank": "res://assets/ui/icons/role_tank.png",
+	"healer": "res://assets/ui/icons/role_healer.png",
+	"buffer": "res://assets/ui/icons/role_buffer.png",
+	"dps": "res://assets/ui/icons/role_dps.png"
+}
 
 var current_party = null
 
@@ -49,6 +56,14 @@ func _on_party_updated(data):
 	if data and data.has("members"):
 		count = data["members"].size()
 	print("[PARTY] ACTUALIZADO - MIEMBROS: " + str(count))
+	
+	# Forzar actualización inmediata de las etiquetas de todos los jugadores en pantalla
+	for ent in get_tree().get_nodes_in_group("entities"):
+		if is_instance_valid(ent) and ent.has_method("_force_update_tags"):
+			ent._force_update_tags()
+	var lp = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(lp) and lp.has_method("_force_update_tags"):
+		lp._force_update_tags()
 
 func get_member_stats(id: String, p_name: String):
 	# Objeto de respuesta seguro (Fallback)
@@ -78,3 +93,43 @@ func get_member_stats(id: String, p_name: String):
 			res["shield"] = rp.current_shield; res["max_shield"] = rp.max_shield
 			
 	return res
+
+# ── Sistema de Roles de Party (Estilo WOW) ──
+
+func set_role(member_id: String, role: String):
+	if not NetworkManager or not current_party:
+		return
+	NetworkManager.send_event("setPartyRole", {"targetId": member_id, "role": role})
+	print("[PARTY] SET ROLE: " + member_id + " → " + role)
+
+func is_leader() -> bool:
+	if not current_party:
+		return false
+	var lp = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(lp):
+		return lp.db_id == current_party.id
+	return false
+
+func get_member_role(member_id_or_name: String) -> String:
+	if not current_party or not current_party.has("roles"):
+		return ""
+	var roles = current_party.get("roles", {})
+	if typeof(roles) != TYPE_DICTIONARY:
+		return ""
+	if roles.has(member_id_or_name):
+		return str(roles[member_id_or_name])
+	
+	# Buscar por nombre si nos pasaron username:
+	if current_party.has("members") and current_party.has("names"):
+		var members = current_party["members"]
+		var names = current_party["names"]
+		for i in range(min(members.size(), names.size())):
+			if str(names[i]).to_lower() == member_id_or_name.to_lower():
+				var uid = str(members[i])
+				return str(roles.get(uid, ""))
+			if str(members[i]) == member_id_or_name:
+				return str(roles.get(members[i], ""))
+	return ""
+
+func get_role_icon_path(role: String) -> String:
+	return ROLE_ICONS.get(role, "")

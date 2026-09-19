@@ -6,6 +6,7 @@ func _init():
 	description = "Despliega una baliza que emite ondas de curación periódicas a los aliados cercanos."
 	type = "Curación"
 	cooldown = 18.0
+	power_value = 250.0
 
 func activate(player: CharacterBody2D):
 	# Feedback local al activar la habilidad

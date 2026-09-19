@@ -8,7 +8,7 @@ class WindBarrierSkill extends BaseSkill {
     execute(p, data, { io, state, socket }) {
         const config = (state.SERVER_CONFIG.skillsData && state.SERVER_CONFIG.skillsData[this.name]) 
             ? state.SERVER_CONFIG.skillsData[this.name] 
-            : { duration: 6, width: 150, range: 400, targetFilters: { allies: false, enemies: true, bosses: false, players: false } };
+            : { duration: 6, width: 150, range: 400, targetFilters: { allies: false, enemies: true, bosses: false, players: false, blockProjectiles: false } };
         
         const areaId = `area_${state.nextAreaId++}`;
         

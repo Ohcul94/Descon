@@ -40,8 +40,8 @@ corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [node name="PartyMemberRow" type="PanelContainer"]
-custom_minimum_size = Vector2(160, 52)
-offset_right = 160.0
+custom_minimum_size = Vector2(180, 52)
+offset_right = 180.0
 offset_bottom = 52.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
 script = ExtResource("1_row")
@@ -52,6 +52,12 @@ theme_override_constants/separation = 1
 
 [node name="Header" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
+
+[node name="RoleIcon" type="TextureRect" parent="VBox/Header"]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+stretch_mode = 5
+expand_mode = 3
 
 [node name="Name" type="Label" parent="VBox/Header"]
 layout_mode = 2

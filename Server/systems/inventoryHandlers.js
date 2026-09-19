@@ -1081,6 +1081,7 @@ function registerInventoryHandlers(socket, io, state) {
 
         try {
             const { recipeId } = data;
+            const quantity = Math.max(1, Math.min(99, parseInt(data.quantity) || 1));
             const recipes = state.SERVER_CONFIG.craftingRecipes || [];
             const recipe = recipes.find(r => r.id === recipeId);
             
@@ -1091,8 +1092,8 @@ function registerInventoryHandlers(socket, io, state) {
             const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
-            const hubsCost = recipe.costHubs || 0;
-            const ohcuCost = recipe.costOhcu || 0;
+            const hubsCost = (recipe.costHubs || 0) * quantity;
+            const ohcuCost = (recipe.costOhcu || 0) * quantity;
 
             if ((user.gameData.hubs || 0) < hubsCost) {
                 return socket.emit('gameNotification', { msg: 'FONDOS INSUFICIENTES: Faltan Hubs.', type: 'error' });
@@ -1111,7 +1112,7 @@ function registerInventoryHandlers(socket, io, state) {
             const ingredients = recipe.ingredients || [];
             for (const ing of ingredients) {
                 const ownedAmount = materialsCount[ing.itemId] || 0;
-                if (ownedAmount < ing.amount) {
+                if (ownedAmount < ing.amount * quantity) {
                     return socket.emit('gameNotification', { msg: `MATERIALES INSUFICIENTES: Requiere más cantidad de un ingrediente.`, type: 'error' });
                 }
             }
@@ -1188,7 +1189,7 @@ function registerInventoryHandlers(socket, io, state) {
             if (!isAmmo) {
                 const tempUser = { gameData: { inventory: JSON.parse(JSON.stringify(user.gameData.inventory)), inventoryMaxSlots: user.gameData.inventoryMaxSlots } };
                 ingredients.forEach(ing => {
-                    let toRemove = ing.amount;
+                    let toRemove = ing.amount * quantity;
                     for (let i = tempUser.gameData.inventory.length - 1; i >= 0; i--) {
                         if (tempUser.gameData.inventory[i].id === ing.itemId) {
                             const currentAmount = parseInt(tempUser.gameData.inventory[i].amount) || 1;
@@ -1204,7 +1205,8 @@ function registerInventoryHandlers(socket, io, state) {
                     }
                 });
 
-                const remaining = addItemToInventory(tempUser, isShip ? shipItem : craftItem, state.SERVER_CONFIG, recipe.resultAmount || 1);
+                const totalResult = (recipe.resultAmount || 1) * quantity;
+                const remaining = addItemToInventory(tempUser, isShip ? shipItem : craftItem, state.SERVER_CONFIG, totalResult);
                 if (remaining > 0) {
                     return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Libera espacio para recibir el ítem fabricado.`, type: 'error' });
                 }
@@ -1216,7 +1218,7 @@ function registerInventoryHandlers(socket, io, state) {
 
             // Consumir ingredientes
             ingredients.forEach(ing => {
-                let toRemove = ing.amount;
+                let toRemove = ing.amount * quantity;
                 for (let i = user.gameData.inventory.length - 1; i >= 0; i--) {
                     if (user.gameData.inventory[i].id === ing.itemId) {
                         const currentAmount = parseInt(user.gameData.inventory[i].amount) || 1;
@@ -1232,7 +1234,7 @@ function registerInventoryHandlers(socket, io, state) {
                 }
             });
 
-            const resultAmount = recipe.resultAmount || 1;
+            const resultAmount = (recipe.resultAmount || 1) * quantity;
             
             if (isShip) {
                 // v700.0: Entrega como ítem consumible (vendible en el Mercado). El jugador
@@ -1295,7 +1297,7 @@ function registerInventoryHandlers(socket, io, state) {
 
             sendInventoryData(socket, user);
 
-            socket.emit('gameNotification', { msg: `¡CRAFTEO EXITOSO: ${recipe.name}!`, type: 'success' });
+            socket.emit('gameNotification', { msg: quantity > 1 ? `¡CRAFTEO EXITOSO: ${quantity}x ${recipe.name}!` : `¡CRAFTEO EXITOSO: ${recipe.name}!`, type: 'success' });
         } catch (e) {
             console.error('[CRAFTING-ERROR]', e);
             socket.emit('gameNotification', { msg: 'Error interno al procesar el crafteo.', type: 'error' });

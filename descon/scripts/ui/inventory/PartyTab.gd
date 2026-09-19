@@ -69,11 +69,32 @@ func update_ui():
 		if data:
 			var members = data.get("members", [])
 			var names = data.get("names", [])
+			var roles = data.get("roles", {})
 			for i in range(members.size()):
 				var hb = HBoxContainer.new(); hb.custom_minimum_size = Vector2(0, 40)
 				var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,1,1,0.05); sb.border_width_left = 2; sb.border_color = Color.CYAN if i == 0 else Color.WHITE
 				var pc = PanelContainer.new(); pc.add_theme_stylebox_override("panel", sb); pc.size_flags_horizontal = 3; hb.add_child(pc)
-				var name_lbl = Label.new(); name_lbl.text = ("Lider: " if i == 0 else "Piloto: ") + str(names[i]); pc.add_child(name_lbl)
+				
+				var role_text = ""
+				var role_id = roles.get(str(members[i]), "")
+				match role_id:
+					"tank": role_text = "[T] "
+					"healer": role_text = "[H] "
+					"buffer": role_text = "[B] "
+					"dps": role_text = "[D] "
+				
+				var role_color = Color.WHITE
+				match role_id:
+					"tank": role_color = Color(0.3, 0.6, 1.0)
+					"healer": role_color = Color(0.2, 0.9, 0.3)
+					"buffer": role_color = Color(1.0, 0.85, 0.2)
+					"dps": role_color = Color(0.9, 0.2, 0.2)
+				
+				var name_lbl = Label.new(); name_lbl.text = ("Lider: " if i == 0 else "Piloto: ") + str(names[i])
+				if role_text != "":
+					name_lbl.text += " " + role_text
+					name_lbl.modulate = role_color
+				pc.add_child(name_lbl)
 				p_list.add_child(hb)
 			
 			var leave_btn = Button.new(); leave_btn.text = "ABANDONAR GRUPO"; leave_btn.modulate = Color.RED

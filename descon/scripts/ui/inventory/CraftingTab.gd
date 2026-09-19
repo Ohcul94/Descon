@@ -1,8 +1,13 @@
 extends Control
 
-# CraftingTab.gd - MÓDULO DE CRAFTEO GALÁCTICO (v2.0)
+# CraftingTab.gd - MÓDULO DE CRAFTEO GALÁCTICO (v3.1)
 
 var inv_main = null
+
+# Referencias a nodos dinámicos para actualización parcial (sin reconstruir)
+var _built = false
+var _scroll_container: ScrollContainer = null
+var _recipe_cards: Array = [] # [{recipe, qty_line_edit, btn, btn_plus, btn_minus, ing_labels, hubs_val_lbl, ohcu_val_lbl, current_qty, max_qty}]
 
 func setup(p_inv_main):
 	inv_main = p_inv_main
@@ -10,10 +15,22 @@ func setup(p_inv_main):
 func update_ui():
 	if not inv_main: return
 	
+	# Si ya está construido, solo actualizar valores dinámicos
+	if _built and _scroll_container and is_instance_valid(_scroll_container):
+		_refresh_values()
+		return
+	
+	# Primera vez: construir UI completa
+	_build_full_ui()
+
+func _build_full_ui():
 	# Limpiar hijos anteriores
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
+	
+	_recipe_cards.clear()
+	_built = false
 		
 	# Contenedor Principal
 	var main_v = VBoxContainer.new()
@@ -39,13 +56,11 @@ func update_ui():
 	desc.modulate = Color(0.7, 0.7, 0.8, 0.8)
 	header.add_child(desc)
 	
-	# Línea separadora estética
 	var sep = ColorRect.new()
 	sep.custom_minimum_size = Vector2(0, 1.5)
 	sep.color = Color(0, 0.8, 1, 0.2)
 	header.add_child(sep)
 	
-	# Margen vertical de separación
 	var margin_top = Control.new()
 	margin_top.custom_minimum_size = Vector2(0, 5)
 	main_v.add_child(margin_top)
@@ -76,12 +91,99 @@ func update_ui():
 	
 	var resources = GameConstants.FULL_CONFIG.get("shopItems", {}).get("resources", [])
 	_build_grouped_cards(tab_materials, resources, categories, false, 4)
+	
+	_built = true
+
+func _refresh_values():
+	for card in _recipe_cards:
+		var recipe = card["recipe"]
+		var current_qty = card["current_qty"]
+		var max_qty = _calculate_max_qty(recipe)
+		card["max_qty"] = max_qty
+		
+		# Actualizar ingredientes
+		var ingredients = recipe.get("ingredients", [])
+		for i in range(ingredients.size()):
+			if i >= card["ing_labels"].size():
+				break
+			var ref = card["ing_labels"][i]
+			var ing = ingredients[i]
+			var ing_id = ing.get("itemId", "")
+			var required_amount = int(ing.get("amount", 1))
+			
+			var owned_amount = 0
+			for item in inv_main.inventory_items:
+				if item.get("id", "") == ing_id:
+					owned_amount += int(item.get("amount", 1))
+			
+			ref["owned"] = owned_amount
+			var total_needed = required_amount * current_qty
+			ref["lbl"].text = str(owned_amount) + " / " + str(total_needed)
+			if owned_amount >= total_needed:
+				ref["lbl"].modulate = Color.GREEN
+			else:
+				ref["lbl"].modulate = Color.RED
+		
+		# Actualizar costos
+		var hubs_cost_base = int(recipe.get("costHubs", 0))
+		var ohcu_cost_base = int(recipe.get("costOhcu", 0))
+		
+		if card["hubs_val_lbl"] and is_instance_valid(card["hubs_val_lbl"]):
+			var total_hubs = hubs_cost_base * current_qty
+			card["hubs_val_lbl"].text = inv_main._format_val(total_hubs) + " HUBS"
+			if inv_main.hubs >= total_hubs:
+				card["hubs_val_lbl"].modulate = Color.CYAN
+			else:
+				card["hubs_val_lbl"].modulate = Color.RED
+		
+		if card["ohcu_val_lbl"] and is_instance_valid(card["ohcu_val_lbl"]):
+			var total_ohcu = ohcu_cost_base * current_qty
+			card["ohcu_val_lbl"].text = inv_main._format_val(total_ohcu) + " OHCU"
+			if inv_main.ohcu >= total_ohcu:
+				card["ohcu_val_lbl"].modulate = Color.MAGENTA
+			else:
+				card["ohcu_val_lbl"].modulate = Color.RED
+		
+		# Ajustar qty si max_qty cambió
+		if current_qty > max_qty:
+			current_qty = max(max_qty, 1)
+			card["current_qty"] = current_qty
+			if is_instance_valid(card["qty_line_edit"]):
+				card["qty_line_edit"].text = str(current_qty)
+		
+		# Actualizar estado del botón
+		var can_do = true
+		for ref in card["ing_labels"]:
+			if ref["owned"] < ref["required"] * current_qty:
+				can_do = false
+				break
+		if can_do and hubs_cost_base > 0 and inv_main.hubs < hubs_cost_base * current_qty:
+			can_do = false
+		if can_do and ohcu_cost_base > 0 and inv_main.ohcu < ohcu_cost_base * current_qty:
+			can_do = false
+		
+		if is_instance_valid(card["btn"]):
+			if can_do:
+				card["btn"].disabled = false
+				card["btn"].modulate = Color.WHITE
+			else:
+				card["btn"].disabled = true
+				card["btn"].modulate = Color(0.4, 0.4, 0.4, 0.6)
+		
+		# Actualizar estado de +/- según max_qty
+		if is_instance_valid(card["btn_plus"]):
+			card["btn_plus"].disabled = (current_qty >= max_qty)
+		if is_instance_valid(card["btn_minus"]):
+			card["btn_minus"].disabled = (current_qty <= 1)
 
 func _build_grouped_cards(parent: Control, items: Array, categories: Array, is_recipe: bool, columns: int):
 	var scr = ScrollContainer.new()
 	scr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scr.mouse_filter = Control.MOUSE_FILTER_PASS
 	parent.add_child(scr)
+	
+	if is_recipe:
+		_scroll_container = scr
 	
 	var main_v = VBoxContainer.new()
 	main_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -96,7 +198,6 @@ func _build_grouped_cards(parent: Control, items: Array, categories: Array, is_r
 		main_v.add_child(empty_lbl)
 		return
 	
-	# Agrupar por categorías (orden definido en el AdminDash); lo no etiquetado va al final
 	var groups = []
 	for cat in categories:
 		groups.append({"cat": cat, "items": []})
@@ -190,26 +291,53 @@ func _get_item_icon(category: String, item_id: String) -> String:
 		for item in list:
 			if item.get("id", "") == item_id:
 				return item.get("icon", "")
-	# Fallback: buscar en resources
 	var resources = shop.get("resources", [])
 	for res in resources:
 		if res.get("id", "") == item_id:
 			return res.get("icon", "")
 	return ""
 
+func _calculate_max_qty(recipe: Dictionary) -> int:
+	var max_qty = 99
+	var ingredients = recipe.get("ingredients", [])
+	for ing in ingredients:
+		var ing_id = ing.get("itemId", "")
+		var required = int(ing.get("amount", 1))
+		if required <= 0:
+			continue
+		var owned = 0
+		for item in inv_main.inventory_items:
+			if item.get("id", "") == ing_id:
+				owned += int(item.get("amount", 1))
+		var possible = int(floor(float(owned) / float(required)))
+		if possible < max_qty:
+			max_qty = possible
+	
+	var hubs_cost = int(recipe.get("costHubs", 0))
+	if hubs_cost > 0:
+		var possible = int(floor(float(inv_main.hubs) / float(hubs_cost)))
+		if possible < max_qty:
+			max_qty = possible
+	
+	var ohcu_cost = int(recipe.get("costOhcu", 0))
+	if ohcu_cost > 0:
+		var possible = int(floor(float(inv_main.ohcu) / float(ohcu_cost)))
+		if possible < max_qty:
+			max_qty = possible
+	
+	return max_qty
+
 func _create_recipe_card(recipe: Dictionary, parent: Control):
 	var p = PanelContainer.new()
-	p.custom_minimum_size = Vector2(290, 240)
+	p.custom_minimum_size = Vector2(290, 280)
 	
-	# Estilo premium Cyberpunk / Dark Mode
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0.01, 0.03, 0.08, 0.7)
 	sb.border_width_top = 2
-	sb.border_color = Color.CYAN
+	sb.border_color = Color(0, 0.8, 1, 0.15)
 	sb.border_width_left = 1
 	sb.border_width_right = 1
 	sb.border_width_bottom = 1
-	sb.border_color = Color(0, 0.8, 1, 0.15)
 	sb.corner_radius_top_left = 6
 	sb.corner_radius_top_right = 6
 	sb.corner_radius_bottom_left = 6
@@ -226,8 +354,6 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 	sb.content_margin_top = 10
 	sb.content_margin_bottom = 10
 	
-	# Renderizado del icono/asset del item resultante con CenterContainer y escala
-	# v713: fallback al icon de la receta si el item resultante no está en shopItems (ej: naves en shipModels)
 	var icon_path = _get_item_icon(recipe.get("resultCategory", ""), recipe.get("resultItemId", ""))
 	if icon_path.is_empty():
 		icon_path = recipe.get("icon", "")
@@ -249,7 +375,6 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 			icon_tex.texture = tex
 	tex_container.add_child(icon_tex)
 	
-	# 1. TÍTULO DEL RESULTADO
 	var name_lbl = Label.new()
 	name_lbl.text = recipe.get("name", "Receta")
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -257,7 +382,6 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 	name_lbl.modulate = Color.GOLD
 	v.add_child(name_lbl)
 	
-	# 2. DESCRIPCIÓN
 	var desc_lbl = Label.new()
 	desc_lbl.text = recipe.get("desc", "")
 	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -266,13 +390,11 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 	desc_lbl.modulate = Color(0.6, 0.6, 0.7, 0.8)
 	v.add_child(desc_lbl)
 	
-	# Separador de sección
 	var sep_mid = ColorRect.new()
 	sep_mid.custom_minimum_size = Vector2(0, 1)
 	sep_mid.color = Color(0, 0.8, 1, 0.1)
 	v.add_child(sep_mid)
 	
-	# Contenedor de ingredientes Scrollable
 	var ing_scroll = ScrollContainer.new()
 	ing_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(ing_scroll)
@@ -282,21 +404,23 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 	ing_v.add_theme_constant_override("separation", 3)
 	ing_scroll.add_child(ing_v)
 	
-	var can_craft = true
+	var max_qty = _calculate_max_qty(recipe)
+	var current_qty = 1
 	
-	# 3. LISTADO DE INGREDIENTES
+	var ing_labels: Array = []
+	var hubs_val_lbl: Label = null
+	var ohcu_val_lbl: Label = null
+	
 	var ingredients = recipe.get("ingredients", [])
 	for ing in ingredients:
 		var ing_id = ing.get("itemId", "")
 		var required_amount = int(ing.get("amount", 1))
 		
-		# Obtener información del material
 		var mat_info = _get_resource_info(ing_id)
 		var mat_name = mat_info.get("name", ing_id)
 		var mat_color_str = mat_info.get("color", "#ffffff")
 		var mat_color = Color.from_string(mat_color_str, Color.WHITE)
 		
-		# Contar cuántos posee el jugador en su inventario
 		var owned_amount = 0
 		for item in inv_main.inventory_items:
 			if item.get("id", "") == ing_id:
@@ -307,7 +431,6 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 		ing_row.add_theme_constant_override("separation", 6)
 		ing_v.add_child(ing_row)
 		
-		# Icono en miniatura del material ingrediente
 		var ing_icon_path = mat_info.get("icon", "")
 		var ing_icon_tex = TextureRect.new()
 		ing_icon_tex.custom_minimum_size = Vector2(16, 16)
@@ -329,27 +452,26 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 		ing_row.add_child(ing_name_lbl)
 		
 		var ing_qty_lbl = Label.new()
-		ing_qty_lbl.text = str(owned_amount) + " / " + str(required_amount)
+		var total_needed = required_amount * current_qty
+		ing_qty_lbl.text = str(owned_amount) + " / " + str(total_needed)
 		ing_qty_lbl.add_theme_font_size_override("font_size", 9)
-		
-		if owned_amount >= required_amount:
+		if owned_amount >= total_needed:
 			ing_qty_lbl.modulate = Color.GREEN
 		else:
 			ing_qty_lbl.modulate = Color.RED
-			can_craft = false
-			
 		ing_row.add_child(ing_qty_lbl)
 		
-	# 4. COSTOS DE MONEDA (HUBS / OHCU)
-	var hubs_cost = int(recipe.get("costHubs", 0))
-	var ohcu_cost = int(recipe.get("costOhcu", 0))
+		ing_labels.append({"lbl": ing_qty_lbl, "owned": owned_amount, "required": required_amount, "ing_id": ing_id})
+		
+	var hubs_cost_base = int(recipe.get("costHubs", 0))
+	var ohcu_cost_base = int(recipe.get("costOhcu", 0))
 	
-	if hubs_cost > 0 or ohcu_cost > 0:
+	if hubs_cost_base > 0 or ohcu_cost_base > 0:
 		var coin_v = VBoxContainer.new()
 		coin_v.add_theme_constant_override("separation", 2)
 		v.add_child(coin_v)
 		
-		if hubs_cost > 0:
+		if hubs_cost_base > 0:
 			var row = HBoxContainer.new()
 			coin_v.add_child(row)
 			
@@ -360,17 +482,16 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 			lbl.modulate = Color(0.8, 0.8, 0.8)
 			row.add_child(lbl)
 			
-			var val = Label.new()
-			val.text = inv_main._format_val(hubs_cost) + " HUBS"
-			val.add_theme_font_size_override("font_size", 9)
-			if inv_main.hubs >= hubs_cost:
-				val.modulate = Color.CYAN
+			hubs_val_lbl = Label.new()
+			hubs_val_lbl.text = inv_main._format_val(hubs_cost_base) + " HUBS"
+			hubs_val_lbl.add_theme_font_size_override("font_size", 9)
+			if inv_main.hubs >= hubs_cost_base:
+				hubs_val_lbl.modulate = Color.CYAN
 			else:
-				val.modulate = Color.RED
-				can_craft = false
-			row.add_child(val)
+				hubs_val_lbl.modulate = Color.RED
+			row.add_child(hubs_val_lbl)
 			
-		if ohcu_cost > 0:
+		if ohcu_cost_base > 0:
 			var row = HBoxContainer.new()
 			coin_v.add_child(row)
 			
@@ -381,37 +502,172 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 			lbl.modulate = Color(0.8, 0.8, 0.8)
 			row.add_child(lbl)
 			
-			var val = Label.new()
-			val.text = inv_main._format_val(ohcu_cost) + " OHCU"
-			val.add_theme_font_size_override("font_size", 9)
-			if inv_main.ohcu >= ohcu_cost:
-				val.modulate = Color.MAGENTA
+			ohcu_val_lbl = Label.new()
+			ohcu_val_lbl.text = inv_main._format_val(ohcu_cost_base) + " OHCU"
+			ohcu_val_lbl.add_theme_font_size_override("font_size", 9)
+			if inv_main.ohcu >= ohcu_cost_base:
+				ohcu_val_lbl.modulate = Color.MAGENTA
 			else:
-				val.modulate = Color.RED
-				can_craft = false
-			row.add_child(val)
+				ohcu_val_lbl.modulate = Color.RED
+			row.add_child(ohcu_val_lbl)
 
-	# 5. BOTÓN DE FABRICAR
+	# SELECTOR DE CANTIDAD + BOTÓN DE FABRICAR
+	var craft_row = HBoxContainer.new()
+	craft_row.add_theme_constant_override("separation", 6)
+	v.add_child(craft_row)
+	
+	var btn_minus = Button.new()
+	btn_minus.text = "−"
+	btn_minus.custom_minimum_size = Vector2(28, 30)
+	btn_minus.add_theme_font_size_override("font_size", 14)
+	craft_row.add_child(btn_minus)
+	
+	var qty_line_edit = LineEdit.new()
+	qty_line_edit.text = "1"
+	qty_line_edit.custom_minimum_size = Vector2(40, 30)
+	qty_line_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	qty_line_edit.add_theme_font_size_override("font_size", 11)
+	qty_line_edit.max_length = 2
+	craft_row.add_child(qty_line_edit)
+	
+	var btn_plus = Button.new()
+	btn_plus.text = "+"
+	btn_plus.custom_minimum_size = Vector2(28, 30)
+	btn_plus.add_theme_font_size_override("font_size", 14)
+	craft_row.add_child(btn_plus)
+	
 	var btn = Button.new()
 	btn.text = "CRAFTEAR"
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.custom_minimum_size = Vector2(0, 30)
 	btn.add_theme_font_size_override("font_size", 10)
+	craft_row.add_child(btn)
 	
-	if can_craft:
-		btn.modulate = Color.WHITE
-		btn.pressed.connect(func(): _on_craft_pressed(recipe))
-	else:
+	# Guardar referencia a la card
+	var card_data = {
+		"recipe": recipe,
+		"qty_line_edit": qty_line_edit,
+		"btn": btn,
+		"btn_plus": btn_plus,
+		"btn_minus": btn_minus,
+		"ing_labels": ing_labels,
+		"hubs_val_lbl": hubs_val_lbl,
+		"ohcu_val_lbl": ohcu_val_lbl,
+		"current_qty": 1,
+		"max_qty": max_qty,
+	}
+	_recipe_cards.append(card_data)
+	
+	# Función para actualizar labels dinámicos
+	var update_labels = func(qty: int):
+		for ref in ing_labels:
+			var total_needed = ref["required"] * qty
+			ref["lbl"].text = str(ref["owned"]) + " / " + str(total_needed)
+			if ref["owned"] >= total_needed:
+				ref["lbl"].modulate = Color.GREEN
+			else:
+				ref["lbl"].modulate = Color.RED
+		
+		if hubs_val_lbl and is_instance_valid(hubs_val_lbl):
+			var total_hubs = hubs_cost_base * qty
+			hubs_val_lbl.text = inv_main._format_val(total_hubs) + " HUBS"
+			if inv_main.hubs >= total_hubs:
+				hubs_val_lbl.modulate = Color.CYAN
+			else:
+				hubs_val_lbl.modulate = Color.RED
+		
+		if ohcu_val_lbl and is_instance_valid(ohcu_val_lbl):
+			var total_ohcu = ohcu_cost_base * qty
+			ohcu_val_lbl.text = inv_main._format_val(total_ohcu) + " OHCU"
+			if inv_main.ohcu >= total_ohcu:
+				ohcu_val_lbl.modulate = Color.MAGENTA
+			else:
+				ohcu_val_lbl.modulate = Color.RED
+		
+		var can_do = true
+		for ref in ing_labels:
+			if ref["owned"] < ref["required"] * qty:
+				can_do = false
+				break
+		if can_do and hubs_cost_base > 0 and inv_main.hubs < hubs_cost_base * qty:
+			can_do = false
+		if can_do and ohcu_cost_base > 0 and inv_main.ohcu < ohcu_cost_base * qty:
+			can_do = false
+		
+		if is_instance_valid(btn):
+			if can_do:
+				btn.disabled = false
+				btn.modulate = Color.WHITE
+			else:
+				btn.disabled = true
+				btn.modulate = Color(0.4, 0.4, 0.4, 0.6)
+	
+	var apply_qty = func():
+		var txt = qty_line_edit.text.strip_edges()
+		if txt.is_valid_int():
+			var q = int(txt)
+			if q < 1:
+				q = 1
+			if q > max_qty:
+				q = max_qty
+			card_data["current_qty"] = q
+			qty_line_edit.text = str(q)
+			update_labels.call(q)
+		else:
+			qty_line_edit.text = str(card_data["current_qty"])
+	
+	btn_minus.pressed.connect(func():
+		var cq = card_data["current_qty"]
+		if cq > 1:
+			cq -= 1
+			card_data["current_qty"] = cq
+			qty_line_edit.text = str(cq)
+			update_labels.call(cq)
+			btn_plus.disabled = false
+			btn_minus.disabled = (cq <= 1)
+	)
+	
+	btn_plus.pressed.connect(func():
+		var cq = card_data["current_qty"]
+		var mq = card_data["max_qty"]
+		if cq < mq:
+			cq += 1
+			card_data["current_qty"] = cq
+			qty_line_edit.text = str(cq)
+			update_labels.call(cq)
+			btn_minus.disabled = false
+			btn_plus.disabled = (cq >= mq)
+	)
+	
+	qty_line_edit.focus_exited.connect(func(): apply_qty.call())
+	qty_line_edit.text_submitted.connect(func(_t): apply_qty.call())
+	
+	qty_line_edit.text_changed.connect(func(new_text: String):
+		var filtered = ""
+		for c in new_text:
+			if c in "0123456789":
+				filtered += c
+		if filtered != new_text:
+			qty_line_edit.text = filtered
+			qty_line_edit.caret_column = filtered.length()
+	)
+	
+	if max_qty <= 0:
 		btn.disabled = true
 		btn.modulate = Color(0.4, 0.4, 0.4, 0.6)
-		
-	v.add_child(btn)
+		qty_line_edit.text = "0"
+		qty_line_edit.editable = false
+		btn_plus.disabled = true
+		btn_minus.disabled = true
+	
+	btn.pressed.connect(func(): _on_craft_pressed(recipe, card_data["current_qty"]))
+	
 	parent.add_child(p)
 
 func _create_material_card(res: Dictionary, parent: Control):
 	var p = PanelContainer.new()
 	p.custom_minimum_size = Vector2(210, 160)
 	
-	# Estilo premium Cyberpunk / Dark Mode
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0.01, 0.03, 0.08, 0.7)
 	sb.border_width_top = 2
@@ -438,7 +694,6 @@ func _create_material_card(res: Dictionary, parent: Control):
 	sb.content_margin_top = 10
 	sb.content_margin_bottom = 10
 	
-	# 1. ICON / TEXTURE RECT con CenterContainer y escala
 	var icon_path = res.get("icon", "")
 	var tex_container = CenterContainer.new()
 	v.add_child(tex_container)
@@ -458,7 +713,6 @@ func _create_material_card(res: Dictionary, parent: Control):
 			icon_tex.texture = tex
 	tex_container.add_child(icon_tex)
 	
-	# 2. TÍTULO
 	var name_lbl = Label.new()
 	name_lbl.text = res.get("name", "Material")
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -466,7 +720,6 @@ func _create_material_card(res: Dictionary, parent: Control):
 	name_lbl.modulate = mat_color
 	v.add_child(name_lbl)
 	
-	# 3. DESCRIPCIÓN
 	var desc_lbl = Label.new()
 	desc_lbl.text = res.get("desc", "")
 	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -475,7 +728,6 @@ func _create_material_card(res: Dictionary, parent: Control):
 	desc_lbl.modulate = Color(0.6, 0.6, 0.7, 0.8)
 	v.add_child(desc_lbl)
 	
-	# 4. CANTIDAD POSEÍDA
 	var owned_amount = 0
 	for item in inv_main.inventory_items:
 		if item.get("id", "") == res.get("id", ""):
@@ -497,11 +749,15 @@ func _get_resource_info(item_id: String) -> Dictionary:
 			return res
 	return {}
 
-func _on_craft_pressed(recipe: Dictionary):
+func _on_craft_pressed(recipe: Dictionary, quantity: int = 1):
 	var recipe_id = recipe.get("id", "")
 	var recipe_name = recipe.get("name", "Objeto")
 	
-	var msg = "¿Deseas fabricar [color=yellow]" + recipe_name + "[/color] consumiendo los materiales necesarios?"
+	var qty_text = ""
+	if quantity > 1:
+		qty_text = str(quantity) + "x "
+	
+	var msg = "¿Deseas fabricar [color=yellow]" + qty_text + recipe_name + "[/color] consumiendo los materiales necesarios?"
 	inv_main._show_modal("CONFIRMAR CRAFTEO", msg, func():
-		NetworkManager.send_event("craftItem", {"recipeId": recipe_id})
+		NetworkManager.send_event("craftItem", {"recipeId": recipe_id, "quantity": quantity})
 	)

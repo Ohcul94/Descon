@@ -36,11 +36,14 @@ func _ready():
 		_finish_bootloader_and_start()
 		return
 
-	# 2. Si estamos en el EDITOR de Godot, BYPASSEAR el sistema de actualizaciones
+	# Detectar modo local (Editor o flag --local)
+	var is_local_mode = OS.has_feature("editor") or "--local" in OS.get_cmdline_args()
+
+	# 2. Si estamos en el EDITOR o en modo --local, BYPASSEAR el sistema de actualizaciones
 	# Esto evita que se sobrescriban los scripts que el desarrollador está editando en tiempo real.
-	if OS.has_feature("editor"):
-		print("[Bootloader] Ejecutando en Editor. Omitiendo actualizaciones para desarrollo local.")
-		status_lbl.text = "Iniciando modo desarrollo..."
+	if is_local_mode:
+		print("[Bootloader] Ejecutando en Modo Local/Editor. Omitiendo actualizaciones de Oracle Cloud.")
+		status_lbl.text = "Iniciando modo desarrollo local..."
 		await get_tree().process_frame
 		_setup_background_cinematic()
 		await get_tree().create_timer(0.5).timeout
@@ -53,8 +56,8 @@ func _ready():
 		target_ip = "138.2.241.76" # Celular siempre apunta a Oracle Cloud
 	else:
 		platform_key = "windows"
-		# PC standalone: si estamos en editor apunta a local, sino a producción
-		if OS.has_feature("editor"):
+		# PC standalone: si estamos en editor o --local apunta a local, sino a producción
+		if is_local_mode:
 			target_ip = "127.0.0.1"
 		else:
 			target_ip = "138.2.241.76"

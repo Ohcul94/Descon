@@ -1681,6 +1681,43 @@ func _physics_process(delta):
 	else:
 		global_position += move_step
 		
+	# v2.7: Bloqueo de proyectiles por Barrera de Viento
+	if owner_type == "enemy" and not _has_hit and type != "mega_laser" and type != "melee":
+		var _world_em = get_tree().get_first_node_in_group("world_node")
+		if is_instance_valid(_world_em) and _world_em.has_node("EntityManager"):
+			var _em = _world_em.get_node("EntityManager")
+			for _area_id in _em.active_areas.keys():
+				var _area_node = _em.active_areas[_area_id]
+				if not is_instance_valid(_area_node): continue
+				var _filters = _area_node.get_meta("targetFilters", {})
+				if not _filters.get("blockProjectiles", false): continue
+				var _b_angle = _area_node.get_meta("barrier_angle", 0.0)
+				var _b_width = _area_node.get_meta("barrier_width", 150.0)
+				var _b_pos = _area_node.get_meta("barrier_pos", Vector2.ZERO)
+				var _half_w = _b_width / 2.0
+				var _perp = _b_angle + PI / 2.0
+				var _ax = _b_pos.x + cos(_perp) * _half_w
+				var _ay = _b_pos.y + sin(_perp) * _half_w
+				var _bx = _b_pos.x - cos(_perp) * _half_w
+				var _by = _b_pos.y - sin(_perp) * _half_w
+				var _abx = _bx - _ax
+				var _aby = _by - _ay
+				var _apx = global_position.x - _ax
+				var _apy = global_position.y - _ay
+				var _ab2 = _abx * _abx + _aby * _aby
+				var _dist = 999999.0
+				if _ab2 > 0:
+					var _t = clamp((_apx * _abx + _apy * _aby) / _ab2, 0.0, 1.0)
+					var _cx = _ax + _t * _abx
+					var _cy = _ay + _t * _aby
+					_dist = Vector2(global_position.x - _cx, global_position.y - _cy).length()
+				else:
+					_dist = Vector2(global_position.x - _ax, global_position.y - _ay).length()
+				if _dist < 50.0:
+					_has_hit = true
+					_explode()
+					break
+		
 	# Detonar si el proyectil impacta contra una elevación del terreno (montaña)
 	if type != "electron" and not _has_hit:
 		var terrain_map = get_tree().get_first_node_in_group("map")
