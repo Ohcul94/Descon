@@ -1379,10 +1379,12 @@ module.exports = class BaseAI {
         const hasActiveWorms = state.activeWorms && state.activeWorms.length > 0;
         if (!target && mech.type !== "polymorph" && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs && !hasActiveWorms && !state.activeWindWall) return;
         
-        const zoneStr = `zone_${this.enemy.zone}`;
-        const type = mech.type || 'orbital';
         const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
-        const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
+        const configVision = this.config ? Number(this.config.visionRange) : 0;
+        const enemyVisionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy?.isHorde ? 10000 : (this.enemy?.visionRange ? Number(this.enemy.visionRange) : 800)));
+        const fireRange = (mech.type === "meteor")
+            ? enemyVisionRange
+            : ((mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange);
         // Validaciones previas para evitar iniciar casteo de ataque si la habilidad no está lista (cooldown, rango, etc)
         const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
         const isCastingNow = this.enemy.genericCastState && this.enemy.genericCastState[mId] && this.enemy.genericCastState[mId].isCasting;
@@ -3455,7 +3457,10 @@ module.exports = class BaseAI {
 
     // Selecciona N objetivos para la lluvia de meteoritos según el criterio configurado
     _selectMeteorTargets(players, fireRange, count, mode, mech) {
-        return this._selectTargets(players, fireRange, count, mode, mech || {});
+        const configVision = this.config ? Number(this.config.visionRange) : 0;
+        const enemyVisionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy?.isHorde ? 10000 : (this.enemy?.visionRange ? Number(this.enemy.visionRange) : 800)));
+        const effRange = (fireRange !== undefined && Number(fireRange) > 0) ? Number(fireRange) : enemyVisionRange;
+        return this._selectTargets(players, effRange, count, mode, mech || {});
     }
 
     // Aplica debuffs configurables (Modularizado en mechanics/BossMeteorMechanics.js)

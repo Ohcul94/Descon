@@ -45,8 +45,9 @@ function _applyMeteorDebuffs(p, mech, io) {
 function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
     if (!io) return false;
     const state = this.enemy.mechState[mId] || { nextShotTime: 0, triggeredHPs: {}, meteorList: [] };
-    const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
-    const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
+    const configVision = this.config ? Number(this.config.visionRange) : 0;
+    const enemyVisionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy?.isHorde ? 10000 : (this.enemy?.visionRange ? Number(this.enemy.visionRange) : 800)));
+    const fireRange = enemyVisionRange;
 
     // Generic cast gate (per mechanic, default 0 = instant)
     if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
