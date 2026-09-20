@@ -451,7 +451,7 @@ const fieldLabelsMap = {
                                           slowDuration: "Duración de Ralentización (ms)",
                                           activationMode: "Modo de Activación",
                                           activationHPs: "Activadores de Vida (%)",
-                                          activationIntervalMs: "Intervalo de Activación en Combate (ms)",
+                                          activationIntervalMs: "Tiempo en Combate para Activar (ms)",
                                           summonCount: "Cantidad de Invocaciones (uds)",
                                           spawnRadius: "Radio de Invocación (px)",
                                           summonDurationMode: "Modo de Duración de Invocación",
@@ -519,7 +519,7 @@ const fieldLabelsMap = {
                                          m.activationIntervalMs = interval;
                                          return `
                                              <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(239, 68, 68, 0.15);">
-                                                 <label>Intervalo de Activación en Combate (ms) <span style="font-weight:normal; color:#94a3b8; font-size:0.65rem;">— 0 = inmediato (respeta Retraso Inicio + Recarga)</span></label>
+                                                  <label>Tiempo en Combate para Activar (ms) <span style="font-weight:normal; color:#94a3b8; font-size:0.65rem;">— 0 = inmediato (tras cada uso respeta Recarga)</span></label>
                                                  <input type="number" value="${interval}" placeholder="0" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationIntervalMs = parseInt(this.value) || 0">
                                              </div>
                                          `;
@@ -773,7 +773,7 @@ if (f === 'targetMode') {
                                         reflect_mult: "Multiplicador de Reflejo (x)",
                                         activationMode: "Modo de Activación",
                                         activationHPs: "Activadores de Vida (%)",
-                                        activationIntervalMs: "Intervalo de Activación en Combate (ms)",
+                                        activationIntervalMs: "Tiempo en Combate para Activar (ms)",
                                         radius: m.type === 'wall_dome' ? "Radio del Domo (px)" : "Radio del Aura (px)",
                                         healAmount: "Cura por Pulso (pts)",
                                         intervalMs: "Intervalo de Tick (ms)",
@@ -900,7 +900,7 @@ if (f === 'targetMode') {
                                         m.activationIntervalMs = interval;
                                         return `
                                             <div class="field" style="grid-column: 1 / -1; background: rgba(59, 130, 246, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(59, 130, 246, 0.15);">
-                                                <label>Intervalo de Activación en Combate (ms) <span style="font-weight:normal; color:#94a3b8; font-size:0.65rem;">— 0 = inmediato (respeta Retraso Inicio + Recarga)</span></label>
+                                                <label>Tiempo en Combate para Activar (ms) <span style="font-weight:normal; color:#94a3b8; font-size:0.65rem;">— 0 = inmediato (tras cada uso respeta Recarga)</span></label>
                                                 <input type="number" value="${interval}" placeholder="0" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs = parseInt(this.value) || 0">
                                             </div>
                                         `;

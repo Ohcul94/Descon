@@ -61,14 +61,18 @@ func setup(id: String, p_name: String):
 	update_bars()
 
 func _on_card_input(event: InputEvent):
-	if not event is InputEventMouseButton: return
-	if not event.pressed: return
-	if event.button_index != MOUSE_BUTTON_LEFT: return
+	var is_click = (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+	var is_touch = (event is InputEventScreenTouch and event.pressed)
+	if not is_click and not is_touch: return
 	
+	var ev_pos = event.position
+	if "global_position" in event:
+		ev_pos = event.global_position
+		
 	# Ignorar clicks sobre botones hijos (ellos manejan su propio input)
-	if kick_btn and kick_btn.visible and kick_btn.get_global_rect().has_point(event.global_position):
+	if kick_btn and kick_btn.visible and kick_btn.get_global_rect().has_point(ev_pos):
 		return
-	if role_icon and role_icon.get_global_rect().has_point(event.global_position):
+	if role_icon and role_icon.get_global_rect().has_point(ev_pos):
 		return
 	
 	_target_member()

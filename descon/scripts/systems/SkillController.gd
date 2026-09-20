@@ -71,29 +71,120 @@ func _process(delta):
 
 func _unhandled_input(event):
 	if is_aiming:
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-			var mode = config.cast_mode
+		var is_press = false
+		var is_cancel = false
+		var screen_pos = Vector2.ZERO
+		
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				var mode = config.cast_mode
+				# v266.133: En ON_RELEASE, el mouse NO dispara la habilidad
+				if mode == CastMode.ON_RELEASE:
+					return 
+				if event.pressed:
+					is_press = true
+					screen_pos = event.position
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				is_cancel = true
+		elif event is InputEventScreenTouch and event.pressed:
+			is_press = true
+			screen_pos = event.position
 			
-			# v266.133: En ON_RELEASE, el mouse NO dispara la habilidad.
-			# Esto permite mover la nave mientras se mantiene la tecla de habilidad presionada.
-			if mode == CastMode.ON_RELEASE:
-				return 
-				
-			if event.pressed:
-				# Disparo inmediato (Quick Cast / Normal)
-				execute_skill()
-				get_viewport().set_input_as_handled()
-			
-		# v260.99: Cancelar con Click Derecho
-		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		if is_cancel:
 			cancel_aiming()
 			get_viewport().set_input_as_handled()
+			return
+			
+		if is_press:
+			var world_pos = _screen_to_world_pos(screen_pos)
+			var s_type = current_skill.get("type", -1)
+			if s_type == SkillType.POINT_CLICK:
+				var t = _find_target_at_pos(world_pos)
+				if is_instance_valid(t):
+					selected_target = t
+			elif s_type == SkillType.AREA:
+				external_aim_vector = world_pos - global_position
+				var max_r = float(current_skill.get("range", 500.0))
+				if max_r > 0 and external_aim_vector.length() > max_r:
+					external_aim_vector = external_aim_vector.normalized() * max_r
+			
+			execute_skill()
+			get_viewport().set_input_as_handled()
+
+func _screen_to_world_pos(screen_pos: Vector2) -> Vector2:
+	var parent_entity = get_parent()
+	var map_node = parent_entity._get_map_node() if parent_entity and parent_entity.has_method("_get_map_node") else null
+	if is_instance_valid(map_node):
+		var cam3d: Camera3D = map_node.get("camera_3d")
+		var sub_vp: SubViewport = map_node.get("sub_viewport")
+		if is_instance_valid(cam3d) and is_instance_valid(sub_vp) and not map_node.use_orthogonal:
+			var container = map_node.get("viewport_container")
+			var container_offset = container.global_position if is_instance_valid(container) else Vector2.ZERO
+			var sub_size = Vector2(sub_vp.size) if sub_vp.size.x > 0 else Vector2.ZERO
+			var container_size = Vector2(container.size) if is_instance_valid(container) and container.size.x > 0 else Vector2.ZERO
+			var local_screen = screen_pos - container_offset
+			if container_size.x > 0 and sub_size.x > 0:
+				local_screen *= sub_size / container_size
+			var ray_from = cam3d.project_ray_origin(local_screen)
+			var ray_dir = cam3d.project_ray_normal(local_screen)
+			var hit = Plane(Vector3.UP, 0.0).intersects_ray(ray_from, ray_dir * 3000.0)
+			if hit != null:
+				var sf = map_node.scale_factor if "scale_factor" in map_node else 0.02
+				var cz = map_node.correction_z if "correction_z" in map_node else 1.41421356
+				return Vector2(hit.x / sf, hit.z / (sf * cz))
+	return get_viewport().get_canvas_transform().affine_inverse() * screen_pos
+
+func _get_active_hud_target() -> Node2D:
+	var main_hud = get_tree().root.find_child("MainHUD", true, false)
+	if is_instance_valid(main_hud) and is_instance_valid(main_hud.get("_target_entity")):
+		var t = main_hud._target_entity
+		if is_instance_valid(t) and not t.is_dead and t.visible:
+			return t
+	return null
+
+func _is_target_valid_for_skill(target: Node2D) -> bool:
+	if not is_instance_valid(target) or target.is_dead: return false
+	var s_name = current_skill.get("skill_name", "")
+	var filters = current_skill.get("filters", {})
+	var parent_entity = get_parent()
+	
+	if s_name == "VÍNCULO VITAL" and target == parent_entity:
+		return false
+		
+	var needs_allies = bool(filters.get("allies", false))
+	var needs_enemies = bool(filters.get("enemies", false))
+	
+	if needs_allies and not needs_enemies:
+		if target.is_in_group("enemies"):
+			return false
+		if target == parent_entity and s_name == "VÍNCULO VITAL":
+			return false
+		return true
+	elif needs_enemies and not needs_allies:
+		return target.is_in_group("enemies")
+		
+	return true
+
+func _find_closest_ally_in_range(max_range: float) -> Node2D:
+	var parent_entity = get_parent()
+	var entities = get_tree().get_nodes_in_group("entities")
+	var best_target = null
+	var best_dist = max_range if max_range > 0 else 400.0
+	
+	for e in entities:
+		if is_instance_valid(e) and e != parent_entity and not e.is_in_group("enemies"):
+			if "is_dead" in e and e.is_dead: continue
+			var d = parent_entity.global_position.distance_to(e.global_position)
+			if d <= best_dist:
+				best_dist = d
+				best_target = e
+	return best_target
 
 func _update_targeting():
 	# v302.2: Reset de hover global antes de buscar el nuevo
 	get_tree().call_group("entities", "set", "is_hovered", false)
 	
-	# v302.4: Siempre buscar bajo el mouse para el Highlight visual (incluso si no estamos apuntando skill)
+	# v302.4: Siempre buscar bajo el mouse/touch para el Highlight visual
 	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	var check_pos = get_global_mouse_position()
 	
@@ -109,13 +200,16 @@ func _update_targeting():
 		selected_target = target
 
 func _find_target_at_pos(pos: Vector2) -> Node2D:
-	# v302.7: Detección genérica por posición (Funciona en PC y Móvil)
+	# v302.7: Detección genérica por posición con filtros de habilidad (Funciona en PC y Móvil)
 	var entities = get_tree().get_nodes_in_group("entities")
 	var best_target = null
-	var min_dist = 60.0 # Radio de detección estilo MOBA
+	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+	var min_dist = 130.0 if is_mobile else 60.0 # Tolerancia ampliada para pantalla táctil
 	
 	for e in entities:
-		if is_instance_valid(e):
+		if is_instance_valid(e) and not e.is_dead:
+			if not _is_target_valid_for_skill(e):
+				continue
 			var visual_pos = e.get_visual_position() if e.has_method("get_visual_position") else e.global_position
 			var dist = visual_pos.distance_to(pos)
 			
@@ -186,22 +280,48 @@ func execute_skill():
 		"pos": Vector2.ZERO
 	}
 	
+	var s_name = current_skill.get("skill_name", "")
+	var s_type = current_skill.get("type", -1)
+	var filters = current_skill.get("filters", {})
+	var max_range = float(current_skill.get("range", 500.0))
+	var active_hud_target = _get_active_hud_target()
+	
 	if is_mobile:
-		# --- MODO CELULAR: Solo Arrastre o Frente ---
+		# --- MODO CELULAR: Arrastre o Tap ---
 		if external_aim_vector != Vector2.ZERO:
 			payload.angle = external_aim_vector.angle()
 			payload.pos = global_position + external_aim_vector
 			payload.target = selected_target
-		else:
-			# Tap simple: Disparo hacia adelante de la nave
-			payload.angle = get_parent().rotation
-			payload.pos = global_position + Vector2.RIGHT.rotated(payload.angle) * 100.0
 			
-			# v302.5: Auto-Target Self para habilidades de apoyo (Cura/Escudo) en Tap
-			var filters = current_skill.get("filters", {})
-			if filters.get("allies", false) and not filters.get("enemies", false):
+			# Fallback: si es PointClick y el arrastre no enganchó target exacto, pero hay uno activo en el HUD
+			if payload.target == null and s_type == SkillType.POINT_CLICK:
+				if is_instance_valid(active_hud_target) and _is_target_valid_for_skill(active_hud_target):
+					payload.target = active_hud_target
+				elif s_name == "VÍNCULO VITAL":
+					payload.target = _find_closest_ally_in_range(max_range)
+		else:
+			# Tap simple en botón
+			var fwd = Vector2.RIGHT.rotated(get_parent().rotation)
+			payload.angle = get_parent().rotation
+			payload.pos = global_position + fwd * min(max_range, 100.0)
+			
+			if s_type == SkillType.AREA:
+				# Habilidades de Área (Baliza de Curación, Resurrección): se plantan en el suelo, NUNCA target self
+				payload.target = null
+				payload.pos = global_position + fwd * 80.0
+			elif s_type == SkillType.POINT_CLICK:
+				# Habilidades Point & Click (Vínculo Vital):
+				if is_instance_valid(selected_target) and _is_target_valid_for_skill(selected_target):
+					payload.target = selected_target
+				elif is_instance_valid(active_hud_target) and _is_target_valid_for_skill(active_hud_target):
+					payload.target = active_hud_target
+				elif s_name == "VÍNCULO VITAL":
+					payload.target = _find_closest_ally_in_range(max_range)
+				elif filters.get("allies", false) and not filters.get("enemies", false):
+					payload.target = get_parent()
+			elif filters.get("allies", false) and not filters.get("enemies", false):
+				# Habilidades puras de soporte/auto-cura (Auto-reparación, Escudo celular)
 				payload.target = get_parent()
-				# print("[SKILL-MOBILE] Auto-target friendly skill to self")
 	else:
 		# --- MODO PC: Mouse Clásico ---
 		var entity_exec = get_parent()
@@ -212,13 +332,11 @@ func execute_skill():
 		
 		var target_pos: Vector2
 		if is_persp:
-			# v420.5: Usar la posición del cursor 3D world-space del mapa.
-			# Es la misma fuente de verdad que el indicador visual → disparo siempre coincide.
+			# v420.5: Usar la posición del cursor 3D world-space del mapa
 			var wp = map_node_exec.get("mouse_world_pos_2d") if is_instance_valid(map_node_exec) else null
 			if wp != null and wp != Vector2.ZERO:
 				target_pos = wp
 			else:
-				# Fallback: en modo 2D o si el cursor aún no inicializó
 				target_pos = get_global_mouse_position()
 		else:
 			target_pos = get_global_mouse_position()
@@ -231,6 +349,11 @@ func execute_skill():
 			payload.angle = (target_pos - global_position).angle()
 			payload.pos = target_pos
 			payload.target = selected_target
+			
+			# Fallback en PC si no tenía el cursor encima pero tiene el target seleccionado en el TargetFrame
+			if s_type == SkillType.POINT_CLICK and payload.target == null:
+				if is_instance_valid(active_hud_target) and _is_target_valid_for_skill(active_hud_target):
+					payload.target = active_hud_target
 	
 	# Limpiar estado (excepto external_aim_vector, que se necesita en activate())
 	is_aiming = false

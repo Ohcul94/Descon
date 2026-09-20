@@ -94,13 +94,18 @@ var show_enemy_stats: bool = true
 var bold_font: SystemFont = null
 
 func _ready():
-	# v303.01: Soporte para argumentos de lanzamiento (--mobile)
+	# v303.01: Soporte para argumentos de lanzamiento (--mobile) o plataforma móvil nativa (Android/iOS)
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+		mobile_mode = true
+		print("[SETTINGS] Modo Celular activado por plataforma móvil detectada.")
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--mobile":
 			mobile_mode = true
 			print("[SETTINGS] Forzando Modo Celular vía comando.")
 	
 	load_settings()
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+		mobile_mode = true
 	apply_fps_limit(fps_limit)
 	cam_use_orthogonal = camera_use_orthogonal
 	

@@ -1430,7 +1430,7 @@ func _do_sphere_skill_immediate(id: int, p_data: Dictionary):
 		print("[SKILL] Cancelado localmente: Vínculo Vital no permite auto-casteo.")
 		return
 	
-	if is_self and skill.skill_name != "REGENERACIÓN ALFA":
+	if is_self and skill.skill_name != "REGENERACIÓN ALFA" and skill.skill_name != "BALIZA DE CURACION":
 		# Auto-lanzamiento: Activar efectos locales inmediatos
 		if not sm.use_skill(id): return
 	else:

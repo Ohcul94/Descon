@@ -431,13 +431,15 @@ func _input(event: InputEvent):
 			NetworkManager.send_event("togglePvP", requested_status)
 		get_viewport().set_input_as_handled()
 	
-	# Click para targetear entidades (configurable) o deseleccionar al soltar sin arrastrar
-	if event is InputEventMouseButton:
+	# Click o toque táctil para targetear entidades (configurable) o deseleccionar al soltar sin arrastrar
+	if event is InputEventMouseButton or event is InputEventScreenTouch:
+		var is_mouse = event is InputEventMouseButton
+		var is_touch = event is InputEventScreenTouch
 		var target_btn = MOUSE_BUTTON_LEFT
 		if SettingsManager and SettingsManager.get("control_target_btn") == "RMB":
 			target_btn = MOUSE_BUTTON_RIGHT
 			
-		if event.button_index == target_btn:
+		if is_touch or (is_mouse and event.button_index == target_btn):
 			if is_editing_layout or is_selecting_trade_target: return
 			var p_node = get_tree().get_first_node_in_group("player")
 			if is_instance_valid(p_node) and p_node.get("_skill_controller") and p_node._skill_controller.is_aiming: return
@@ -450,7 +452,7 @@ func _input(event: InputEvent):
 			if event.pressed:
 				_target_pressed = true
 				_target_press_pos = event.position
-				var target = _find_target_entity()
+				var target = _find_target_entity(event.position)
 				if is_instance_valid(target):
 					set_target(target)
 					_target_entity_pressed = true
@@ -2353,9 +2355,11 @@ func _get_entity_under_mouse():
 				best_target = p
 	return best_target
 
-func _find_target_entity():
-	var m_pos = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()
-	var best_dist = 60.0
+func _find_target_entity(screen_pos: Vector2 = Vector2.ZERO):
+	var sp = screen_pos if screen_pos != Vector2.ZERO else get_viewport().get_mouse_position()
+	var m_pos = get_viewport().get_canvas_transform().affine_inverse() * sp
+	var is_mobile = SettingsManager and SettingsManager.mobile_mode
+	var best_dist = 90.0 if is_mobile else 60.0
 	var best_target = null
 	
 	for e in get_tree().get_nodes_in_group("entities"):

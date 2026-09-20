@@ -33,7 +33,7 @@ function renderMechanicsLib() {
         "reflect_mult": "Multiplicador de Reflejo (x)",
         "activationMode": "Modo de Activación",
         "activationHPs": "Activadores de Vida (%)",
-        "activationIntervalMs": "Intervalo de Activación en Combate (ms)",
+        "activationIntervalMs": "Tiempo en Combate para Activar (ms)",
         "summonCount": "Cantidad de Invocaciones (uds)",
         "spawnRadius": "Radio de Invocación (px)",
         "summonDurationMode": "Modo de Duración de Invocación",

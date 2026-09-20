@@ -1373,7 +1373,7 @@ module.exports = class BaseAI {
     }
     _executeMechanic(mech, mId, target, dist, angle, now, io, players) {
         if (!io) return;
-        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
+        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false, nextReadyTime: (mech.activationMode === "time") ? now + this._getEffectiveInterval(mech) : 0 };
         const hasActiveBombs = state.activeBombsList && state.activeBombsList.length > 0;
         const hasActiveWorms = state.activeWorms && state.activeWorms.length > 0;
         if (!target && mech.type !== "polymorph" && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs && !hasActiveWorms && !state.activeWindWall) return;
@@ -1864,6 +1864,10 @@ module.exports = class BaseAI {
             const radius = mech.fireRange || 300;
             const lockTimeMs = mech.lockTimeMs !== undefined ? mech.lockTimeMs : 800;
 
+            if (!this._inCombat && mech.activationMode === "time") {
+                state.nextReadyTime = now + this._getEffectiveInterval(mech);
+            }
+
             if (!state.isCharging && now > state.nextShotTime) {
                 // FASE 1: INICIO DE CARGA
                 state.isCharging = true;
@@ -1889,6 +1893,9 @@ module.exports = class BaseAI {
                     // FASE 3: DETONACIÓN
                     state.isCharging = false;
                     state.nextShotTime = now + cooldown;
+                    if (mech.activationMode === "time") {
+                        state.nextReadyTime = now + this._getEffectiveInterval(mech);
+                    }
 
                     // Si no se había bloqueado antes, bloquear ahora en el punto de detonación
                     if (!state.isPositionLocked) {
