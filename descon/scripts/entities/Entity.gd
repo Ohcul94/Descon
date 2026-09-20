@@ -1309,17 +1309,21 @@ func _update_tags():
 			var n_color = "#bf00ff" if is_rage else ("#ff3333" if pvp_status else "#ffffff")
 			var txt = "[center]"
 			
-			# Badge de Rol de Party
-			var role_badge = ""
+			# Ícono de Rol de Party (Línea superior arriba del nombre, solo el ícono y un poco más grande)
+			var role_icon_str = ""
 			if party_role != "":
 				match party_role:
-					"tank": role_badge = "[color=#4d99ff][🛡️ TANQUE][/color] "
-					"healer": role_badge = "[color=#33e64d][💚 SANADOR][/color] "
-					"buffer": role_badge = "[color=#ffd933][⚡ BUFFER][/color] "
-					"dps": role_badge = "[color=#ff3333][⚔️ DPS][/color] "
+					"tank": role_icon_str = "🛡️"
+					"healer": role_icon_str = "💚"
+					"buffer": role_icon_str = "⚡"
+					"dps": role_icon_str = "⚔️"
 			
-			# v244.110: Mostrar TAG de Flota con color según relación + ROL de Party
-			var name_str = role_badge + username
+			if role_icon_str != "":
+				var icon_sz = roundi(name_sz * 1.5)
+				txt += "[font_size=" + str(icon_sz) + "]" + role_icon_str + "[/font_size]\n"
+			
+			# v244.110: Mostrar TAG de Flota con color según relación
+			var name_str = username
 			if clan_tag != "":
 				var local_player = _get_player_node()
 				var my_tag = ""
@@ -1332,7 +1336,7 @@ func _update_tags():
 				
 				var wrap_b_start = "[b]" if name_bold else ""
 				var wrap_b_end = "[/b]" if name_bold else ""
-				name_str = wrap_b_start + "[color=" + tag_color + "][" + clan_tag + "][/color]" + wrap_b_end + " " + role_badge + username
+				name_str = wrap_b_start + "[color=" + tag_color + "][" + clan_tag + "][/color]" + wrap_b_end + " " + username
 			
 			if show_tag:
 				var wrap_name_start = "[b]" if name_bold else ""
@@ -1345,6 +1349,8 @@ func _update_tags():
 				var wrap_stats_end = "[/b]" if stats_bold else ""
 				txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
 				txt += wrap_stats_start + "[color=#00ff00][font_size=" + str(stats_sz) + "]HP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp)) + "[/font_size][/color]" + wrap_stats_end + "[/center]"
+			else:
+				txt += "[/center]"
 			
 			name_tag.text = txt
 			name_tag.visible = show_tag or show_stats
@@ -1352,12 +1358,21 @@ func _update_tags():
 			# Caso Label normal: sin BBCode, color plano
 			var name_str = username
 			if clan_tag != "": name_str = "[" + clan_tag + "] " + username
+			var role_icon_str = ""
+			if party_role != "":
+				match party_role:
+					"tank": role_icon_str = "🛡️"
+					"healer": role_icon_str = "💚"
+					"buffer": role_icon_str = "⚡"
+					"dps": role_icon_str = "⚔️"
+			if role_icon_str != "":
+				name_str = role_icon_str + "\n" + name_str
 			if show_tag and show_stats:
 				name_tag.text = name_str + "\nSH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\nHP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
 			elif show_tag:
 				name_tag.text = name_str
 			elif show_stats:
-				name_tag.text = "SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\nHP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
+				name_tag.text = (role_icon_str + "\n" if role_icon_str != "" else "") + "SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\nHP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
 			else:
 				name_tag.text = ""
 			name_tag.visible = show_tag or show_stats

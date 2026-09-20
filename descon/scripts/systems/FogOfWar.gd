@@ -257,6 +257,11 @@ func _update_providers_cache():
 	_cached_providers = list
 
 func get_vision_providers() -> Array:
+	var valid_list = []
+	for p in _cached_providers:
+		if is_instance_valid(p) and ("is_dead" not in p or not p.is_dead):
+			valid_list.append(p)
+	_cached_providers = valid_list
 	return _cached_providers
 
 # === GRID HELPERS ===
@@ -306,6 +311,8 @@ func _collect_new_explored_cells() -> Array[int]:
 	var zone_set = explored_by_zone[current_zone_id]
 	var providers = get_vision_providers()
 	for prov in providers:
+		if not is_instance_valid(prov) or ("is_dead" in prov and prov.is_dead):
+			continue
 		var pos_2d = prov.global_position
 		var vr = prov.get("vision_range") if "vision_range" in prov else 1300.0
 		var circle_cells = _get_cells_in_circle(pos_2d, vr)
@@ -339,6 +346,8 @@ func _draw_all_vision_circles(drawer: Node2D):
 	if should_log and providers.size() > 0:
 		print("[FogOfWar] Vision providers: ", providers.size(), " Zone: ", current_zone_id, " MapSize: ", map_size)
 	for provider in providers:
+		if not is_instance_valid(provider) or ("is_dead" in provider and provider.is_dead):
+			continue
 		var pos_2d = provider.global_position
 		var vr = provider.get("vision_range") if "vision_range" in provider else 1300.0
 		

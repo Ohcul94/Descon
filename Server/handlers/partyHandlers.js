@@ -68,16 +68,41 @@ function registerPartyHandlers(socket, io, state) {
             parties[partyId].members = parties[partyId].members.filter(m => m !== myUid);
             parties[partyId].names = parties[partyId].names.filter(n => n !== name);
             if (parties[partyId].roles) delete parties[partyId].roles[myUid];
+            delete playerParty[myUid];
+            socket.emit('partyUpdate', null);
 
+            // Si queda 1 miembro o menos, el grupo se disuelve (no existen grupos de 1)
             if (parties[partyId].members.length <= 1) {
-                parties[partyId].members.forEach(m => delete playerParty[m]);
+                const remaining = parties[partyId].members.slice();
+                remaining.forEach(m => {
+                    delete playerParty[m];
+                    const sid = Object.keys(players).find(s => players[s].dbId === m);
+                    if (sid) io.to(sid).emit('partyUpdate', null);
+                });
                 delete parties[partyId];
                 io.emit('partyUpdate', null);
             } else {
-                io.emit('partyUpdate', parties[partyId]);
+                // Si el que salió era el líder, transferir liderazgo al primer miembro restante
+                if (partyId === myUid) {
+                    const newLeaderUid = parties[partyId].members[0];
+                    const partyData = parties[partyId];
+                    partyData.id = newLeaderUid;
+                    parties[newLeaderUid] = partyData;
+                    delete parties[partyId];
+                    partyData.members.forEach(m => {
+                        playerParty[m] = newLeaderUid;
+                    });
+                    partyData.members.forEach(m => {
+                        const sid = Object.keys(players).find(s => players[s].dbId === m);
+                        if (sid) io.to(sid).emit('partyUpdate', partyData);
+                    });
+                } else {
+                    parties[partyId].members.forEach(m => {
+                        const sid = Object.keys(players).find(s => players[s].dbId === m);
+                        if (sid) io.to(sid).emit('partyUpdate', parties[partyId]);
+                    });
+                }
             }
-            delete playerParty[myUid];
-            socket.emit('partyUpdate', null);
         } catch (e) {
             console.error("Error en leaveParty:", e);
         }
@@ -101,18 +126,26 @@ function registerPartyHandlers(socket, io, state) {
             if (parties[partyId].roles) delete parties[partyId].roles[targetUid];
             delete playerParty[targetUid];
 
-            if (parties[partyId].members.length <= 1) {
-                parties[partyId].members.forEach(m => delete playerParty[m]);
-                delete parties[partyId];
-                io.emit('partyUpdate', null);
-            } else {
-                io.emit('partyUpdate', parties[partyId]);
-            }
-            
             // Avisar específicamente al expulsado
             const targetSocketId = Object.keys(players).find(sid => players[sid].dbId === targetUid);
             if (targetSocketId) io.to(targetSocketId).emit('partyUpdate', null);
-            
+
+            // Si queda 1 miembro o menos tras la expulsión, se disuelve el grupo
+            if (parties[partyId].members.length <= 1) {
+                const remaining = parties[partyId].members.slice();
+                remaining.forEach(m => {
+                    delete playerParty[m];
+                    const sid = Object.keys(players).find(s => players[s].dbId === m);
+                    if (sid) io.to(sid).emit('partyUpdate', null);
+                });
+                delete parties[partyId];
+                io.emit('partyUpdate', null);
+            } else {
+                parties[partyId].members.forEach(m => {
+                    const sid = Object.keys(players).find(s => players[s].dbId === m);
+                    if (sid) io.to(sid).emit('partyUpdate', parties[partyId]);
+                });
+            }
         } catch (e) {
             console.error("Error en kickFromParty:", e);
         }

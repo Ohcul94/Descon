@@ -50,20 +50,49 @@ func _on_invitation_received(data):
 	invitation_received.emit(f_name, f_id)
 
 func _on_party_updated(data):
-	current_party = data
-	party_updated.emit(data)
+	if data == null:
+		current_party = null
+	elif typeof(data) == TYPE_DICTIONARY:
+		var lp = get_tree().get_first_node_in_group("player")
+		var is_member = false
+		if is_instance_valid(lp):
+			var my_id = str(lp.db_id)
+			var my_name = str(lp.username).to_lower()
+			var members = data.get("members", [])
+			var names = data.get("names", [])
+			for m in members:
+				if str(m) == my_id and my_id != "":
+					is_member = true
+					break
+			if not is_member and my_name != "":
+				for n in names:
+					if str(n).to_lower() == my_name:
+						is_member = true
+						break
+		else:
+			is_member = true
+		
+		if is_member:
+			current_party = data
+		else:
+			if current_party != null:
+				current_party = null
+	else:
+		current_party = null
+
+	party_updated.emit(current_party)
 	var count = 0
-	if data and data.has("members"):
-		count = data["members"].size()
+	if current_party and current_party.has("members"):
+		count = current_party["members"].size()
 	print("[PARTY] ACTUALIZADO - MIEMBROS: " + str(count))
 	
 	# Forzar actualización inmediata de las etiquetas de todos los jugadores en pantalla
 	for ent in get_tree().get_nodes_in_group("entities"):
 		if is_instance_valid(ent) and ent.has_method("_force_update_tags"):
 			ent._force_update_tags()
-	var lp = get_tree().get_first_node_in_group("player")
-	if is_instance_valid(lp) and lp.has_method("_force_update_tags"):
-		lp._force_update_tags()
+	var lp_ref = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(lp_ref) and lp_ref.has_method("_force_update_tags"):
+		lp_ref._force_update_tags()
 
 func get_member_stats(id: String, p_name: String):
 	# Objeto de respuesta seguro (Fallback)

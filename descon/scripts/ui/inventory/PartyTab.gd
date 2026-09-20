@@ -78,10 +78,10 @@ func update_ui():
 				var role_text = ""
 				var role_id = roles.get(str(members[i]), "")
 				match role_id:
-					"tank": role_text = "[T] "
-					"healer": role_text = "[H] "
-					"buffer": role_text = "[B] "
-					"dps": role_text = "[D] "
+					"tank": role_text = "🛡️ "
+					"healer": role_text = "💚 "
+					"buffer": role_text = "⚡ "
+					"dps": role_text = "⚔️ "
 				
 				var role_color = Color.WHITE
 				match role_id:

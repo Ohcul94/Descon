@@ -20,10 +20,8 @@ const WORLD_MAP_SCRIPT = preload("res://scripts/ui/WorldMapDialog.gd")
 var world_map_dialog: WorldMapDialog = null
 var btn_world_map: Button = null
 
-# --- ZOOM DINÁMICO DE MINIMAPA (PC Mouse Wheel) ---
-var minimap_zoom: float = 1.0
-const MIN_ZOOM: float = 1.0
-const MAX_ZOOM: float = 4.0
+# Zoom fijo del minimapa (sin rueda del ratón)
+const MINIMAP_ZOOM: float = 2.5
 
 func get_current_world_rect() -> Rect2:
 	var player = get_tree().get_first_node_in_group("player")
@@ -60,18 +58,6 @@ func _input(event):
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.get("is_editing_layout"): return
 
-		# --- ZOOM DINÁMICO CON RUEDA DEL RATÓN (PC) ---
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			var global_m_pos = get_global_mouse_position()
-			if get_global_rect().has_point(global_m_pos):
-				if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-					minimap_zoom = clamp(minimap_zoom + 0.25, MIN_ZOOM, MAX_ZOOM)
-				else:
-					minimap_zoom = clamp(minimap_zoom - 0.25, MIN_ZOOM, MAX_ZOOM)
-				queue_redraw()
-				get_viewport().set_input_as_handled()
-				return
-
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			# v244.85: Bloqueo inteligente si hay menús superpuestos (F1 / F2)
 			var screen_size = get_viewport().get_visible_rect().size
@@ -99,7 +85,7 @@ func _input(event):
 				var worldH = world_rect.size.y
 				
 				var base_scale = min(size.x / worldW, size.y / worldH)
-				var effective_scale = base_scale * minimap_zoom
+				var effective_scale = base_scale * MINIMAP_ZOOM
 				var center_radar = size / 2.0
 				var delta_mouse = local_m_pos - center_radar
 				
@@ -292,7 +278,7 @@ func _draw():
 	# Base scale para encajar el mapa completo en el visor cuadrado del minimapa
 	var base_scale: float = min(r_size.x / worldW, r_size.y / worldH)
 	var is_rotate_mode = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
-	var effective_scale: float = base_scale * minimap_zoom
+	var effective_scale: float = base_scale * MINIMAP_ZOOM
 	var scale_x: float = effective_scale
 	var scale_y: float = effective_scale
 	var _map_scale: float = scale_x
