@@ -128,11 +128,8 @@ var fear_vector: Vector2 = Vector2.ZERO
 var joystick_direction: Vector2 = Vector2.ZERO # v266.400
 
 # v266.360: Temporizadores de efectos de estado para el HUD de Estados
-var slow_timer: float = 0.0
 var heal_timer: float = 0.0
 var heal_stacks: int = 0
-var bleed_timer: float = 0.0
-var poison_timer: float = 0.0
 
 # Buff de velocidad de la munición Electron
 var electron_speed_buff_timer: float = 0.0
@@ -1505,14 +1502,26 @@ func _apply_movement():
 	# Feedback Visual
 	if is_polymorphed:
 		modulate = Color(0.7, 0.95, 1.0, 1.0)
-	elif velocity != Vector2.ZERO or slow_points > 1.0:
-		var target_color = Color.WHITE
-		if slow_points > 1.0:
-			target_color = Color(0.4, 0.7, 1.0, 1.0)
-		target_color.a = modulate.a 
-		modulate = modulate.lerp(target_color, 0.1)
+	elif is_stunned or is_feared:
+		var target_color = Color(1.5, 1.5, 3.5, 1.0)
+		target_color.a = modulate.a
+		modulate = modulate.lerp(target_color, 0.15)
+	elif poison_timer > 0.0 or debuffs.has("poison") or status_effects.get("poisoned", false):
+		var target_color = Color(0.55, 1.10, 0.55, 1.0) # Verdecito
+		target_color.a = modulate.a
+		modulate = modulate.lerp(target_color, 0.15)
+	elif bleed_timer > 0.0 or debuffs.has("bleed") or status_effects.get("bleeding", false):
+		var target_color = Color(1.15, 0.55, 0.55, 1.0) # Rojito
+		target_color.a = modulate.a
+		modulate = modulate.lerp(target_color, 0.15)
+	elif slow_points > 1.0 or slow_timer > 0.0 or debuffs.has("slow") or status_effects.get("slowed", false):
+		var target_color = Color(0.55, 0.85, 1.15, 1.0) # Celestito
+		target_color.a = modulate.a
+		modulate = modulate.lerp(target_color, 0.15)
 	elif not _is_currently_invisible and not _is_currently_camouflaged:
-		modulate = modulate.lerp(Color.WHITE, 0.1)
+		var target_color = Color.WHITE
+		target_color.a = modulate.a
+		modulate = modulate.lerp(target_color, 0.15)
 
 	if velocity != Vector2.ZERO:
 		_prevent_terrain_mountain_crossing()

@@ -139,6 +139,10 @@ var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo 
 var _selection_outline_material: StandardMaterial3D = null # Outline dorado para target
 var _stealth_material: StandardMaterial3D = null
 var _status_material: StandardMaterial3D = null
+var _debuff_overlay_material: StandardMaterial3D = null
+var poison_timer: float = 0.0
+var bleed_timer: float = 0.0
+var slow_timer: float = 0.0
 # v410.3: Flag autoritativo de polimorfia — solo se setea desde playerStatSync (isPolymorphed/polymorphed explícito)
 # Los ticks de movimiento (playerMoved) NO pueden cambiar este valor
 var _poly_authoritative: bool = false
@@ -560,16 +564,30 @@ func _process(delta):
 		# v410.3: Forzar status_effects["polymorphed"] desde el flag autoritativo ANTES de calcular colores
 		# Esto evita que ticks de movimiento (playerMoved) reactiven poly después de que playerStatSync lo apagó
 		status_effects["polymorphed"] = _poly_authoritative
-		var is_affected = status_effects.get("stunned", false) or status_effects.get("frozen", false) or status_effects.get("polymorphed", false)
+		var is_affected = status_effects.get("stunned", false) or status_effects.get("frozen", false) or status_effects.get("polymorphed", false) or debuffs.has("stun") or debuffs.has("freeze") or debuffs.has("poly")
 		var is_poly = status_effects.get("polymorphed", false)
-		var state_color = Color(1.5, 1.5, 3.5, 1.0) if is_affected else Color(1, 1, 1, 1) # v268.76: Más azul y brillante
+		
+		# v450: Detección estética de debuffs (Veneno: Verdecito, Sangrado: Rojito, Slow: Celestito)
+		var is_poisoned = status_effects.get("poisoned", false) or debuffs.has("poison") or poison_timer > 0.0
+		var is_bleeding = status_effects.get("bleeding", false) or debuffs.has("bleed") or bleed_timer > 0.0
+		var is_slowed = status_effects.get("slowed", false) or debuffs.has("slow") or slow_timer > 0.0 or (has_method("get") and get("slow_points") != null and float(get("slow_points")) > 1.0)
+		
+		var target_state_color = Color(1, 1, 1, 1)
+		if is_affected:
+			target_state_color = Color(1.5, 1.5, 3.5, 1.0) # Azul eléctrico de CC
+		elif is_poisoned:
+			target_state_color = Color(0.55, 1.10, 0.55, 1.0) # Verdecito sutil
+		elif is_bleeding:
+			target_state_color = Color(1.15, 0.55, 0.55, 1.0) # Rojito sutil
+		elif is_slowed:
+			target_state_color = Color(0.55, 0.85, 1.15, 1.0) # Celestito frío
 		
 		if is_instance_valid(sprite):
+			var alpha_val = 1.0
 			if _is_currently_invisible or _is_currently_camouflaged:
-				var alpha_val = 0.5 if _is_ally else (0.3 if _is_currently_camouflaged else 0.0)
-				sprite.modulate = Color(state_color.r, state_color.g, state_color.b, alpha_val)
-			else:
-				sprite.modulate = state_color
+				alpha_val = 0.5 if _is_ally else (0.3 if _is_currently_camouflaged else 0.0)
+			var desired_color = Color(target_state_color.r, target_state_color.g, target_state_color.b, alpha_val)
+			sprite.modulate = sprite.modulate.lerp(desired_color, 0.15)
 		
 		# v268.77: Tinte para modelos 3D y soporte para transformación de Polimorfia (Cubo 3D)
 		if is_instance_valid(_3d_model):
@@ -647,6 +665,8 @@ func _process(delta):
 						_status_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 					_status_material.albedo_color = Color(0.1, 0.5, 1.0, 0.6)
 					_apply_material_recursive(_3d_model, _status_material, false)
+					if not is_selected and not is_hovered and _flash_timer <= 0.01:
+						_apply_material_recursive(_3d_model, null, true)
 				elif _is_currently_invisible or _is_currently_camouflaged:
 					if not _stealth_material:
 						_stealth_material = StandardMaterial3D.new()
@@ -654,13 +674,17 @@ func _process(delta):
 						_stealth_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 						_stealth_material.albedo_color = Color(0.15, 0.65, 0.95, 0.28)
 					_apply_material_recursive(_3d_model, _stealth_material, false)
+					if not is_selected and not is_hovered and _flash_timer <= 0.01:
+						_apply_material_recursive(_3d_model, null, true)
 					
 					# Si tiene aros equipados, ocultar también sus visuales de soporte
 					var manager = _get_spheres_manager()
 					if manager and "spheres_data" in manager:
 						pass
 				else:
+					# Restaurar material original del modelo 3D (para no tapar texturas)
 					_apply_material_recursive(_3d_model, null, false)
+					_restore_default_overlay()
 	
 	if is_dead:
 		if _ui_wrapper: _ui_wrapper.visible = false
@@ -3084,9 +3108,8 @@ func _update_flash_visuals(p_intensity: float):
 		if p_intensity > 0.01:
 			_hit_flash_material_3d.albedo_color.a = p_intensity * 0.4
 			_apply_flash_recursive(_3d_model, _hit_flash_material_3d)
-		elif not is_hovered:
-			# v310.6: Limpiar flash solo si no hay outline de selección activo
-			_apply_flash_recursive(_3d_model, null)
+		elif not is_hovered and not is_selected:
+			_restore_default_overlay()
 
 func _apply_flash_recursive(p_node, p_mat):
 	if p_node is MeshInstance3D: 
@@ -3379,6 +3402,38 @@ func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
 		if is_instance_valid(_ui_wrapper): 
 			_ui_wrapper.visible = true
 			_ui_wrapper.modulate.a = 1.0
+func _restore_default_overlay() -> void:
+	if not is_instance_valid(_3d_model): return
+	if is_selected and _selection_outline_material:
+		_apply_material_recursive(_3d_model, _selection_outline_material, true)
+		return
+	if is_hovered and _hover_outline_material:
+		_apply_material_recursive(_3d_model, _hover_outline_material, true)
+		return
+	if _flash_timer > 0.01 and _hit_flash_material_3d:
+		_apply_material_recursive(_3d_model, _hit_flash_material_3d, true)
+		return
+
+	var is_poisoned = status_effects.get("poisoned", false) or debuffs.has("poison") or poison_timer > 0.0
+	var is_bleeding = status_effects.get("bleeding", false) or debuffs.has("bleed") or bleed_timer > 0.0
+	var is_slowed = status_effects.get("slowed", false) or debuffs.has("slow") or slow_timer > 0.0 or (has_method("get") and get("slow_points") != null and float(get("slow_points")) > 1.0)
+	
+	if is_poisoned or is_bleeding or is_slowed:
+		if not _debuff_overlay_material:
+			_debuff_overlay_material = StandardMaterial3D.new()
+			_debuff_overlay_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+			_debuff_overlay_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			_debuff_overlay_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		if is_poisoned:
+			_debuff_overlay_material.albedo_color = Color(0.08, 0.40, 0.10, 0.75) # Verdecito
+		elif is_bleeding:
+			_debuff_overlay_material.albedo_color = Color(0.40, 0.06, 0.06, 0.75) # Rojito
+		elif is_slowed:
+			_debuff_overlay_material.albedo_color = Color(0.06, 0.25, 0.45, 0.75) # Celestito
+		_apply_material_recursive(_3d_model, _debuff_overlay_material, true)
+	else:
+		_apply_material_recursive(_3d_model, null, true)
+
 func _update_selection_visuals():
 	if not is_instance_valid(_3d_model): return
 	
@@ -3394,7 +3449,7 @@ func _update_selection_visuals():
 			_selection_outline_material.render_priority = 11
 		_apply_material_recursive(_3d_model, _selection_outline_material, true)
 	elif not is_hovered and _flash_timer <= 0.01:
-		_apply_material_recursive(_3d_model, null, true)
+		_restore_default_overlay()
 
 func _update_hover_visuals(active: bool):
 	if not is_instance_valid(_3d_model): return
@@ -3412,8 +3467,7 @@ func _update_hover_visuals(active: bool):
 			_hover_outline_material.render_priority = 10
 		_apply_material_recursive(_3d_model, _hover_outline_material, true)
 	elif _flash_timer <= 0.01 and not is_selected:
-		# v308.2: Solo borrar el overlay si NO hay un efecto de daño activo
-		_apply_material_recursive(_3d_model, null, true)
+		_restore_default_overlay()
 
 func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
 	if not is_instance_valid(p_node): return

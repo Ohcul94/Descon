@@ -7,20 +7,24 @@ function _applyMeteorDebuffs(p, mech, io) {
     if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
     mech.debuffsList.forEach(d => {
         if (d.type === 'bleed') {
+            const bleedDur = Number(d.duration) || 4000;
             p.isBleeding = true;
-            p.bleedEndTime = Date.now() + (Number(d.duration) || 4000);
+            p.bleedEndTime = Date.now() + bleedDur;
             p.bleedDps = Number(d.dps) || 30;
             p.bleedInterval = Number(d.tickInterval) || 1000;
             p.lastBleedTick = Date.now();
             io.to(p.socketId).emit('gameNotification', { msg: `🩸 ¡El meteorito te hizo sangrar!`, type: "warning" });
+            io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
         }
         else if (d.type === 'poison') {
+            const poisonDur = Number(d.duration) || 4000;
             p.isPoisoned = true;
-            p.poisonEndTime = Date.now() + (Number(d.duration) || 4000);
+            p.poisonEndTime = Date.now() + poisonDur;
             p.poisonDps = Number(d.dps) || 20;
             p.poisonInterval = Number(d.tickInterval) || 1000;
             p.lastPoisonTick = Date.now();
             io.to(p.socketId).emit('gameNotification', { msg: `🤢 ¡El meteorito te envenenó!`, type: "warning" });
+            io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
         }
         else if (d.type === 'stun') {
             const stunDur = Number(d.duration) || 1500;

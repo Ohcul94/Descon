@@ -6,6 +6,18 @@ extends Node2D
 enum CastMode { QUICK_CAST, ON_RELEASE, NORMAL_CAST }
 enum SkillType { DIRECTIONAL, POINT_CLICK, AREA, INSTANT }
 
+static func _safe_float(val, default_val: float = 0.0) -> float:
+	if val is float: return val
+	if val is int: return float(val)
+	if val is String: return val.to_float()
+	if val is Dictionary:
+		if val.has("max"): return _safe_float(val["max"], default_val)
+		elif val.has("value"): return _safe_float(val["value"], default_val)
+		elif val.has("base"): return _safe_float(val["base"], default_val)
+		elif val.has("radius"): return _safe_float(val["radius"], default_val)
+		elif val.has("range"): return _safe_float(val["range"], default_val)
+	return default_val
+
 var current_skill: Dictionary = {}
 var is_aiming: bool = false
 var selected_target: Node2D = null
@@ -104,7 +116,7 @@ func _unhandled_input(event):
 					selected_target = t
 			elif s_type == SkillType.AREA:
 				external_aim_vector = world_pos - global_position
-				var max_r = float(current_skill.get("range", 500.0))
+				var max_r = _safe_float(current_skill.get("range", 500.0), 500.0)
 				if max_r > 0 and external_aim_vector.length() > max_r:
 					external_aim_vector = external_aim_vector.normalized() * max_r
 			
@@ -283,7 +295,7 @@ func execute_skill():
 	var s_name = current_skill.get("skill_name", "")
 	var s_type = current_skill.get("type", -1)
 	var filters = current_skill.get("filters", {})
-	var max_range = float(current_skill.get("range", 500.0))
+	var max_range = _safe_float(current_skill.get("range", 500.0), 500.0)
 	var active_hud_target = _get_active_hud_target()
 	
 	if is_mobile:
@@ -419,7 +431,7 @@ func _draw():
 			# Indicador de carga proyectado en 3D a escala real 1:1
 			var radius_val = 220.0
 			if GameConstants.SKILLS_DATA.has(s_name):
-				radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 220.0))
+				radius_val = _safe_float(GameConstants.SKILLS_DATA[s_name].get("radius", 220.0), 220.0)
 			
 			var elapsed = min((Time.get_ticks_msec() / 1000.0) - _charge_start_time, MAX_CHARGE_TIME)
 			var charge_pct = elapsed / MAX_CHARGE_TIME
@@ -464,11 +476,11 @@ func _draw():
 	if GameConstants and "SKILLS_DATA" in GameConstants and GameConstants.SKILLS_DATA.has(s_name):
 		var r_data = GameConstants.SKILLS_DATA[s_name].get("range")
 		if r_data != null:
-			range_val = float(r_data)
+			range_val = _safe_float(r_data, 0.0)
 	if range_val <= 0.0:
 		var raw_r = current_skill.get("range", 500.0) if current_skill != null else 500.0
 		if raw_r != null:
-			range_val = float(raw_r)
+			range_val = _safe_float(raw_r, 500.0)
 		else:
 			range_val = 500.0
 	var color = config.indicator_color
@@ -536,7 +548,7 @@ func _draw():
 			draw_line(origin_local, end_proj, Color(0.1, 0.5, 1.0, 0.25), 60.0)
 			draw_line(origin_local, end_proj, Color(0.3, 0.7, 1.0, 0.65), 3.0)
 		elif current_skill.id == "electron":
-			var radius_val = float(current_skill.get("explosionRadius", 120.0))
+			var radius_val = _safe_float(current_skill.get("explosionRadius", 120.0), 120.0)
 			var draw_color = Color(0.2, 0.7, 1.0, 0.5)
 			var fill_color = Color(0.2, 0.7, 1.0, 0.1)
 			if use_perspective:
@@ -592,7 +604,7 @@ func _draw():
 		elif s_name == "BARRERA DE VIENTO":
 			var width_val = 150.0
 			if GameConstants.SKILLS_DATA.has(s_name):
-				width_val = float(GameConstants.SKILLS_DATA[s_name].get("width", 150.0))
+				width_val = _safe_float(GameConstants.SKILLS_DATA[s_name].get("width", 150.0), 150.0)
 			var half_w = width_val / 2.0
 			var perp_angle = end_point.angle() + (PI / 2.0)
 			var wall_offset = Vector2(cos(perp_angle), sin(perp_angle)) * half_w
@@ -618,7 +630,7 @@ func _draw():
 		var end_proj = _proj.call(end_point)
 		var radius_val = 200.0
 		if GameConstants.SKILLS_DATA.has(s_name):
-			radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 200.0))
+			radius_val = _safe_float(GameConstants.SKILLS_DATA[s_name].get("radius", 200.0), 200.0)
 		var draw_color = config.indicator_color
 		var fill_color = Color(draw_color.r, draw_color.g, draw_color.b, 0.08)
 		if s_name == "RESURRECCIÓN":
