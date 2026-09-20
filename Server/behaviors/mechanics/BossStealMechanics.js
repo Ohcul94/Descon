@@ -4,7 +4,7 @@
 function _handleShieldStealLogic(mech, mId, now, io, players) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || {
-        nextReadyTime: now + (mech.startDelay || 0),
+        nextReadyTime: now + this._getEffectiveInterval(mech),
         isActive: false,
         endTime: 0,
         targetId: "",
@@ -20,7 +20,8 @@ function _handleShieldStealLogic(mech, mId, now, io, players) {
     this.enemy._shieldStealMId = mId;
 
     const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
-    const stealRange = mech.fireRange || 800;
+    const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+    const stealRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
 
     // Resetear al salir de combate / limpieza de link
     if (!this._inCombat) {
@@ -35,18 +36,13 @@ function _handleShieldStealLogic(mech, mId, now, io, players) {
         state.triggeredHPs = {};
         state.combatStartTime = null;
         state.fired = false;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
         return;
     }
     if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
-            const raw = this._getRawInterval(mech);
-            if (raw === 0) {
-                state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-            } else {
-                state.nextReadyTime = now + raw;
-            }
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         }
     }
 
@@ -73,7 +69,7 @@ function _handleShieldStealLogic(mech, mId, now, io, players) {
         const target = players ? players[state.targetId] : null;
 
         // Expirar si el jugador no existe, está muerto, se fue de la zona o pasó el tiempo
-        if (!target || target.isDead || target.zone !== this.enemy.zone || now >= state.endTime) {
+        if (!target || target.isDead || String(target.zone) !== String(this.enemy.zone) || now >= state.endTime) {
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
                 id: this.enemy.id, action: "shield_steal_end", mId: mId, targetId: state.targetId
             });
@@ -221,7 +217,7 @@ function findShieldStealMech() {
 function _handleLifeStealLogic(mech, mId, now, io, players) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || {
-        nextReadyTime: now + (mech.startDelay || 0),
+        nextReadyTime: now + this._getEffectiveInterval(mech),
         isActive: false,
         endTime: 0,
         targetId: "",
@@ -237,7 +233,8 @@ function _handleLifeStealLogic(mech, mId, now, io, players) {
     this.enemy._lifeStealMId = mId;
 
     const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
-    const stealRange = mech.fireRange || 800;
+    const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+    const stealRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
 
     // Resetear al salir de combate / limpieza de link
     if (!this._inCombat) {
@@ -252,18 +249,13 @@ function _handleLifeStealLogic(mech, mId, now, io, players) {
         state.triggeredHPs = {};
         state.combatStartTime = null;
         state.fired = false;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
         return;
     }
     if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
-            const raw = this._getRawInterval(mech);
-            if (raw === 0) {
-                state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-            } else {
-                state.nextReadyTime = now + raw;
-            }
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         }
     }
 
@@ -288,7 +280,7 @@ function _handleLifeStealLogic(mech, mId, now, io, players) {
     if (state.isActive && state.targetId) {
         const target = players ? players[state.targetId] : null;
 
-        if (!target || target.isDead || target.zone !== this.enemy.zone || now >= state.endTime) {
+        if (!target || target.isDead || String(target.zone) !== String(this.enemy.zone) || now >= state.endTime) {
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
                 id: this.enemy.id, action: "life_steal_end", mId: mId, targetId: state.targetId
             });

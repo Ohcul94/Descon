@@ -267,9 +267,11 @@ function registerMovementHandlers(socket, io, state) {
                 }
             }
 
-            // AOI dinámico por celdas usando el GridManager espacial
+            // AOI dinámico por celdas usando el GridManager espacial (alineado con LEAVE_RADIUS = 2000px)
             const CELL_SIZE = 500;
-            const cellRange = Math.ceil(playerVision / CELL_SIZE);
+            const broadcastRadius = Math.max(playerVision * 1.25 + 350, 2000);
+            const broadcastRadiusSq = broadcastRadius * broadcastRadius;
+            const cellRange = Math.ceil(broadcastRadius / CELL_SIZE);
             const pCx = Math.floor(p.x / CELL_SIZE);
             const pCy = Math.floor(p.y / CELL_SIZE);
 
@@ -282,8 +284,12 @@ function registerMovementHandlers(socket, io, state) {
                     if (cell && cell.players) {
                         cell.players.forEach(other => {
                             if (other.socketId && other.socketId !== socket.id && !notifiedSockets.has(other.socketId)) {
-                                notifiedSockets.add(other.socketId);
-                                io.to(other.socketId).emit('playerMoved', movPayload);
+                                const odx = other.x - p.x;
+                                const ody = other.y - p.y;
+                                if (odx * odx + ody * ody <= broadcastRadiusSq) {
+                                    notifiedSockets.add(other.socketId);
+                                    io.to(other.socketId).emit('playerMoved', movPayload);
+                                }
                             }
                         });
                     }

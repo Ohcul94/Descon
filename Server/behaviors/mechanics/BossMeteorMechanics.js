@@ -45,7 +45,8 @@ function _applyMeteorDebuffs(p, mech, io) {
 function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
     if (!io) return false;
     const state = this.enemy.mechState[mId] || { nextShotTime: 0, triggeredHPs: {}, meteorList: [] };
-    const fireRange = mech.fireRange || 800;
+    const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+    const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
 
     // Generic cast gate (per mechanic, default 0 = instant)
     if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
@@ -71,7 +72,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
 
     if (!state.meteorList) state.meteorList = [];
 
-    const zonePlayers = () => Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+    const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
 
     // 1. Procesar meteoritos activos (impacto)
     for (let i = state.meteorList.length - 1; i >= 0; i--) {
@@ -222,7 +223,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
             }
         }
         let shouldActivate = false;
-        if (now > state.nextShotTime) {
+        if (now >= state.nextShotTime) {
             for (const hpVal of thresholds) {
                 if (hpPercent <= hpVal) {
                     shouldActivate = true;
@@ -238,7 +239,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
     }
 
     // 3. Iniciar la lluvia de meteoritos
-    if (target && dist <= fireRange && now > state.nextShotTime) {
+    if (target && dist <= fireRange && now >= state.nextShotTime) {
         const targets = this._selectMeteorTargets(players, fireRange, meteorCount, targetMode, mech);
         if (targets.length > 0) {
             const landTime = now + warnTimeMs + fallTimeMs;
@@ -269,7 +270,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
                 });
             });
 
-            state.nextShotTime = now + (mech.activationMode === "time" ? (mech.activationIntervalMs || cooldown) : cooldown);
+            state.nextShotTime = now + cooldown;
         }
     }
 

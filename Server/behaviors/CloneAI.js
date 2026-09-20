@@ -211,7 +211,7 @@ module.exports = class CloneAI extends BaseAI {
 
             // Aplicar daño a los jugadores dentro del radio de explosión
             if (this.cloneExplodeOnExpiry) {
-                const zonePlayers = Object.values(this.state.players || {}).filter(p => p.zone === zone && !p.isDead && !p.isInvisible);
+                const zonePlayers = Object.values(this.state.players || {}).filter(p => String(p.zone) === String(zone) && !p.isDead && !p.isInvisible);
                 zonePlayers.forEach(p => {
                     const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
                     if (d <= explosionRadius) {

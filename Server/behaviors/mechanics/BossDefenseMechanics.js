@@ -3,8 +3,9 @@
 
 function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, players) {
     if (!this.enemy.mechState) this.enemy.mechState = {};
+    const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
     const state = this.enemy.mechState[mId] || { 
-        nextShotTime: now + (mech.startDelay || 0), 
+        nextShotTime: now + this._getEffectiveInterval(mech), 
         isCharging: false,
         isPostCastWaiting: false,
         chargeEndTime: 0,
@@ -12,7 +13,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
         safeX: 0,
         safeY: 0,
         safeRadius: mech.safeRadius || 150,
-        fireRange: mech.fireRange || 800
+        fireRange: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange
     };
     this.enemy.mechState[mId] = state;
 
@@ -27,7 +28,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
                 mId: mId
             });
         }
-        state.nextShotTime = now + (mech.startDelay || 0);
+        state.nextShotTime = now + this._getEffectiveInterval(mech);
         return false;
     }
 
@@ -47,7 +48,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
         const castTime = Number(mech.castTimeMs) || 3000;
         state.chargeEndTime = now + castTime;
         state.safeRadius = Number(mech.safeRadius) || 150;
-        state.fireRange = Number(mech.fireRange) || 800;
+        state.fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
 
         // Calcular ubicación random del domo que no coincida con el enemigo (fuera de él)
         const safeRadius = Number(mech.safeRadius) || 150;
@@ -103,7 +104,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
 
             // Evaluar jugadores afectados
             const dmg = (Number(mech.damage) || 500) * (this.damageMult || 1);
-            const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead);
+            const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead);
             
             zonePlayers.forEach(p => {
                 const distToEnemy = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
@@ -199,7 +200,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
 function _handleWallDomeLogic(mech, mId, now, io) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || { 
-        nextReadyTime: now + (mech.startDelay || 0), 
+        nextReadyTime: now + this._getEffectiveInterval(mech), 
         isActive: false, 
         endTime: 0,
         triggeredHPs: {},
@@ -215,7 +216,7 @@ function _handleWallDomeLogic(mech, mId, now, io) {
     if (!this._inCombat) {
         state.triggeredHPs = {};
         state.combatStartTime = null;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
         if (state.isActive) {
             state.isActive = false;
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
@@ -227,23 +228,14 @@ function _handleWallDomeLogic(mech, mId, now, io) {
     } else if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
-            const raw = this._getRawInterval(mech);
-            if (raw === 0) {
-                state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-            } else {
-                state.nextReadyTime = now + raw;
-            }
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         }
     }
 
     if (state.isActive && now >= state.endTime) {
         state.isActive = false;
         
-        if (mech.activationMode === "time") {
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
-        } else {
-            state.nextReadyTime = now + (mech.cooldown || 10000);
-        }
+        state.nextReadyTime = now + (mech.cooldown || 10000);
 
         io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
             id: this.enemy.id, 
@@ -303,7 +295,7 @@ function _handleWallDomeLogic(mech, mId, now, io) {
 function _handleReflectLogic(mech, mId, now, io) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || { 
-        nextReadyTime: now + (mech.startDelay || 0), 
+        nextReadyTime: now + this._getEffectiveInterval(mech), 
         isActive: false, 
         endTime: 0,
         triggeredHPs: {},
@@ -317,7 +309,7 @@ function _handleReflectLogic(mech, mId, now, io) {
     if (!this._inCombat) {
         state.triggeredHPs = {};
         state.combatStartTime = null;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
         if (state.isActive) {
             state.isActive = false;
             this.enemy.reflectActive = false;
@@ -330,12 +322,7 @@ function _handleReflectLogic(mech, mId, now, io) {
     } else if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
-            const raw = this._getRawInterval(mech);
-            if (raw === 0) {
-                state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-            } else {
-                state.nextReadyTime = now + raw;
-            }
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         }
     }
 
@@ -343,11 +330,7 @@ function _handleReflectLogic(mech, mId, now, io) {
         state.isActive = false;
         this.enemy.reflectActive = false;
         
-        if (mech.activationMode === "time") {
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
-        } else {
-            state.nextReadyTime = now + (mech.cooldown || 10000);
-        }
+        state.nextReadyTime = now + (mech.cooldown || 10000);
 
         io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
             id: this.enemy.id, 

@@ -57,6 +57,7 @@ func setup(world_ref):
 	NetworkManager.player_fired.connect(_on_player_fired)
 	NetworkManager.enemy_fired.connect(_on_enemy_fired)
 	NetworkManager.enemy_dead.connect(_on_enemy_dead)
+	NetworkManager.aoi_entities_exited.connect(_on_aoi_entities_exited)
 	NetworkManager.enemy_damaged.connect(_on_enemy_damaged) 
 	NetworkManager.enemy_healed.connect(_on_enemy_healed)
 	NetworkManager.enemy_action.connect(_on_enemy_action)
@@ -84,25 +85,30 @@ func _process(delta):
 		if is_instance_valid(world) and is_instance_valid(world.local_player):
 			var my_zone = _parse_zone_to_int(world.local_player.current_zone)
 			
-			# Limpiar Jugadores Remotos Huérfanos
+			var lp_pos = world.local_player.global_position
+			var max_dist_sq = 3500.0 * 3500.0
+			
+			# Limpiar Jugadores Remotos Huérfanos o fuera de distancia extrema (fallback red)
 			for pid in remote_players.keys():
 				var rp = remote_players[pid]
 				if is_instance_valid(rp):
 					var rp_zone = rp.get_meta("zone") if rp.has_meta("zone") else -1
-					if rp_zone == -1 or rp_zone != my_zone:
+					var dist_sq = lp_pos.distance_squared_to(rp.global_position)
+					if rp_zone == -1 or rp_zone != my_zone or dist_sq > max_dist_sq:
 						remote_players.erase(pid)
+						if rp.has_method("_clear_wreckage_marker"):
+							rp._clear_wreckage_marker()
 						rp.queue_free()
-						print("[EntityManager SINC] Piloto huérfano removido por cambio de zona: ", pid)
 						
-			# Limpiar Enemigos Huérfanos
+			# Limpiar Enemigos Huérfanos o fuera de distancia extrema (fallback red)
 			for eid in enemies.keys():
 				var en = enemies[eid]
 				if is_instance_valid(en):
 					var en_zone = en.get_meta("zone") if en.has_meta("zone") else -1
-					if en_zone == -1 or en_zone != my_zone:
+					var dist_sq = lp_pos.distance_squared_to(en.global_position)
+					if en_zone == -1 or en_zone != my_zone or dist_sq > max_dist_sq:
 						en.deactivate_for_pooling()
 						enemies.erase(eid)
-						print("[EntityManager SINC] Enemigo huérfano purgado por cambio de zona: ", eid)
 						
 			# Limpiar Botines Huérfanos
 			for lid in loot_drops.keys():
@@ -2007,6 +2013,35 @@ func _on_player_disconnected(id):
 			remote_players[sid]._clear_wreckage_marker()
 		remote_players[sid].queue_free()
 		remote_players.erase(sid)
+
+func _on_aoi_entities_exited(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY: return
+	
+	# 1. Purgar enemigos que salieron del AOI hacia el pool
+	var exited_enemies = data.get("enemies", [])
+	if typeof(exited_enemies) == TYPE_ARRAY:
+		for eid in exited_enemies:
+			var sid = str(eid)
+			if enemies.has(sid):
+				var en = enemies[sid]
+				if is_instance_valid(en):
+					var indicator = en.get_node_or_null("ConeIndicator_" + sid)
+					if is_instance_valid(indicator): indicator.queue_free()
+					en.deactivate_for_pooling()
+				enemies.erase(sid)
+				
+	# 2. Purgar jugadores remotos que salieron del AOI
+	var exited_players = data.get("players", [])
+	if typeof(exited_players) == TYPE_ARRAY:
+		for pid in exited_players:
+			var sid = str(pid)
+			if remote_players.has(sid):
+				var rp = remote_players[sid]
+				if is_instance_valid(rp):
+					if rp.has_method("_clear_wreckage_marker"):
+						rp._clear_wreckage_marker()
+					rp.queue_free()
+				remote_players.erase(sid)
 
 func clear_remote_players():
 	for id in remote_players:

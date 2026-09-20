@@ -6,7 +6,8 @@ function _handleExecutionLogic(mech, mId, now, io, players) {
     const state = this.enemy.mechState[mId] || { nextShotTime: 0, triggeredHPs: {}, casting: false, castEndTime: 0, castTargets: [] };
     this.enemy.mechState[mId] = state;
 
-    const fireRange = mech.fireRange || 800;
+    const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+    const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
     // Generic cast gate (per mechanic, default 0 = instant)
     if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
         const isBusy = this._handleGenericCast(mech, mId, now, io);
@@ -28,7 +29,7 @@ function _handleExecutionLogic(mech, mId, now, io, players) {
     }
 
     const interval = mech.activationMode !== "time" && mech.activationMode !== "hp"
-        ? intervalMs : (mech.activationMode === "time" ? intervalMs : cooldown);
+        ? intervalMs : cooldown;
 
     // 1) Si está en casteo activo, disparar la calavera al terminar el warnTime
     if (state.casting) {
@@ -121,7 +122,8 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
     this.enemy.mechState[mId] = state;
     if (!state.jumps) state.jumps = [];
 
-    const fireRange = mech.fireRange || 800;
+    const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+    const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
     // Generic cast gate (per mechanic, default 0 = instant)
     if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
         const isBusy = this._handleGenericCast(mech, mId, now, io);
@@ -141,7 +143,7 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
     const radius = mech.radius || 250;
     const landingDamage = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 150) * (this.damageMult || 1);
 
-    const zonePlayers = () => Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+    const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
 
     // 1) Procesar saltos activos
     for (let i = state.jumps.length - 1; i >= 0; i--) {
@@ -310,6 +312,7 @@ function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, p
     if (!io) return false;
     const state = this.enemy.mechState[mId] || {
         nextShotTime: 0, triggeredHPs: {},
+        nextReadyTime: (mech.activationMode === "time") ? now + this._getEffectiveInterval(mech) : 0,
         phase: "idle", telegraphStart: 0, chargeStart: 0,
         chargeAngle: 0, chargeDirX: 0, chargeDirY: 0,
         hitPlayers: [], distanceTraveled: 0
@@ -317,7 +320,8 @@ function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, p
     this.enemy.mechState[mId] = state;
 
     const zoneStr = `zone_${this.enemy.zone}`;
-    const fireRange = mech.range || 800;
+    const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+    const fireRange = (mech.range !== undefined && Number(mech.range) > 0) ? Number(mech.range) : enemyFireRange;
     const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 10000;
     const chargeSpeed = Number(mech.speed) || 600;
     const chargeDurationMs = Number(mech.duration) || 1200;
@@ -341,6 +345,9 @@ function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, p
     if (state.phase === "idle") {
         if (now < (state.nextShotTime || 0)) return false;
         if (dist > fireRange) return false;
+        if (!this._inCombat && mech.activationMode === "time") {
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
+        }
         const hpPercent = this.enemy.maxHp > 0 ? (this.enemy.hp / this.enemy.maxHp) * 100 : 100;
         if (!this._passesActivationGate(mech, state, now, hpPercent)) return false;
 
@@ -399,6 +406,7 @@ function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, p
             // Fin de carga
             state.phase = "idle";
             state.nextShotTime = now + cooldown;
+            state.nextReadyTime = now + cooldown;
             this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
 
             io.to(zoneStr).emit('serverEnemyAction', {
@@ -427,7 +435,7 @@ function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, p
 
         // Detectar colisión con jugadores
         const zonePlayers = Object.values(players || {}).filter(
-            p => p.zone === this.enemy.zone && !p.isDead && !p.socketId
+            p => String(p.zone) === String(this.enemy.zone) && !p.isDead
         );
         const halfWidth = width / 2;
 

@@ -6,7 +6,7 @@ const { normalizeZone } = require('../../utils/zoneUtils');
 function _handleBossPillarsLogic(mech, mId, now, io) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || { 
-        nextReadyTime: now + (mech.startDelay || 0), 
+        nextReadyTime: now + this._getEffectiveInterval(mech), 
         isActive: false, 
         endTime: 0,
         pillars: [],
@@ -21,7 +21,7 @@ function _handleBossPillarsLogic(mech, mId, now, io) {
     if (!this._inCombat) {
         state.triggeredHPs = {};
         state.combatStartTime = null;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
     } else if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
@@ -122,7 +122,7 @@ function _handleBossPillarsLogic(mech, mId, now, io) {
     if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
         if (mech.activationMode === "time") {
             shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
+            state.nextReadyTime = now + (mech.cooldown || 10000);
         } else {
             let thresholds = [];
             if (Array.isArray(mech.activationHPs)) {
@@ -218,7 +218,7 @@ function _handleBossPillarsLogic(mech, mId, now, io) {
 function _handleBossColorsLogic(mech, mId, now, io, players) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || { 
-        nextReadyTime: now + (mech.startDelay || 0), 
+        nextReadyTime: now + this._getEffectiveInterval(mech), 
         isActive: false, 
         endTime: 0,
         triggeredHPs: {},
@@ -231,7 +231,7 @@ function _handleBossColorsLogic(mech, mId, now, io, players) {
     if (!this._inCombat) {
         state.triggeredHPs = {};
         state.combatStartTime = null;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
         if (state.isActive) {
             io.to(`zone_${this.enemy.zone}`).emit('bossColorsEnd', { bossId: this.enemy.id });
             state.isActive = false;
@@ -241,12 +241,7 @@ function _handleBossColorsLogic(mech, mId, now, io, players) {
     } else if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
-            const raw = this._getRawInterval(mech);
-            if (raw === 0) {
-                state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-            } else {
-                state.nextReadyTime = now + raw;
-            }
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         }
     }
 
@@ -270,7 +265,7 @@ function _handleBossColorsLogic(mech, mId, now, io, players) {
     if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
         if (mech.activationMode === "time") {
             shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
+            state.nextReadyTime = now + (mech.cooldown || 10000);
         } else {
             let thresholds = [];
             if (Array.isArray(mech.activationHPs)) {
@@ -347,7 +342,7 @@ function _handleBossColorsLogic(mech, mId, now, io, players) {
 function _handleBossWaterOrbsLogic(mech, mId, now, io, grid, players) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || { 
-        nextReadyTime: now + (mech.startDelay || 0), 
+        nextReadyTime: now + this._getEffectiveInterval(mech), 
         isActive: false, 
         endTime: 0,
         orbs: [],
@@ -370,7 +365,7 @@ function _handleBossWaterOrbsLogic(mech, mId, now, io, grid, players) {
         state.orbs = [];
         state.triggeredHPs = {};
         state.combatStartTime = null;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
         if (state.isActive) {
             state.isActive = false;
             this._isDefenseSkillActive = false;
@@ -378,12 +373,7 @@ function _handleBossWaterOrbsLogic(mech, mId, now, io, grid, players) {
     } else if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
-            const raw = this._getRawInterval(mech);
-            if (raw === 0) {
-                state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-            } else {
-                state.nextReadyTime = now + raw;
-            }
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         }
     }
 
@@ -441,7 +431,7 @@ function _handleBossWaterOrbsLogic(mech, mId, now, io, grid, players) {
 
             const { players: nearbyPlayers } = grid.getNearbyEntities(orb.x, orb.y, this.enemy.zone);
             for (const p of nearbyPlayers) {
-                if (p.zone === this.enemy.zone && !p.isDead) {
+                if (String(p.zone) === String(this.enemy.zone) && !p.isDead) {
                     const distToP = Math.hypot(p.x - orb.x, p.y - orb.y);
                     if (distToP <= 60) {
                         p.lastCombatTime = Date.now();
@@ -489,7 +479,7 @@ function _handleBossWaterOrbsLogic(mech, mId, now, io, grid, players) {
     if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
         if (mech.activationMode === "time") {
             shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
+            state.nextReadyTime = now + (mech.cooldown || 10000);
         } else {
             let thresholds = [];
             if (Array.isArray(mech.activationHPs)) {
@@ -568,7 +558,7 @@ function _handleBossWaterOrbsLogic(mech, mId, now, io, grid, players) {
 function _handleDuplicadoLogic(mech, mId, now, io) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || { 
-        nextReadyTime: now + (mech.startDelay || 0), 
+        nextReadyTime: now + this._getEffectiveInterval(mech), 
         isActive: false, 
         endTime: 0,
         triggeredHPs: {},
@@ -581,17 +571,12 @@ function _handleDuplicadoLogic(mech, mId, now, io) {
     if (!this._inCombat) {
         state.triggeredHPs = {};
         state.combatStartTime = null;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
         state.isActive = false;
     } else if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
-            const raw = this._getRawInterval(mech);
-            if (raw === 0) {
-                state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-            } else {
-                state.nextReadyTime = now + raw;
-            }
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         }
     }
 
@@ -608,7 +593,7 @@ function _handleDuplicadoLogic(mech, mId, now, io) {
     if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
         if (mech.activationMode === "time") {
             shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
+            state.nextReadyTime = now + (mech.cooldown || 10000);
         } else {
             let thresholds = [];
             if (Array.isArray(mech.activationHPs)) {
@@ -703,7 +688,7 @@ function _handleDuplicadoLogic(mech, mId, now, io) {
 function _handleSummoningLogic(mech, mId, now, io) {
     if (!this.enemy.defState) this.enemy.defState = {};
     const state = this.enemy.defState[mId] || { 
-        nextReadyTime: now + (mech.startDelay || 0), 
+        nextReadyTime: now + this._getEffectiveInterval(mech), 
         isActive: false, 
         endTime: 0,
         triggeredHPs: {},
@@ -716,17 +701,12 @@ function _handleSummoningLogic(mech, mId, now, io) {
     if (!this._inCombat) {
         state.triggeredHPs = {};
         state.combatStartTime = null;
-        state.nextReadyTime = now + (mech.startDelay || 0);
+        state.nextReadyTime = now + this._getEffectiveInterval(mech);
         state.isActive = false;
     } else if (this._inCombat && !state.combatStartTime) {
         state.combatStartTime = now;
         if (mech.activationMode === "time") {
-            const raw = this._getRawInterval(mech);
-            if (raw === 0) {
-                state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-            } else {
-                state.nextReadyTime = now + raw;
-            }
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         }
     }
 
@@ -743,7 +723,7 @@ function _handleSummoningLogic(mech, mId, now, io) {
     if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
         if (mech.activationMode === "time") {
             shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
+            state.nextReadyTime = now + (mech.cooldown || 10000);
         } else {
             let thresholds = [];
             if (Array.isArray(mech.activationHPs)) {

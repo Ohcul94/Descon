@@ -119,9 +119,20 @@ function startGameLoop(io, state, aiManager) {
             // Normalizar zona del enemigo una sola vez por ciclo
             const eZoneNormalized = normalizeZone(e.zone);
 
-            // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas o Agresividad Extrema o Altar Rush
-            const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y, e.zone);
-            const isNearPlayer = nearbyPs.some(p => normalizeZone(p.zone) === eZoneNormalized);
+            // v262.35: IA Inteligente (LOD) - Evaluación reactiva según rango de visión real del enemigo/Boss
+            const configVision = e.ai?.config?.visionRange !== undefined ? Number(e.ai.config.visionRange) : (e.config?.visionRange ? Number(e.config.visionRange) : 800);
+            const isBoss = !!(e.isBoss || (e.ai && e.ai.constructor.name === 'BossAI') || (e.type && String(e.type).toLowerCase().includes('boss')));
+            const effectiveVision = isBoss ? Math.max(configVision, 2000) : (configVision > 0 ? configVision : 800);
+            const visionCells = Math.min(Math.ceil(effectiveVision / grid.cellSize), 5); // Hasta 2500px
+
+            const nearbyPs = grid.getNearbyPlayers(e.x, e.y, e.zone, visionCells);
+            const effectiveVisionSq = effectiveVision * effectiveVision;
+            const isNearPlayer = nearbyPs.some(p => {
+                if (normalizeZone(p.zone) !== eZoneNormalized) return false;
+                const dx = p.x - e.x;
+                const dy = p.y - e.y;
+                return (dx * dx + dy * dy) <= effectiveVisionSq;
+            });
             
             // v266.999: Detección de Agresividad Extrema para Bypass de LOD (Usando Set optimizado O(1))
             const isExtreme = extremeZones.has(String(e.zone));
@@ -152,7 +163,7 @@ function startGameLoop(io, state, aiManager) {
         }
 
 
-        // v262.30: Broadcast por AOI (Area of Interest) - 5x5 Celdas (2500px x 2500px) a 15 FPS con Delta Compression
+        // v262.30: Broadcast por AOI (Area of Interest) AAA con Histeresis y Delta Compression (15 FPS)
         const isNetworkTick = (loopCounter % 2 === 0);
 
         if (isNetworkTick) {
@@ -164,6 +175,9 @@ function startGameLoop(io, state, aiManager) {
                 if (!p._lastSentEnemies) {
                     p._lastSentEnemies = {};
                 }
+                if (!p._lastSentPlayers) {
+                    p._lastSentPlayers = {};
+                }
                 
                 let playerVision = 1300;
                 if (state.SERVER_CONFIG && state.SERVER_CONFIG.shipModels) {
@@ -173,26 +187,42 @@ function startGameLoop(io, state, aiManager) {
                     }
                 }
 
+                // Histeresis AAA:
+                // Enter: Alineado con la niebla de guerra cliente (1300 * 1.25 = 1625px, mínimo 1650px)
+                // Leave: Margen de 350px extra (2000px) para evitar spam de paquetes en los bordes
+                const ENTER_RADIUS = Math.max(playerVision * 1.25, 1650);
+                const LEAVE_RADIUS = ENTER_RADIUS + 350;
+                const ENTER_RADIUS_SQ = ENTER_RADIUS * ENTER_RADIUS;
+                const LEAVE_RADIUS_SQ = LEAVE_RADIUS * LEAVE_RADIUS;
+
                 const currentAoiEnemyIds = new Set();
+                const currentAoiPlayerIds = new Set();
                 const aoiData = {};
                 let count = 0;
 
-                // Rango dinámico de celdas a la redonda según el rango de visión de la nave
-                const cellRange = Math.ceil(playerVision / 500);
+                const cellRange = Math.ceil(LEAVE_RADIUS / 500);
                 const cx = Math.floor(p.x / 500);
                 const cy = Math.floor(p.y / 500);
-                const pZoneNormalized = normalizeZone(p.zone);
+                const pZoneStr = String(p.zone);
 
                 for (let dx = -cellRange; dx <= cellRange; dx++) {
                     for (let dy = -cellRange; dy <= cellRange; dy++) {
                         const key = `${p.zone}_${cx + dx},${cy + dy}`;
                         const cell = grid.grid.get(key);
-                        if (cell) {
-                            cell.enemies.forEach(e => {
-                                if (String(e.zone) === String(p.zone) && enemies[e.id] && enemies[e.id].hp > 0) {
-                                    // Filtro de Distancia Euclidiana dinámico según la visión de la nave
-                                    const dist = Math.hypot(p.x - e.x, p.y - e.y);
-                                    if (dist > playerVision) return;
+                        if (!cell) continue;
+
+                        // 1. Filtrado de Enemigos por Histeresis
+                        if (cell.enemies && cell.enemies.length > 0) {
+                            for (let i = 0; i < cell.enemies.length; i++) {
+                                const e = cell.enemies[i];
+                                if (String(e.zone) === pZoneStr && enemies[e.id] && enemies[e.id].hp > 0) {
+                                    const edx = p.x - e.x;
+                                    const edy = p.y - e.y;
+                                    const distSq = edx * edx + edy * edy;
+                                    const wasInAoi = !!p._lastSentEnemies[e.id];
+                                    const inRange = wasInAoi ? (distSq <= LEAVE_RADIUS_SQ) : (distSq <= ENTER_RADIUS_SQ);
+
+                                    if (!inRange) continue;
 
                                     currentAoiEnemyIds.add(e.id);
                                     
@@ -278,20 +308,58 @@ function startGameLoop(io, state, aiManager) {
                                         count++;
                                     }
                                 }
-                            });
+                            }
+                        }
+
+                        // 2. Filtrado de Jugadores Remotos por Histeresis
+                        if (cell.players && cell.players.length > 0) {
+                            for (let i = 0; i < cell.players.length; i++) {
+                                const other = cell.players[i];
+                                if (other.socketId && other.socketId !== p.socketId && String(other.zone) === pZoneStr && !other.isDead) {
+                                    const pdx = p.x - other.x;
+                                    const pdy = p.y - other.y;
+                                    const pdistSq = pdx * pdx + pdy * pdy;
+                                    const wasInAoi = !!p._lastSentPlayers[other.socketId];
+                                    const inRange = wasInAoi ? (pdistSq <= LEAVE_RADIUS_SQ) : (pdistSq <= ENTER_RADIUS_SQ);
+
+                                    if (inRange) {
+                                        currentAoiPlayerIds.add(other.socketId);
+                                        p._lastSentPlayers[other.socketId] = true;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
 
-                // Cleanup de cache RAM para enemigos fuera del rango del jugador
+                // Cleanup y detección de entidades que SALIERON del AOI
+                const exitedEnemyIds = [];
                 for (const cachedId in p._lastSentEnemies) {
                     if (!currentAoiEnemyIds.has(Number(cachedId)) && !currentAoiEnemyIds.has(cachedId)) {
+                        exitedEnemyIds.push(cachedId);
                         delete p._lastSentEnemies[cachedId];
                     }
                 }
 
+                const exitedPlayerIds = [];
+                for (const cachedSocketId in p._lastSentPlayers) {
+                    if (!currentAoiPlayerIds.has(cachedSocketId)) {
+                        exitedPlayerIds.push(cachedSocketId);
+                        delete p._lastSentPlayers[cachedSocketId];
+                    }
+                }
+
+                // Enviar actualizaciones de movimiento
                 if (count > 0) {
                     io.to(p.socketId).emit('enemiesMoved', aoiData);
+                }
+
+                // v450.0: Notificar al cliente la salida de entidades de su AOI para que las devuelva al pool / libere
+                if (exitedEnemyIds.length > 0 || exitedPlayerIds.length > 0) {
+                    io.to(p.socketId).emit('aoiEntitiesExited', {
+                        enemies: exitedEnemyIds,
+                        players: exitedPlayerIds
+                    });
                 }
             });
         }

@@ -639,7 +639,7 @@ module.exports = class BaseAI {
                         if (!this.enemy.defState) this.enemy.defState = {};
                         let state = this.enemy.defState[mId];
                         if (!state) {
-                            state = { nextReadyTime: now + (mech.startDelay || 0), isActive: false, endTime: 0, triggeredHPs: {}, combatStartTime: now, type: mech.type };
+                            state = { nextReadyTime: now + this._getEffectiveInterval(mech), isActive: false, endTime: 0, triggeredHPs: {}, combatStartTime: now, type: mech.type };
                             this.enemy.defState[mId] = state;
                         }
                         if (state.isActive) return;
@@ -1131,7 +1131,7 @@ module.exports = class BaseAI {
 
     _handleAuraLogic(mech, mId, now, io, grid, players) {
         if (!this.enemy.auraState) this.enemy.auraState = {};
-        const state = this.enemy.auraState[mId] || { nextStartTime: now + (mech.startDelay || 0), isActive: false, endTime: 0, lastTickTime: 0, activationTriggeredHPs: {} };
+        const state = this.enemy.auraState[mId] || { nextStartTime: now + this._getEffectiveInterval(mech), isActive: false, endTime: 0, lastTickTime: 0, activationTriggeredHPs: {} };
 
         // 1. Gestión de Ciclo (Activar/Desactivar) — Soporta activationMode genérico (time/hp) + legacy activationHP
         let hpMet = true;
@@ -1214,7 +1214,7 @@ module.exports = class BaseAI {
 
         if (mech.type === "aura_damage") {
             nearbyPlayers.forEach(p => {
-                if (p.zone === this.enemy.zone && !p.isDead) {
+                if (String(p.zone) === String(this.enemy.zone) && !p.isDead) {
                     const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
                     if (d <= radius) {
                         const dmg = (mech.damage || 100) * (this.damageMult || 1);
@@ -1258,7 +1258,7 @@ module.exports = class BaseAI {
 
             // A otros cercanos
             nearbyEnemies.forEach(e => {
-                if (e.id !== this.enemy.id && e.zone === this.enemy.zone && e.hp > 0) {
+                if (e.id !== this.enemy.id && String(e.zone) === String(this.enemy.zone) && e.hp > 0) {
                     const d = Math.hypot(e.x - this.enemy.x, e.y - this.enemy.y);
                     if (d <= radius) {
                         const isBoss = e.type >= 101;
@@ -1283,7 +1283,7 @@ module.exports = class BaseAI {
             this.enemy.auraSpeedBonus = (this.enemy.auraSpeedBonus || 0) + speedBonus;
 
             nearbyEnemies.forEach(e => {
-                if (e.id !== this.enemy.id && e.zone === this.enemy.zone && e.hp > 0) {
+                if (e.id !== this.enemy.id && String(e.zone) === String(this.enemy.zone) && e.hp > 0) {
                     const d = Math.hypot(e.x - this.enemy.x, e.y - this.enemy.y);
                     if (d <= radius) {
                         const isBoss = e.type >= 101;
@@ -1373,14 +1373,16 @@ module.exports = class BaseAI {
     }
     _executeMechanic(mech, mId, target, dist, angle, now, io, players) {
         if (!io) return;
-        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false, nextReadyTime: (mech.activationMode === "time") ? now + this._getEffectiveInterval(mech) : 0 };
+        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
+        this.enemy.mechState[mId] = state;
         const hasActiveBombs = state.activeBombsList && state.activeBombsList.length > 0;
         const hasActiveWorms = state.activeWorms && state.activeWorms.length > 0;
         if (!target && mech.type !== "polymorph" && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs && !hasActiveWorms && !state.activeWindWall) return;
         
         const zoneStr = `zone_${this.enemy.zone}`;
         const type = mech.type || 'orbital';
-        const fireRange = mech.fireRange || 800;
+        const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+        const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
         // Validaciones previas para evitar iniciar casteo de ataque si la habilidad no está lista (cooldown, rango, etc)
         const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
         const isCastingNow = this.enemy.genericCastState && this.enemy.genericCastState[mId] && this.enemy.genericCastState[mId].isCasting;
@@ -1435,7 +1437,7 @@ module.exports = class BaseAI {
         if (mech.type === "sleep") {
             const cooldown = mech.cooldown || 10000;
             if (now > state.nextShotTime) {
-                const range = mech.fireRange || 600;
+                const range = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
                 const targetCount = mech.targetCount || 1;
                 const targetMode = mech.targetMode || "proximity";
                 const sleepDuration = mech.duration || 5000;
@@ -1518,7 +1520,7 @@ module.exports = class BaseAI {
                     type: "mega_laser",
                     duration: chargeTime + lockTime, 
                     angle: angle,
-                    range: mech.fireRange || 800,
+                    range: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange,
                     targetId: target?.socketId || target?.id || "" // v266.730: Tracking en tiempo real
                 });
             } else if (state.isCharging && now > state.chargeEndTime) {
@@ -1534,7 +1536,7 @@ module.exports = class BaseAI {
                     type: "mega_laser",
                     duration: lockTime, 
                     angle: state.lockedAngle,
-                    range: mech.fireRange || 800,
+                    range: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange,
                     targetId: target?.socketId || target?.id || ""
                 });
             } else if (state.isLocked && now > state.lockEndTime) {
@@ -1553,7 +1555,7 @@ module.exports = class BaseAI {
                     bulletType: "mega_laser",
                     damage: (mech.bulletDamage || 500) * (this.damageMult || 1),
                     lifetimeMs: lifetime,
-                    range: mech.fireRange || 800, // v266.715: Sincronía de Rango para el Proyectil
+                    range: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange, // v266.715: Sincronía de Rango para el Proyectil
                     beamWidth: mech.beamWidth || 40 // Ancho del rayo en píxeles
                 });
             } else if (state.isFiring && now > state.fireEndTime) {
@@ -1578,7 +1580,7 @@ module.exports = class BaseAI {
 
         // Mecánica de Lanzamiento de Bombas (Bomba de Área)
         if (mech.type === "bomb") {
-            const fireRange = mech.fireRange || 800;
+            const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
         // Generic cast gate (per mechanic, default 0 = instant)
         if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
             const isBusy = this._handleGenericCast(mech, mId, now, io);
@@ -1612,7 +1614,7 @@ module.exports = class BaseAI {
                     });
 
                     // Calcular daño a jugadores dentro del radio
-                    const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                    const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
                     zonePlayers.forEach(p => {
                         const d = Math.hypot(p.x - b.targetX, p.y - b.targetY);
                         if (d <= explosionRadius) {
@@ -1736,7 +1738,7 @@ module.exports = class BaseAI {
                     action: "cone_charging",
                     type: "cone_cast",
                     duration: actualDuration,
-                    range: mech.fireRange || 400,
+                    range: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange,
                     coneAngle: mech.coneAngle || 60,
                     damage: (mech.damage || 100) * (this.damageMult || 1),
                     stunDuration: mech.stunDuration || 0,
@@ -1751,7 +1753,7 @@ module.exports = class BaseAI {
 
                 const faceAngle = state.lockedAngle !== undefined ? state.lockedAngle : (this.enemy.rotation - Math.PI / 2);
                 const halfAngleRad = ((mech.coneAngle || 60) * Math.PI / 180) / 2;
-                const radius = mech.fireRange || 400;
+                const radius = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
                 const dmg = (mech.damage || 100) * (this.damageMult || 1);
                 const stunDur = mech.stunDuration || 0;
 
@@ -1766,7 +1768,7 @@ module.exports = class BaseAI {
                 });
 
                 // Calcular jugadores golpeados
-                const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
                 zonePlayers.forEach(p => {
                     const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
                     if (d <= radius) {
@@ -1861,7 +1863,7 @@ module.exports = class BaseAI {
         if (mech.type === "circle_cast") {
             const chargeTime = (mech.castTimeMs !== undefined) ? mech.castTimeMs : 2000;
             const cooldown = (mech.cooldown !== undefined) ? mech.cooldown : 5000;
-            const radius = mech.fireRange || 300;
+            const radius = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : (Number(mech.radius) || enemyFireRange);
             const lockTimeMs = mech.lockTimeMs !== undefined ? mech.lockTimeMs : 800;
 
             if (!this._inCombat && mech.activationMode === "time") {
@@ -1894,7 +1896,7 @@ module.exports = class BaseAI {
                     state.isCharging = false;
                     state.nextShotTime = now + cooldown;
                     if (mech.activationMode === "time") {
-                        state.nextReadyTime = now + this._getEffectiveInterval(mech);
+                        state.nextReadyTime = now + cooldown;
                     }
 
                     // Si no se había bloqueado antes, bloquear ahora en el punto de detonación
@@ -1917,7 +1919,7 @@ module.exports = class BaseAI {
                     });
 
                     // Calcular jugadores golpeados alrededor del punto de fijación
-                    const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                    const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
                     zonePlayers.forEach(p => {
                         const d = Math.hypot(p.x - state.lockedX, p.y - state.lockedY);
                         if (d <= radius) {
@@ -1993,7 +1995,7 @@ module.exports = class BaseAI {
             const chargeTime = (mech.castTimeMs !== undefined) ? mech.castTimeMs : 1500;
             const cooldown = (mech.cooldown !== undefined) ? mech.cooldown : 10000;
             const stormRadius = mech.radius || 300;
-            const fireRange = mech.fireRange || 600;
+            const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
             const lockTimeMs = mech.lockTimeMs !== undefined ? mech.lockTimeMs : 500;
             const duration = (mech.duration !== undefined) ? mech.duration : 5000;
             const tickInterval = (mech.tick_interval !== undefined) ? mech.tick_interval : 1000;
@@ -2003,7 +2005,7 @@ module.exports = class BaseAI {
 
             if (!state.isActive && !state.isCharging && now > state.nextShotTime) {
                 // FASE 1: INICIO DE CARGA — elegir un jugador objetivo dentro del alcance
-                const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
                 let target = null;
                 let minDist = fireRange;
                 zonePlayers.forEach(p => {
@@ -2101,7 +2103,7 @@ module.exports = class BaseAI {
                         state.lastTickTime = now;
 
                         const dmg = dmgPerTick * (this.damageMult || 1);
-                        const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                        const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
                         zonePlayers.forEach(p => {
                             const d = Math.hypot(p.x - state.lockedX, p.y - state.lockedY);
                             if (d <= stormRadius) {
@@ -2261,12 +2263,12 @@ module.exports = class BaseAI {
             const count = mech.projectileCount || 3;
             const spreadRad = ((mech.spreadAngle || 60) * Math.PI) / 180;
             const speed = mech.bulletSpeed || 600;
-            const range = mech.fireRange || 600;
+            const range = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
             const parkTimeMs = mech.parkTimeMs !== undefined ? mech.parkTimeMs : 1000;
             const outDmg = (mech.bulletDamage || 10) * (this.damageMult || 1);
             const returnDmg = (mech.returnDamage || 10) * (this.damageMult || 1);
             const hitRadius = 35;
-            const zonePlayers = () => Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+            const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
 
             if (!state.activeWorms) state.activeWorms = [];
 
@@ -2494,12 +2496,12 @@ module.exports = class BaseAI {
             const cooldown = mech.cooldown || 8000;
             const castTimeMs = mech.castTimeMs !== undefined ? mech.castTimeMs : 2000;
             const speed = mech.bulletSpeed || 500;
-            const range = mech.fireRange || 500;
+            const range = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
             const width = mech.wallWidth || 140;
             const dmg = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 10) * (this.damageMult || 1);
             const pushDist = (mech.pushForce !== undefined ? Number(mech.pushForce) : 250);
             const startOffset = (mech.wallStartOffset !== undefined ? Number(mech.wallStartOffset) : 50);
-            const zonePlayers = () => Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+            const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
 
             const applyWindDebuffs = (p) => {
                 if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
@@ -2763,7 +2765,7 @@ module.exports = class BaseAI {
                 });
 
                 // Daño instantáneo a jugadores dentro del arco/círculo
-                const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
                 zonePlayers.forEach(p => {
                     const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
                     if (d > impactRadius) return;
@@ -2868,7 +2870,7 @@ module.exports = class BaseAI {
             const cooldown = mech.cooldown || 9000;
             const diveTimeMs = mech.castTimeMs !== undefined ? Number(mech.castTimeMs) : 1500;
             const travelSpeed = mech.burrowSpeed !== undefined ? Number(mech.burrowSpeed) : 600;
-            const targetRange = mech.fireRange || 800;
+            const targetRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
             const radius = mech.radius !== undefined ? Number(mech.radius) : 250;
             const dmg = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 25) * (this.damageMult || 1);
             const burstMode = mech.burstMode || "burst";
@@ -2878,7 +2880,7 @@ module.exports = class BaseAI {
             const warnTimeMs = mech.warnTimeMs !== undefined ? Number(mech.warnTimeMs) : 1200;
             const undergroundMs = mech.undergroundMs !== undefined ? Number(mech.undergroundMs) : 2500;
             const targetMode = mech.targetMode || "proximity";
-            const zonePlayers = () => Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+            const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
 
             const applyBurrowDebuffs = (p) => {
                 if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
@@ -3057,7 +3059,7 @@ module.exports = class BaseAI {
                 // se actualiza el destino a su posición actual (nunca aparece "en cualquier lado").
                 // Si el objetivo ya no es válido o se alejó demasiado, se cancela la emboscada.
                 let targetP = state.targetId ? (players[state.targetId] || null) : null;
-                const targetValid = targetP && !targetP.isDead && !targetP.isInvisible && targetP.zone === this.enemy.zone
+                const targetValid = targetP && !targetP.isDead && !targetP.isInvisible && String(targetP.zone) === String(this.enemy.zone)
                     && Math.hypot(targetP.x - this.enemy.x, targetP.y - this.enemy.y) <= targetRange * 1.75
                     && Math.hypot(targetP.x - state.startX, targetP.y - state.startY) <= targetRange * 2.5;
                 if (!targetValid) {
@@ -3269,7 +3271,7 @@ module.exports = class BaseAI {
             // (targetMode: proximidad/aleatorio/más esferas/color de esfera... + targetCount)
             let polyTargets = null;
             if (mech.type === "polymorph") {
-                polyTargets = this._selectTargets(players, mech.fireRange || 800, mech.targetCount || 1, mech.targetMode || "proximity", mech);
+                polyTargets = this._selectTargets(players, (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange, mech.targetCount || 1, mech.targetMode || "proximity", mech);
                 if (!polyTargets || polyTargets.length === 0) {
                     state.shotsInBurst = 0;
                     state.nextShotTime = now + (this._getRawInterval(mech) > 0 ? this._getRawInterval(mech) : (mech.cooldown || 20000));
@@ -3314,7 +3316,7 @@ module.exports = class BaseAI {
                     turnSpeed: mech.turnSpeed || 2.5,
                     isHoming: mech.type === "polymorph" ? !!mech.isPointAndClick : !!mech.isHoming,
                     stunDuration: mech.stunDuration || 0,
-                    range: mech.fireRange || 800,
+                    range: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange,
                     // Campos específicos para minas (deceleration, explosionRadius)
                     deceleration: mech.deceleration !== undefined ? mech.deceleration : (mech.type === "mine" ? 2.0 : 3.5),
                     explosionRadius: mech.explosionRadius || 150,
@@ -3350,7 +3352,7 @@ module.exports = class BaseAI {
                     state.nextShotTime = now + (mech.fireRate || 2000);
                     if (state._pendingActivationRearm) {
                         if (mech.activationMode === "time") {
-                            state.activationNextTime = now + this._getEffectiveInterval(mech);
+                            state.activationNextTime = now + (mech.cooldown || mech.fireRate || 5000);
                         } else {
                             state.activationNextTime = now + (mech.cooldown || mech.fireRate || 5000);
                         }
@@ -3386,9 +3388,11 @@ module.exports = class BaseAI {
         const mechCfg = mech || {};
         const selMode = mode || "proximity";
         const selCount = Math.max(1, parseInt(count, 10) || 1);
+        const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+        const effFireRange = (fireRange !== undefined && Number(fireRange) > 0) ? Number(fireRange) : enemyFireRange;
 
-        let pool = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
-        pool = pool.filter(p => Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= (fireRange || 800));
+        let pool = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
+        pool = pool.filter(p => Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= effFireRange);
         if (pool.length === 0) return [];
 
         // v410.6: Modo "Por Color de Esfera": solo jugadores con esferas del color elegido,
@@ -3630,7 +3634,7 @@ module.exports = class BaseAI {
     _handleInvulnerabilityLogic(mech, mId, now, io) {
         if (!this.enemy.defState) this.enemy.defState = {};
         const state = this.enemy.defState[mId] || { 
-            nextReadyTime: now + (mech.startDelay || 0), 
+            nextReadyTime: now + this._getEffectiveInterval(mech), 
             isActive: false, 
             endTime: 0,
             combatStartTime: null
@@ -3645,16 +3649,11 @@ module.exports = class BaseAI {
             this._isDefenseSkillActive = false;
             this.enemy.isInvulnerable = false;
             state.combatStartTime = null;
-            state.nextReadyTime = now + (mech.startDelay || 0);
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
         } else if (!state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                state.nextReadyTime = now + this._getEffectiveInterval(mech);
             }
         }
 
@@ -3665,11 +3664,7 @@ module.exports = class BaseAI {
                 this._isDefenseSkillActive = false;
                 this.enemy.isInvulnerable = false;
 
-                if (mech.activationMode === "time") {
-                    state.nextReadyTime = now + this._getEffectiveInterval(mech);
-                } else {
-                    state.nextReadyTime = now + (mech.cooldown || 10000);
-                }
+                state.nextReadyTime = now + (mech.cooldown || 10000);
 
                 io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { 
                     id: this.enemy.id, 
@@ -3715,7 +3710,7 @@ module.exports = class BaseAI {
     _handleInvisibilityLogic(mech, mId, now, io) {
         if (!this.enemy.defState) this.enemy.defState = {};
         const state = this.enemy.defState[mId] || { 
-            nextReadyTime: now + (mech.startDelay || 0), 
+            nextReadyTime: now + this._getEffectiveInterval(mech), 
             isActive: false, 
             endTime: 0,
             triggeredHPs: {},
@@ -3729,17 +3724,12 @@ module.exports = class BaseAI {
         if (!this._inCombat) {
             state.triggeredHPs = {};
             state.combatStartTime = null;
-            state.nextReadyTime = now + (mech.startDelay || 0);
+            state.nextReadyTime = now + this._getEffectiveInterval(mech);
             state.isActive = false;
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                state.nextReadyTime = now + this._getEffectiveInterval(mech);
             }
         }
 
@@ -3750,11 +3740,7 @@ module.exports = class BaseAI {
             this.enemy.isCamouflaged = false;
             this.enemy.isInvisSpeedModifierActive = false;
             
-            if (mech.activationMode === "time") {
-                    state.nextReadyTime = now + this._getEffectiveInterval(mech);
-                } else {
-                    state.nextReadyTime = now + (mech.cooldown || 10000);
-                }
+            state.nextReadyTime = now + (mech.cooldown || 10000);
 
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyInvis", { 
                 id: this.enemy.id, 

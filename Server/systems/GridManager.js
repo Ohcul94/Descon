@@ -114,26 +114,65 @@ class GridManager {
         if (!newArr.includes(entity)) newArr.push(entity);
     }
 
-    getNearbyEntities(x, y, zone = 1) {
+    getNearbyEntities(x, y, zone = 1, cellRange = 1) {
         const cx = Math.floor(x / this.cellSize);
         const cy = Math.floor(y / this.cellSize);
         
-        let nearbyPlayers = [];
-        let nearbyEnemies = [];
+        const nearbyPlayers = [];
+        const nearbyEnemies = [];
 
-        // Revisar celda actual y las 8 adyacentes (bloque 3x3)
-        for (let dx = -1; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -cellRange; dx <= cellRange; dx++) {
+            for (let dy = -cellRange; dy <= cellRange; dy++) {
                 const key = `${zone}_${cx + dx},${cy + dy}`;
                 const cell = this.grid.get(key);
                 if (cell) {
-                    nearbyPlayers = nearbyPlayers.concat(cell.players);
-                    nearbyEnemies = nearbyEnemies.concat(cell.enemies);
+                    for (let i = 0; i < cell.players.length; i++) nearbyPlayers.push(cell.players[i]);
+                    for (let i = 0; i < cell.enemies.length; i++) nearbyEnemies.push(cell.enemies[i]);
                 }
             }
         }
 
         return { players: nearbyPlayers, enemies: nearbyEnemies };
+    }
+
+    getNearbyPlayers(x, y, zone = 1, cellRange = 1) {
+        const cx = Math.floor(x / this.cellSize);
+        const cy = Math.floor(y / this.cellSize);
+        const nearbyPlayers = [];
+
+        for (let dx = -cellRange; dx <= cellRange; dx++) {
+            for (let dy = -cellRange; dy <= cellRange; dy++) {
+                const key = `${zone}_${cx + dx},${cy + dy}`;
+                const cell = this.grid.get(key);
+                if (cell && cell.players.length > 0) {
+                    for (let i = 0; i < cell.players.length; i++) {
+                        nearbyPlayers.push(cell.players[i]);
+                    }
+                }
+            }
+        }
+
+        return nearbyPlayers;
+    }
+
+    getNearbyEnemies(x, y, zone = 1, cellRange = 1) {
+        const cx = Math.floor(x / this.cellSize);
+        const cy = Math.floor(y / this.cellSize);
+        const nearbyEnemies = [];
+
+        for (let dx = -cellRange; dx <= cellRange; dx++) {
+            for (let dy = -cellRange; dy <= cellRange; dy++) {
+                const key = `${zone}_${cx + dx},${cy + dy}`;
+                const cell = this.grid.get(key);
+                if (cell && cell.enemies.length > 0) {
+                    for (let i = 0; i < cell.enemies.length; i++) {
+                        nearbyEnemies.push(cell.enemies[i]);
+                    }
+                }
+            }
+        }
+
+        return nearbyEnemies;
     }
 }
 
