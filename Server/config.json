@@ -3151,7 +3151,8 @@
             "shieldRegenPercent": 30,
             "speed": 240,
             "visionRange": 3000,
-            "canFloat": false
+            "canFloat": false,
+            "hitboxRadius": 100
         },
         "106": {
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/AnimacionesBoss6.glb",

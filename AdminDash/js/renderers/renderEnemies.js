@@ -209,6 +209,7 @@ function renderEnemyDetail() {
                                 <div class="field"><label>Rotación Z (grados)</label><input type="number" value="${en.rotZ || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rotZ = parseFloat(this.value) || 0"></div>
                                 <div class="field"><label>Escala 3D (mult)</label><input type="number" step="0.1" value="${en.scale || 2}" onchange="config.enemyModels['${selectedEnemyId}'].scale = parseFloat(this.value) || 2"></div>
                                 <div class="field"><label>Altura Suelo (posY)</label><input type="number" step="0.1" value="${en.posY !== undefined ? en.posY : 1.0}" onchange="config.enemyModels['${selectedEnemyId}'].posY = parseFloat(this.value) !== undefined ? parseFloat(this.value) : 1.0"></div>
+                                <div class="field"><label style="color:var(--warning);">Radio Collider 2D (px)</label><input type="number" step="1" min="10" placeholder="Auto" value="${en.hitboxRadius !== undefined ? en.hitboxRadius : ''}" onchange="if (this.value && parseFloat(this.value) > 0) { config.enemyModels['${selectedEnemyId}'].hitboxRadius = parseFloat(this.value); } else { delete config.enemyModels['${selectedEnemyId}'].hitboxRadius; }"></div>
                             </div>
                             
                             <h5 style="color:var(--warning); margin:10px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(251,191,36,0.15); padding-bottom:2px;">🏃 CONFIGURACIÓN DE ANIMACIONES 3D (GLB)</h5>

@@ -513,6 +513,11 @@ func _process(delta):
 			var lookup_key = -1 if is_in_group("player") else entity_type
 			var default_height = HUD_HEIGHTS.get(lookup_key, 5.5 if entity_type >= 101 else 1.5)
 			var hud_height_3d: float = float(enemy_cfg.get("hudHeight", default_height))
+			# Si es un Boss escalado y no tiene hudHeight explícito, escalar la altura proporcionalmente
+			if not enemy_cfg.has("hudHeight") and entity_type >= 101 and enemy_cfg.has("scale"):
+				var cfg_scale = float(enemy_cfg.scale)
+				if cfg_scale > 6.0:
+					hud_height_3d = default_height * (cfg_scale / 6.0)
 			
 			var hud_3d_pos = world_root_3d.global_position + Vector3(0, hud_height_3d, 0)
 			projected_pos_hud = _project_3d_pos_to_2d(hud_3d_pos)
@@ -757,6 +762,8 @@ func _process(delta):
 			_3d_model.position.y = sin(Time.get_ticks_msec() * 0.002) * 0.12
 		else:
 			_3d_model.position.y = 0.0
+		_3d_model.position.x = 0.0
+		_3d_model.position.z = 0.0
 		
 		# 2. CÁLCULO DE INCLINACIÓN (BANKING)
 		var rot_diff = angle_difference(_last_rot2d, rotation)
@@ -1973,6 +1980,9 @@ func _setup_ship_visuals():
 			# v220.72: APLICAR MEMORIA DE USUARIO (Si el piloto calibró esta nave en esta sesión)
 			if _ship_rot_mem.has(current_ship_id):
 				actual_model.rotation_degrees = _ship_rot_mem[current_ship_id]
+			
+			# Re-alinear el modelo con su rotación final
+			_align_model_center(_3d_model, actual_model)
 		_update_collision_size()
 		return # Salto al modo 3D pro
 	
@@ -2167,14 +2177,18 @@ func _setup_enemy_visuals():
 			_3d_model.scale = Vector3(current_scale, current_scale, current_scale)
 			
 			# v420: Rotaciones 3D data-driven desde el AdminDash (mismo patrón que las naves)
-			if use_cfg_3d and (enemy_cfg.has("rotX") or enemy_cfg.has("rotY") or enemy_cfg.has("rotZ")):
-				var actual_model = _3d_model.get_child(0) if _3d_model.get_child_count() > 0 else null
-				if actual_model:
+			var actual_model = _3d_model.get_child(0) if _3d_model.get_child_count() > 0 else null
+			if actual_model:
+				if use_cfg_3d and (enemy_cfg.has("rotX") or enemy_cfg.has("rotY") or enemy_cfg.has("rotZ")):
 					actual_model.rotation_degrees = Vector3(
 						float(enemy_cfg.get("rotX", 0)),
 						float(enemy_cfg.get("rotY", 0)),
 						float(enemy_cfg.get("rotZ", 0))
 					)
+				# v431: Corrección de posición Y únicamente (pies en el suelo para terrestres).
+				# X/Z siempre en 0: el pivote del GLB ES el punto de referencia en el plano horizontal.
+				# Desplazar X/Z amplificaría el offset x(scale) en el mundo 3D → bug visual grave.
+				_apply_vertical_ground_correction(_3d_model, actual_model)
 			_update_collision_size()
 			return
 		else:
@@ -2685,21 +2699,12 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 		node3d.add_child(control_node)
 		control_node.add_child(model)
 		
-		# v313.5: AUTO-CENTRADO DE MODELO (Elimina desfase visual entre asset y física)
-		# Calculamos la AABB total de todas las mallas para centrar el modelo en el origen (0,0,0)
-		var total_aabb = AABB()
-		var first_mesh = true
-		for mesh in model.find_children("*", "MeshInstance3D", true):
-			if first_mesh:
-				total_aabb = mesh.get_aabb()
-				first_mesh = false
-			else:
-				total_aabb = total_aabb.merge(mesh.get_aabb())
-		
-		if not first_mesh:
-			# Desplazamos el nodo de control para que el centro del modelo coincida con el origen
-			control_node.position = -total_aabb.get_center()
-			control_node.set_meta("model_aabb_size", total_aabb.size)
+		# v431: POSICIÓN RAÍZ LIMPIA
+		# El control_node y el model arrancan en (0,0,0).
+		# El centrado final (solo eje Y para terrestres) se aplica en _setup_enemy_visuals
+		# DESPUÉS de que todas las rotaciones/escalas definitivas estén establecidas.
+		control_node.position = Vector3.ZERO
+		model.position = Vector3.ZERO
 		
 		# v422.1: BÚSQUEDA PROFUNDA GARANTIZADA DE ANIMACIONES
 		# Usamos búsqueda recursiva manual (_find_anim_deep) porque find_children
@@ -3153,46 +3158,51 @@ func _spawn_death_vfx():
 func _update_collision_size():
 	if not _collision_shape or not _collision_shape.shape is CircleShape2D: return
 
-	var base_size = 160.0
+	# 1. Radio explícito configurado desde AdminDash o config.json
+	var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
+	if enemy_cfg.has("hitboxRadius") and float(enemy_cfg.hitboxRadius) > 0:
+		_collision_shape.shape.radius = float(enemy_cfg.hitboxRadius)
+		print("[COLLIDER] Tipo ", entity_type, " | Radio: ", _collision_shape.shape.radius, " [ADMIN-OVERRIDE]")
+		return
+	if enemy_cfg.has("colliderRadius") and float(enemy_cfg.colliderRadius) > 0:
+		_collision_shape.shape.radius = float(enemy_cfg.colliderRadius)
+		print("[COLLIDER] Tipo ", entity_type, " | Radio: ", _collision_shape.shape.radius, " [ADMIN-OVERRIDE]")
+		return
 
-	# Si tenemos un modelo 3D válido, calculamos el hitbox automáticamente a partir de sus límites reales
-	if is_instance_valid(_3d_model) and _3d_model.has_meta("model_aabb_size"):
-		var aabb_size = _3d_model.get_meta("model_aabb_size", Vector3.ONE)
-		var model_scale = _3d_model.scale
-		
-		# Dimensiones en X y Z (plano del juego)
-		var size_3d_x = aabb_size.x * model_scale.x
-		var size_3d_z = aabb_size.z * model_scale.z
-		var max_size_3d = max(size_3d_x, size_3d_z)
-		
-		# Convertir unidades 3D a píxeles lógicos 2D usando el factor de escala del mapa
-		var map_node = _get_map_node()
-		var map_scale = map_node.scale_factor if is_instance_valid(map_node) and "scale_factor" in map_node else 0.02
-		
-		if map_scale > 0.0:
-			var size_2d = max_size_3d / map_scale
-			# Factor de ajuste corrector según el modelo (evita hitboxes gigantes por detalles/alas externas)
-			var default_adj = 0.38 if entity_type == 101 else (0.55 if entity_type >= 102 else 0.9)
-			var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
-			var adjustment_factor = float(enemy_cfg.get("hitboxAdjustment", default_adj))
-				
-			_collision_shape.shape.radius = (size_2d * 0.5) * adjustment_factor
-			return
+	# 2. Si no es enemigo (ej. jugador o nave remota), radio estándar
+	if not is_in_group("enemies"):
+		_collision_shape.shape.radius = 25.0
+		return
 
-	# Fallback estático en caso de que no haya modelo 3D instanciado (modo 2D o fallas de carga)
-	if is_in_group("enemies"):
-		if entity_type >= 101:
-			base_size = 320.0 * 2.0
-		elif entity_type == 200:
-			base_size = 320.0 * 2.2
-		elif entity_type >= 4:
-			base_size = 320.0
-		else:
-			base_size = 160.0
+	# 3. Cálculo proporcional calibrado según la escala 3D real de la entidad
+	var current_scale = 2.0
+	if is_instance_valid(_3d_model):
+		current_scale = _3d_model.scale.x
+	elif enemy_cfg.has("scale"):
+		current_scale = float(enemy_cfg.scale)
+	elif entity_type >= 101:
+		current_scale = 6.0
+
+	var base_radius = 28.0
+	if entity_type >= 101:
+		# Bosses: radio base moderado (~45px para escala 6.0, ~68px para escala 15.0)
+		# Evita colliders gigantes de 175-200px que bloquean toda la pantalla.
+		var boss_ratio = current_scale / 6.0
+		base_radius = clamp(45.0 + (boss_ratio - 1.0) * 15.0, 35.0, 85.0)
+	elif entity_type >= 4:
+		# Enemigos pesados (E4 a E15): radio base 32px para escala 2.0
+		var mob_ratio = current_scale / 2.0
+		base_radius = clamp(32.0 * mob_ratio, 25.0, 60.0)
 	else:
-		base_size = 180.0
+		# Enemigos ligeros (E1 a E3): radio base 24px para escala 2.0
+		var mob_ratio = current_scale / 2.0
+		base_radius = clamp(24.0 * mob_ratio, 18.0, 45.0)
 
-	_collision_shape.shape.radius = base_size * 0.4
+	# Factor de ajuste fino opcional (hitboxAdjustment)
+	var default_adj = 1.0
+	var adjustment_factor = float(enemy_cfg.get("hitboxAdjustment", default_adj))
+	_collision_shape.shape.radius = base_radius * adjustment_factor
+	print("[COLLIDER] Tipo ", entity_type, " | Radio: ", snapped(_collision_shape.shape.radius, 0.1), " [AUTO scale=", snapped(current_scale, 0.1), "]")
 
 func _update_burrow_visuals(buried: bool):
 	# v400.60: Zambullida Telúrica - el enemigo se oculta totalmente bajo tierra
@@ -3831,8 +3841,74 @@ func _project_3d_pos_to_2d(pos_3d: Vector3) -> Vector2:
 	return global_position
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HELPERS DE ANIMACIÓN 3D
+# HELPERS DE ANIMACIÓN Y MODELOS 3D
 # ─────────────────────────────────────────────────────────────────────────────
+
+## v432: Centrado completo (X, Y, Z) del modelo en el origen del control_node.
+## El AABB se calcula en el espacio del control_node (acumulando transforms incluyendo
+## la rotación del modelo). Para terrestres: pies en Y=0, centro XZ en el origen del collider.
+## Para flotantes: centro XYZ en el origen.
+## IMPORTANTE: Esta función se llama DESPUÉS de aplicar rotaciones y escalas definitivas.
+func _apply_vertical_ground_correction(control_node: Node3D, model: Node3D) -> void:
+	if not is_instance_valid(control_node) or not is_instance_valid(model):
+		return
+	
+	# Restablecer posición del modelo al origen antes de calcular el AABB
+	model.position = Vector3.ZERO
+	
+	var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
+	var can_float = bool(enemy_cfg.get("canFloat", true)) if is_in_group("enemies") else true
+	
+	# Calcular AABB en el espacio del control_node (incluye rotación del model, excluye escala del control_node)
+	var total_aabb = AABB()
+	var has_mesh = false
+	
+	for mesh in model.find_children("*", "MeshInstance3D", true):
+		if not is_instance_valid(mesh) or not mesh.visible:
+			continue
+		var raw_aabb = mesh.get_aabb()
+		if raw_aabb.size.length_squared() < 0.0001:
+			continue
+		# Acumular transform desde el mesh hasta control_node (incluye model.rotation)
+		var rel_xform = Transform3D.IDENTITY
+		var curr = mesh
+		while is_instance_valid(curr) and curr != control_node:
+			rel_xform = curr.transform * rel_xform
+			curr = curr.get_parent()
+		var mesh_in_ctrl = rel_xform * raw_aabb
+		if not has_mesh:
+			total_aabb = mesh_in_ctrl
+			has_mesh = true
+		else:
+			total_aabb = total_aabb.merge(mesh_in_ctrl)
+	
+	if not has_mesh:
+		# Sin mallas encontradas: dejar en origen
+		print("[CENTER-WARN] Tipo ", entity_type, " | No se encontraron mallas válidas para centrar.")
+		return
+	
+	control_node.set_meta("model_aabb_size", total_aabb.size)
+	var center = total_aabb.get_center()
+	
+	# Centrado horizontal: el centro XZ del modelo queda en el origen del collider 2D
+	model.position.x = -center.x
+	model.position.z = -center.z
+	
+	# Corrección Y: ajustar según si es terrestre o flotante
+	if not can_float:
+		# Terrestre: los pies deben estar en Y=0 (sobre el suelo)
+		# AABB.position.y = borde inferior del AABB
+		model.position.y = -total_aabb.position.y
+		print("[CENTER-3D] Tipo ", entity_type, " | center=(", snapped(center.x,0.01), ",", snapped(center.y,0.01), ",", snapped(center.z,0.01), ") | AABB.size=(", snapped(total_aabb.size.x,0.01), ",", snapped(total_aabb.size.y,0.01), ",", snapped(total_aabb.size.z,0.01), ") | model.pos=", snapped(model.position.x,0.01), ",", snapped(model.position.y,0.01), ",", snapped(model.position.z,0.01))
+	else:
+		# Flotante: centrado también en Y
+		model.position.y = -center.y
+
+
+## DEPRECATED v431: Usar _apply_vertical_ground_correction en su lugar.
+## Se mantiene por compatibilidad con _setup_ship_visuals.
+func _align_model_center(control_node: Node3D, model: Node3D) -> void:
+	_apply_vertical_ground_correction(control_node, model)
 
 ## Búsqueda recursiva profunda de AnimationPlayer en un árbol de nodos GLB.
 ## Necesario porque Tripo/Meshy anidan el AnimationPlayer varios niveles adentro.
