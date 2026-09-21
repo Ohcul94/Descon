@@ -188,11 +188,11 @@ func _build_ui(player):
 				# Mostrar cada stat de la esfera
 				if typeof(master_stats_display) == TYPE_DICTIONARY:
 					for key in master_stats_display:
-						_add_stat_mod_row(content_v, "  " + _get_stat_key_display(key), float(master_stats_display[key]))
+						_add_stat_mod_row(content_v, key, float(master_stats_display[key]))
 				elif typeof(master_stats_display) == TYPE_ARRAY:
 					for entry in master_stats_display:
 						if typeof(entry) == TYPE_DICTIONARY:
-							_add_stat_mod_row(content_v, "  " + _get_stat_key_display(str(entry.get("key", ""))), float(entry.get("val", 0)))
+							_add_stat_mod_row(content_v, str(entry.get("key", "")), float(entry.get("val", 0)))
 		if not has_any_sphere:
 			_add_info_row(content_v, "", "Sin esferas instaladas", Color.GRAY)
 	else:
@@ -202,13 +202,17 @@ func _build_ui(player):
 		_add_separator(content_v)
 		_add_sub_header(content_v, "📊 TOTAL Esferas", Color(0.8, 0.5, 1.0))
 		if sphere_mods.total_hp != 0.0:
-			_add_stat_row(content_v, "HP Esferas", sphere_mods.total_hp, Color(0.8, 0.5, 1.0))
+			var hp_str = "+" + str(int(sphere_mods.total_hp)) + "%"
+			_add_info_row(content_v, "  HP", hp_str, Color(0.8, 0.5, 1.0))
 		if sphere_mods.total_shield != 0.0:
-			_add_stat_row(content_v, "Escudo Esferas", sphere_mods.total_shield, Color(0.8, 0.5, 1.0))
+			var sh_str = "+" + str(int(sphere_mods.total_shield)) + "%"
+			_add_info_row(content_v, "  Escudo", sh_str, Color(0.8, 0.5, 1.0))
 		if sphere_mods.total_speed != 0.0:
-			_add_stat_row(content_v, "Vel. Esferas", sphere_mods.total_speed, Color(0.8, 0.5, 1.0))
+			var spd_str = "+" + str(int(sphere_mods.total_speed)) + "%"
+			_add_info_row(content_v, "  Velocidad", spd_str, Color(0.8, 0.5, 1.0))
 		if sphere_mods.total_heal_pct != 0.0:
-			_add_stat_row(content_v, "Curación Esferas", sphere_mods.total_heal_pct, Color(0.8, 0.5, 1.0))
+			var heal_str = "+" + str(int(sphere_mods.total_heal_pct)) + "%"
+			_add_info_row(content_v, "  Curación", heal_str, Color(0.8, 0.5, 1.0))
 
 	# ═══ SECCIÓN 6: BONIFICACIONES DE TALENTOS ═══
 	_add_section_header(content_v, "🌟 BONIFICACIONES DE TALENTOS", Color(0.75, 0.2, 1.0))
@@ -533,12 +537,15 @@ func _add_stat_row(parent, label: String, value: float, color: Color):
 func _add_stat_mod_row(parent, key: String, val: float):
 	if abs(val) < 0.0001: return
 	var display = _get_stat_key_display(key)
+	var is_pct = key.ends_with("Pct") or key.ends_with("pct")
 	var prefix = "+" if val > 0 else ""
-	var suffix = ""
-	if key.ends_with("Pct"):
-		suffix = " (" + prefix + str(int(val * 100)) + "%)"
-		val = 0.0
-	_add_info_row(parent, "  " + display, prefix + _format_number(val) + suffix if val != 0.0 else suffix, Color(0.7, 0.8, 1.0))
+	var text = ""
+	if is_pct:
+		var pct_val = int(val * 100) if abs(val) < 1.0 else int(val)
+		text = prefix + str(pct_val) + "%"
+	else:
+		text = prefix + _format_number(val)
+	_add_info_row(parent, "  " + display, text, Color(0.7, 0.8, 1.0))
 
 func _add_item_mod_row(parent, item_name: String, stat_name: String, val: float, prefix: String = "+", is_flat: bool = false):
 	if abs(val) < 0.0001: return
@@ -811,16 +818,16 @@ func _get_effect_display_name(key: String) -> String:
 
 func _get_stat_key_display(key: String) -> String:
 	match key:
-		"hpMod": return "HP (Fijo)"
-		"shieldMod": return "Escudo (Fijo)"
-		"speedMod": return "Velocidad (Fijo)"
-		"hpPct": return "HP (%)"
-		"shieldPct": return "Escudo (%)"
-		"speedPct": return "Velocidad (%)"
-		"healPct": return "Curación (%)"
-		"healMod": return "Curación (Fijo)"
-		"dmgMod": return "Daño (Fijo)"
-		"dmgPct": return "Daño (%)"
+		"hpMod": return "HP"
+		"shieldMod": return "Escudo"
+		"speedMod": return "Velocidad"
+		"hpPct": return "HP"
+		"shieldPct": return "Escudo"
+		"speedPct": return "Velocidad"
+		"healPct": return "Curación"
+		"healMod": return "Curación"
+		"dmgMod": return "Daño"
+		"dmgPct": return "Daño"
 		"critChance": return "Crítico Chance"
 		"critDmg": return "Crítico Daño"
 		"evasion": return "Evasión"

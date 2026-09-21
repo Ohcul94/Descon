@@ -1444,6 +1444,9 @@ function duplicateMapItem(kind, idx) {
 function handleGlobalKeydown(e) {
     if (e.key === 'Escape') {
         // Modales de Talentos y Esferas
+        const skillParamOverlay = document.getElementById('skill-param-picker-overlay');
+        if (skillParamOverlay) { if (typeof closeSkillParamPickerModal === 'function') closeSkillParamPickerModal(); else skillParamOverlay.remove(); return; }
+
         const effectPickerOverlay = document.getElementById('effect-picker-overlay');
         if (effectPickerOverlay) { if (typeof closeEffectPickerModal === 'function') closeEffectPickerModal(); else effectPickerOverlay.remove(); return; }
 

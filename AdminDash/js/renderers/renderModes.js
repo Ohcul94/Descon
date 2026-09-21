@@ -2520,66 +2520,130 @@ window.renderTalentCreator = function() {
                         <button class="btn btn-primary" style="padding:2px 8px; font-size:0.65rem;" onclick="addTalentEffect(${idx})">+ EFECTO</button>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:5px;">
-                        ${Object.entries(t.effects || {}).map(([key, val]) => {
-                            const meta = (t.effectsMeta && t.effectsMeta[key]) ? t.effectsMeta[key] : { flat: false };
-                            const isFlat = meta.flat;
-                            const isUnlock = _isUnlockEffect(key);
-                            const isSkillFx = _isSkillEffect(key);
-                            const isWeaponFx = _isWeaponEffect(key);
-                            const isAmmoFx = _isAmmoEffect(key);
-                            const isDynamic = isSkillFx || isWeaponFx || isAmmoFx;
-                            const cat = TALENT_EFFECTS_CATALOG[key];
+                        ${(() => {
+                            const effectsEntries = Object.entries(t.effects || {});
+                            // Agrupar efectos de habilidad por skillId: skill:SK_ID:attr
+                            const skillGroups = {};
+                            const otherEntries = [];
 
-                            let label = key;
-                            let icon = '✨';
-                            let catCol = '#888';
+                            effectsEntries.forEach(([key, val]) => {
+                                if (_isSkillEffect(key)) {
+                                    const parsed = _parseDynamicKey(key);
+                                    if (parsed && parsed.id) {
+                                        if (!skillGroups[parsed.id]) skillGroups[parsed.id] = [];
+                                        skillGroups[parsed.id].push({ key, val, attr: parsed.attr });
+                                        return;
+                                    }
+                                }
+                                otherEntries.push([key, val]);
+                            });
 
-                            if (cat) {
-                                label = cat.label;
-                                icon = cat.icon;
-                                catCol = _effectCatColor(cat.cat);
-                            } else if (isSkillFx) {
-                                const parsed = _parseDynamicKey(key);
-                                const sk = config && config.skillsData ? config.skillsData[parsed.id] : null;
-                                const attrMeta = window.SKILL_ATTRS ? window.SKILL_ATTRS[parsed.attr] : null;
-                                label = `${sk ? sk.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
-                                icon = '🌀';
-                                catCol = '#f97316';
-                            } else if (isWeaponFx) {
-                                const parsed = _parseDynamicKey(key);
-                                const weps = config && config.shopItems && config.shopItems.weapons ? config.shopItems.weapons : [];
-                                const w = weps.find(x => x.id === parsed.id);
-                                const attrMeta = window.WEAPON_ATTRS ? window.WEAPON_ATTRS[parsed.attr] : null;
-                                label = `${w ? w.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
-                                icon = '🔫';
-                                catCol = '#ef4444';
-                            } else if (isAmmoFx) {
-                                const parsed = _parseDynamicKey(key);
-                                const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
-                                label = `Munición ${parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
-                                icon = '💥';
-                                catCol = '#ef4444';
-                            }
+                            let htmlStr = '';
 
-                            const displayVal = isUnlock ? '' : (isFlat ? (typeof formatCleanNumber === 'function' ? formatCleanNumber(val, 2) : val) : (typeof formatCleanNumber === 'function' ? formatCleanNumber(val * 100, 2) : (val * 100)));
-                            const unitLabel = isUnlock ? 'SIEMPRE' : (isFlat ? '(fijo)' : '(%)');
-                            return `
-                            <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:6px 10px; border-radius:8px; border:1px solid ${catCol}30; transition:all 0.15s;">
-                                <span style="font-size:1.1rem; flex-shrink:0;">${icon}</span>
-                                <div style="flex:1; min-width:0;">
-                                    <div style="font-size:0.75rem; font-weight:bold; color:${catCol}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${label}</div>
-                                    <div style="font-size:0.6rem; color:#888; font-family:'JetBrains Mono';">${key}</div>
-                                </div>
-                                ${isUnlock ? `
-                                    <span style="font-size:0.65rem; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3); font-weight:bold;">🔓 DESBLOQUEO</span>
-                                ` : `
-                                    <button onclick="toggleEffectFlat(${idx}, '${key}')" style="flex-shrink:0; padding:3px 8px; border-radius:4px; font-size:0.65rem; font-weight:bold; cursor:pointer; border:1px solid ${isFlat ? 'rgba(255,150,50,0.4)' : 'rgba(0,210,255,0.4)'}; background:${isFlat ? 'rgba(255,150,50,0.12)' : 'rgba(0,210,255,0.12)'}; color:${isFlat ? '#ff9632' : '#00d2ff'};" title="Clic para alternar entre fijo y porcentual">${isFlat ? 'FIJO' : '%'}</button>
-                                    <input type="number" step="0.01" value="${displayVal}" style="width:80px; text-align:center; font-size:0.8rem; padding:4px 6px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:white; font-family:'JetBrains Mono';" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = (${isFlat || false}) ? parseFloat(this.value) : (parseFloat(this.value) / 100)">
-                                    <span style="font-size:0.65rem; color:#888; min-width:28px;">${unitLabel}</span>
-                                `}
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; flex-shrink:0; padding:2px 6px;" onclick="deleteTalentEffect(${idx}, '${key}')" title="Eliminar efecto">✕</button>
-                            </div>`;
-                        }).join('')}
+                            // 1. Renderizar Bloques de Habilidades
+                            Object.entries(skillGroups).forEach(([skId, items]) => {
+                                const sk = (typeof config !== 'undefined' && config.skillsData) ? config.skillsData[skId] : null;
+                                const skName = sk ? (sk.name || skId) : skId;
+                                const skIcon = (sk && sk.icon) ? sk.icon : '🌀';
+
+                                htmlStr += `
+                                <div style="background:rgba(249,115,22,0.06); border:1px solid rgba(249,115,22,0.3); border-radius:10px; padding:8px 10px; margin-bottom:6px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid rgba(249,115,22,0.15); padding-bottom:5px;">
+                                        <div style="display:flex; align-items:center; gap:6px;">
+                                            <span style="font-size:1.1rem;">${skIcon}</span>
+                                            <span style="font-size:0.8rem; font-weight:bold; color:#f97316;">${skName}</span>
+                                            <span style="font-size:0.6rem; color:#888; font-family:'JetBrains Mono';">(${skId})</span>
+                                        </div>
+                                        <div style="display:flex; gap:6px; align-items:center;">
+                                            <button type="button" class="btn" onclick="openSkillParamPickerModal(${idx}, '${skId.replace(/'/g, "\\'")}')" style="padding:2px 7px; font-size:0.62rem; background:rgba(249,115,22,0.2); border:1px solid #f97316; color:#f97316; border-radius:4px; font-weight:bold; cursor:pointer;" title="Agregar modificador de parámetro a esta habilidad">+ PARÁMETRO</button>
+                                            <button type="button" style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem; padding:1px 4px;" onclick="deleteTalentSkillGroup(${idx}, '${skId.replace(/'/g, "\\'")}')" title="Quitar todos los efectos de esta habilidad">✕</button>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; flex-direction:column; gap:4px; padding-left:4px;">
+                                        ${items.map(it => {
+                                            const key = it.key;
+                                            const val = it.val;
+                                            const meta = (t.effectsMeta && t.effectsMeta[key]) ? t.effectsMeta[key] : { flat: false };
+                                            const isFlat = meta.flat;
+                                            const attrMeta = window.SKILL_ATTRS ? window.SKILL_ATTRS[it.attr] : null;
+                                            const attrLabel = attrMeta ? attrMeta.label : it.attr;
+                                            const attrIcon = attrMeta ? (attrMeta.icon || '⚡') : '⚡';
+                                            const displayVal = isFlat ? (typeof formatCleanNumber === 'function' ? formatCleanNumber(val, 2) : val) : (typeof formatCleanNumber === 'function' ? formatCleanNumber(val * 100, 2) : (val * 100));
+                                            const unitLabel = isFlat ? (attrMeta?.unit || 'pts') : '%';
+
+                                            return `
+                                            <div style="display:flex; gap:6px; align-items:center; background:rgba(0,0,0,0.25); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);">
+                                                <span style="font-size:0.9rem;">${attrIcon}</span>
+                                                <div style="flex:1; min-width:0;">
+                                                    <span style="font-size:0.73rem; font-weight:bold; color:#ddd;">${attrLabel}</span>
+                                                    <span style="font-size:0.58rem; color:#777; font-family:'JetBrains Mono'; margin-left:4px;">${it.attr}</span>
+                                                </div>
+                                                <button type="button" onclick="toggleEffectFlat(${idx}, '${key}')" style="flex-shrink:0; padding:2px 6px; border-radius:4px; font-size:0.6rem; font-weight:bold; cursor:pointer; border:1px solid ${isFlat ? 'rgba(255,150,50,0.4)' : 'rgba(0,210,255,0.4)'}; background:${isFlat ? 'rgba(255,150,50,0.12)' : 'rgba(0,210,255,0.12)'}; color:${isFlat ? '#ff9632' : '#00d2ff'};" title="Alternar fijo / %">${isFlat ? 'FIJO' : '%'}</button>
+                                                <input type="number" step="0.01" value="${displayVal}" style="width:75px; text-align:center; font-size:0.75rem; padding:3px 5px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:white; font-family:'JetBrains Mono';" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = (${isFlat || false}) ? parseFloat(this.value) : (parseFloat(this.value) / 100)">
+                                                <span style="font-size:0.6rem; color:#888; min-width:26px;">${unitLabel}</span>
+                                                <button type="button" style="background:none; border:none; color:#ff6666; cursor:pointer; font-size:0.8rem; padding:1px 4px;" onclick="deleteTalentEffect(${idx}, '${key}')" title="Quitar parámetro">✕</button>
+                                            </div>`;
+                                        }).join('')}
+                                    </div>
+                                </div>`;
+                            });
+
+                            // 2. Renderizar Otros Efectos (Estadísticas, Desbloqueos, Armas, etc.)
+                            htmlStr += otherEntries.map(([key, val]) => {
+                                const meta = (t.effectsMeta && t.effectsMeta[key]) ? t.effectsMeta[key] : { flat: false };
+                                const isFlat = meta.flat;
+                                const isUnlock = _isUnlockEffect(key);
+                                const isWeaponFx = _isWeaponEffect(key);
+                                const isAmmoFx = _isAmmoEffect(key);
+                                const cat = TALENT_EFFECTS_CATALOG[key];
+
+                                let label = key;
+                                let icon = '✨';
+                                let catCol = '#888';
+
+                                if (cat) {
+                                    label = cat.label;
+                                    icon = cat.icon;
+                                    catCol = _effectCatColor(cat.cat);
+                                } else if (isWeaponFx) {
+                                    const parsed = _parseDynamicKey(key);
+                                    const weps = config && config.shopItems && config.shopItems.weapons ? config.shopItems.weapons : [];
+                                    const w = weps.find(x => x.id === parsed.id);
+                                    const attrMeta = window.WEAPON_ATTRS ? window.WEAPON_ATTRS[parsed.attr] : null;
+                                    label = `${w ? w.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                                    icon = '🔫';
+                                    catCol = '#ef4444';
+                                } else if (isAmmoFx) {
+                                    const parsed = _parseDynamicKey(key);
+                                    const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
+                                    label = `Munición ${parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                                    icon = '💥';
+                                    catCol = '#ef4444';
+                                }
+
+                                const displayVal = isUnlock ? '' : (isFlat ? (typeof formatCleanNumber === 'function' ? formatCleanNumber(val, 2) : val) : (typeof formatCleanNumber === 'function' ? formatCleanNumber(val * 100, 2) : (val * 100)));
+                                const unitLabel = isUnlock ? 'SIEMPRE' : (isFlat ? '(fijo)' : '(%)');
+
+                                return `
+                                <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:6px 10px; border-radius:8px; border:1px solid ${catCol}30; transition:all 0.15s;">
+                                    <span style="font-size:1.1rem; flex-shrink:0;">${icon}</span>
+                                    <div style="flex:1; min-width:0;">
+                                        <div style="font-size:0.75rem; font-weight:bold; color:${catCol}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${label}</div>
+                                        <div style="font-size:0.6rem; color:#888; font-family:'JetBrains Mono';">${key}</div>
+                                    </div>
+                                    ${isUnlock ? `
+                                        <span style="font-size:0.65rem; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3); font-weight:bold;">🔓 DESBLOQUEO</span>
+                                    ` : `
+                                        <button onclick="toggleEffectFlat(${idx}, '${key}')" style="flex-shrink:0; padding:3px 8px; border-radius:4px; font-size:0.65rem; font-weight:bold; cursor:pointer; border:1px solid ${isFlat ? 'rgba(255,150,50,0.4)' : 'rgba(0,210,255,0.4)'}; background:${isFlat ? 'rgba(255,150,50,0.12)' : 'rgba(0,210,255,0.12)'}; color:${isFlat ? '#ff9632' : '#00d2ff'};" title="Clic para alternar entre fijo y porcentual">${isFlat ? 'FIJO' : '%'}</button>
+                                        <input type="number" step="0.01" value="${displayVal}" style="width:80px; text-align:center; font-size:0.8rem; padding:4px 6px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:white; font-family:'JetBrains Mono';" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = (${isFlat || false}) ? parseFloat(this.value) : (parseFloat(this.value) / 100)">
+                                        <span style="font-size:0.65rem; color:#888; min-width:28px;">${unitLabel}</span>
+                                    `}
+                                    <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; flex-shrink:0; padding:2px 6px;" onclick="deleteTalentEffect(${idx}, '${key}')" title="Eliminar efecto">✕</button>
+                                </div>`;
+                            }).join('');
+
+                            return htmlStr;
+                        })()}
                     </div>
                 </div>
             `;
@@ -2731,22 +2795,22 @@ window._renderEffectPickerModal = function() {
         });
     }
 
-    // 2. Habilidades dinámicas
+    // 2. Habilidades dinámicas (se listan como Habilidad individual, los parámetros se agregan luego)
     const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
     const skills = cfg.skillsData || {};
     for (const [skId, sk] of Object.entries(skills)) {
         const skName = sk.name || skId;
-        for (const [attrKey, attrMeta] of Object.entries(window.SKILL_ATTRS || {})) {
-            allItems.push({
-                key: `skill:${skId}:${attrKey}`,
-                label: `${skName} → ${attrMeta.label}`,
-                icon: attrMeta.icon || '🌀',
-                cat: 'skill',
-                sub: `Habilidad • ID: ${skId} • Unidad: ${attrMeta.unit}`,
-                defaultValue: attrKey === 'cd' ? -0.1 : 0.05,
-                isFlat: false
-            });
-        }
+        allItems.push({
+            key: `skill_group:${skId}`,
+            skillId: skId,
+            label: skName,
+            icon: sk.icon || '🌀',
+            cat: 'skill',
+            sub: `Habilidad • ID: ${skId} • Configurar parámetros`,
+            defaultValue: 0,
+            isFlat: false,
+            isSkillGroup: true
+        });
     }
 
     // 3. Armas
@@ -2844,7 +2908,15 @@ window._renderEffectPickerModal = function() {
     }
 
     // Filtrar elementos ya existentes en el talento
-    const availableItems = allItems.filter(item => !existingKeys.includes(item.key));
+    const availableItems = allItems.filter(item => {
+        if (item.isSkillGroup) {
+            // Solo ocultar la habilidad si ya tiene TODOS los atributos de SKILL_ATTRS agregados
+            const allAttrKeys = Object.keys(window.SKILL_ATTRS || {});
+            const hasAll = allAttrKeys.length > 0 && allAttrKeys.every(ak => existingKeys.includes(`skill:${item.skillId}:${ak}`));
+            return !hasAll;
+        }
+        return !existingKeys.includes(item.key);
+    });
 
     // Filtrar por categoría activa
     let filteredItems = availableItems;
@@ -2958,9 +3030,12 @@ window._renderEffectPickerModal = function() {
                                 <div style="font-size:0.6rem; color:${col}; margin-top:2px;">${item.sub}</div>
                             </div>
                             <div style="flex-shrink:0;">
-                                ${isUnlock 
-                                    ? `<span style="font-size:0.6rem; font-weight:bold; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3);">DESBLOQUEO</span>`
-                                    : `<span style="font-size:0.65rem; font-weight:bold; padding:2px 6px; border-radius:4px; background:${item.isFlat ? 'rgba(255,150,50,0.12)' : 'rgba(0,210,255,0.12)'}; color:${item.isFlat ? '#ff9632' : '#00d2ff'}; border:1px solid ${item.isFlat ? 'rgba(255,150,50,0.3)' : 'rgba(0,210,255,0.3)'};">${item.isFlat ? 'FIJO' : '%'}</span>`
+                                ${item.isSkillGroup 
+                                    ? `<span style="font-size:0.65rem; font-weight:bold; padding:3px 8px; border-radius:4px; background:rgba(249,115,22,0.15); color:#f97316; border:1px solid rgba(249,115,22,0.4);">HABILIDAD ⚙️</span>`
+                                    : (isUnlock 
+                                        ? `<span style="font-size:0.6rem; font-weight:bold; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3);">DESBLOQUEO</span>`
+                                        : `<span style="font-size:0.65rem; font-weight:bold; padding:2px 6px; border-radius:4px; background:${item.isFlat ? 'rgba(255,150,50,0.12)' : 'rgba(0,210,255,0.12)'}; color:${item.isFlat ? '#ff9632' : '#00d2ff'}; border:1px solid ${item.isFlat ? 'rgba(255,150,50,0.3)' : 'rgba(0,210,255,0.3)'};">${item.isFlat ? 'FIJO' : '%'}</span>`
+                                    )
                                 }
                             </div>
                         </div>`;
@@ -3054,6 +3129,16 @@ window.selectEffectFromPicker = function(key, defaultVal, isFlat, label, icon) {
     const val = (typeof defaultVal === 'number') ? defaultVal : 0.01;
     const flat = !!isFlat;
 
+    // Si es un grupo de habilidad, abrimos directamente el selector de parámetros para esa habilidad
+    if (key.startsWith('skill_group:')) {
+        const skId = key.replace('skill_group:', '');
+        closeEffectPickerModal();
+        if (idx !== null) {
+            openSkillParamPickerModal(idx, skId);
+        }
+        return;
+    }
+
     if (cb) {
         cb({ key, val, flat, label, icon });
     } else if (idx !== null && config?.talentsConfig?.talents?.[idx]) {
@@ -3065,6 +3150,119 @@ window.selectEffectFromPicker = function(key, defaultVal, isFlat, label, icon) {
         renderTalentCreator();
     }
     closeEffectPickerModal();
+};
+
+// ═══════════════════════════════════════════════════════════
+// SELECTOR DE PARÁMETROS ESPECÍFICOS DE HABILIDAD
+// ═══════════════════════════════════════════════════════════
+window.openSkillParamPickerModal = function(talentIdx, skId) {
+    const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
+    const skills = cfg.skillsData || {};
+    const sk = skills[skId] || {};
+    const skName = sk.name || skId;
+    const t = cfg.talentsConfig?.talents?.[talentIdx];
+    if (!t) return;
+
+    const existingEffects = t.effects || {};
+    const availableAttrs = Object.entries(window.SKILL_ATTRS || {}).filter(([attrKey]) => {
+        return existingEffects[`skill:${skId}:${attrKey}`] === undefined;
+    });
+
+    let itemsHtml = '';
+    if (availableAttrs.length === 0) {
+        itemsHtml = `
+            <div style="text-align:center; padding:2rem 1rem; color:#888;">
+                <div style="font-size:2rem; margin-bottom:8px;">✅</div>
+                <div style="font-size:0.9rem; color:#aaa;">Esta habilidad ya tiene todos los parámetros configurados en este talento.</div>
+            </div>
+        `;
+    } else {
+        itemsHtml = `
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px;">
+                ${availableAttrs.map(([attrKey, attrMeta]) => {
+                    const defaultVal = attrKey === 'cd' ? -0.1 : 0.05;
+                    const isFlat = false;
+                    return `
+                    <div onclick="addSkillParamToTalent(${talentIdx}, '${skId.replace(/'/g, "\\'")}', '${attrKey}', ${defaultVal}, ${isFlat})"
+                         style="display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; cursor:pointer; background:rgba(249,115,22,0.05); border:1px solid rgba(249,115,22,0.25); transition:all 0.15s;"
+                         onmouseover="this.style.background='rgba(249,115,22,0.15)'; this.style.borderColor='rgba(249,115,22,0.8)'; this.style.transform='translateY(-1px)';"
+                         onmouseout="this.style.background='rgba(249,115,22,0.05)'; this.style.borderColor='rgba(249,115,22,0.25)'; this.style.transform='none';">
+                        <span style="font-size:1.8rem; flex-shrink:0;">${attrMeta.icon || '⚡'}</span>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-size:0.85rem; font-weight:bold; color:white;">${attrMeta.label}</div>
+                            <div style="font-size:0.68rem; color:#f97316; font-family:'JetBrains Mono'; margin-top:2px;">skill:${skId}:${attrKey}</div>
+                            <div style="font-size:0.62rem; color:#888; margin-top:1px;">Unidad base: ${attrMeta.unit || 'pts'}</div>
+                        </div>
+                        <span style="font-size:1rem; color:#f97316;">➕</span>
+                    </div>`;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    const modalHtml = `
+    <div id="skill-param-picker-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:100002; display:flex; align-items:center; justify-content:center; padding:1.5rem;" onclick="if(event.target===this)closeSkillParamPickerModal()">
+        <div style="width:100%; max-width:680px; max-height:85vh; display:flex; flex-direction:column; background:#0e121e; border:1px solid rgba(249,115,22,0.4); border-radius:18px; box-shadow:0 30px 90px rgba(0,0,0,0.9); overflow:hidden;">
+            <!-- Cabecera -->
+            <div style="padding:1.2rem 1.6rem; border-bottom:1px solid rgba(249,115,22,0.15); display:flex; justify-content:space-between; align-items:center; background:rgba(249,115,22,0.06);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.6rem;">🌀</span>
+                    <div>
+                        <h3 style="color:#f97316; font-size:1.1rem; margin:0; letter-spacing:0.04em;">MODIFICAR PARÁMETRO: ${skName.toUpperCase()}</h3>
+                        <div style="font-size:0.72rem; color:#aaa;">Elegí qué atributo de la habilidad querés alterar con este talento</div>
+                    </div>
+                </div>
+                <button onclick="closeSkillParamPickerModal()" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#aaa; cursor:pointer; width:32px; height:32px; border-radius:8px; font-size:1rem; display:flex; align-items:center; justify-content:center; transition:all 0.15s;" onmouseover="this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.3)'" onmouseout="this.style.color='#aaa'; this.style.borderColor='rgba(255,255,255,0.1)'">✕</button>
+            </div>
+
+            <!-- Contenido -->
+            <div style="flex:1; overflow-y:auto; padding:1.4rem 1.6rem;">
+                ${itemsHtml}
+            </div>
+        </div>
+    </div>`;
+
+    const existing = document.getElementById('skill-param-picker-overlay');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+};
+
+window.closeSkillParamPickerModal = function() {
+    const el = document.getElementById('skill-param-picker-overlay');
+    if (el) el.remove();
+};
+
+window.addSkillParamToTalent = function(talentIdx, skId, attrKey, defaultVal, isFlat) {
+    const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
+    const t = cfg.talentsConfig?.talents?.[talentIdx];
+    if (!t) return;
+    if (!t.effects) t.effects = {};
+    if (!t.effectsMeta) t.effectsMeta = {};
+
+    const fullKey = `skill:${skId}:${attrKey}`;
+    t.effects[fullKey] = defaultVal;
+    t.effectsMeta[fullKey] = { flat: !!isFlat };
+
+    closeSkillParamPickerModal();
+    renderTalentCreator();
+};
+
+window.deleteTalentSkillGroup = function(talentIdx, skId) {
+    const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
+    const t = cfg.talentsConfig?.talents?.[talentIdx];
+    if (!t || !t.effects) return;
+
+    const prefix = `skill:${skId}:`;
+    Object.keys(t.effects).forEach(key => {
+        if (key.startsWith(prefix)) {
+            delete t.effects[key];
+            if (t.effectsMeta && t.effectsMeta[key]) {
+                delete t.effectsMeta[key];
+            }
+        }
+    });
+
+    renderTalentCreator();
 };
 
 // ═══════════════════════════════════════════════════════════

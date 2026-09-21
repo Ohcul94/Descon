@@ -614,6 +614,9 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			if node:
 				node.visible = bool(config[win_id])
 				_update_icon_state(win_id, node.visible)
+		# CenterStats oculto definitivamente — datos ahora en pestaña Estadísticas
+		if center_stats:
+			center_stats.visible = false
 	elif not _hud_visibility_initialized:
 		# Fallback exclusivo para primer inicio de jugador nuevo sin preferencias previas
 		_hud_visibility_initialized = true
@@ -705,7 +708,7 @@ func _on_minimize_pressed(id: String):
 
 func _on_icon_pressed(id: String):
 	if id == "Stats":
-		var inv = get_tree().get_first_node_in_group("inventory")
+		var inv = get_tree().get_first_node_in_group("inventory_ui")
 		if is_instance_valid(inv):
 			if inv.is_open:
 				var tabs = inv.get_node_or_null("Window/TabContainer")
