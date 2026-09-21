@@ -105,6 +105,7 @@ func get_talent_config() -> Dictionary:
 
 # ═══════════════════════════════════════════════════════
 # BONIFICADORES (para el cálculo de stats)
+# Soporta effectsMeta para distinguir fijo vs porcentual
 # ═══════════════════════════════════════════════════════
 
 func get_bonuses() -> Dictionary:
@@ -141,14 +142,29 @@ func get_bonuses() -> Dictionary:
 			if lvl <= 0:
 				continue
 			var effects = t.get("effects", {})
+			var effects_meta = t.get("effectsMeta", {})
 			for key in effects:
-				var val = effects[key] * lvl
-				if bonuses.has(key):
-					bonuses[key] += val
+				# Saltar efectos de desbloqueo (se procesan en get_unlocks)
+				if key.begins_with("unlock:"):
+					continue
+				var base_val = float(effects[key])
+				# Verificar metadata: ¿es fijo o porcentual?
+				var meta = effects_meta.get(key, {})
+				var is_flat = meta.get("flat", false)
+				var val = base_val * lvl
+				# Si effectsMeta indica flat, guardar con sufijo _flat para compatibilidad
+				if is_flat:
+					var flat_key = key + "_flat"
+					if bonuses.has(flat_key):
+						bonuses[flat_key] += val
+					elif bonuses.has(key):
+						bonuses[key] += val
+				else:
+					if bonuses.has(key):
+						bonuses[key] += val
 		return bonuses
 	
 	# Fallback: si no hay config visual, calcular desde skill_tree directamente
-	# Solo funciona si la config tiene categorías conocidas
 	for cat in skill_tree:
 		var branch = skill_tree[cat]
 		if typeof(branch) != TYPE_ARRAY or branch.size() == 0:
@@ -159,11 +175,57 @@ func get_bonuses() -> Dictionary:
 			if lvl <= 0:
 				continue
 			var effects = cat_talents[i].get("effects", {})
+			var effects_meta = cat_talents[i].get("effectsMeta", {})
 			for key in effects:
-				if bonuses.has(key):
-					bonuses[key] += effects[key] * lvl
+				if key.begins_with("unlock:"):
+					continue
+				var base_val = float(effects[key])
+				var meta = effects_meta.get(key, {})
+				var is_flat = meta.get("flat", false)
+				var val = base_val * lvl
+				if is_flat:
+					var flat_key = key + "_flat"
+					if bonuses.has(flat_key):
+						bonuses[flat_key] += val
+					elif bonuses.has(key):
+						bonuses[key] += val
+				else:
+					if bonuses.has(key):
+						bonuses[key] += val
 	
 	return bonuses
+
+# ═══════════════════════════════════════════════════════
+# DESBLOQUEOS DE TALENTOS
+# Devuelve un Array de strings tipo "weapon:las3", "ship:2", "skill:SK-DEF-01"
+# ═══════════════════════════════════════════════════════
+
+func get_talent_unlocks() -> Array:
+	var result: Array = []
+	if typeof(skill_tree) != TYPE_DICTIONARY:
+		return result
+	
+	var tc = talents_visual_config
+	var talents_list = tc.get("talents", [])
+	
+	for t in talents_list:
+		var cat = t.get("category", "")
+		var branch = skill_tree.get(cat, [])
+		var talents_in_cat = talents_list.filter(func(x): return x.get("category") == cat)
+		var idx = talents_in_cat.find(t)
+		if idx == -1 or idx >= branch.size():
+			continue
+		var lvl = branch[idx]
+		if lvl <= 0:
+			continue
+		var effects = t.get("effects", {})
+		for key in effects:
+			if key.begins_with("unlock:"):
+				# "unlock:weapon:las3" → "weapon:las3"
+				var unlock_id = key.substr(7)
+				if not result.has(unlock_id):
+					result.append(unlock_id)
+	return result
 
 # ═══════════════════════════════════════════════════════
 # ACCIONES

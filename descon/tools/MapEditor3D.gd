@@ -47,10 +47,12 @@ var objects_root: Node3D = null
 var _selected_object: Node3D = null
 var _is_dragging: bool = false
 var _drag_offset: Vector3 = Vector3.ZERO
-var _snap_to_grid: bool = true
+var _snap_to_grid: bool = false
 var _gizmo_mode: int = 0  # 0=move, 1=rotate, 2=scale
 # var _current_gizmo: Node3D = null
 var _auto_loading: bool = false
+var _drag_start_screen: Vector2 = Vector2.ZERO
+var _drag_start_scale: float = 1.0
 
 const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "nexus", "pillar", "market", "custom", "spawner"]
 
@@ -186,6 +188,8 @@ func _handle_left_click(event: InputEventMouseButton):
 				_select_object(hit_obj)
 				_is_dragging = true
 				_drag_offset = hit_obj.global_position - ray_result.position
+				_drag_start_screen = event.position
+				_drag_start_scale = hit_obj.scale.x
 				return
 			hit_obj = hit_obj.get_parent()
 	_clear_selection()
@@ -232,8 +236,8 @@ func _drag_selected_object(screen_pos: Vector2):
 			_selected_object.rotation.y = angle
 			_selected_object.set_meta("rot_y_deg", rad_to_deg(angle))
 		2:
-			var dist = _selected_object.global_position.distance_to(target_pos)
-			var new_scale = max(0.1, dist / 2.0)
+			var delta_y = (_drag_start_screen.y - screen_pos.y) * 0.005
+			var new_scale = max(0.1, _drag_start_scale + delta_y)
 			_selected_object.scale = Vector3.ONE * new_scale
 			_selected_object.set_meta("scale_2d", new_scale)
 

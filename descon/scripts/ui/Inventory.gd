@@ -252,17 +252,8 @@ func _draw():
 	blocker.position = r_pos; blocker.size = r_size
 	blocker.mouse_filter = Control.MOUSE_FILTER_STOP
 	
-	draw_rect(Rect2(r_pos, r_size), Color(0.02, 0.02, 0.05, 0.98))
-	draw_rect(Rect2(r_pos, Vector2(r_size.x, 35)), Color(0, 0.08, 0.12, 1.0))
-	draw_rect(Rect2(r_pos, r_size), Color(0, 0.8, 1, 0.5), false, 1.5)
-	
-	var f = get_theme_font("font")
-	draw_string(f, r_pos + Vector2(20, 22), "HUBS: " + _format_val(hubs), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0, 1, 1))
-	draw_string(f, r_pos + Vector2(180, 22), "OHCU: " + _format_val(ohcu), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 0, 1))
-	
-	# Botón X (Cerrar) optimizado para legibilidad y celulares
-	draw_rect(Rect2(r_pos.x + r_size.x - 50, r_pos.y+6, 40, 24), Color(0, 1, 1), false, 1.2)
-	draw_string(f, r_pos + Vector2(r_size.x-36, 22), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0, 1, 1))
+	# Dibujar contenedor modal táctico AAA (Estética Aerospace Tactical Glass)
+	HUDFrame.draw_tactical_modal(self, r_pos, r_size, "CENTRO DE EQUIPAMIENTO Y LOGÍSTICA", true, _format_val(hubs), _format_val(ohcu))
 
 func _format_val(v):
 	var s = str(int(v)); var r = ""; var c = 0

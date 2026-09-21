@@ -22,7 +22,7 @@ function refreshCurrentTab() {
     const tabId = active.id.replace('view-', '');
     const renderMap = {
         'ships': renderShips, 'enemies': renderEnemies, 'ammo': renderAmmo, 'weapons': renderWeapons, 
-        'shields': renderShields, 'engines': renderEngines, 'skills': renderSkills, 
+        'shields': renderShields, 'engines': renderEngines, 'spheres': renderSpheres, 'skills': renderSkills, 
         'mechanics': renderMechanicsLib, 'maps': renderMaps, 'users': renderRegisteredUsers,
         'pilot': renderPilot,
         'modes': renderModes,
@@ -47,7 +47,7 @@ function refreshCurrentTab() {
 function renderAll() {
     if(!config || Object.keys(config).length === 0) return;
     renderShips(); renderEnemies(); renderSkills(); renderMechanicsLib();
-    renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines();
+    renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines(); renderSpheres();
     renderPilot();
     renderModes();
     renderLootConfig();

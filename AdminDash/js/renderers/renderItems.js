@@ -378,6 +378,187 @@ function renderEngines() {
     });
 }
 
+const SPHERE_STAT_KEYS = [
+    { k: 'hpMod', l: '❤️ Vida (pts)' },
+    { k: 'shieldMod', l: '🛡️ Escudo (pts)' },
+    { k: 'speedMod', l: '💨 Velocidad (pts)' },
+    { k: 'dmgMod', l: '⚔️ Daño (pts)' },
+    { k: 'healMod', l: '💚 Curación (pts)' },
+    { k: 'hpPct', l: '❤️ Vida (%)' },
+    { k: 'shieldPct', l: '🛡️ Escudo (%)' },
+    { k: 'speedPct', l: '💨 Velocidad (%)' },
+    { k: 'dmgPct', l: '⚔️ Daño (%)' },
+    { k: 'healPct', l: '💚 Curación (%)' },
+    { k: 'critChance', l: '💎 Crítico Chance (%)' },
+    { k: 'critDmg', l: '💥 Daño Crítico (%)' },
+    { k: 'cooldownReduction', l: '⏱️ Reducción CD (%)' },
+    { k: 'evasion', l: '🌀 Evasión (%)' },
+    { k: 'armor', l: '🔒 Armadura (%)' },
+    { k: 'hpRegen', l: '💗 Regen. Vida (pts/s)' },
+    { k: 'shieldRegen', l: '🔵 Regen. Escudo (pts/s)' },
+    { k: 'fireRate', l: '🔥 Cadencia de Fuego (%)' },
+    { k: 'accuracy', l: '🎯 Precisión (%)' },
+    { k: 'dashDistance', l: '🚀 Distancia Dash (%)' },
+    { k: 'ignoreShield', l: '🔓 Ignorar Escudo (%)' },
+    { k: 'minimapRange', l: '🗺️ Rango Minimapa (pts)' },
+    { k: 'shopDiscount', l: '💰 Descuento Tienda (%)' },
+    { k: 'bossLootBonus', l: '🏆 Bonus Botín Boss (%)' }
+];
+
+function renderSpheres() {
+    const grid = document.getElementById('spheres-grid'); grid.innerHTML = '';
+    const f = getFilter();
+    if (!config.shopItems.spheres) config.shopItems.spheres = [];
+    config.shopItems.spheres.forEach((s, i) => {
+        if(f && !s.name.toLowerCase().includes(f) && !s.id.toLowerCase().includes(f) && !JSON.stringify(s).toLowerCase().includes(f)) return;
+
+        const iconWeb = resolveAssetWebUrl(s.icon || '');
+        const iconPreview = iconWeb
+            ? `<img src="${iconWeb}" style="width:80px; height:80px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
+            : `<div style="width:80px; height:80px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
+
+        const sphereColorOptions = [
+            { value: 'roja', label: '🔴 Roja (Ataque)', color: '#ff4444' },
+            { value: 'azul', label: '🔵 Azul (Defensa)', color: '#4488ff' },
+            { value: 'verde', label: '🟢 Verde (Curación)', color: '#44cc44' },
+            { value: 'amarilla', label: '🟡 Amarilla (Utilidad)', color: '#ffcc00' }
+        ];
+
+        const stats = s.stats || {};
+
+        const card = document.createElement('div'); card.className = 'card';
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="card-tag">ID: ${s.id}</div>
+                <button style="background:none; border:none; color:${s.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleSphereVisibility(${i})">
+                    ${s.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
+                </button>
+            </div>
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${iconPreview}
+                    <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload(${i}, 'sphere_icon')">🖼️ ICONO</button>
+                    ${s.icon ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="config.shopItems.spheres[${i}].icon=''; renderSpheres();">✕ Quitar</button>` : ''}
+                </div>
+                <div style="flex-grow:1;">
+                    <div class="field full"><label>Nombre de la Esfera</label><input type="text" value="${s.name}" onchange="config.shopItems.spheres[${i}].name = this.value"></div>
+                    <div class="field full"><label>Descripción</label><input type="text" value="${s.desc || ''}" onchange="config.shopItems.spheres[${i}].desc = this.value"></div>
+                    <div style="display:flex; gap:10px; margin-top:8px;">
+                        <div class="field" style="margin:0; flex:1;">
+                            <label>ID Ítem</label>
+                            <input type="text" value="${s.id}" onchange="config.shopItems.spheres[${i}].id = this.value" style="font-family:'JetBrains Mono',monospace;">
+                        </div>
+                        <div class="field" style="margin:0; flex:1;">
+                            <label>Color Visual (Hex)</label>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <input type="color" value="${s.color || '#ffffff'}" onchange="config.shopItems.spheres[${i}].color = this.value" style="width:36px; height:32px; padding:2px; cursor:pointer; border:1px solid rgba(255,255,255,0.15); border-radius:4px; background:transparent;">
+                                <input type="text" value="${s.color || '#ffffff'}" onchange="config.shopItems.spheres[${i}].color = this.value" style="flex:1; font-family:'JetBrains Mono',monospace; font-size:0.75rem;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:0.5rem; padding:0.7rem; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.15); border-radius:6px;">
+                <label style="color:#a855f7; font-size:0.65rem; font-weight:bold; letter-spacing:1px;">🎨 TIPO / COLOR DE ESFERA</label>
+                <div style="display:flex; gap:8px; margin-top:0.5rem; flex-wrap:wrap;">
+                    ${sphereColorOptions.map(opt => `
+                        <button style="padding:4px 12px; font-size:0.7rem; border-radius:6px; cursor:pointer; border:2px solid ${(s.sphereColor || 'roja') === opt.value ? opt.color : 'rgba(255,255,255,0.1)'}; background:${(s.sphereColor || 'roja') === opt.value ? opt.color + '22' : 'rgba(255,255,255,0.03)'}; color:${(s.sphereColor || 'roja') === opt.value ? opt.color : '#888'}; font-weight:${(s.sphereColor || 'roja') === opt.value ? 'bold' : 'normal'}; transition:all 0.2s;" onclick="config.shopItems.spheres[${i}].sphereColor = '${opt.value}'; config.shopItems.spheres[${i}].color = '${opt.color}'; renderSpheres();">
+                            ${opt.label}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div style="margin-top:1rem; padding-top:1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+                    <div>
+                        <label style="color:var(--accent); font-size:0.7rem; font-weight:bold;">📊 MODIFICADORES DE ESTADÍSTICAS</label>
+                        <p style="font-size:0.65rem; color:#666; margin:2px 0 0;">Agregá las stat que quieras. Se aplican al equipar la esfera.</p>
+                    </div>
+                    <button class="btn" style="padding:3px 10px; font-size:0.65rem; background:rgba(0,210,255,0.1); border:1px solid rgba(0,210,255,0.3); color:var(--primary); border-radius:4px;" onclick="addSphereStat(${i})">+ ESTADÍSTICA</button>
+                </div>
+                <div id="sphere-stats-${i}" style="display:flex; flex-direction:column; gap:5px;">
+                    ${Object.entries(stats).map(([key, val]) => {
+                        const isPct = key.endsWith('Pct') || key.endsWith('Chance') || key.endsWith('Dmg') || key === 'evasion' || key === 'armor' || key === 'fireRate' || key === 'accuracy' || key === 'dashDistance' || key === 'ignoreShield' || key === 'shopDiscount' || key === 'bossLootBonus' || key === 'cooldownReduction';
+                        const displayVal = isPct ? (val * 100) : val;
+                        const cleanVal = Number.isInteger(displayVal) ? displayVal : parseFloat(displayVal.toFixed(2));
+                        const statInfo = SPHERE_STAT_KEYS.find(sk => sk.k === key);
+                        const label = statInfo ? statInfo.l : key;
+                        return `
+                        <div style="display:flex; gap:6px; align-items:center; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                            <select style="flex:1; background:transparent; border:none; color:white; font-size:0.75rem;" onchange="updateSphereStatKey(${i}, '${key}', this.value)">
+                                ${SPHERE_STAT_KEYS.map(sk => `<option value="${sk.k}" ${key === sk.k ? 'selected' : ''}>${sk.l}</option>`).join('')}
+                            </select>
+                            <input type="number" step="0.1" value="${cleanVal}" style="width:80px; text-align:right; font-size:0.75rem; padding:4px;" onchange="updateSphereStatVal(${i}, '${key}', this.value)">
+                            <select style="width:50px; font-size:0.65rem; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:3px; padding:2px;" onchange="updateSphereStatType(${i}, '${key}', this.value)">
+                                <option value="${isPct ? 'pct' : 'flat'}" ${isPct ? 'selected' : ''}>%</option>
+                                <option value="${isPct ? 'flat' : 'pct'}" ${!isPct ? 'selected' : ''}>FIJO</option>
+                            </select>
+                            <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="removeSphereStat(${i}, '${key}')">✕</button>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+
+            <div class="price-group" style="display:flex; gap:15px; margin-top:1rem; border-top:1px solid #333; padding-top:1rem;">
+                <div class="field" style="flex:1;"><label>Precio Hubs (qty)</label><input type="number" value="${s.prices ? s.prices.hubs : 0}" onchange="if(!config.shopItems.spheres[${i}].prices) config.shopItems.spheres[${i}].prices = {hubs:0,ohcu:0}; config.shopItems.spheres[${i}].prices.hubs = parseInt(this.value)"></div>
+                <div class="field" style="flex:1;"><label>Precio Ohcu (qty)</label><input type="number" value="${s.prices ? s.prices.ohcu : 0}" onchange="if(!config.shopItems.spheres[${i}].prices) config.shopItems.spheres[${i}].prices = {hubs:0,ohcu:0}; config.shopItems.spheres[${i}].prices.ohcu = parseInt(this.value)"></div>
+                <div class="field" style="flex:1;"><label>No Comerciable</label><input type="checkbox" ${s.soulbound ? 'checked' : ''} onchange="config.shopItems.spheres[${i}].soulbound = this.checked"></div>
+            </div>
+
+            ${requirementsSectionHtml('req_sphere_' + i, `config.shopItems.spheres[${i}]`)}
+        `;
+        grid.appendChild(card);
+    });
+}
+
+window.addSphereStat = function(sphereIdx) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s.stats) s.stats = {};
+    const usedKeys = Object.keys(s.stats);
+    const nextStat = SPHERE_STAT_KEYS.find(sk => !usedKeys.includes(sk.k));
+    const keyToAdd = nextStat ? nextStat.k : 'custom_' + Date.now();
+    s.stats[keyToAdd] = 0;
+    renderSpheres();
+};
+
+window.updateSphereStatKey = function(sphereIdx, oldKey, newKey) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s.stats) s.stats = {};
+    if (s.stats[newKey] !== undefined) return;
+    const val = s.stats[oldKey];
+    delete s.stats[oldKey];
+    s.stats[newKey] = val;
+    renderSpheres();
+};
+
+window.updateSphereStatVal = function(sphereIdx, key, newVal) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s.stats) s.stats = {};
+    const isPct = key.endsWith('Pct') || key.endsWith('Chance') || key.endsWith('Dmg') || key === 'evasion' || key === 'armor' || key === 'fireRate' || key === 'accuracy' || key === 'dashDistance' || key === 'ignoreShield' || key === 'shopDiscount' || key === 'bossLootBonus' || key === 'cooldownReduction';
+    s.stats[key] = isPct ? ((parseFloat(newVal) || 0) / 100) : (parseFloat(newVal) || 0);
+};
+
+window.updateSphereStatType = function(sphereIdx, key, newType) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s.stats) s.stats = {};
+    const currentVal = s.stats[key] || 0;
+    const wasPctKey = key.endsWith('Pct') || key.endsWith('Chance') || key.endsWith('Dmg') || key === 'evasion' || key === 'armor' || key === 'fireRate' || key === 'accuracy' || key === 'dashDistance' || key === 'ignoreShield' || key === 'shopDiscount' || key === 'bossLootBonus' || key === 'cooldownReduction';
+    if (wasPctKey && newType === 'flat') {
+        s.stats[key] = currentVal * 100;
+    } else if (!wasPctKey && newType === 'pct') {
+        s.stats[key] = currentVal / 100;
+    }
+    renderSpheres();
+};
+
+window.removeSphereStat = function(sphereIdx, key) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (s.stats) delete s.stats[key];
+    renderSpheres();
+};
+
 function renderShips() {
     const grid = document.getElementById('ships-grid'); grid.innerHTML = '';
     const f = getFilter();
@@ -480,7 +661,36 @@ window.toggleEngineVisibility = function(i) {
     renderEngines();
 };
 
-window.addNewShip = function() {
+window.toggleSphereVisibility = function(i) {
+    if (!config.shopItems.spheres[i]) config.shopItems.spheres[i] = {};
+    config.shopItems.spheres[i].hidden = !config.shopItems.spheres[i].hidden;
+    renderSpheres();
+};
+
+window.addNewSphere = function() {
+    if (!config.shopItems.spheres) config.shopItems.spheres = [];
+    let maxIdx = config.shopItems.spheres.length;
+    const sphereColors = ['roja', 'azul', 'verde', 'amarilla'];
+    const nextColor = sphereColors[maxIdx % sphereColors.length];
+    const colorHexMap = { roja: '#ff4444', azul: '#4488ff', verde: '#44cc44', amarilla: '#ffcc00' };
+    const newSphere = {
+        id: 'esfera_' + (maxIdx + 1),
+        name: 'Esfera Nueva ' + (maxIdx + 1),
+        desc: 'Nueva esfera configurable.',
+        type: 'sphere',
+        icon: '',
+        color: colorHexMap[nextColor] || '#ffffff',
+        sphereColor: nextColor,
+        maxStack: 1,
+        soulbound: false,
+        prices: { hubs: 5000, ohcu: 25 },
+        stats: {}
+    };
+    config.shopItems.spheres.push(newSphere);
+    renderSpheres();
+};
+
+window.removeNewShip = function(idx) {
     if (!config.shipModels) config.shipModels = [];
     let maxId = 0;
     config.shipModels.forEach(s => {

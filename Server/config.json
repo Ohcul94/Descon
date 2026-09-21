@@ -11748,9 +11748,10 @@
                     "hubs": 5000,
                     "ohcu": 25
                 },
-                "soulbound": false,
+                "soulbound": true,
                 "sphereColor": "roja",
-                "type": "sphere"
+                "type": "sphere",
+                "requirements": []
             },
             {
                 "color": "#389c99",
@@ -11763,7 +11764,7 @@
                     "hubs": 5000,
                     "ohcu": 25
                 },
-                "soulbound": false,
+                "soulbound": true,
                 "sphereColor": "azul",
                 "type": "sphere"
             },
@@ -11778,7 +11779,7 @@
                     "hubs": 5000,
                     "ohcu": 25
                 },
-                "soulbound": false,
+                "soulbound": true,
                 "sphereColor": "verde",
                 "type": "sphere"
             },
@@ -11793,7 +11794,7 @@
                     "hubs": 5000,
                     "ohcu": 25
                 },
-                "soulbound": false,
+                "soulbound": true,
                 "sphereColor": "amarilla",
                 "type": "sphere"
             }

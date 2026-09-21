@@ -157,18 +157,8 @@ func _draw():
 			tabs_node.offset_top = 40; tabs_node.offset_left = 15
 			tabs_node.offset_right = -15; tabs_node.offset_bottom = -15
 	
-	# Dibujar fondo y bordes (Estética Hangar F1)
-	draw_rect(Rect2(r_pos, r_size), Color(0.02, 0.02, 0.05, 0.98)) # Fondo oscuro
-	draw_rect(Rect2(r_pos, Vector2(r_size.x, 35)), Color(0, 0.08, 0.12, 1.0)) # Cabecera
-	draw_rect(Rect2(r_pos, r_size), Color(0, 0.8, 1, 0.5), false, 1.5) # Borde Cian
-	
-	# Título
-	var f = get_theme_font("font")
-	draw_string(f, r_pos + Vector2(20, 22), "CENTRO DE EVENTOS Y MISIONES", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0, 1, 1))
-	
-	# Botón X (Cerrar) optimizado para legibilidad y celulares
-	draw_rect(Rect2(r_pos.x + r_size.x - 50, r_pos.y+6, 40, 24), Color(0, 1, 1), false, 1.2)
-	draw_string(f, r_pos + Vector2(r_size.x-36, 22), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0, 1, 1))
+	# Dibujar contenedor modal táctico AAA (Estética Aerospace Tactical Glass compartida con F1)
+	HUDFrame.draw_tactical_modal(self, r_pos, r_size, "CENTRO DE EVENTOS Y MISIONES", false)
 
 func _input(event):
 	var is_click = false

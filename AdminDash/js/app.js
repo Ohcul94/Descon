@@ -101,7 +101,7 @@ function showTab(tabId) {
         'maps': 'folder-maps', 'map-detail': 'folder-maps',
         'enemies': 'folder-enemies', 'enemy-detail': 'folder-enemies',
         'mechanics': 'folder-mechanics',
-        'ammo': 'folder-market', 'weapons': 'folder-market', 'shields': 'folder-market', 'engines': 'folder-market', 'market': 'folder-market',
+        'ammo': 'folder-market', 'weapons': 'folder-market', 'shields': 'folder-market', 'engines': 'folder-market', 'spheres': 'folder-market', 'market': 'folder-market',
         'skills': 'folder-skills',
         'modes': 'folder-modes',
         'loot': 'folder-loot',
@@ -138,7 +138,7 @@ function showTab(tabId) {
     const titles = {
         'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas',
         'ammo': 'Mercado: Municiones', 'weapons': 'Mercado: Armamento',
-        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión', 'market': 'Regulador de Mercado',
+        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión', 'spheres': 'Mercado: Esferas', 'market': 'Regulador de Mercado',
         'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
         'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema',
         'sessions': 'Auditoría de Sesiones Estelares',
@@ -3603,6 +3603,7 @@ function addNewTalent() {
     document.getElementById('cm-nodeType').value = 'small';
     document.getElementById('cm-maxLevel').value = '1';
     window._cmEffects = [];
+    window._cmEffectFilter = '';
     cmRenderEffects();
     cmUpdateMaxLevel();
 }
@@ -3618,10 +3619,25 @@ window.cmUpdateMaxLevel = function() {
 };
 
 window.cmAddEffect = function() {
-    const allKeys = ['hp_pct','sh_pct','hp_regen','shield_regen','armor_pct','energy_efficiency','repair_cost_reduction','stability','laser_dmg_pct','crit_chance','crit_dmg','ammo_bonus_pct','accuracy_pct','ignore_shield_pct','fire_rate_pct','evasion_pct','speed_pct','minimap_range','ohcu_kill_bonus','shop_discount','cooldown_reduction','cooldown_reduction_flat','cast_time_reduction','cast_time_reduction_flat','group_bonus','boss_loot_bonus','dash_distance'];
-    const used = (window._cmEffects || []).map(e => e.key);
-    const next = allKeys.find(k => !used.includes(k)) || 'custom_' + Date.now();
-    window._cmEffects.push({ key: next, val: 0.01 });
+    window._cmPickerOpen = true;
+    window._cmEffectFilter = '';
+    cmRenderEffects();
+    setTimeout(() => {
+        const s = document.getElementById('cm-effect-search');
+        if (s) s.focus();
+    }, 50);
+};
+
+window.cmClosePicker = function() {
+    window._cmPickerOpen = false;
+    window._cmEffectFilter = '';
+    cmRenderEffects();
+};
+
+window.cmPickEffect = function(key) {
+    window._cmEffects.push({ key: key, val: 0.01, flat: false });
+    window._cmPickerOpen = false;
+    window._cmEffectFilter = '';
     cmRenderEffects();
 };
 
@@ -3635,46 +3651,125 @@ window.cmUpdateEffectKey = function(i, newKey) {
 };
 
 window.cmUpdateEffectVal = function(i, newVal) {
-    const isFlat = window._cmEffects[i].key && window._cmEffects[i].key.endsWith('_flat');
+    const isFlat = !!window._cmEffects[i].flat;
     window._cmEffects[i].val = isFlat ? (parseFloat(newVal) || 0) : ((parseFloat(newVal) || 0) / 100);
+};
+
+window.cmToggleEffectFlat = function(i) {
+    const oldFlat = !!window._cmEffects[i].flat;
+    const oldVal = window._cmEffects[i].val;
+    if (oldFlat) {
+        window._cmEffects[i].flat = false;
+        window._cmEffects[i].val = oldVal / 100;
+    } else {
+        window._cmEffects[i].flat = true;
+        window._cmEffects[i].val = oldVal * 100;
+    }
+    cmRenderEffects();
 };
 
 function cmRenderEffects() {
     const container = document.getElementById('cm-effects-list');
     if (!container) return;
-    const allKeys = [
-        {k:'hp_pct',l:'Vida Máxima (+%)'},{k:'sh_pct',l:'Escudo Máximo (+%)'},{k:'hp_regen',l:'Regen Vida (+%)'},
-        {k:'shield_regen',l:'Regen Escudo (+%)'},{k:'armor_pct',l:'Armadura (+%)'},{k:'energy_efficiency',l:'Eficiencia Energía (+%)'},
-        {k:'repair_cost_reduction',l:'Costo Reparación (-%)'},{k:'stability',l:'Estabilidad (+%)'},{k:'laser_dmg_pct',l:'Daño Láser (+%)'},
-        {k:'crit_chance',l:'Prob. Crítico (+%)'},{k:'crit_dmg',l:'Daño Crítico (+%)'},{k:'ammo_bonus_pct',l:'Munición (+%)'},
-        {k:'accuracy_pct',l:'Puntería (+%)'},{k:'ignore_shield_pct',l:'Perforación Escudo (+%)'},{k:'fire_rate_pct',l:'Cadencia (+%)'},
-        {k:'evasion_pct',l:'Evasión (+%)'},{k:'speed_pct',l:'Velocidad (+%)'},{k:'minimap_range',l:'Rango Minimapa (+%)'},
-        {k:'ohcu_kill_bonus',l:'Bonus OHCU (+%)'},{k:'shop_discount',l:'Descuento Tienda (-%)'},{k:'cooldown_reduction',l:'CD Habilidades (-%)'},
-        {k:'cooldown_reduction_flat',l:'CD Habilidades (fijo)'},{k:'cast_time_reduction',l:'Cast Time (-%)'},{k:'cast_time_reduction_flat',l:'Cast Time (fijo)'},
-        {k:'group_bonus',l:'Bonus Grupo (+%)'},{k:'boss_loot_bonus',l:'Loot Bosses (+%)'},{k:'dash_distance',l:'Distancia Dash (+%)'}
-    ];
-    container.innerHTML = (window._cmEffects || []).map((e, i) => {
-        const isFlat = e.key && e.key.endsWith('_flat');
+    const catalog = window.TALENT_EFFECTS_CATALOG ? Object.entries(window.TALENT_EFFECTS_CATALOG).map(([k, v]) => ({ key: k, label: v.label, icon: v.icon, cat: v.cat })) : [];
+    const usedKeys = (window._cmEffects || []).map(e => e.key);
+
+    const catNames = { combate: '⚔️ Combate', defensa: '🛡️ Defensa', utilidad: '🔧 Utilidad', economia: '💰 Economía', desbloqueo: '🔓 Desbloqueo', otros: '📦 Otros' };
+
+    let pickerHtml = `<div id="cm-picker-panel" style="display:${window._cmPickerOpen ? 'block' : 'none'}; margin-bottom:10px; border:1px solid rgba(0,210,255,0.25); border-radius:8px; padding:10px; background:rgba(0,210,255,0.03);">`;
+    if (window._cmPickerOpen) {
+        pickerHtml += `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <input type="text" id="cm-effect-search" placeholder="🔍 Escribí para buscar..."
+                    oninput="cmFilterPicker(this.value)"
+                    style="flex:1; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:8px 12px; color:white; font-size:0.82rem; outline:none; box-sizing:border-box;">
+                <button onclick="cmClosePicker()" style="padding:6px 12px; font-size:0.72rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#aaa; cursor:pointer;">Cancelar</button>
+            </div>
+            <div id="cm-picker-results" style="max-height:200px; overflow-y:auto; border:1px solid rgba(255,255,255,0.06); border-radius:6px;"></div>
+        `;
+    }
+    pickerHtml += `</div>`;
+
+    let effectsHtml = '';
+    (window._cmEffects || []).forEach((e, i) => {
+        const isFlat = !!e.flat;
         const numVal = isFlat ? e.val : (e.val * 100);
         const cleanVal = formatCleanNumber(numVal, 2);
-        return `
-        <div style="display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-            <select style="flex:1; background:transparent; border:none; color:white; font-size:0.78rem;" onchange="cmUpdateEffectKey(${i}, this.value)">
-                ${allKeys.map(opt => `<option value="${opt.k}" ${e.key===opt.k?'selected':''}>${opt.l}</option>`).join('')}
-            </select>
-            <input type="number" step="0.1" value="${cleanVal}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="cmUpdateEffectVal(${i}, this.value)">
+        const cat = TALENT_EFFECTS_CATALOG[e.key];
+        const catColor = cat ? _effectCatColor(cat.cat) : '#888';
+
+        effectsHtml += `
+        <div style="display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid ${catColor}25;">
+            <span style="font-size:1rem; flex-shrink:0;">${cat ? cat.icon : '✨'}</span>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:0.72rem; font-weight:bold; color:${catColor}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cat ? cat.label : e.key}</div>
+                <div style="font-size:0.6rem; color:#555; font-family:'JetBrains Mono';">${e.key}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px;">
+                <input type="number" step="0.1" value="${cleanVal}" style="width:75px; text-align:center; font-size:0.78rem; padding:4px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;" onchange="cmUpdateEffectVal(${i}, this.value)">
+                <button onclick="cmToggleEffectFlat(${i})" style="min-width:36px; padding:2px 5px; font-size:0.65rem; border-radius:4px; cursor:pointer; font-weight:bold; border:1px solid rgba(255,255,255,0.15); ${isFlat ? 'background:rgba(0,210,255,0.25); color:var(--primary);' : 'background:rgba(255,170,0,0.2); color:#ffaa00;'}">${isFlat ? 'FIJO' : '%'}</button>
+            </div>
             <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="cmRemoveEffect(${i})">✕</button>
         </div>
         `;
-    }).join('');
+    });
+
+    container.innerHTML = pickerHtml + effectsHtml;
+
+    if (window._cmPickerOpen) {
+        cmFilterPicker(window._cmEffectFilter || '');
+        setTimeout(() => { const s = document.getElementById('cm-effect-search'); if (s) s.focus(); }, 50);
+    }
 }
+
+window.cmFilterPicker = function(val) {
+    window._cmEffectFilter = val;
+    const results = document.getElementById('cm-picker-results');
+    if (!results) return;
+    const catalog = window.TALENT_EFFECTS_CATALOG ? Object.entries(window.TALENT_EFFECTS_CATALOG).map(([k, v]) => ({ key: k, label: v.label, icon: v.icon, cat: v.cat })) : [];
+    const usedKeys = (window._cmEffects || []).map(e => e.key);
+    const filtered = val
+        ? catalog.filter(c => (c.label + ' ' + c.key).toLowerCase().includes(val.toLowerCase()) && !usedKeys.includes(c.key))
+        : catalog.filter(c => !usedKeys.includes(c.key));
+
+    const catNames = { combate: '⚔️ Combate', defensa: '🛡️ Defensa', utilidad: '🔧 Utilidad', economia: '💰 Economía', desbloqueo: '🔓 Desbloqueo', otros: '📦 Otros' };
+
+    if (filtered.length === 0) {
+        results.innerHTML = `<div style="padding:12px; text-align:center; color:#666; font-size:0.78rem;">No se encontraron efectos</div>`;
+        return;
+    }
+
+    const grouped = {};
+    filtered.forEach(c => {
+        const cat = c.cat || 'otros';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(c);
+    });
+
+    let html = '';
+    for (const [cat, items] of Object.entries(grouped)) {
+        html += `<div style="padding:4px 10px; font-size:0.6rem; color:#888; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; background:rgba(255,255,255,0.02);">${catNames[cat] || cat}</div>`;
+        items.forEach(c => {
+            html += `<div onclick="cmPickEffect('${c.key}')" style="padding:7px 10px; cursor:pointer; font-size:0.8rem; color:white; display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(255,255,255,0.03);" onmouseover="this.style.background='rgba(0,210,255,0.12)'" onmouseout="this.style.background='transparent'"><span>${c.icon}</span> ${c.label}</div>`;
+        });
+    }
+    results.innerHTML = html;
+};
 
 window.confirmCreateTalent = function() {
     const name = document.getElementById('cm-name').value.trim();
     if (!name) { document.getElementById('cm-name').style.borderColor = '#ff4444'; return; }
     const id = 'talent_' + Date.now();
     const effects = {};
-    (window._cmEffects || []).forEach(e => { if (e.key) effects[e.key] = e.val; });
+    const effectsMeta = {};
+    (window._cmEffects || []).forEach(e => {
+        if (e.key) {
+            effects[e.key] = e.val;
+            if (e.flat) {
+                effectsMeta[e.key] = { flat: true };
+            }
+        }
+    });
     const newTalent = {
         id: id,
         name: name,
@@ -3682,6 +3777,7 @@ window.confirmCreateTalent = function() {
         category: document.getElementById('cm-category').value,
         maxLevel: parseInt(document.getElementById('cm-maxLevel').value) || 5,
         effects: effects,
+        effectsMeta: Object.keys(effectsMeta).length > 0 ? effectsMeta : undefined,
         icon: document.getElementById('cm-icon').value || '🌳'
     };
     if (!config.talentsConfig.talents) config.talentsConfig.talents = [];

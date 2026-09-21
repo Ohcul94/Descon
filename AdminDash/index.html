@@ -340,6 +340,7 @@
                         <div class="nav-link sub" onclick="showTab('weapons')">⚔️ Armamento</div>
                         <div class="nav-link sub" onclick="showTab('shields')">🛡️ Escudos</div>
                         <div class="nav-link sub" onclick="showTab('engines')">🚀 Motores</div>
+                        <div class="nav-link sub" onclick="showTab('spheres')">🔮 Esferas</div>
                         <div class="nav-link sub" onclick="showTab('market')">🏪 Regulador de Mercado</div>
                     </div>
                 </div>
@@ -574,6 +575,13 @@
 
             <div id="view-engines" class="view">
                 <div id="engines-grid" class="grid"></div>
+            </div>
+
+            <div id="view-spheres" class="view">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                    <button class="btn btn-primary" onclick="addNewSphere()">➕ AGREGAR NUEVA ESFERA</button>
+                </div>
+                <div id="spheres-grid" class="grid"></div>
             </div>
 
             <div id="view-market" class="view">

@@ -442,11 +442,13 @@ func _update_summary_display():
 		"cast_time_reduction_flat": {"name": "Reducción Tiempo Cast (Fijo)", "icon": "⏱️", "unit": "s"},
 		"group_bonus": {"name": "Bonus en Escuadrón", "icon": "👥", "unit": "%"},
 		"boss_loot_bonus": {"name": "Botín de Jefes", "icon": "👑", "unit": "%"},
-		"dash_distance": {"name": "Distancia de Dash", "icon": "🌀", "unit": "%"}
+		"dash_distance": {"name": "Distancia de Dash", "icon": "🌀", "unit": "%"},
+		"dmg_pct": {"name": "Daño Total", "icon": "💥", "unit": "%"}
 	}
 
 	var saved_effects: Dictionary = {}
 	var pend_effects: Dictionary = {}
+	var active_unlocks: Array = []
 	var active_by_cat: Dictionary = {}
 	var total_points_spent: int = 0
 	var total_active_talents: int = 0
@@ -474,12 +476,26 @@ func _update_summary_display():
 		})
 
 		var effects = t.get("effects", {})
+		var effects_meta = t.get("effectsMeta", {})
 		for key in effects:
+			# Efectos de desbloqueo: recopilar por separado
+			if key.begins_with("unlock:"):
+				if saved > 0:
+					var unlock_id = key.substr(7)
+					if not active_unlocks.has(unlock_id):
+						active_unlocks.append(unlock_id)
+				continue
 			var base_val = float(effects[key])
+			# Verificar metadata flat/% del talento
+			var meta = effects_meta.get(key, {})
+			var is_flat = meta.get("flat", false)
+			var display_key = key
+			if is_flat:
+				display_key = key + "_flat"
 			if saved > 0:
-				saved_effects[key] = saved_effects.get(key, 0.0) + (base_val * saved)
+				saved_effects[display_key] = saved_effects.get(display_key, 0.0) + (base_val * saved)
 			if pend > 0:
-				pend_effects[key] = pend_effects.get(key, 0.0) + (base_val * pend)
+				pend_effects[display_key] = pend_effects.get(display_key, 0.0) + (base_val * pend)
 
 	# Actualizar cabecera del panel
 	if summary_header_label:
@@ -488,6 +504,38 @@ func _update_summary_display():
 
 	summary_rtl.clear()
 	var bb = ""
+
+	# ═══ 0. DESBLOQUEOS ACTIVOS ═══
+	if active_unlocks.size() > 0:
+		bb += "[center][color=#a855f7][font_size=13][b]🔓 DESBLOQUEOS ACTIVOS[/b][/font_size][/color][/center]\n\n"
+		for uid in active_unlocks:
+			var parts = uid.split(":")
+			var type_label = ""
+			var icon = "🔓"
+			if parts.size() >= 2:
+				var itype = parts[0]
+				var iid = parts[1] if parts.size() > 1 else ""
+				if itype == "weapon":
+					type_label = "Arma: " + iid.to_upper()
+					icon = "🔫"
+				elif itype == "shield":
+					type_label = "Escudo: " + iid.to_upper()
+					icon = "🛡️"
+				elif itype == "engine":
+					type_label = "Motor: " + iid.to_upper()
+					icon = "🚀"
+				elif itype == "ship":
+					type_label = "Nave: " + iid.to_upper()
+					icon = "🛸"
+				elif itype == "skill":
+					type_label = "Habilidad: " + iid
+					icon = "🌀"
+				else:
+					type_label = itype + ": " + iid
+			else:
+				type_label = uid
+			bb += icon + " [color=#c084fc][b]" + type_label + "[/b][/color]\n"
+		bb += "\n[center][color=#1e2d3d]──────────────────────[/color][/center]\n\n"
 
 	# ═══ 1. BONIFICADORES TOTALES ACUMULADOS ═══
 	bb += "[center][color=#00d2ff][font_size=13][b]⚡ BONIFICADORES TOTALES ACUMULADOS[/b][/font_size][/color][/center]\n\n"
@@ -498,7 +546,7 @@ func _update_summary_display():
 	for k in pend_effects.keys():
 		if not all_stat_keys.has(k): all_stat_keys.append(k)
 
-	if all_stat_keys.is_empty():
+	if all_stat_keys.is_empty() and active_unlocks.is_empty():
 		bb += "[center][color=#778899][i]Aún no tienes talentos activos.\nAsigna puntos en los nodos del árbol para obtener bonificaciones permanentes para tu nave.[/i][/color][/center]\n\n"
 	else:
 		for key in all_stat_keys:
@@ -507,10 +555,13 @@ func _update_summary_display():
 			if abs(s_val) < 0.0001 and abs(p_val) < 0.0001:
 				continue
 
-			var meta = effect_meta.get(key, {"name": key, "icon": "✨", "unit": "%"})
 			var is_flat = key.ends_with("_flat")
+			var base_key = key.trim_suffix("_flat") if is_flat else key
+			var meta = effect_meta.get(base_key, {"name": base_key, "icon": "✨", "unit": "%"})
 			var icon = meta.get("icon", "✨")
-			var stat_name = meta.get("name", key)
+			var stat_name = meta.get("name", base_key)
+			if is_flat:
+				stat_name += " (Fijo)"
 
 			var s_str = _format_stat_value(s_val, is_flat, true)
 			bb += icon + " [b]" + stat_name + ":[/b] [color=#10b981][b]" + s_str + "[/b][/color]"
@@ -521,7 +572,6 @@ func _update_summary_display():
 
 	# ═══ 2. DESGLOSE DETALLADO POR RAMAS ═══
 	if not active_by_cat.is_empty():
-		# Separador centrado ubicado CORRECTAMENTE entre las dos secciones
 		bb += "\n[center][color=#1e2d3d]──────────────────────[/color][/center]\n\n"
 		bb += "[center][color=#00d2ff][font_size=13][b]📁 DESGLOSE POR RAMAS[/b][/font_size][/color][/center]\n"
 
@@ -560,13 +610,24 @@ func _update_summary_display():
 
 				# Efectos individuales de este talento multiplicados por su nivel
 				var effs = t.get("effects", {})
+				var effs_meta = t.get("effectsMeta", {})
 				for ek in effs:
+					# Desbloqueos
+					if ek.begins_with("unlock:"):
+						if it["total"] > 0:
+							bb += "    [color=#556677]↳[/color] [color=#c084fc]🔓 Desbloquea:[/color] [color=#a855f7]" + ek.substr(7) + "[/color]\n"
+						continue
 					var base_eff = float(effs[ek])
 					var cur_eff = base_eff * it["total"]
+					var emeta = effs_meta.get(ek, {})
+					var is_flat_eff = emeta.get("flat", false)
+					var display_ek = ek
+					if is_flat_eff:
+						display_ek = ek + "_flat"
 					var em = effect_meta.get(ek, {"name": ek, "unit": "%"})
-					var is_flat = ek.ends_with("_flat")
-					var eff_str = _format_stat_value(cur_eff, is_flat, true)
-					bb += "    [color=#556677]↳[/color] [color=#8899aa]" + em.get("name", ek) + ":[/color] [color=#10b981]" + eff_str + "[/color]\n"
+					var eff_str = _format_stat_value(cur_eff, is_flat_eff, true)
+					var flat_label = " (Fijo)" if is_flat_eff else ""
+					bb += "    [color=#556677]↳[/color] [color=#8899aa]" + em.get("name", ek) + flat_label + ":[/color] [color=#10b981]" + eff_str + "[/color]\n"
 
 	summary_rtl.append_text(bb)
 
@@ -1194,19 +1255,28 @@ func _update_tooltip(screen_pos: Vector2):
 		"cooldown_reduction": "Reducción CD", "cooldown_reduction_flat": "Reducción CD (fijo)",
 		"cast_time_reduction": "Reducción Cast", "cast_time_reduction_flat": "Reducción Cast (fijo)",
 		"group_bonus": "Bonus Grupo", "boss_loot_bonus": "Loot Bosses",
-		"dash_distance": "Distancia Dash"
+		"dash_distance": "Distancia Dash", "dmg_pct": "Daño Total"
 	}
 	# Efectos aplicados actualmente (solo si tiene puntos asignados o pendientes)
 	var current_effects_text = ""
 	if (saved + pend) > 0:
+		var talent_effects_meta = talent.get("effectsMeta", {})
 		for key in talent.get("effects", {}):
 			var val = float(talent["effects"][key])
+			# Desbloqueos
+			if key.begins_with("unlock:"):
+				if current_effects_text != "":
+					current_effects_text += "\n"
+				current_effects_text += "  [color=#c084fc]🔓[/color] Desbloquea: [color=#a855f7][b]" + key.substr(7) + "[/b][/color]"
+				continue
 			var label = effect_labels.get(key, key)
-			var is_flat = key.ends_with("_flat")
+			var emeta = talent_effects_meta.get(key, {})
+			var is_flat = emeta.get("flat", false)
 			var applied_val = val * saved
 			var pend_val = val * pend
 			var applied_str = _format_stat_value(applied_val, is_flat, true)
-			current_effects_text += "  [color=#7ee8a0]▸[/color] " + label + ": [color=#10b981][b]" + applied_str + "[/b][/color]"
+			var flat_tag = " [color=#ff9632](fijo)[/color]" if is_flat else ""
+			current_effects_text += "  [color=#7ee8a0]▸[/color] " + label + flat_tag + ": [color=#10b981][b]" + applied_str + "[/b][/color]"
 			if pend > 0:
 				var p_str = _format_stat_value(pend_val, is_flat, true)
 				current_effects_text += " [color=#ffd700](" + p_str + " pend.)[/color]"

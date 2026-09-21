@@ -2520,41 +2520,32 @@ window.renderTalentCreator = function() {
                         <button class="btn btn-primary" style="padding:2px 8px; font-size:0.65rem;" onclick="addTalentEffect(${idx})">+ EFECTO</button>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:5px;">
-                        ${Object.entries(t.effects || {}).map(([key, val]) => `
-                            <div style="display:flex; gap:8px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-                                <select style="flex:1; background:transparent; border:none; color:white; font-size:0.78rem;" onchange="updateTalentEffectKey(${idx}, '${key}', this.value)">
-                                    <option value="hp_pct" ${key==='hp_pct'?'selected':''}>Vida Máxima (+%)</option>
-                                    <option value="sh_pct" ${key==='sh_pct'?'selected':''}>Escudo Máximo (+%)</option>
-                                    <option value="hp_regen" ${key==='hp_regen'?'selected':''}>HP Reparación (+%)</option>
-                                    <option value="shield_regen" ${key==='shield_regen'?'selected':''}>Regen Escudo (+%)</option>
-                                    <option value="armor_pct" ${key==='armor_pct'?'selected':''}>Armadura Total (+%)</option>
-                                    <option value="energy_efficiency" ${key==='energy_efficiency'?'selected':''}>Eficiencia Energía (+%)</option>
-                                    <option value="repair_cost_reduction" ${key==='repair_cost_reduction'?'selected':''}>Costo Reparación (-%)</option>
-                                    <option value="stability" ${key==='stability'?'selected':''}>Estabilidad Vuelo (+%)</option>
-                                    <option value="laser_dmg_pct" ${key==='laser_dmg_pct'?'selected':''}>Daño Láser (+%)</option>
-                                    <option value="crit_chance" ${key==='crit_chance'?'selected':''}>Prob. Crítico (+%)</option>
-                                    <option value="crit_dmg" ${key==='crit_dmg'?'selected':''}>Daño Crítico (+%)</option>
-                                    <option value="ammo_bonus_pct" ${key==='ammo_bonus_pct'?'selected':''}>Munición Extra (+%)</option>
-                                    <option value="accuracy_pct" ${key==='accuracy_pct'?'selected':''}>Puntería (+%)</option>
-                                    <option value="ignore_shield_pct" ${key==='ignore_shield_pct'?'selected':''}>Perforación Escudo (+%)</option>
-                                    <option value="fire_rate_pct" ${key==='fire_rate_pct'?'selected':''}>Cadencia Disparo (+%)</option>
-                                    <option value="evasion_pct" ${key==='evasion_pct'?'selected':''}>Evasión Combate (+%)</option>
-                                    <option value="speed_pct" ${key==='speed_pct'?'selected':''}>Velocidad Base (+%)</option>
-                                    <option value="minimap_range" ${key==='minimap_range'?'selected':''}>Rango Minimapa (+%)</option>
-                                    <option value="ohcu_kill_bonus" ${key==='ohcu_kill_bonus'?'selected':''}>Bonus OHCU Kills (+%)</option>
-                                    <option value="shop_discount" ${key==='shop_discount'?'selected':''}>Descuento Tienda (+%)</option>
-                                    <option value="cooldown_reduction" ${key==='cooldown_reduction'?'selected':''}>CD Habilidades (-%)</option>
-                                    <option value="cooldown_reduction_flat" ${key==='cooldown_reduction_flat'?'selected':''}>CD Habilidades (-s fijo)</option>
-                                    <option value="cast_time_reduction" ${key==='cast_time_reduction'?'selected':''}>Cast Time (-%)</option>
-                                    <option value="cast_time_reduction_flat" ${key==='cast_time_reduction_flat'?'selected':''}>Cast Time (-s fijo)</option>
-                                    <option value="group_bonus" ${key==='group_bonus'?'selected':''}>Bonus Grupo (+%)</option>
-                                    <option value="boss_loot_bonus" ${key==='boss_loot_bonus'?'selected':''}>Loot Bosses (+%)</option>
-                                    <option value="dash_distance" ${key==='dash_distance'?'selected':''}>Distancia Dash (+%)</option>
-                                </select>
-                                <input type="number" step="0.01" value="${typeof formatCleanNumber === 'function' ? formatCleanNumber(key.endsWith('_flat') ? val : val * 100, 2) : (val * 100)}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = ${key.endsWith('_flat')} ? parseFloat(this.value) : (parseFloat(this.value) / 100)">
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="deleteTalentEffect(${idx}, '${key}')">✕</button>
-                            </div>
-                        `).join('')}
+                        ${Object.entries(t.effects || {}).map(([key, val]) => {
+                            const meta = (t.effectsMeta && t.effectsMeta[key]) ? t.effectsMeta[key] : { flat: false };
+                            const isFlat = meta.flat;
+                            const isUnlock = _isUnlockEffect(key);
+                            const cat = TALENT_EFFECTS_CATALOG[key];
+                            const label = cat ? cat.icon + ' ' + cat.label : key;
+                            const catCol = cat ? _effectCatColor(cat.cat) : '#888';
+                            const displayVal = isUnlock ? '' : (isFlat ? (typeof formatCleanNumber === 'function' ? formatCleanNumber(val, 2) : val) : (typeof formatCleanNumber === 'function' ? formatCleanNumber(val * 100, 2) : (val * 100)));
+                            const unitLabel = isUnlock ? 'SIEMPRE' : (isFlat ? '(fijo)' : '(%)');
+                            return `
+                            <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid ${catCol}25;">
+                                <span style="font-size:1.1rem; flex-shrink:0;">${cat ? cat.icon : '✨'}</span>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.72rem; font-weight:bold; color:${catCol}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cat ? cat.label : key}</div>
+                                    <div style="font-size:0.6rem; color:#666; font-family:'JetBrains Mono';">${key}</div>
+                                </div>
+                                ${isUnlock ? `
+                                    <span style="font-size:0.65rem; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.12); color:#a855f7; border:1px solid rgba(168,85,247,0.25);">DESBLOQUEO</span>
+                                ` : `
+                                    <button onclick="toggleEffectFlat(${idx}, '${key}')" style="flex-shrink:0; padding:3px 8px; border-radius:4px; font-size:0.65rem; font-weight:bold; cursor:pointer; border:1px solid ${isFlat ? 'rgba(255,150,50,0.4)' : 'rgba(0,210,255,0.4)'}; background:${isFlat ? 'rgba(255,150,50,0.12)' : 'rgba(0,210,255,0.12)'}; color:${isFlat ? '#ff9632' : '#00d2ff'};" title="Clic para alternar entre fijo y porcentual">${isFlat ? 'FIJO' : '%'}</button>
+                                    <input type="number" step="0.01" value="${displayVal}" style="width:75px; text-align:center; font-size:0.78rem; padding:4px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = (${isFlat || false}) ? parseFloat(this.value) : (parseFloat(this.value) / 100)">
+                                    <span style="font-size:0.6rem; color:#888; min-width:28px;">${unitLabel}</span>
+                                `}
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem; flex-shrink:0;" onclick="deleteTalentEffect(${idx}, '${key}')">✕</button>
+                            </div>`;
+                        }).join('')}
                     </div>
                 </div>
             `;
@@ -2580,27 +2571,234 @@ window.updateTalentCreatorNodeType = function(talentId, newType) {
     if (typeof renderTalentMapper === 'function') renderTalentMapper();
 };
 
-window.addTalentEffect = function(talentIdx) {
-    const t = config.talentsConfig.talents[talentIdx];
+// ═══════════════════════════════════════════════════════════
+// CATÁLOGO UNIFICADO DE EFECTOS DE TALENTOS
+// clave → { label, icon, category, defaultValue }
+// _flat eliminado: el toggle fijo/% se decide AL EDITAR
+// ═══════════════════════════════════════════════════════════
+window.TALENT_EFFECTS_CATALOG = {
+    // ── COMBATE ──
+    laser_dmg_pct:       { label: 'Daño Láser',               icon: '🔫', cat: 'combate',   defaultValue: 0.01 },
+    dmg_pct:             { label: 'Daño Total',               icon: '💥', cat: 'combate',   defaultValue: 0.01 },
+    crit_chance:         { label: 'Probabilidad Crítica',     icon: '🎯', cat: 'combate',   defaultValue: 0.01 },
+    crit_dmg:            { label: 'Daño Crítico',             icon: '🔥', cat: 'combate',   defaultValue: 0.01 },
+    fire_rate_pct:       { label: 'Cadencia de Fuego',        icon: '⚔️', cat: 'combate',   defaultValue: 0.01 },
+    accuracy_pct:        { label: 'Puntería',                 icon: '👁️', cat: 'combate',   defaultValue: 0.01 },
+    ignore_shield_pct:   { label: 'Perforación de Escudo',    icon: '⚡', cat: 'combate',   defaultValue: 0.01 },
+    ammo_bonus_pct:      { label: 'Munición Extra',           icon: '💣', cat: 'combate',   defaultValue: 0.01 },
+    // ── DEFENSA ──
+    hp_pct:              { label: 'Vida Máxima',              icon: '🛡️', cat: 'defensa',   defaultValue: 0.01 },
+    sh_pct:              { label: 'Escudo Máximo',            icon: '🔵', cat: 'defensa',   defaultValue: 0.01 },
+    armor_pct:           { label: 'Armadura',                 icon: '⚙️', cat: 'defensa',   defaultValue: 0.01 },
+    hp_regen:            { label: 'Regen. Vida',              icon: '🔧', cat: 'defensa',   defaultValue: 0.01 },
+    shield_regen:        { label: 'Regen. Escudo',            icon: '🔋', cat: 'defensa',   defaultValue: 0.01 },
+    evasion_pct:         { label: 'Evasión',                  icon: '💨', cat: 'defensa',   defaultValue: 0.01 },
+    stability:           { label: 'Estabilidad',              icon: '🛸', cat: 'defensa',   defaultValue: 0.01 },
+    // ── UTILIDAD ──
+    speed_pct:           { label: 'Velocidad',                icon: '🚀', cat: 'utilidad',  defaultValue: 0.01 },
+    cooldown_reduction:  { label: 'Reducción CD',             icon: '❄️', cat: 'utilidad',  defaultValue: 0.01 },
+    cast_time_reduction: { label: 'Reducción Cast Time',      icon: '⏱️', cat: 'utilidad',  defaultValue: 0.01 },
+    dash_distance:       { label: 'Distancia Dash',           icon: '🌀', cat: 'utilidad',  defaultValue: 0.01 },
+    minimap_range:       { label: 'Rango Radar',              icon: '📡', cat: 'utilidad',  defaultValue: 0.01 },
+    energy_efficiency:   { label: 'Eficiencia Energía',       icon: '⚛️', cat: 'utilidad',  defaultValue: 0.01 },
+    // ── ECONOMÍA ──
+    ohcu_kill_bonus:     { label: 'Bonus OHCU por Bajas',     icon: '💎', cat: 'economía',  defaultValue: 0.01 },
+    shop_discount:       { label: 'Descuento Tiendas',        icon: '🏪', cat: 'economía',  defaultValue: 0.01 },
+    repair_cost_reduction:{ label: 'Costo Reparación',        icon: '💸', cat: 'economía',  defaultValue: 0.01 },
+    boss_loot_bonus:     { label: 'Loot Bosses',              icon: '👑', cat: 'economía',  defaultValue: 0.01 },
+    group_bonus:         { label: 'Bonus Escuadrón',          icon: '👥', cat: 'economía',  defaultValue: 0.01 },
+    // ── DESBLOQUEOS: ARMAS ──
+    'unlock:weapon:las1': { label: 'Desbloquear Láser LF-1',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:weapon:las2': { label: 'Desbloquear Láser LF-2',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:weapon:las3': { label: 'Desbloquear Láser LF-3',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:weapon:las4': { label: 'Desbloquear Láser LF-4',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:weapon:las5': { label: 'Desbloquear Láser Promet.',icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:weapon:las6': { label: 'Desbloquear Cañón Hyper',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
+    // ── DESBLOQUEOS: ESCUDOS ──
+    'unlock:shield:sh1':  { label: 'Desbloquear Escudo S1',   icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:shield:sh2':  { label: 'Desbloquear Escudo S2',   icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:shield:sh3':  { label: 'Desbloquear Escudo SG3',  icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:shield:sh4':  { label: 'Desbloquear Escudo NX',   icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:shield:sh5':  { label: 'Desbloquear Escudo Fusion',icon:'🛡️', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:shield:sh6':  { label: 'Desbloquear Generador Z+',icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
+    // ── DESBLOQUEOS: MOTORES ──
+    'unlock:engine:en1':  { label: 'Desbloquear Motor M1',    icon: '🚀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:engine:en2':  { label: 'Desbloquear Motor M2',    icon: '🚀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:engine:en3':  { label: 'Desbloquear Motor M3',    icon: '🚀', cat: 'desbloqueo', defaultValue: 1 },
+    // ── DESBLOQUEOS: NAVES ──
+    'unlock:ship:2':      { label: 'Desbloquear Vulture-G2',  icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:ship:3':      { label: 'Desbloquear Falcon-A3',   icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:ship:4':      { label: 'Desbloquear Titan-S4',    icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:ship:5':      { label: 'Desbloquear Wraith-X5',   icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:ship:6':      { label: 'Desbloquear Galactus-Z6', icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
+    // ── DESBLOQUEOS: HABILIDADES ──
+    'unlock:skill:SK-DEF-01': { label: 'Desbloquear Escudo Celular',     icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-HEAL-01':{ label: 'Desbloquear Auto-Reparación',    icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-HEAL-02':{ label: 'Desbloquear Nano-Regeneración',  icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-HEAL-03':{ label: 'Desbloquear Regen. Alfa',        icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-HEAL-04':{ label: 'Desbloquear Vínculo Vital',      icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-HEAL-05':{ label: 'Desbloquear Baliza Curación',    icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-UTIL-01':{ label: 'Desbloquear Turbo-Impulso',      icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-UTIL-02':{ label: 'Desbloquear Hyper-Dash',         icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-UTIL-03':{ label: 'Desbloquear Invulnerabilidad',   icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-UTIL-04':{ label: 'Desbloquear Blink',              icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-UTIL-05':{ label: 'Desbloquear Stealth',            icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-UTIL-06':{ label: 'Desbloquear Resurrección',       icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-ATK-01': { label: 'Desbloquear Reflect-Omega',      icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-DEF-03': { label: 'Desbloquear Smoke-Bomb',         icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-DEF-04': { label: 'Desbloquear Frost-Trail',        icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-DEF-05': { label: 'Desbloquear Barrera de Viento',  icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+    'unlock:skill:SK-DEF-06': { label: 'Desbloquear Provocación',        icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
+};
+
+// Helper: ¿es una key de desbloqueo?
+function _isUnlockEffect(key) { return key && key.startsWith('unlock:'); }
+
+// Helper: color de categoría
+function _effectCatColor(cat) {
+    const m = { combate:'#ff3131', defensa:'#00d2ff', utilidad:'#f0c040', economía:'#10b981', desbloqueo:'#a855f7' };
+    return m[cat] || '#888';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL DE BÚSQUEDA DE EFECTOS
+// ═══════════════════════════════════════════════════════════
+window._effectModalTalentIdx = null;
+window._effectModalFilter = '';
+
+window.openEffectPickerModal = function(talentIdx) {
+    window._effectModalTalentIdx = talentIdx;
+    window._effectModalFilter = '';
+    _renderEffectPickerModal();
+};
+
+window._renderEffectPickerModal = function() {
+    const idx = window._effectModalTalentIdx;
+    if (idx === null) return;
+    const t = config.talentsConfig.talents[idx];
+    const existingKeys = Object.keys(t.effects || {});
+    const filter = (window._effectModalFilter || '').toLowerCase();
+
+    // Agrupar por categoría
+    const groups = {};
+    for (const [key, meta] of Object.entries(TALENT_EFFECTS_CATALOG)) {
+        if (existingKeys.includes(key)) continue;
+        if (filter && !meta.label.toLowerCase().includes(filter) && !key.toLowerCase().includes(filter)) continue;
+        if (!groups[meta.cat]) groups[meta.cat] = [];
+        groups[meta.cat].push({ key, ...meta });
+    }
+
+    const catOrder = ['combate', 'defensa', 'utilidad', 'economía', 'desbloqueo'];
+    const catLabels = { combate:'⚔️ COMBATE', defensa:'🛡️ DEFENSA', utilidad:'🚀 UTILIDAD', economía:'💰 ECONOMÍA', desbloqueo:'🔓 DESBLOQUEOS' };
+
+    let html = `
+    <div id="effect-picker-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:100001;display:flex;align-items:center;justify-content:center;padding:2rem;" onclick="if(event.target===this)closeEffectPickerModal()">
+        <div style="width:100%;max-width:600px;max-height:80vh;display:flex;flex-direction:column;background:#0b0f1a;border:1px solid rgba(0,210,255,0.25);border-radius:16px;box-shadow:0 40px 100px rgba(0,0,0,0.8);overflow:hidden;">
+            <div style="padding:1.2rem 1.6rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;background:rgba(0,210,255,0.04);">
+                <h2 style="color:var(--primary);font-size:1.15rem;margin:0;letter-spacing:0.05em;">⚡ AGREGAR EFECTO</h2>
+                <button onclick="closeEffectPickerModal()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#aaa;cursor:pointer;width:32px;height:32px;border-radius:8px;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+            <div style="padding:0.8rem 1.6rem;border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(0,0,0,0.2);">
+                <input type="text" id="effect-picker-search" placeholder="🔍 Buscar efecto..." value="${filter}" oninput="window._effectModalFilter=this.value;_renderEffectPickerModal()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;color:white;font-size:0.85rem;outline:none;box-sizing:border-box;">
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:1rem 1.6rem;">
+    `;
+
+    let totalResults = 0;
+    for (const cat of catOrder) {
+        const items = groups[cat];
+        if (!items || items.length === 0) continue;
+        totalResults += items.length;
+        const catCol = _effectCatColor(cat);
+        html += `<div style="margin-bottom:12px;">
+            <div style="font-size:0.72rem;font-weight:bold;color:${catCol};letter-spacing:1px;margin-bottom:6px;padding:4px 0;border-bottom:1px solid ${catCol}20;">${catLabels[cat] || cat.toUpperCase()}</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">`;
+        for (const item of items) {
+            html += `<div onclick="selectEffectFromPicker('${item.key}')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background 0.15s;border:1px solid rgba(255,255,255,0.05);" onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.borderColor='${catCol}60'" onmouseout="this.style.background='';this.style.borderColor='rgba(255,255,255,0.05)'">
+                <span style="font-size:1.3rem;flex-shrink:0;">${item.icon}</span>
+                <div style="flex:1;">
+                    <div style="font-size:0.82rem;font-weight:bold;color:var(--text);">${item.label}</div>
+                    <div style="font-size:0.68rem;color:#888;font-family:'JetBrains Mono';">${item.key}</div>
+                </div>
+                ${_isUnlockEffect(item.key) ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:4px;background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);">DESBLOQUEO</span>' : ''}
+            </div>`;
+        }
+        html += `</div></div>`;
+    }
+
+    if (totalResults === 0) {
+        html += '<div style="text-align:center;padding:2rem;color:#555;font-style:italic;">No se encontraron efectos disponibles</div>';
+    }
+
+    html += `</div></div></div>`;
+
+    // Insertar modal en el DOM
+    const existing = document.getElementById('effect-picker-overlay');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', html);
+    // Autofocus search
+    setTimeout(() => { const s = document.getElementById('effect-picker-search'); if (s) s.focus(); }, 50);
+};
+
+window.closeEffectPickerModal = function() {
+    const el = document.getElementById('effect-picker-overlay');
+    if (el) el.remove();
+    window._effectModalTalentIdx = null;
+};
+
+window.selectEffectFromPicker = function(key) {
+    const idx = window._effectModalTalentIdx;
+    if (idx === null) return;
+    const t = config.talentsConfig.talents[idx];
     if (!t.effects) t.effects = {};
-    const unusedKeys = ['hp_pct', 'sh_pct', 'dmg_pct', 'speed_pct', 'crit_chance', 'crit_dmg', 'cooldown_reduction', 'cooldown_reduction_flat', 'cast_time_reduction', 'cast_time_reduction_flat'].filter(k => !t.effects[k]);
-    const keyToAdd = unusedKeys.length > 0 ? unusedKeys[0] : 'custom_stat_' + Date.now();
-    t.effects[keyToAdd] = 0.01;
+    if (t.effects[key] !== undefined) return;
+
+    const meta = TALENT_EFFECTS_CATALOG[key] || {};
+    t.effects[key] = meta.defaultValue || 0.01;
+
+    // Inicializar metadata (flat/% por defecto: porcentual)
+    if (!t.effectsMeta) t.effectsMeta = {};
+    t.effectsMeta[key] = { flat: false };
+
+    closeEffectPickerModal();
     renderTalentCreator();
+};
+
+// ═══════════════════════════════════════════════════════════
+// TOGGLE FLAT / PERCENTUAL POR EFECTO
+// ═══════════════════════════════════════════════════════════
+window.toggleEffectFlat = function(talentIdx, key) {
+    const t = config.talentsConfig.talents[talentIdx];
+    if (!t.effectsMeta) t.effectsMeta = {};
+    if (!t.effectsMeta[key]) t.effectsMeta[key] = { flat: false };
+    t.effectsMeta[key].flat = !t.effectsMeta[key].flat;
+    renderTalentCreator();
+};
+
+// ═══════════════════════════════════════════════════════════
+// FUNCIONES CRUD DE EFECTOS (ACTUALIZADAS)
+// ═══════════════════════════════════════════════════════════
+window.addTalentEffect = function(talentIdx) {
+    window.openEffectPickerModal(talentIdx);
 };
 
 window.updateTalentEffectKey = function(talentIdx, oldKey, newKey) {
     const t = config.talentsConfig.talents[talentIdx];
-    if (t.effects[newKey] !== undefined) return; // Clave duplicada
+    if (t.effects[newKey] !== undefined) return;
     const val = t.effects[oldKey];
     delete t.effects[oldKey];
     t.effects[newKey] = val;
+    // Migrar metadata
+    if (t.effectsMeta) {
+        if (t.effectsMeta[oldKey]) { t.effectsMeta[newKey] = t.effectsMeta[oldKey]; delete t.effectsMeta[oldKey]; }
+    }
     renderTalentCreator();
 };
 
 window.deleteTalentEffect = function(talentIdx, key) {
     const t = config.talentsConfig.talents[talentIdx];
     delete t.effects[key];
+    if (t.effectsMeta && t.effectsMeta[key]) delete t.effectsMeta[key];
     renderTalentCreator();
 };
 

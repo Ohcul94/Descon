@@ -165,6 +165,28 @@ function calculateFinalStats(player, config) {
         }
     }
 
+    // 2b. Bonificaciones de Esferas equipadas (sistema dinámico)
+    const masterSpheres = config?.shopItems?.spheres || [];
+    if (Array.isArray(player.spheres)) {
+        player.spheres.forEach(slot => {
+            const sphereItem = slot.sphere;
+            if (!sphereItem || typeof sphereItem !== 'object') return;
+            const master = masterSpheres.find(m => String(m.id) === String(sphereItem.id));
+            if (master && master.hidden && !isAdmin) return;
+            const src = master || sphereItem;
+            const sphereStats = src.stats || {};
+            for (const [key, val] of Object.entries(sphereStats)) {
+                const numVal = Number(val) || 0;
+                if (key === 'hpMod') hpModFlat += numVal;
+                else if (key === 'shieldMod') shieldModFlat += numVal;
+                else if (key === 'speedMod') speedModFlat += numVal;
+                else if (key === 'hpPct') hpModPct += numVal * 100;
+                else if (key === 'shieldPct') shieldModPct += numVal * 100;
+                else if (key === 'speedPct') speedModPct += numVal * 100;
+            }
+        });
+    }
+
     // 3. Bonificaciones de Talentos (dinámico desde config)
     const talentsConfig = config?.talentsConfig;
     const skillTree = player.skillTree || {};

@@ -162,30 +162,32 @@ func _ready():
 		NetworkManager.altar_defense_cancelled.connect(_on_altar_defense_cancelled)
 		NetworkManager.altar_defense_success.connect(_on_altar_defense_success)
 
-	# v305.95: Aplicar Marcos Sci-Fi (Diseño Referencia Roja)
-	_apply_sci_fi_frame(center_stats)
-	_apply_sci_fi_frame(radar_window, true) # Minimapa limpio sin contenedor exterior
+	# v305.95: Aplicar Marcos Sci-Fi (Diseño Aerospace Tactical Glass AAA)
+	_apply_sci_fi_frame(center_stats, false, "panel", Color(0.0, 0.82, 0.96, 0.85), "Estadisticas")
+	_apply_sci_fi_frame(radar_window, false, "radar", Color(0.0, 0.82, 0.96, 0.85)) # Minimapa con marco táctico de radar
 	
 	# v306.10: Aplicar a Panel de Equipo con marco visible
 	var party_hud = get_node_or_null("PartyHUD")
-	if party_hud: _apply_sci_fi_frame(party_hud, false)
+	if party_hud: _apply_sci_fi_frame(party_hud, false, "panel", Color(0.0, 0.82, 0.96, 0.85), "ESCUADRÓN")
 	if control_bar: _apply_sci_fi_frame(control_bar, true)
 	
-	# v306.50: Unificar Slots de Habilidades
+	# v306.50: Unificar Slots de Habilidades (con variante "slot" y acentos de color)
 	if skills_hud:
 		for slot in skills_hud.get_children():
 			if slot is Control and "Slot" in slot.name:
-				_apply_sci_fi_frame(slot, false, false, true) # Sin brillo, con remaches
+				var is_weapon = slot.name in ["LaserSlot", "MissileSlot", "MineSlot"]
+				var slot_accent = Color(1.0, 0.65, 0.15, 0.85) if is_weapon else Color(0.0, 0.82, 0.96, 0.85)
+				_apply_sci_fi_frame(slot, false, "slot", slot_accent)
 	
 	# v305.95: El chat puede tardar un frame en instanciarse
 	get_tree().process_frame.connect(func():
 		var chats = get_tree().get_nodes_in_group("chat_ui")
-		for chat in chats: _apply_sci_fi_frame(chat)
+		for chat in chats: _apply_sci_fi_frame(chat, false, "panel", Color(0.0, 0.82, 0.96, 0.85), "Chat")
 	, CONNECT_ONE_SHOT)
 
 	# v370.4: Inicializar Combat Meter
 	_setup_combat_meter()
-	if _combat_meter: _apply_sci_fi_frame(_combat_meter)
+	if _combat_meter: _apply_sci_fi_frame(_combat_meter, false, "panel", Color(0.0, 0.82, 0.96, 0.85), "Metricas")
 
 	# v266.360: Inicializar visualizador de estados activos
 	_setup_status_effects_panel()
@@ -510,7 +512,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				var rs_temp = node.size
 				if node.name == "CenterStats": rs_temp = Vector2(250, 140)
 				elif node.name == "RadarWindow": rs_temp = Vector2(220, 220)
-				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
+				elif "Chat" in node.name: rs_temp = Vector2(340, 220)
 				elif "Party" in node.name: rs_temp = Vector2(220, 200)
 				elif "ControlBar" in node.name:
 					rs_temp = Vector2(340, 45)
@@ -518,7 +520,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif node.name == "StatusEffects": rs_temp = Vector2(500, 55)
 				elif node.name == "TargetFrame": rs_temp = Vector2(200, 65)
 				elif node.name == "PortalBtnContainer": rs_temp = Vector2(80, 80)
-				elif node.name == "CombatMeter": rs_temp = Vector2(340, 220)
+				elif node.name == "CombatMeter": rs_temp = Vector2(350, 220)
 				elif node.name == "TopLeft": rs_temp = Vector2(180, 120)
 				elif node.name == "CamTouchPadContainer" or node.name == "CamEdit": rs_temp = Vector2(190, 240)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
@@ -1996,13 +1998,15 @@ func _restore_visibility_after_editing():
 	_persist_hud_visibility()
 
 # --- v305.95: SISTEMA DE MARCOS DINÁMICOS ---
-func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool = true, show_rivets: bool = true):
+func _apply_sci_fi_frame(node: Control, invisible: bool = false, variant_type: String = "panel", custom_accent: Color = Color(0.0, 0.82, 0.96, 0.85), title_text: String = ""):
 	if not node: return
 	
 	node.clip_contents = true
 	node.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	var clean_node = func(target, recursive_func):
+		if target.name == "CombatMeter":
+			return
 		for child in target.get_children():
 			# v306.17: Evitar limpiar los renglones de miembros de equipo (PartyMemberRow)
 			if "PartyMemberRow" in child.name or (child.get_script() and "PartyMemberRow" in child.get_script().resource_path):
@@ -2017,15 +2021,27 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 				continue
 				
 			if child is VBoxContainer or child.name == "Minimap" or child.name == "VBox" or child.name == "Scroll":
-				var margin = 25
-				if target.name == "RadarWindow": margin = 0
-				elif target.name.contains("Slot"): margin = 5
-				elif target.name == "CombatMeter": margin = 12
+				var margin_left = 14.0
+				var margin_right = 14.0
+				var margin_top = 26.0
+				var margin_bottom = 10.0
 				
-				# v306.18: Solo aplicar márgenes a contenedores de primer nivel del HUD, no a los anidados para evitar desbordamiento
-				if target is HUDWindow or target.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "CombatMeter"]:
+				if target.name == "RadarWindow":
+					margin_left = 0.0; margin_right = 0.0; margin_top = 0.0; margin_bottom = 0.0
+				elif target.name.contains("Slot"):
+					margin_left = 4.0; margin_right = 4.0; margin_top = 4.0; margin_bottom = 4.0
+				elif target.name == "CombatMeter":
+					margin_left = 12.0; margin_right = 12.0; margin_top = 26.0; margin_bottom = 10.0
+				elif "Chat" in target.name or target.name == "Window":
+					margin_left = 14.0; margin_right = 14.0; margin_top = 26.0; margin_bottom = 10.0
+				elif target.name == "CenterStats":
+					margin_left = 14.0; margin_right = 14.0; margin_top = 26.0; margin_bottom = 10.0
+				
+				# v306.18: Solo aplicar márgenes a contenedores de primer nivel del HUD y sus paneles principales
+				var is_hud_target = target is HUDWindow or target.name in ["CenterStats", "RadarWindow", "ChatUI", "Window", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "CombatMeter"]
+				if is_hud_target:
 					if "Party" in target.name:
-						# Centrar horizontalmente (ancho 160) y estirar verticalmente con márgenes de 25px
+						# Centrar horizontalmente (ancho 160) y estirar verticalmente con márgenes de 26px
 						child.layout_mode = 1
 						child.anchor_left = 0.5
 						child.anchor_right = 0.5
@@ -2033,14 +2049,14 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 						child.anchor_bottom = 1
 						child.offset_left = -80
 						child.offset_right = 80
-						child.offset_top = 25
-						child.offset_bottom = -25
+						child.offset_top = 26
+						child.offset_bottom = -20
 					else:
 						child.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-						child.offset_left = margin
-						child.offset_top = margin
-						child.offset_right = -margin
-						child.offset_bottom = -margin
+						child.offset_left = margin_left
+						child.offset_top = margin_top
+						child.offset_right = -margin_right
+						child.offset_bottom = -margin_bottom
 				
 			if child is PanelContainer or child is Panel:
 				child.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
@@ -2060,11 +2076,14 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 			node.custom_minimum_size = Vector2(220, 220)
 			node.size = Vector2(220, 220)
 		elif "Chat" in node.name: 
-			node.custom_minimum_size = Vector2(320, 200)
-			node.size = Vector2(320, 200)
+			node.custom_minimum_size = Vector2(340, 220)
+			node.size = Vector2(340, 220)
 		elif "Party" in node.name: 
 			node.custom_minimum_size.x = 220
 			node.size.x = 220
+		elif node.name == "CombatMeter":
+			node.custom_minimum_size = Vector2(350, 220)
+			node.size = Vector2(350, 220)
 		elif "ControlBar" in node.name: 
 			node.custom_minimum_size = Vector2(340, 45)
 			node.size = Vector2(340, 45)
@@ -2082,61 +2101,28 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 	var frame_script = load("res://scripts/ui/HUDFrame.gd")
 	if not frame_script: return
 	var frame = Control.new(); frame.set_script(frame_script); frame.name = "SciFiFrame"
-	if "show_glow" in frame: frame.set("show_glow", show_glow)
-	if "show_rivets" in frame: frame.set("show_rivets", show_rivets)
+	if "variant" in frame: frame.set("variant", variant_type)
+	if "accent_color" in frame: frame.set("accent_color", custom_accent)
+	if "title" in frame: frame.set("title", title_text)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
-	# ✅ Para CUALQUIER nodo: siempre insertar como hijo DIRECTO (sin top_level)
-	# con PRESET_FULL_RECT. Desactivamos clip_contents para que el marco no quede cortado.
-	# La escala se propaga automáticamente desde el padre al hijo en Godot.
+	# ✅ Para CUALQUIER nodo: insertar como hijo DIRECTO en el índice 0
+	# con PRESET_FULL_RECT. Al estar en el índice 0, queda detrás de todos los demás hijos
+	# (tablas, botones, contenido) y hereda escala, posición, modulación (opacidad del configurador)
+	# y visibilidad de forma 100% nativa sin requerir sincronización manual.
 	node.clip_contents = false
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	
-	# Para PanelContainer/Container: el sistema de layout reasigna el tamaño de los hijos,
-	# así que necesitamos que el frame esté exento de ese sistema.
-	# Solución: añadirlo como hijo del PADRE del nodo (hermano del Container),
-	# sincronizando posición+tamaño+escala cada frame via metadatos.
-	if node is Container and node.get_parent() and node.get_parent() is Control:
-		var parent = node.get_parent()
-		frame.top_level = true  # El frame dibuja en coordenadas globales, igual que el Container
-		frame.anchor_left = 0
-		frame.anchor_top = 0
-		frame.anchor_right = 0
-		frame.anchor_bottom = 0
-		parent.add_child(frame)
-		node.set_meta("_scifi_frame_ref", frame)
-		_sync_scifi_frame_now(node) # Sincronización inicial inmediata
-	else:
-		node.add_child(frame)
-		node.move_child(frame, 0)
+	node.add_child(frame)
+	node.move_child(frame, 0)
 
-func _sync_scifi_frame_now(node: Control):
-	if not node or not node.has_meta("_scifi_frame_ref"): return
-	var frame = node.get_meta("_scifi_frame_ref")
-	if not is_instance_valid(frame): return
-	var sc = node.scale
-	# La misma fórmula que usa _sync_overlay_for_node para el DragOverlay celeste:
-	# Cuando un nodo tiene pivot_offset, su esquina superior izquierda visual se desplaza.
-	frame.global_position = node.global_position + node.pivot_offset * (Vector2.ONE - sc)
-	frame.size = node.size * sc
-	frame.scale = Vector2.ONE
-	frame.visible = node.visible # ✅ Sincronizar visibilidad para que el marco se oculte/muestre junto con el contenedor
+func _sync_scifi_frame_now(_node: Control):
+	pass
 
 func _sync_all_scifi_frames():
-	# Sincronizar marcos SciFi de contenedores HUD que usan el sistema hermano (sibling)
-	# Solo afecta a nodos Container que tienen metadato _scifi_frame_ref
-	var containers_to_sync = [center_stats, radar_window, _combat_meter]
-	var party = get_node_or_null("PartyHUD")
-	if party: containers_to_sync.append(party)
-	var chats = get_tree().get_nodes_in_group("chat_ui")
-	for chat in chats:
-		if is_instance_valid(chat): containers_to_sync.append(chat)
-	for node in containers_to_sync:
-		if is_instance_valid(node):
-			_sync_scifi_frame_now(node)
+	pass
 
 func _sync_scifi_frame(_node: Control):
-	pass # SciFiFrame ahora es hijo normal — la escala se sincroniza automáticamente
+	pass
 
 # --- v300.060: GESTIÓN DE TRADE ---
 func _on_trade_invitation_received(data):
@@ -2560,6 +2546,7 @@ func _setup_combat_meter():
 	_combat_meter.visible = false
 	_combat_meter.top_level = true
 	_combat_meter.pivot_offset = Vector2.ZERO
+	_combat_meter.modulate = Color(1, 1, 1, 1) # Asegurar 100% de opacidad inicial por defecto
 	add_child(_combat_meter)
 
 func _setup_status_effects_panel():

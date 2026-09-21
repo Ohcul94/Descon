@@ -3,6 +3,7 @@
 // Cada ítem/habilidad soporta un array `requirements` con condiciones que TODAS deben cumplirse (AND).
 const REQUIREMENTS_TYPES = [
     { value: 'level', label: 'Nivel mínimo' },
+    { value: 'ship', label: 'Nave requerida' },
     { value: 'quest_completed', label: 'Misión completada' },
     { value: 'unlock', label: 'Desbloqueo especial' },
     { value: 'spheres', label: 'Esferas de colores' }
@@ -42,10 +43,11 @@ function reqSetType(secId, idx, type) {
     if (!item || !Array.isArray(item.requirements)) return;
     const req = item.requirements[idx];
     req.type = type;
-    if (type === 'level') { if (req.min === undefined) req.min = 1; delete req.questId; delete req.key; delete req.label; delete req.esferas; }
-    else if (type === 'quest_completed') { if (req.questId === undefined) req.questId = ''; delete req.min; delete req.key; delete req.label; delete req.esferas; }
-    else if (type === 'unlock') { if (req.key === undefined) req.key = ''; if (req.label === undefined) req.label = ''; delete req.min; delete req.questId; delete req.esferas; }
-    else if (type === 'spheres') { if (!Array.isArray(req.esferas) || req.esferas.length === 0) req.esferas = [{ color: 'verde', count: 1 }]; delete req.min; delete req.questId; delete req.key; delete req.label; }
+    if (type === 'level') { if (req.min === undefined) req.min = 1; delete req.questId; delete req.key; delete req.label; delete req.esferas; delete req.shipId; }
+    else if (type === 'ship') { if (req.shipId === undefined) req.shipId = ''; delete req.min; delete req.questId; delete req.key; delete req.label; delete req.esferas; }
+    else if (type === 'quest_completed') { if (req.questId === undefined) req.questId = ''; delete req.min; delete req.key; delete req.label; delete req.esferas; delete req.shipId; }
+    else if (type === 'unlock') { if (req.key === undefined) req.key = ''; if (req.label === undefined) req.label = ''; delete req.min; delete req.questId; delete req.esferas; delete req.shipId; }
+    else if (type === 'spheres') { if (!Array.isArray(req.esferas) || req.esferas.length === 0) req.esferas = [{ color: 'verde', count: 1 }]; delete req.min; delete req.questId; delete req.key; delete req.label; delete req.shipId; }
     renderRequirementsSection(secId);
 }
 function reqSetValue(secId, idx, key, value) {
@@ -53,6 +55,7 @@ function reqSetValue(secId, idx, key, value) {
     if (!item || !Array.isArray(item.requirements)) return;
     const req = item.requirements[idx];
     if (key === 'min') req.min = parseInt(value) || 1;
+    else if (key === 'shipId') req.shipId = value;
     else if (key === 'questId') req.questId = value;
     else if (key === 'key') req.key = value;
     else if (key === 'label') req.label = value;
@@ -149,6 +152,14 @@ function requirementsSectionHtml(secId, itemExpr) {
         let valueField = '';
         if (type === 'level') {
             valueField = `<input type="number" min="1" value="${req.min !== undefined ? req.min : 1}" style="width:90px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px;" onchange="reqSetValue('${secId}', ${idx}, 'min', this.value)">`;
+        } else if (type === 'ship') {
+            const ships = (typeof config !== 'undefined' && Array.isArray(config.shipModels)) ? config.shipModels : [];
+            let shipOpts = '<option value="">— Seleccionar nave —</option>';
+            ships.forEach(sh => {
+                const sel = String(req.shipId || '') === String(sh.id) ? 'selected' : '';
+                shipOpts += `<option value="${sh.id}" ${sel}>[${sh.id}] ${sh.name}</option>`;
+            });
+            valueField = `<select style="flex:1; min-width:220px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px;" onchange="reqSetValue('${secId}', ${idx}, 'shipId', this.value)">${shipOpts}</select>`;
         } else if (type === 'quest_completed') {
             valueField = `<select style="flex:1; min-width:220px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px;" onchange="reqSetValue('${secId}', ${idx}, 'questId', this.value)">${requirementsQuestOptions(req.questId)}</select>`;
         } else if (type === 'unlock') {

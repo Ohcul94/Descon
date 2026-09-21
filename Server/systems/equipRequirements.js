@@ -71,6 +71,14 @@ function checkRequirements(p, requirements, serverConfig) {
             if (!isNaN(min) && (p.level || 1) < min) {
                 return { ok: false, msg: `REQUIERE NIVEL ${min}` };
             }
+        } else if (type === 'ship') {
+            const shipId = String(req.shipId || '');
+            if (!shipId) continue;
+            const currentShip = String(p.currentShipId || '');
+            if (currentShip !== shipId) {
+                const shipName = (serverConfig.shipModels || []).find(m => String(m.id) === shipId);
+                return { ok: false, msg: `REQUIERE NAVE: ${shipName ? shipName.name : 'ID ' + shipId}` };
+            }
         } else if (type === 'quest_completed') {
             const questId = String(req.questId || '');
             if (!questId) continue;
