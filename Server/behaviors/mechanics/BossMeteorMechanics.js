@@ -71,9 +71,9 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
     const cooldown = mech.cooldown || 10000;
     const fallTimeMs = (fallHeight / Math.max(1, fallSpeed)) * 1000;
     const persistentZone = !!mech.persistentZone;
-    const zoneDamage = (mech.zoneDamage || 0) * (this.damageMult || 1);
-    const zoneTickMs = mech.zoneTickMs || 1000;
-    const zoneDuration = mech.zoneDuration || 4000;
+    const zoneDamage = (mech.zoneDamage !== undefined ? Number(mech.zoneDamage) : (Number(mech.damagePerSecond) || 0)) * (this.damageMult || 1);
+    const zoneTickMs = Number(mech.zoneTickMs) || Number(mech.tickInterval) || 1000;
+    const zoneDuration = Number(mech.zoneDuration) || Number(mech.duration) || 4000;
 
     if (!state.meteorList) state.meteorList = [];
 
@@ -94,10 +94,10 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
                 mId: mId + "_" + mt.id
             });
 
-            // Aplicar daño a jugadores dentro del radio de impacto
             zonePlayers().forEach(p => {
+                const playerRadius = Number(p.radius) || 35;
                 const d = Math.hypot(p.x - mt.x, p.y - mt.y);
-                if (d > explosionRadius) return;
+                if (d > explosionRadius + playerRadius) return;
                 p.lastCombatTime = Date.now();
                 if (p.shield >= bulletDamage) {
                     p.shield -= bulletDamage;
@@ -147,7 +147,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
             // Crear zona persistente si está habilitada
             if (persistentZone && zoneDuration > 0) {
                 if (!state.activeZones) state.activeZones = [];
-                const zoneId = mId + "_z_" + mt.id;
+                const zoneId = mt.zoneId || (mId + "_z_" + mt.id);
                 state.activeZones.push({
                     id: zoneId, x: mt.x, y: mt.y,
                     endTime: now + zoneDuration,
@@ -181,8 +181,9 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
             } else if (now - z.lastTick >= zoneTickMs) {
                 z.lastTick = now;
                 zonePlayers().forEach(p => {
+                    const playerRadius = Number(p.radius) || 35;
                     const d = Math.hypot(p.x - z.x, p.y - z.y);
-                    if (d > explosionRadius) return;
+                    if (d > explosionRadius + playerRadius) return;
                     p.lastCombatTime = Date.now();
                     if (p.shield >= zoneDamage) {
                         p.shield -= zoneDamage;
@@ -204,6 +205,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
                         }
                     }
                     io.to(p.socketId).emit('environmentDamage', { damage: zoneDamage });
+                    this._applyMeteorDebuffs(p, mech, io);
                     io.to(`zone_${p.zone}`).emit('playerStatSync', {
                         id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), isDead: p.isDead
                     });
@@ -239,7 +241,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
         }
         if (!shouldActivate) {
             this.enemy.mechState[mId] = state;
-            return state.meteorList.length > 0;
+            return (state.meteorList.length > 0 || (state.activeZones && state.activeZones.length > 0));
         }
     }
 
@@ -248,7 +250,17 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
         const targets = this._selectMeteorTargets(players, fireRange, meteorCount, targetMode, mech);
         if (targets.length > 0) {
             const landTime = now + warnTimeMs + fallTimeMs;
-            const targetsPayload = targets.map(t => ({ x: Math.round(t.x), y: Math.round(t.y), targetId: t.socketId }));
+            const targetsPayload = targets.map((t, idx) => {
+                const zoneId = (persistentZone && zoneDuration > 0)
+                    ? `${mId}_z_${Date.now()}_${idx}_${Math.floor(Math.random() * 1000)}`
+                    : "";
+                return {
+                    x: Math.round(t.x),
+                    y: Math.round(t.y),
+                    targetId: t.socketId,
+                    zoneId: zoneId
+                };
+            });
 
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                 id: this.enemy.id,
@@ -263,14 +275,19 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
                 radius: explosionRadius,
                 damage: bulletDamage,
                 targetMode: targetMode,
-                mId: mId
+                mId: mId,
+                persistentZone: persistentZone,
+                zoneDuration: zoneDuration,
+                zoneTickMs: zoneTickMs,
+                zoneDamage: zoneDamage
             });
 
-            targets.forEach(t => {
+            targetsPayload.forEach(t => {
                 state.meteorList.push({
-                    id: Date.now() + "_" + Math.floor(Math.random() * 1000),
-                    x: Math.round(t.x),
-                    y: Math.round(t.y),
+                    id: t.zoneId || (Date.now() + "_" + Math.floor(Math.random() * 1000)),
+                    zoneId: t.zoneId,
+                    x: t.x,
+                    y: t.y,
                     landTime: landTime
                 });
             });
@@ -280,7 +297,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
     }
 
     this.enemy.mechState[mId] = state;
-    return state.meteorList.length > 0;
+    return (state.meteorList.length > 0 || (state.activeZones && state.activeZones.length > 0));
 }
 
 module.exports = {

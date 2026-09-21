@@ -819,6 +819,14 @@ func _run_shader_warmup():
 			_cache_materials_recursive(beacon_inst)
 			instantiated_nodes.append(beacon_inst)
 
+	# Precalentar shaders y partículas del meteorito y zona de fuego para evitar caídas de FPS
+	var meteor_warmup = _create_meteor_warmup_node()
+	if meteor_warmup:
+		tn.add_child(meteor_warmup)
+		meteor_warmup.position = Vector3(999.0, 999.0, 999.0)
+		_cache_materials_recursive(meteor_warmup)
+		instantiated_nodes.append(meteor_warmup)
+
 	await get_tree().process_frame
 
 	status.text = "Compilando graficos (GPU)..."
@@ -1165,5 +1173,125 @@ func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 					_cache_materials_recursive(inst)
 					sub_vp.remove_child(inst)
 				_vfx_pools[path].append(inst)
+
+	# Precalentar también meteorito y fuego en el SubViewport activo
+	var m_warm = _create_meteor_warmup_node()
+	if m_warm:
+		m_warm.position = Vector3(0.0, -9999.0, 0.0)
+		sub_vp.add_child(m_warm)
+		_cache_materials_recursive(m_warm)
+		sub_vp.remove_child(m_warm)
+		m_warm.queue_free()
+
 	print("[VFXManager] Pool precalentado en SubViewport con éxito.")
+
+func _create_meteor_warmup_node() -> Node3D:
+	var root = Node3D.new()
+	root.name = "MeteorWarmup"
+
+	var fire_tex = load("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
+	var sparks_tex = load("res://VFX/textures/T_VFX_sparks42.jpg")
+
+	# 1. Meteor Rock
+	var rock = MeshInstance3D.new()
+	rock.mesh = SphereMesh.new()
+	var rock_mat = StandardMaterial3D.new()
+	rock_mat.albedo_color = Color(0.18, 0.13, 0.1)
+	rock_mat.roughness = 0.95
+	rock_mat.metallic = 0.1
+	rock_mat.emission_enabled = true
+	rock_mat.emission = Color(1.0, 0.4, 0.05)
+	rock.material_override = rock_mat
+	root.add_child(rock)
+
+	# 2. Partículas de fuego aditivas (caída y piso)
+	var fire = GPUParticles3D.new()
+	fire.amount = 30
+	var fire_ppm = ParticleProcessMaterial.new()
+	fire_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	fire_ppm.emission_ring_axis = Vector3(0, 1, 0)
+	fire_ppm.emission_ring_height = 0.15
+	fire_ppm.emission_ring_radius = 2.0
+	fire_ppm.direction = Vector3(0, 1, 0)
+	fire_ppm.spread = 25.0
+	fire_ppm.gravity = Vector3(0, 2.0, 0)
+	var scale_curve = Curve.new()
+	scale_curve.add_point(Vector2(0.0, 0.3))
+	scale_curve.add_point(Vector2(0.3, 1.0))
+	scale_curve.add_point(Vector2(1.0, 0.05))
+	var scale_tex = CurveTexture.new()
+	scale_tex.curve = scale_curve
+	fire_ppm.scale_curve = scale_tex
+	fire.process_material = fire_ppm
+	var fire_quad = QuadMesh.new()
+	fire_quad.size = Vector2(0.55, 0.75)
+	fire.draw_pass_1 = fire_quad
+	if fire_tex:
+		var fire_mat = StandardMaterial3D.new()
+		fire_mat.albedo_texture = fire_tex
+		fire_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		fire_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		fire_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		fire_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fire_mat.vertex_color_use_as_albedo = true
+		fire.material_override = fire_mat
+	root.add_child(fire)
+
+	# 3. Partículas de brasas / chispas aditivas
+	var embers = GPUParticles3D.new()
+	embers.amount = 20
+	var embers_ppm = ParticleProcessMaterial.new()
+	embers_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	embers_ppm.emission_ring_axis = Vector3(0, 1, 0)
+	embers_ppm.emission_ring_height = 0.1
+	embers_ppm.emission_ring_radius = 2.0
+	embers_ppm.direction = Vector3(0, 1, 0)
+	embers_ppm.gravity = Vector3(0, 1.5, 0)
+	embers.process_material = embers_ppm
+	var embers_quad = QuadMesh.new()
+	embers_quad.size = Vector2(0.2, 0.2)
+	embers.draw_pass_1 = embers_quad
+	if sparks_tex:
+		var embers_mat = StandardMaterial3D.new()
+		embers_mat.albedo_texture = sparks_tex
+		embers_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		embers_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		embers_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		embers_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		embers_mat.vertex_color_use_as_albedo = true
+		embers.material_override = embers_mat
+	root.add_child(embers)
+
+	# 4. Materiales de disco y anillo conformantes
+	var disc = MeshInstance3D.new()
+	disc.mesh = CylinderMesh.new()
+	var disc_mat = StandardMaterial3D.new()
+	disc_mat.albedo_color = Color(0.85, 0.26, 0.05, 0.28)
+	disc_mat.emission_enabled = true
+	disc_mat.emission = Color(0.95, 0.32, 0.06)
+	disc_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	disc_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	disc_mat.render_priority = 2
+	disc.material_override = disc_mat
+	root.add_child(disc)
+
+	var ring = MeshInstance3D.new()
+	ring.mesh = TorusMesh.new()
+	var ring_mat = StandardMaterial3D.new()
+	ring_mat.albedo_color = Color(1.0, 0.38, 0.06, 0.8)
+	ring_mat.emission_enabled = true
+	ring_mat.emission = Color(1.0, 0.45, 0.1)
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_mat.render_priority = 3
+	ring.material_override = ring_mat
+	root.add_child(ring)
+
+	# 5. Luz cálida
+	var light = OmniLight3D.new()
+	light.light_color = Color(1.0, 0.45, 0.1)
+	light.light_energy = 3.0
+	root.add_child(light)
+
+	return root
 

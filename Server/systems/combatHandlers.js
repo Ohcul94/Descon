@@ -23,7 +23,7 @@ const FearSphereSkill = require('./skills/FearSphereSkill');
 const combatTracker = require('./combatTracker');
 const { checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento (munición)
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
-const { areInSamePartyBySocket, isFriendlyFireEnabled } = require('../utils/partyUtils'); // v650.0: Bloqueo fuego amigo en party
+const { areInSamePartyBySocket, isFriendlyFireEnabled, recordPlayerCombat } = require('../utils/partyUtils'); // v650.0: Bloqueo fuego amigo en party
 
 // v301.4: Soporte unificado de habilidades de resurrección
 
@@ -580,7 +580,7 @@ socket.on('playerFire', (fireData) => {
 
         if (isBlocked || isOutsideDome) {
             enemy.lastHit = Date.now();
-            p.lastCombatTime = Date.now();
+            recordPlayerCombat(p, state);
             if (isOutsideDome) {
                 socket.emit('combatLog', `⚠️ El enemigo está protegido por un Muro de Energía. Debes ingresar al área (${Math.round(activeDomeRadius)}px) para hacerle daño.`);
             }
@@ -759,7 +759,7 @@ socket.on('playerFire', (fireData) => {
                     if (p.shield >= reflectedDmg) p.shield -= reflectedDmg;
                     else { p.hp -= (reflectedDmg - p.shield); p.shield = 0; }
                     if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
-                    p.lastCombatTime = Date.now();
+                    recordPlayerCombat(p, state);
                     combatTracker.trackDamageTaken(socket.id, enemyId, reflectedDmg, 'reflect', state);
                     
                     socket.emit('environmentDamage', { damage: reflectedDmg });
@@ -792,7 +792,7 @@ socket.on('playerFire', (fireData) => {
         
         enemy.lastHit = Date.now();
         enemy.lastHitter = socket.id;
-        p.lastCombatTime = Date.now();
+        recordPlayerCombat(p, state);
 
         socket.emit('enemyDamaged', { id: enemyId, hp: Math.max(0, enemy.hp), shield: enemy.shield, bulletId });
 
@@ -844,7 +844,7 @@ socket.on('playerFire', (fireData) => {
                     }
                     const mId = attackerEnemy._shieldStealMId || 'def_shield_steal';
                     attackerEnemy.ai._onEnemyShieldStealHit(p.socketId, mech, mId, Date.now(), io, state);
-                    p.lastCombatTime = Date.now();
+                    recordPlayerCombat(p, state);
                 }
                 return;
             }
@@ -861,7 +861,7 @@ socket.on('playerFire', (fireData) => {
                     }
                     const mId = attackerEnemy._lifeStealMId || 'def_life_steal';
                     attackerEnemy.ai._onEnemyLifeStealHit(p.socketId, mech, mId, Date.now(), io, state);
-                    p.lastCombatTime = Date.now();
+                    recordPlayerCombat(p, state);
                 }
                 return;
             }
@@ -911,7 +911,7 @@ socket.on('playerFire', (fireData) => {
                         type: "warning" 
                     });
                     
-                     p.lastCombatTime = Date.now();
+                    recordPlayerCombat(p, state);
                 }
                 return;
             }
@@ -942,7 +942,7 @@ socket.on('playerFire', (fireData) => {
                         isDead: p.isDead, isStunned: true
                     });
                 }
-                p.lastCombatTime = Date.now();
+                recordPlayerCombat(p, state);
                 return;
             }
 
@@ -1182,7 +1182,7 @@ socket.on('playerFire', (fireData) => {
                 p.isDead = true;
                 checkAndProcessDeathDrop(p, io, state);
             }
-            p.lastCombatTime = Date.now();
+            recordPlayerCombat(p, state);
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
             if (dmgTakenFinal > 0) {
                 combatTracker.trackDamageTaken(socket.id, attackerId, dmgTakenFinal, 'pve', state);
@@ -1479,8 +1479,8 @@ socket.on('playerFire', (fireData) => {
                     checkAndProcessDeathDrop(victim, io, state);
                 }
                 
-                victim.lastCombatTime = now;
-                attacker.lastCombatTime = now;
+                recordPlayerCombat(victim, state, now);
+                recordPlayerCombat(attacker, state, now);
                 victim.lastPvpCombatTime = now;
                 attacker.lastPvpCombatTime = now;
                 victim.regenDelay = 15000;

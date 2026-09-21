@@ -8,6 +8,7 @@ const { checkAndProcessDeathDrop } = require('./deathDropHelper');
 const lootManager = require('./lootManager');
 const { processEnemyKillsForUser } = require('./questHandlers');
 const { awardBattlePassExpServer } = require('./battlePassHandlers');
+const { recordPlayerCombat } = require('../utils/partyUtils');
 
 
 function executeEnemyExplosion(enemy, io, state) {
@@ -23,7 +24,7 @@ function executeEnemyExplosion(enemy, io, state) {
     io.to(`zone_${enemy.zone}`).emit('enemyExploded', {
         id: enemy.id,
         x: enemy.x, y: enemy.y,
-        damage: damage, radius: radius
+        radius: radius
     });
 
     Object.values(state.players).forEach(p => {
@@ -39,7 +40,7 @@ function executeEnemyExplosion(enemy, io, state) {
                     checkAndProcessDeathDrop(p, io, state);
                 }
             }
-            p.lastCombatTime = Date.now();
+            recordPlayerCombat(p, state);
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                 id: p.socketId, hp: Math.max(0, p.hp), shield: p.shield, 
                 maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead

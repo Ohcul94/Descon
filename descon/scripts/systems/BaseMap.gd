@@ -377,6 +377,7 @@ func setup_map():
 func _on_network_config_updated(_config):
 	print("[BaseMap] Configuración del servidor recibida. Regenerando layout 3D...")
 	_setup_dynamic_3d_map_layout()
+	_update_doors_warp_metadata()
 func _setup_dynamic_3d_map_layout():
 	# Obtener dimensiones dinámicas del mapa desde MAPS_CONFIG (AdminDash Cartografia)
 	# v530.0: Se calcula ANTES de verificar sub_viewport para que el muro 2D siempre se genere (no depende del lienzo 3D)
@@ -2577,6 +2578,40 @@ func _get_bound_interact_key(action: String) -> String:
 			key_text = "ESPACIO"
 		return key_text
 	return "Y"
+
+# vUpdate: Actualizar metadatos warp de puertas existentes cuando AdminDash guarda nueva config
+func _update_doors_warp_metadata():
+	if active_doors.size() == 0:
+		return
+	var z_str = str(zone_id)
+	if "." in z_str and z_str.is_valid_float():
+		var z_float = float(z_str)
+		if z_float == int(z_float):
+			z_str = str(int(z_float))
+	if not (z_str in GameConstants.MAPS_CONFIG):
+		return
+	var map_cfg = GameConstants.MAPS_CONFIG[z_str]
+	if not map_cfg.has("objects") or not (map_cfg.objects is Array):
+		return
+	var door_idx = 0
+	for obj in map_cfg.objects:
+		if not (obj is Dictionary and obj.has("x") and obj.has("y")):
+			continue
+		var obj_type = str(obj.get("type", ""))
+		if obj_type != "door":
+			continue
+		if door_idx < active_doors.size() and is_instance_valid(active_doors[door_idx]):
+			var door = active_doors[door_idx]
+			var new_tx = float(obj.get("targetX", 5000))
+			var new_ty = float(obj.get("targetY", 5000))
+			var new_tz = str(obj.get("targetZoneId", "1"))
+			var old_tx = door.get_meta("targetX", 5000.0)
+			door.set_meta("targetX", new_tx)
+			door.set_meta("targetY", new_ty)
+			door.set_meta("targetZoneId", new_tz)
+			if old_tx != new_tx:
+				print("[BaseMap] Puerta #", door_idx, " targetX actualizado: ", old_tx, " -> ", new_tx)
+		door_idx += 1
 
 # Procesar la cercanía al jugador para activar la interacción de puertas
 func _check_doors_proximity():

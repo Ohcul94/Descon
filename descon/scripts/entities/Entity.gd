@@ -1035,6 +1035,9 @@ func _update_3d_root_sync():
 func reset_combat_timer():
 	last_combat_time = Time.get_ticks_msec()
 
+func is_in_combat() -> bool:
+	return (Time.get_ticks_msec() - last_combat_time) < 10000
+
 func update_stats(data):
 	if data.has("id"): entity_id = str(data.id)
 	var raw = data.get("username", data.get("user", data.get("name", null)))
@@ -1092,7 +1095,7 @@ func update_stats(data):
 	# v191.70: PREDICCIÓN DE CLIENTE ANTI-PARPADEO (Shield/HP Stability)
 	# Si somos el jugador local, ignoramos cambios minúsculos del server causados por latencia en combate
 	var is_local = is_in_group("player")
-	var in_combat = (Time.get_ticks_msec() - last_combat_time) < 5000
+	var in_combat = is_in_combat()
 	var threshold = max(25.0, max_hp * 0.02) if in_combat else 0.0
 	var lock_active = (is_local and sync_lock_timer > 0)
 	

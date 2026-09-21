@@ -3089,13 +3089,13 @@
                     "type": "mega_laser"
                 },
                 {
-                    "_collapsed": true,
+                    "_collapsed": false,
                     "activationHPs": [
                         50
                     ],
                     "activationIntervalMs": 0,
                     "activationMode": "time",
-                    "bulletDamage": 4,
+                    "bulletDamage": 5,
                     "bulletSpeed": 800,
                     "castInterruptible": false,
                     "castTimeMs": 0,
@@ -3115,15 +3115,15 @@
                     "fireRate": 1000,
                     "meteorCount": 1,
                     "meteorSize": 60,
-                    "persistentZone": false,
+                    "persistentZone": true,
                     "startDelay": 0,
                     "targetMode": "random",
                     "targetSphereColor": "",
                     "type": "meteor",
                     "warnTimeMs": 1500,
-                    "zoneDamage": 25,
-                    "zoneDuration": 4000,
-                    "zoneTickMs": 500
+                    "zoneDamage": 1,
+                    "zoneDuration": 2000,
+                    "zoneTickMs": 100
                 },
                 {
                     "type": "circle_cast",
@@ -7211,8 +7211,8 @@
                     "label": "Puerta",
                     "rotY": -91,
                     "scale": 5,
-                    "targetX": 5000,
-                    "targetY": 5000,
+                    "targetX": 2000,
+                    "targetY": 200,
                     "targetZoneId": "3",
                     "type": "door",
                     "x": 9380,

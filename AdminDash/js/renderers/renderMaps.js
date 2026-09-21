@@ -504,11 +504,7 @@ function renderMapDetail() {
                                     <input type="number" value="${obj.targetY || 5000}" placeholder="5000"
                                            oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].targetY = parseInt(this.value) || 0">
                                 </div>
-                                <div class="field" style="grid-column:span 2;">
-                                    <label>Y Offset (altura sobre el suelo)</label>
-                                    <input type="number" step="0.1" value="${obj.yOffset !== undefined ? obj.yOffset : 2.5}" placeholder="2.5"
-                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].yOffset = parseFloat(this.value) || 0">
-                                </div>
+                                <div style="font-size:0.6rem; color:#64748b; margin-top:0.3rem;">Altura 3D visual: ${obj.yOffset !== undefined ? obj.yOffset : 2.5} (calculado automáticamente)</div>
                             </div>
                             </div>` : ''}
                         </div>`;

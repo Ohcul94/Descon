@@ -1375,9 +1375,14 @@ module.exports = class BaseAI {
         if (!io) return;
         const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
         this.enemy.mechState[mId] = state;
-        const hasActiveBombs = state.activeBombsList && state.activeBombsList.length > 0;
-        const hasActiveWorms = state.activeWorms && state.activeWorms.length > 0;
-        if (!target && mech.type !== "polymorph" && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs && !hasActiveWorms && !state.activeWindWall) return;
+        const hasActiveBombs = !!(state.activeBombsList && state.activeBombsList.length > 0);
+        const hasActiveWorms = !!(state.activeWorms && state.activeWorms.length > 0);
+        const hasActiveMeteors = !!((state.meteorList && state.meteorList.length > 0) || (state.activeZones && state.activeZones.length > 0));
+        const hasActiveBurrow = !!(state.isDiving || state.isTraveling || state.isWarning || state.isEmerging || this.enemy.isBurrowed);
+        const hasActiveWindWall = !!state.activeWindWall;
+        const isOngoing = state.isCharging || state.isLocked || state.isFiring || state.isActive || state.isAscending || state.isLanding || state.isDashing || state.isSlashing || state.casting || hasActiveBombs || hasActiveWorms || hasActiveMeteors || hasActiveBurrow || hasActiveWindWall;
+
+        if (!target && mech.type !== "polymorph" && !isOngoing) return;
         
         const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
         const configVision = this.config ? Number(this.config.visionRange) : 0;
@@ -1389,9 +1394,9 @@ module.exports = class BaseAI {
         const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
         const isCastingNow = this.enemy.genericCastState && this.enemy.genericCastState[mId] && this.enemy.genericCastState[mId].isCasting;
         
-        if (!isCastingNow) {
+        if (!isCastingNow && !isOngoing) {
             if (now < (state.nextShotTime || 0)) return false;
-            if (dist > fireRange && !state.isCharging && !state.isActive && mech.type !== "polymorph") return false;
+            if (dist > fireRange && mech.type !== "polymorph") return false;
             if (!this._passesActivationGate(mech, state, now, hpPercent)) return false;
         }
 

@@ -760,7 +760,21 @@ func _on_skill_executed(p_data: Dictionary):
 		_use_sphere_skill(s_idx, p_data) # v260.91: Integración con lógica de esferas y targeting
 
 func is_in_combat() -> bool:
-	return (Time.get_ticks_msec() - last_combat_time) < 5000
+	if (Time.get_ticks_msec() - last_combat_time) < 10000:
+		return true
+	# Sincronía visual de Party: si algún compañero de party visible está en combate, consideramos combate activo
+	if PartyManager and PartyManager.current_party and PartyManager.current_party.has("members"):
+		var p_members = PartyManager.current_party.get("members", [])
+		if p_members.size() > 1:
+			for ent in get_tree().get_nodes_in_group("entities"):
+				if is_instance_valid(ent) and ent != self and ent.has_method("is_in_combat"):
+					var raw_id = ent.get("db_id")
+					var ent_db_id = str(raw_id) if raw_id != null else ""
+					if ent_db_id != "" and ent_db_id in p_members:
+						if global_position.distance_to(ent.global_position) <= 2000.0:
+							if ent.is_in_combat():
+								return true
+	return false
 
 func _use_heal_skill(p_target):
 	if p_target:

@@ -8,6 +8,7 @@ const extractionManager = require('./extractionManager');
 const { checkAndProcessDeathDrop } = require('./deathDropHelper');
 const combatTracker = require('./combatTracker');
 const altarDefenseManager = require('./altarDefenseManager');
+const { updatePartyCombatLoop, recordPlayerCombat } = require('../utils/partyUtils');
 
 const { normalizeZone } = require('../utils/zoneUtils');
 
@@ -43,6 +44,9 @@ function startGameLoop(io, state, aiManager) {
         const start = Date.now();
         const now = start;
         const { enemies, players } = state;
+
+        // v950.0: Sincronización continua de estado de combate en Party por rango de visión
+        updatePartyCombatLoop(state, now);
 
         // v247.11: Actualizar grid para IA y Colisiones (Frecuencia 30fps)
         grid.clear();
@@ -407,6 +411,9 @@ function startGameLoop(io, state, aiManager) {
         const { players } = state;
         const now = Date.now();
 
+        // v950.0: Sincronizar estado de combate de party antes de validar regeneración
+        updatePartyCombatLoop(state, now);
+
         Object.values(players).forEach(p => {
             if (p.hp <= 0) return;
 
@@ -538,7 +545,7 @@ function startGameLoop(io, state, aiManager) {
                     if (p.sleepDmgPerSecond > 0 && now >= p.sleepNextTickDmgTime) {
                         p.sleepNextTickDmgTime = now + 1000;
                         const dmg = p.sleepDmgPerSecond;
-                        p.lastCombatTime = now;
+                        recordPlayerCombat(p, state, now);
                         if (p.shield >= dmg) {
                             p.shield -= dmg;
                         } else {
@@ -614,7 +621,7 @@ function startGameLoop(io, state, aiManager) {
             }
 
             if (debuffDmg > 0) {
-                p.lastCombatTime = now;
+                recordPlayerCombat(p, state, now);
                 if (p.shield >= debuffDmg) {
                     p.shield -= debuffDmg;
                 } else {
@@ -907,7 +914,7 @@ function startGameLoop(io, state, aiManager) {
                             const lastHit = p.hazardCooldowns[hKey] || 0;
                             if (now - lastHit >= interval) {
                                 p.hazardCooldowns[hKey] = now;
-                                p.lastCombatTime = now;
+                                recordPlayerCombat(p, state, now);
                                 if (p.shield >= dmg) p.shield -= dmg;
                                 else { p.hp -= (dmg - p.shield); p.shield = 0; }
                                 if (p.hp <= 0) {
@@ -1281,7 +1288,7 @@ function startGameLoop(io, state, aiManager) {
                             if (now - lastDmg >= dmgInterval) {
                                 p.hazardCooldowns[dmgKey] = now;
                                 const dmg = area.damage || 500;
-                                p.lastCombatTime = now;
+                                recordPlayerCombat(p, state, now);
                                 if (p.shield >= dmg) p.shield -= dmg;
                                 else { p.hp -= (dmg - p.shield); p.shield = 0; }
                                 if (p.hp < 0) p.hp = 0;
