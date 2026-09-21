@@ -3044,7 +3044,7 @@
             ],
             "mechanics": [
                 {
-                    "_collapsed": true,
+                    "_collapsed": false,
                     "activationHPs": [
                         50
                     ],
@@ -3055,7 +3055,7 @@
                     "castInterruptible": true,
                     "castTimeMs": 1000,
                     "cooldown": 10000,
-                    "damage_per_tick": 2,
+                    "damage_per_tick": 1,
                     "duration": 5000,
                     "fireRange": 1500,
                     "fireRate": 900,
@@ -3063,7 +3063,7 @@
                     "radius": 400,
                     "slow_amount": 100,
                     "startDelay": 5000,
-                    "tick_interval": 900,
+                    "tick_interval": 100,
                     "type": "ice_storm"
                 },
                 {
@@ -3089,7 +3089,7 @@
                     "type": "mega_laser"
                 },
                 {
-                    "_collapsed": false,
+                    "_collapsed": true,
                     "activationHPs": [
                         50
                     ],
@@ -7734,7 +7734,8 @@
             "terrainImage": "assets/maps/terrain_zone_4.png",
             "timeRestrictionsEnabled": false,
             "warpCost": 0,
-            "width": 16000
+            "width": 16000,
+            "visible": false
         },
         "5": {
             "ambience": [],
@@ -7878,7 +7879,8 @@
             ],
             "terrainImage": "assets/maps/terrain_zone_5.png",
             "warpCost": 0,
-            "width": 9600
+            "width": 9600,
+            "visible": false
         },
         "6": {
             "allowedHours": [],
@@ -7953,7 +7955,7 @@
             ],
             "terrainImage": "assets/maps/terrain_zone_6.png",
             "timeRestrictionsEnabled": true,
-            "visible": true,
+            "visible": false,
             "warpCost": 0,
             "width": 10000
         },

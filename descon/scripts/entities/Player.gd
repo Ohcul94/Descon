@@ -1299,7 +1299,7 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 		if GameConstants.SHOP_ITEMS and GameConstants.SHOP_ITEMS.has("ammo"):
 			var ammo_cfg = GameConstants.SHOP_ITEMS["ammo"].get(p_type, [])
 			if t_idx < ammo_cfg.size():
-				ammo_sfx_path = String(ammo_cfg[t_idx].get("sound", ""))
+				ammo_sfx_path = str(ammo_cfg[t_idx].get("sound", ""))
 				var ammo_pct = float(ammo_cfg[t_idx].get("soundVolumePercent", ammo_cfg[t_idx].get("soundVolume", 100.0)))
 				ammo_vol = linear_to_db(clamp(ammo_pct / 100.0, 0.0001, 1.0))
 				ammo_maxd = float(ammo_cfg[t_idx].get("soundMaxDist", 1000.0))

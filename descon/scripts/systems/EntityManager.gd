@@ -645,10 +645,10 @@ func _on_enemy_action(data: Dictionary):
 	var action = data.get("action", "")
 	var enemy_id = str(data.get("id", ""))
 	# v900.0: sonido de mecánica genérico (2D con atenuación)
-	if AudioManager and AudioManager.has_method("play_mechanic_sound") and not String(action).is_empty():
-		var candidate = String(action).split("_")[0]
+	if AudioManager and AudioManager.has_method("play_mechanic_sound") and not str(action).is_empty():
+		var candidate = str(action).split("_")[0]
 		if candidate.is_empty():
-			candidate = String(action)
+			candidate = str(action)
 		if GameConstants.MECHANICS_LIB.has(candidate) or GameConstants.DEFENSE_LIB.has(candidate) or GameConstants.MOVEMENT_LIB.has(candidate):
 			var epos = Vector2.INF
 			if enemies.has(enemy_id) and is_instance_valid(enemies[enemy_id]):
@@ -1459,7 +1459,6 @@ func _on_enemy_action(data: Dictionary):
 			var target_x = float(data.get("targetX", 0.0))
 			var target_y = float(data.get("targetY", 0.0))
 			var _charge_dur = float(data.get("duration", 1500.0)) / 1000.0
-			var _lock_dur = float(data.get("lockTimeMs", 500.0)) / 1000.0
 
 			if is_3d_active:
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
@@ -1467,10 +1466,13 @@ func _on_enemy_action(data: Dictionary):
 				var vp = current_map.sub_viewport
 				var outer_r3d = range_val * s_factor
 
+				var old_charge = vp.get_node_or_null("IceStormCharging_" + enemy_id)
+				if is_instance_valid(old_charge):
+					old_charge.queue_free()
+
 				var circle_3d = Node3D.new()
 				circle_3d.name = "IceStormCharging_" + enemy_id
 				circle_3d.position = Vector3(target_x * s_factor, 0.0, target_y * s_factor * correction_z)
-				# Escalar en Z global para la perspectiva isométrica 2.5D
 				circle_3d.scale = Vector3(1.0, 1.0, correction_z)
 				vp.add_child(circle_3d)
 
@@ -1481,31 +1483,36 @@ func _on_enemy_action(data: Dictionary):
 				g_mesh.height = 0.01
 				ground_disc.mesh = g_mesh
 				var g_mat = StandardMaterial3D.new()
-				g_mat.albedo_color = Color(0.4, 0.7, 1.0, 0.12)
+				g_mat.albedo_color = Color(0.3, 0.7, 1.0, 0.15)
 				g_mat.emission_enabled = true
-				g_mat.emission = Color(0.3, 0.6, 1.0)
-				g_mat.emission_energy_multiplier = 0.4
+				g_mat.emission = Color(0.2, 0.6, 1.0)
+				g_mat.emission_energy_multiplier = 0.8
 				g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 				ground_disc.material_override = g_mat
+				ground_disc.position.y = 0.01
 				circle_3d.add_child(ground_disc)
 
 				var ring = MeshInstance3D.new()
 				var torus = TorusMesh.new()
-				torus.inner_radius = outer_r3d * 0.96
+				torus.inner_radius = max(0.01, outer_r3d - 0.12)
 				torus.outer_radius = outer_r3d
 				ring.mesh = torus
 				var r_mat = StandardMaterial3D.new()
-				r_mat.albedo_color = Color(0.5, 0.8, 1.0, 0.5)
+				r_mat.albedo_color = Color(0.5, 0.85, 1.0, 0.8)
 				r_mat.emission_enabled = true
-				r_mat.emission = Color(0.3, 0.7, 1.0)
-				r_mat.emission_energy_multiplier = 1.5
+				r_mat.emission = Color(0.3, 0.8, 1.0)
+				r_mat.emission_energy_multiplier = 2.5
 				r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 				ring.material_override = r_mat
 				ring.position.y = 0.02
-				ring.rotation.y = randf_range(0.0, TAU)
 				circle_3d.add_child(ring)
+
+				# Pulso de advertencia durante el casteo
+				var pulse_tw = create_tween().set_loops()
+				pulse_tw.tween_property(g_mat, "albedo_color:a", 0.35, 0.25).set_trans(Tween.TRANS_SINE)
+				pulse_tw.tween_property(g_mat, "albedo_color:a", 0.12, 0.25).set_trans(Tween.TRANS_SINE)
 
 		elif action == "ice_storm_deploy":
 			var storm_x = float(data.get("x", en.global_position.x))
@@ -1530,11 +1537,11 @@ func _on_enemy_action(data: Dictionary):
 				var storm = Node3D.new()
 				storm.name = "IceStorm_" + enemy_id
 				storm.position = Vector3(storm_x * s_factor, 0.0, storm_y * s_factor * correction_z)
-				# Escalar en Z global para la perspectiva isométrica 2.5D
 				storm.scale = Vector3(1.0, 1.0, correction_z)
 				vp.add_child(storm)
 				active_areas["icestorm_" + enemy_id] = storm
 
+				# 1. Base gélida congelada en el piso
 				var ground = MeshInstance3D.new()
 				var g_mesh = CylinderMesh.new()
 				g_mesh.top_radius = r3d
@@ -1542,85 +1549,115 @@ func _on_enemy_action(data: Dictionary):
 				g_mesh.height = 0.02
 				ground.mesh = g_mesh
 				var g_mat = StandardMaterial3D.new()
-				g_mat.albedo_color = Color(0.5, 0.8, 1.0, 0.2)
+				g_mat.albedo_color = Color(0.4, 0.8, 1.0, 0.28)
 				g_mat.emission_enabled = true
-				g_mat.emission = Color(0.3, 0.6, 1.0)
-				g_mat.emission_energy_multiplier = 0.6
+				g_mat.emission = Color(0.25, 0.7, 1.0)
+				g_mat.emission_energy_multiplier = 1.0
 				g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 				ground.material_override = g_mat
 				ground.position.y = 0.01
 				storm.add_child(ground)
 
+				# 2. Anillo de escarcha exterior
 				var ring_outer = MeshInstance3D.new()
 				var torus = TorusMesh.new()
-				torus.inner_radius = r3d * 0.97
+				torus.inner_radius = max(0.01, r3d - 0.15)
 				torus.outer_radius = r3d
 				ring_outer.mesh = torus
 				var r_mat = StandardMaterial3D.new()
-				r_mat.albedo_color = Color(0.6, 0.9, 1.0, 0.6)
+				r_mat.albedo_color = Color(0.7, 0.95, 1.0, 0.85)
 				r_mat.emission_enabled = true
-				r_mat.emission = Color(0.4, 0.7, 1.0)
-				r_mat.emission_energy_multiplier = 2.0
+				r_mat.emission = Color(0.4, 0.85, 1.0)
+				r_mat.emission_energy_multiplier = 3.0
 				r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 				ring_outer.material_override = r_mat
 				ring_outer.position.y = 0.03
-				ring_outer.rotation.y = randf_range(0.0, TAU)
 				storm.add_child(ring_outer)
 
-				# Estalactitas de hielo cayendo (pinchos)
-				var particles = GPUParticles3D.new()
-				particles.amount = 30
-				particles.lifetime = 2.0
-				particles.one_shot = false
-				particles.explosiveness = 0.3
-				particles.randomness = 0.8
-				particles.preprocess = 0.5
-				particles.position.y = 2.0
+				# 3. Puntas / Estalactitas de hielo cayendo dentro del área
+				var spike_particles = GPUParticles3D.new()
+				spike_particles.amount = 40
+				spike_particles.lifetime = 0.7
+				spike_particles.one_shot = false
+				spike_particles.explosiveness = 0.1
+				spike_particles.randomness = 0.6
+				spike_particles.position.y = 3.5
 
 				var spike_mesh = CylinderMesh.new()
 				spike_mesh.top_radius = 0.08
 				spike_mesh.bottom_radius = 0.0
-				spike_mesh.height = 0.35
-				var mesh_mat = StandardMaterial3D.new()
-				mesh_mat.albedo_color = Color(0.7, 0.85, 1.0, 0.9)
-				mesh_mat.emission_enabled = true
-				mesh_mat.emission = Color(0.4, 0.7, 1.0)
-				mesh_mat.emission_energy_multiplier = 0.3
-				mesh_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				mesh_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				spike_mesh.material = mesh_mat
-				particles.draw_pass_1 = spike_mesh
+				spike_mesh.height = 0.65
+				var spike_mat = StandardMaterial3D.new()
+				spike_mat.albedo_color = Color(0.85, 0.95, 1.0, 0.95)
+				spike_mat.emission_enabled = true
+				spike_mat.emission = Color(0.4, 0.85, 1.0)
+				spike_mat.emission_energy_multiplier = 2.0
+				spike_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				spike_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				spike_mesh.material = spike_mat
+				spike_particles.draw_pass_1 = spike_mesh
 
 				var pm = ParticleProcessMaterial.new()
 				pm.direction = Vector3(0, -1, 0)
-				pm.spread = 12.0
-				pm.initial_velocity_min = 4.0
-				pm.initial_velocity_max = 7.0
-				pm.gravity = Vector3(0, -6.0, 0)
-				pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-				pm.emission_sphere_radius = r3d * 0.85
-				pm.scale_min = 0.4
-				pm.scale_max = 1.0
+				pm.spread = 2.0
+				pm.initial_velocity_min = 6.0
+				pm.initial_velocity_max = 9.5
+				pm.gravity = Vector3(0, -10.0, 0)
+				pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+				pm.emission_box_extents = Vector3(r3d * 0.88, 0.1, r3d * 0.88)
+				pm.scale_min = 0.7
+				pm.scale_max = 1.3
 
 				var grad = Gradient.new()
-				grad.set_color(0, Color(0.7, 0.85, 1.0, 0.0))
-				grad.add_point(0.15, Color(0.8, 0.9, 1.0, 0.9))
-				grad.add_point(0.6, Color(0.9, 0.95, 1.0, 0.85))
+				grad.set_color(0, Color(0.7, 0.9, 1.0, 0.0))
+				grad.add_point(0.1, Color(0.85, 0.95, 1.0, 1.0))
+				grad.add_point(0.8, Color(0.9, 0.98, 1.0, 0.9))
 				grad.set_color(grad.get_point_count() - 1, Color(1.0, 1.0, 1.0, 0.0))
 				pm.color_ramp = GradientTexture1D.new()
 				pm.color_ramp.gradient = grad
 
-				particles.process_material = pm
-				particles.scale = Vector3(r3d, r3d, r3d)
-				storm.add_child(particles)
-				particles.emitting = true
+				spike_particles.process_material = pm
+				storm.add_child(spike_particles)
+				spike_particles.emitting = true
 
-				# Entrada animada
+				# 4. Niebla / vapor gélido flotando en el área
+				var fog_particles = GPUParticles3D.new()
+				fog_particles.amount = 25
+				fog_particles.lifetime = 1.2
+				fog_particles.position.y = 0.15
+				var fog_mesh = SphereMesh.new()
+				fog_mesh.radius = 0.25
+				fog_mesh.height = 0.25
+				var fog_mat = StandardMaterial3D.new()
+				fog_mat.albedo_color = Color(0.6, 0.85, 1.0, 0.18)
+				fog_mat.emission_enabled = true
+				fog_mat.emission = Color(0.3, 0.7, 1.0)
+				fog_mat.emission_energy_multiplier = 0.5
+				fog_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				fog_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				fog_mesh.material = fog_mat
+				fog_particles.draw_pass_1 = fog_mesh
+
+				var fog_pm = ParticleProcessMaterial.new()
+				fog_pm.direction = Vector3(0, 1, 0)
+				fog_pm.spread = 45.0
+				fog_pm.initial_velocity_min = 0.2
+				fog_pm.initial_velocity_max = 0.6
+				fog_pm.gravity = Vector3(0, 0.1, 0)
+				fog_pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+				fog_pm.emission_box_extents = Vector3(r3d * 0.85, 0.05, r3d * 0.85)
+				fog_pm.scale_min = 0.8
+				fog_pm.scale_max = 1.8
+				fog_particles.process_material = fog_pm
+				storm.add_child(fog_particles)
+				fog_particles.emitting = true
+
+				# Entrada animada con corrección isométrica Z
 				storm.scale = Vector3.ZERO
 				var entry_tw = create_tween().set_parallel(true)
-				entry_tw.tween_property(storm, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+				entry_tw.tween_property(storm, "scale", Vector3(1.0, 1.0, correction_z), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 		elif action == "ice_storm_expire":
 			if active_areas.has("icestorm_" + enemy_id):
@@ -2733,12 +2770,12 @@ func _on_player_fired(d):
 	# v900.0: sonido de disparo remoto (ammo) con atenuación
 	if AudioManager and AudioManager.has_method("play_sfx_path"):
 		var pos = Vector2(float(d.get("x", 0)), float(d.get("y", 0)))
-		var btype = String(d.get("bulletType", d.get("ammoType", "")))
+		var btype = str(d.get("bulletType", d.get("ammoType", "")))
 		var tier = int(d.get("tier", d.get("ammoTier", 0)))
 		if not btype.is_empty() and GameConstants.SHOP_ITEMS and GameConstants.SHOP_ITEMS.has("ammo"):
 			var cfg = GameConstants.SHOP_ITEMS["ammo"].get(btype, [])
 			if tier < cfg.size():
-				var sp = String(cfg[tier].get("sound", ""))
+				var sp = str(cfg[tier].get("sound", ""))
 				if not sp.is_empty():
 					var ammo_pct = float(cfg[tier].get("soundVolumePercent", cfg[tier].get("soundVolume", 100.0)))
 					AudioManager.play_sfx_path(sp, pos, linear_to_db(clamp(ammo_pct / 100.0, 0.0001, 1.0)), float(cfg[tier].get("soundMaxDist", 1000.0)))
@@ -2749,7 +2786,7 @@ func _on_enemy_fired(d):
 	# v900.0: sonido de mecánica atacante (hybrid)
 	if AudioManager and AudioManager.has_method("play_mechanic_sound"):
 		var pos = Vector2(float(d.get("x", d.get("posX", 0))), float(d.get("y", d.get("posY", 0))))
-		var mtype = String(d.get("mechType", d.get("mechanicType", d.get("type", ""))))
+		var mtype = str(d.get("mechType", d.get("mechanicType", d.get("type", ""))))
 		if not mtype.is_empty():
 			var inst = d.get("mechanic", null)
 			AudioManager.play_mechanic_sound(mtype, inst if inst is Dictionary else null, pos)

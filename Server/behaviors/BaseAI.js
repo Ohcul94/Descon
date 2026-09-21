@@ -1,6 +1,7 @@
 const sphereUtils = require('../systems/equipRequirements');
 const { checkAndProcessDeathDrop } = require('../systems/deathDropHelper');
 const altarDefenseManager = require('../systems/altarDefenseManager');
+const { recordPlayerCombat } = require('../utils/partyUtils');
 
 const { normalizeZone } = require('../utils/zoneUtils');
 const stealMechanics = require('./mechanics/BossStealMechanics');
@@ -2052,19 +2053,11 @@ module.exports = class BaseAI {
             } else if (state.isCharging) {
                 const timeLeft = state.chargeEndTime - now;
                 if (timeLeft <= 0) {
-                    // FASE 3: TORMENTA DESPLEGADA
+                    // FASE 3: TORMENTA DESPLEGADA (Exactamente en la posición telegrafiada)
                     state.isCharging = false;
                     state.isActive = true;
                     state.activeEndTime = now + duration;
                     state.lastTickTime = now;
-
-                    if (!state.isPositionLocked) {
-                        const target = Object.values(players || {}).find(p => p.socketId === state.targetId && !p.isDead && !p.isInvisible);
-                        if (target) {
-                            state.lockedX = target.x;
-                            state.lockedY = target.y;
-                        }
-                    }
 
                     io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                         id: this.enemy.id,
@@ -2075,21 +2068,6 @@ module.exports = class BaseAI {
                         range: stormRadius,
                         duration: duration
                     });
-                } else {
-                    // FASE 2: RASTREO / FIJACIÓN
-                    const target = Object.values(players || {}).find(p => p.socketId === state.targetId && !p.isDead && !p.isInvisible);
-                    if (timeLeft > lockTimeMs) {
-                        if (target) {
-                            state.lockedX = target.x;
-                            state.lockedY = target.y;
-                        }
-                    } else if (!state.isPositionLocked) {
-                        if (target) {
-                            state.lockedX = target.x;
-                            state.lockedY = target.y;
-                        }
-                        state.isPositionLocked = true;
-                    }
                 }
             } else if (state.isActive) {
                 if (now >= state.activeEndTime) {
@@ -2125,7 +2103,7 @@ module.exports = class BaseAI {
                                 }
 
                                 // Aplicar daño
-                                p.lastCombatTime = Date.now();
+                                recordPlayerCombat(p, this.state, now);
                                 if (p.shield >= dmg) {
                                     p.shield -= dmg;
                                 } else {

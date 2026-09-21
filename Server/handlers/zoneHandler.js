@@ -449,11 +449,27 @@ function registerZoneHandlers(socket, io, state) {
             clearPlayerStatusEffects(p);
 
             p.zone = zoneId;
-            // v4xx: Punto de aparición configurado por el equipo en AdminDash > Cartografía
-            // (spawnX/spawnY). Se usa cuando el salto NO trae coordenadas propias (ej: warp por VIAJAR).
+            // v4xx: Autoridad del Servidor - Si el salto fue por una puerta configurada en Cartografía (AdminDash),
+            // usar las coordenadas targetX/targetY configuradas en el servidor para esa puerta.
+            const oldZoneCfg = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig && state.SERVER_CONFIG.mapsConfig[oldZone];
+            const oldZoneDoors = (oldZoneCfg && Array.isArray(oldZoneCfg.objects))
+                ? oldZoneCfg.objects.filter(o => o && (o.type === 'door' || o.type === 'portal') && String(o.targetZoneId) === String(zoneId))
+                : [];
+            let doorCfg = null;
+            if (oldZoneDoors.length === 1) {
+                doorCfg = oldZoneDoors[0];
+            } else if (oldZoneDoors.length > 1) {
+                const usedPortalLabel = (data && typeof data === 'object') ? String(data.portalLabel || '') : '';
+                doorCfg = oldZoneDoors.find(o => String(o.label) === usedPortalLabel) || oldZoneDoors[0];
+            }
+
             const destSpawnCfg = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig && state.SERVER_CONFIG.mapsConfig[zoneId];
             const hasSpawnCfg = destSpawnCfg && destSpawnCfg.spawnX !== undefined && destSpawnCfg.spawnY !== undefined;
-            if (requestedX !== null && requestedX !== undefined && requestedY !== null && requestedY !== undefined) {
+
+            if (doorCfg && doorCfg.targetX !== undefined && doorCfg.targetY !== undefined) {
+                p.x = Number(doorCfg.targetX);
+                p.y = Number(doorCfg.targetY);
+            } else if (requestedX !== null && requestedX !== undefined && requestedY !== null && requestedY !== undefined) {
                 p.x = Number(requestedX);
                 p.y = Number(requestedY);
             } else if (hasSpawnCfg) {

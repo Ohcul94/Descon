@@ -16,13 +16,17 @@ const VFX_Fire_ball_type_B_scene = preload("res://VFX/scenes/VFX_Fire_ball_type_
 const VFX_Fire_strike_scene = preload("res://VFX/scenes/VFX_Fire_strike.tscn")
 const VFX_Hit_fire_1_scene = preload("res://VFX/scenes/VFX_Hit_fire_1.tscn")
 
-# Pre-cargado estático de texturas para evitar I/O bloqueante
 const TEXTURE_MISSILE = preload("res://assets/Municiones/Misiles/Misil1/Misil1.png")
 const TEXTURE_MINE = preload("res://assets/Municiones/Minas/Mina1/Mina1.png")
 const TEXTURE_MINE_3 = preload("res://assets/Municiones/Minas/Mina3/Mina3.png")
 const TEXTURE_MINE_2 = preload("res://assets/Municiones/Minas/Mina2/Mina2.png")
 const TEXTURE_SIPHON = preload("res://assets/Municiones/Siphon/Siphon1/Siphon1.png")
 const TEXTURE_LASER = preload("res://assets/Municiones/Lasers/Laser1/Laser1.png")
+
+# Texturas de VFX Precargadas (v320: Mega Láser Estético y Efectos)
+const TEXTURE_VFX_FLARE_15 = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+const TEXTURE_VFX_GLO31 = preload("res://VFX/textures/T_VFX_Glo31.png")
+const TEXTURE_VFX_SPARKS112 = preload("res://VFX/textures/T_VFX_sparks112.jpg")
 
 const TEXTURE_CACHE = {
 	"missile": TEXTURE_MISSILE,
@@ -72,7 +76,7 @@ var _melee_fireballs_3d: Array = []
 var _melee_blade_positions_3d: Array = []
 var _current_data: Dictionary = {}  # Almacena el payload completo para acceso posterior
 
-# Referencias para animación y efectos de Mega Láser (v315)
+# Referencias para animación y efectos de Mega Láser (v320: Hi-Fi Sci-Fi Plasma Beam)
 var _laser_hit_3d: Node3D = null
 var _laser_glow_mat: StandardMaterial3D = null
 var _laser_beam_mat: StandardMaterial3D = null
@@ -80,6 +84,8 @@ var _laser_core_mat: StandardMaterial3D = null
 var _laser_glow_mesh: MeshInstance3D = null
 var _laser_beam_mesh: MeshInstance3D = null
 var _laser_core_mesh: MeshInstance3D = null
+var _laser_muzzle_flare: Node3D = null
+var _laser_sparks_particles: GPUParticles3D = null
 var _hook_chain_3d: MeshInstance3D = null
 var _bomb_ground_marker: Node3D = null
 var _bomb_radius: float = 150.0
@@ -119,27 +125,32 @@ func _process(_delta):
 			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
 			world_root_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
 			
-			# 1. Fluctuación y vibración dinámica del rayo láser
+			# 1. Fluctuación y vibración dinámica del haz cilíndrico de plasma (v320)
 			var time = Time.get_ticks_msec() / 1000.0
-			var scale_pulse = 1.0 + sin(time * 45.0) * 0.15
-			var scale_pulse_core = 1.0 + cos(time * 60.0) * 0.2
+			var scale_pulse = 1.0 + sin(time * 45.0) * 0.14 + cos(time * 85.0) * 0.06
+			var scale_pulse_core = 1.0 + cos(time * 65.0) * 0.20 + sin(time * 110.0) * 0.08
+			var scale_pulse_glow = 1.0 + sin(time * 30.0) * 0.08
 			
 			if is_instance_valid(_laser_beam_mesh):
 				_laser_beam_mesh.scale.x = scale_pulse
-				_laser_beam_mesh.scale.y = scale_pulse
+				_laser_beam_mesh.scale.z = scale_pulse
 			if is_instance_valid(_laser_core_mesh):
 				_laser_core_mesh.scale.x = scale_pulse_core
-				_laser_core_mesh.scale.y = scale_pulse_core
+				_laser_core_mesh.scale.z = scale_pulse_core
 			if is_instance_valid(_laser_glow_mesh):
-				_laser_glow_mesh.scale.x = 1.0 + sin(time * 30.0) * 0.1
-				_laser_glow_mesh.scale.y = 1.0 + sin(time * 30.0) * 0.1
+				_laser_glow_mesh.scale.x = scale_pulse_glow
+				_laser_glow_mesh.scale.z = scale_pulse_glow
+				
+			if is_instance_valid(_laser_muzzle_flare):
+				var flare_pulse = 1.0 + sin(time * 50.0) * 0.18 + cos(time * 90.0) * 0.07
+				_laser_muzzle_flare.scale = Vector3(flare_pulse, flare_pulse, flare_pulse)
 				
 			if is_instance_valid(_laser_glow_mat):
-				_laser_glow_mat.emission_energy_multiplier = 2.0 + sin(time * 35.0) * 0.4
+				_laser_glow_mat.emission_energy_multiplier = 3.0 + sin(time * 35.0) * 0.6
 			if is_instance_valid(_laser_beam_mat):
-				_laser_beam_mat.emission_energy_multiplier = 5.0 + cos(time * 50.0) * 1.5
+				_laser_beam_mat.emission_energy_multiplier = 7.0 + cos(time * 50.0) * 2.0
 			if is_instance_valid(_laser_core_mat):
-				_laser_core_mat.emission_energy_multiplier = 8.0 + sin(time * 70.0) * 2.0
+				_laser_core_mat.emission_energy_multiplier = 14.0 + sin(time * 70.0) * 3.0
 				
 			# 2. Posicionamiento del Hit VFX en la punta del láser
 			if is_instance_valid(_laser_hit_3d):
@@ -1293,63 +1304,165 @@ func _setup_visual_sprite():
 				var half_len = beam_len_3d / 2.0
 				var w3d = beam_w * s_factor
 
+				# 1. Capa Exterior: Corona/Halo Suave de Plasma (CylinderMesh)
 				var glow = MeshInstance3D.new()
-				var glow_box = BoxMesh.new()
-				glow_box.size = Vector3(w3d * 2.5, w3d * 2.5, beam_len_3d)
-				glow.mesh = glow_box
+				var glow_cyl = CylinderMesh.new()
+				glow_cyl.top_radius = w3d * 1.15
+				glow_cyl.bottom_radius = w3d * 1.15
+				glow_cyl.height = beam_len_3d
+				glow_cyl.radial_segments = 24
+				glow_cyl.rings = 0
+				glow_cyl.cap_top = false
+				glow_cyl.cap_bottom = false
+				glow.mesh = glow_cyl
 				var glow_mat = StandardMaterial3D.new()
-				glow_mat.albedo_color = Color(1.0, 0.2, 0.05, 0.3)
-				glow_mat.emission_enabled = true
-				glow_mat.emission = Color(1.0, 0.15, 0.05)
-				glow_mat.emission_energy_multiplier = 2.0
+				glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				glow_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 				glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				glow_mat.albedo_color = Color(1.0, 0.2, 0.02, 0.22)
+				glow_mat.emission_enabled = true
+				glow_mat.emission = Color(1.0, 0.15, 0.02)
+				glow_mat.emission_energy_multiplier = 3.0
 				glow.material_override = glow_mat
 				glow.position = Vector3(0, 0.2, -half_len)
+				glow.rotation_degrees = Vector3(90, 0, 0)
 				world_root_3d.add_child(glow)
 				
 				_laser_glow_mesh = glow
 				_laser_glow_mat = glow_mat
 
+				# 2. Capa Intermedia: Haz Principal de Plasma Denso (CylinderMesh)
 				var beam_mesh = MeshInstance3D.new()
-				var box = BoxMesh.new()
-				box.size = Vector3(w3d * 0.9, w3d * 0.9, beam_len_3d)
-				beam_mesh.mesh = box
+				var beam_cyl = CylinderMesh.new()
+				beam_cyl.top_radius = w3d * 0.48
+				beam_cyl.bottom_radius = w3d * 0.48
+				beam_cyl.height = beam_len_3d
+				beam_cyl.radial_segments = 28
+				beam_cyl.rings = 0
+				beam_cyl.cap_top = false
+				beam_cyl.cap_bottom = false
+				beam_mesh.mesh = beam_cyl
 				var mat = StandardMaterial3D.new()
-				mat.albedo_color = Color(1.0, 0.25, 0.1)
+				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+				mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				mat.albedo_color = Color(1.0, 0.35, 0.05, 0.85)
 				mat.emission_enabled = true
-				mat.emission = Color(1.0, 0.25, 0.1)
-				mat.emission_energy_multiplier = 5.0
+				mat.emission = Color(1.0, 0.35, 0.08)
+				mat.emission_energy_multiplier = 7.0
 				beam_mesh.material_override = mat
 				beam_mesh.position = Vector3(0, 0.2, -half_len)
+				beam_mesh.rotation_degrees = Vector3(90, 0, 0)
 				world_root_3d.add_child(beam_mesh)
 				
 				_laser_beam_mesh = beam_mesh
 				_laser_beam_mat = mat
 
+				# 3. Capa Interior: Núcleo Blanco Incandescente Hiper-Concentrado (CylinderMesh)
 				var core = MeshInstance3D.new()
-				var core_box = BoxMesh.new()
-				core_box.size = Vector3(w3d * 0.25, w3d * 0.25, beam_len_3d * 0.97)
-				core.mesh = core_box
+				var core_cyl = CylinderMesh.new()
+				core_cyl.top_radius = w3d * 0.16
+				core_cyl.bottom_radius = w3d * 0.16
+				core_cyl.height = beam_len_3d * 0.99
+				core_cyl.radial_segments = 16
+				core_cyl.rings = 0
+				core_cyl.cap_top = true
+				core_cyl.cap_bottom = true
+				core.mesh = core_cyl
 				var core_mat = StandardMaterial3D.new()
-				core_mat.albedo_color = Color(1.0, 1.0, 1.0)
+				core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+				core_mat.albedo_color = Color(1.0, 1.0, 0.95)
 				core_mat.emission_enabled = true
-				core_mat.emission = Color(1.0, 1.0, 0.95)
-				core_mat.emission_energy_multiplier = 8.0
+				core_mat.emission = Color(1.0, 1.0, 1.0)
+				core_mat.emission_energy_multiplier = 14.0
 				core.material_override = core_mat
 				core.position = Vector3(0, 0.2, -half_len)
+				core.rotation_degrees = Vector3(90, 0, 0)
 				world_root_3d.add_child(core)
 				
 				_laser_core_mesh = core
 				_laser_core_mat = core_mat
 
+				# 4. Muzzle Flare en el origen de disparo de la nave (Flare estético + núcleo)
+				var muzzle_root = Node3D.new()
+				muzzle_root.name = "MuzzleFlare"
+				muzzle_root.position = Vector3(0, 0.2, 0)
+				world_root_3d.add_child(muzzle_root)
+				_laser_muzzle_flare = muzzle_root
+
+				var flare_quad = MeshInstance3D.new()
+				var qm = QuadMesh.new()
+				qm.size = Vector2(w3d * 3.8, w3d * 3.8)
+				flare_quad.mesh = qm
+				var flare_mat = StandardMaterial3D.new()
+				flare_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				flare_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+				flare_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+				flare_mat.albedo_texture = TEXTURE_VFX_FLARE_15
+				flare_mat.albedo_color = Color(1.0, 0.5, 0.15, 0.95)
+				flare_quad.material_override = flare_mat
+				muzzle_root.add_child(flare_quad)
+
+				var flare_core = MeshInstance3D.new()
+				var sm = SphereMesh.new()
+				sm.radius = w3d * 0.32
+				sm.height = w3d * 0.64
+				flare_core.mesh = sm
+				var flare_core_mat = StandardMaterial3D.new()
+				flare_core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				flare_core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+				flare_core_mat.albedo_color = Color(1.0, 0.95, 0.85)
+				flare_core_mat.emission_enabled = true
+				flare_core_mat.emission = Color(1.0, 1.0, 1.0)
+				flare_core_mat.emission_energy_multiplier = 12.0
+				flare_core.material_override = flare_core_mat
+				muzzle_root.add_child(flare_core)
+
+				# 5. Emisión de chispas y plasma volátil a lo largo del rayo
+				var sparks = GPUParticles3D.new()
+				sparks.name = "LaserSparks"
+				sparks.amount = 35
+				sparks.lifetime = 0.35
+				sparks.explosiveness = 0.0
+				sparks.randomness = 0.5
+				sparks.local_coords = true
+				
+				var spark_mesh = QuadMesh.new()
+				spark_mesh.size = Vector2(w3d * 0.45, w3d * 0.45)
+				var spark_mat = StandardMaterial3D.new()
+				spark_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				spark_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+				spark_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+				spark_mat.albedo_texture = TEXTURE_VFX_SPARKS112
+				spark_mat.albedo_color = Color(1.0, 0.75, 0.35)
+				spark_mesh.material = spark_mat
+				sparks.draw_pass_1 = spark_mesh
+
+				var pmat = ParticleProcessMaterial.new()
+				pmat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+				pmat.emission_box_extents = Vector3(w3d * 0.35, w3d * 0.35, half_len)
+				pmat.gravity = Vector3.ZERO
+				pmat.spread = 180.0
+				pmat.initial_velocity_min = 0.8
+				pmat.initial_velocity_max = 2.5
+				pmat.scale_min = 0.4
+				pmat.scale_max = 1.0
+				sparks.process_material = pmat
+				sparks.position = Vector3(0, 0.2, -half_len)
+				world_root_3d.add_child(sparks)
+				_laser_sparks_particles = sparks
+
+				# 6. Luz omnidireccional cálida a lo largo del haz
 				var light = OmniLight3D.new()
-				light.light_color = Color(1.0, 0.2, 0.05)
-				light.light_energy = 5.0
-				light.omni_range = beam_len_3d * 0.6
+				light.light_color = Color(1.0, 0.35, 0.08)
+				light.light_energy = 6.0
+				light.omni_range = beam_len_3d * 0.7
 				light.position = Vector3(0, 0.2, -half_len)
 				world_root_3d.add_child(light)
 
-				# Instanciar efecto oficial de impacto de partículas en la punta del láser
+				# 7. Instanciar efecto oficial de impacto de partículas en la punta del láser
 				if VFX_Laser_Hit_scene:
 					_laser_hit_3d = VFXSystem.get_vfx_from_pool(VFX_Laser_Hit_scene)
 					_laser_hit_3d.name = "LaserHit3D_" + str(get_instance_id())
@@ -1357,7 +1470,7 @@ func _setup_visual_sprite():
 
 				tree_exiting.connect(func():
 					if is_instance_valid(world_root_3d):
-						VFXSystem.recycle_vfx_to_pool(world_root_3d)
+						world_root_3d.queue_free()
 					if is_instance_valid(_laser_hit_3d):
 						VFXSystem.recycle_vfx_to_pool(_laser_hit_3d)
 				)

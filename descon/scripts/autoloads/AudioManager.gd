@@ -52,7 +52,7 @@ func _ensure_bus(bus_name: String):
 func play_sfx(p_stream: Variant, p_vol: float = 0.0):
 	if typeof(p_stream) == TYPE_STRING:
 		# Nuevo: play_sfx("res://assets/Sonidos/xxx.ogg")
-		play_sfx_path(String(p_stream), Vector2.INF, p_vol)
+		play_sfx_path(str(p_stream), Vector2.INF, p_vol)
 		return
 	if not p_stream or not (p_stream is AudioStream): return
 	for p in _sfx_players:
@@ -171,7 +171,7 @@ func play_skill_sound(skill_name: String, pos: Variant = Vector2.INF):
 	if GameConstants and "SKILLS_DATA" in GameConstants:
 		data = GameConstants.SKILLS_DATA.get(skill_name, null)
 	if data == null: return
-	var path = String(data.get("sound", ""))
+	var path = str(data.get("sound", ""))
 	if path.is_empty(): return
 	var pct = float(data.get("soundVolumePercent", data.get("soundVolume", 100.0)))
 	var vol = linear_to_db(clamp(pct / 100.0, 0.0001, 1.0))
@@ -196,12 +196,12 @@ func play_mechanic_sound(mech_type: String, mech_instance: Variant = null, pos: 
 		elif "MOVEMENT_LIB" in GameConstants and mech_type in GameConstants.MOVEMENT_LIB:
 			mech_lib = GameConstants.MOVEMENT_LIB[mech_type]
 	if mech_lib:
-		lib_sound = String(mech_lib.get("sound", ""))
+		lib_sound = str(mech_lib.get("sound", ""))
 		lib_pct = float(mech_lib.get("soundVolumePercent", mech_lib.get("soundVolume", 100.0)))
 		lib_maxd = float(mech_lib.get("soundMaxDist", 1200.0))
 	# override por instancia (hybrid)
 	if mech_instance is Dictionary:
-		var inst_sound = String(mech_instance.get("sound", mech_instance.get("soundOverride", "")))
+		var inst_sound = str(mech_instance.get("sound", mech_instance.get("soundOverride", "")))
 		if not inst_sound.is_empty():
 			path = inst_sound
 			pct = float(mech_instance.get("soundVolumePercent", mech_instance.get("soundVolume", lib_pct)))

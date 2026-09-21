@@ -1982,10 +1982,14 @@ func _spawn_map_objects():
 				door.add_child(col)
 				
 				# Guardar metadatos del warp
-				door.set_meta("targetZoneId", str(obj.get("targetZoneId", "1")))
-				door.set_meta("targetX", float(obj.get("targetX", 5000)))
-				door.set_meta("targetY", float(obj.get("targetY", 5000)))
+				var _warp_tx = float(obj.get("targetX", 5000))
+				var _warp_ty = float(obj.get("targetY", 5000))
+				var _warp_tz = str(obj.get("targetZoneId", "1"))
+				door.set_meta("targetZoneId", _warp_tz)
+				door.set_meta("targetX", _warp_tx)
+				door.set_meta("targetY", _warp_ty)
 				door.set_meta("door_label", obj_label)
+				print("[BaseMap] Puerta '", obj_label, "' -> Zona ", _warp_tz, " coord: (", _warp_tx, ", ", _warp_ty, ") obj raw: ", obj)
 				
 				# Cargar modelo 3D en el viewport global (usar el assetPath guardado o el de extracción como fallback)
 				var model_path = str(obj.get("assetPath", ""))
@@ -3254,6 +3258,40 @@ func _spawn_objects_from_custom_scene():
 						_occluder_fader.register_occluder(child)
 				
 			"door":
+				# Recuperar el destino de salto priorizando GameConstants.MAPS_CONFIG (Admin Dash / Server)
+				var fallback_tz = str(child.get_meta("targetZoneId", "1") if child.has_meta("targetZoneId") else "1")
+				var fallback_tx = float(child.get_meta("targetX", 5000.0) if child.has_meta("targetX") else 5000.0)
+				var fallback_ty = float(child.get_meta("targetY", 5000.0) if child.has_meta("targetY") else 5000.0)
+				
+				var target_z = fallback_tz
+				var target_x = fallback_tx
+				var target_y = fallback_ty
+				
+				var z_key = str(zone_id)
+				if "." in z_key and z_key.is_valid_float():
+					var z_f = float(z_key)
+					if z_f == int(z_f): z_key = str(int(z_f))
+					
+				if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(z_key):
+					var m_cfg = GameConstants.MAPS_CONFIG[z_key]
+					if m_cfg.has("objects") and m_cfg.objects is Array:
+						var door_cfgs = m_cfg.objects.filter(func(o): return o is Dictionary and (o.get("type") == "door" or o.get("type") == "portal"))
+						for cfg_obj in door_cfgs:
+							var cfg_label = str(cfg_obj.get("label", ""))
+							if cfg_label == obj_label or door_cfgs.size() == 1:
+								target_z = str(cfg_obj.get("targetZoneId", target_z))
+								target_x = float(cfg_obj.get("targetX", target_x))
+								target_y = float(cfg_obj.get("targetY", target_y))
+								break
+				
+				# Si el mapa destino está marcado como visible = false en MAPS_CONFIG, no renderizar ni activar colisión
+				if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(target_z):
+					var target_map_cfg = GameConstants.MAPS_CONFIG[target_z]
+					if target_map_cfg.has("visible") and target_map_cfg.get("visible") == false:
+						print("[BaseMap] Omitiendo puerta custom 3D al mapa inactivo: ", target_z)
+						child.visible = false
+						continue
+
 				# Crear área lógica de Warp / Portal interactivo
 				var door = Area2D.new()
 				door.name = "MapDoor_" + obj_label.replace(" ", "_")
@@ -3266,11 +3304,9 @@ func _spawn_objects_from_custom_scene():
 				col.shape = circle
 				door.add_child(col)
 				
-				# Recuperar el destino de salto desde los metadatos del nodo de Godot
-				var target_z = str(child.get_meta("targetZoneId", "1") if child.has_meta("targetZoneId") else "1")
 				door.set_meta("targetZoneId", target_z)
-				door.set_meta("targetX", float(child.get_meta("targetX", 5000.0) if child.has_meta("targetX") else 5000.0))
-				door.set_meta("targetY", float(child.get_meta("targetY", 5000.0) if child.has_meta("targetY") else 5000.0))
+				door.set_meta("targetX", target_x)
+				door.set_meta("targetY", target_y)
 				door.set_meta("door_label", obj_label)
 				
 				add_child(door)
@@ -3286,7 +3322,7 @@ func _spawn_objects_from_custom_scene():
 				
 				if not is_instance_valid(interact_hbox):
 					_create_portal_jump_ui()
-				print("[BaseMap] Portal enlazado exitosamente: ", obj_label, " -> Destino Zona: ", target_z)
+				print("[BaseMap] Portal enlazado exitosamente: ", obj_label, " -> Destino Zona: ", target_z, " pos=(", target_x, ", ", target_y, ")")
 			"spawner":
 				# v770.12: Spawner de enemigos (Puerta3) - solo visual en escena custom, sin física
 				# child ya es el modelo 3D Puerta3 colocado en el editor

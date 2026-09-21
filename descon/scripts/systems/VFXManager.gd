@@ -88,6 +88,9 @@ var static_textures_to_cache = [
   "res://VFX/textures/T_VFX_Noise_019.png",
   "res://VFX/textures/T_VFX_Noise_531.png",
   "res://VFX/textures/T_VFX_Noise21d_tiled.png",
+  "res://VFX/textures/T_VFX_Flare_15.PNG",
+  "res://VFX/textures/T_VFX_Glo31.png",
+  "res://VFX/textures/T_VFX_sparks112.jpg",
 
   "res://assets/Personajes/3D/Nave11/Nave11.glb",
   "res://assets/Personajes/3D/Nave12/Nave12.glb",
@@ -827,6 +830,14 @@ func _run_shader_warmup():
 		_cache_materials_recursive(meteor_warmup)
 		instantiated_nodes.append(meteor_warmup)
 
+	# Precalentar shaders, mallas y partículas del Mega Láser
+	var laser_warmup = _create_mega_laser_warmup_node()
+	if laser_warmup:
+		tn.add_child(laser_warmup)
+		laser_warmup.position = Vector3(999.0, 999.0, 999.0)
+		_cache_materials_recursive(laser_warmup)
+		instantiated_nodes.append(laser_warmup)
+
 	await get_tree().process_frame
 
 	status.text = "Compilando graficos (GPU)..."
@@ -1183,6 +1194,15 @@ func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 		sub_vp.remove_child(m_warm)
 		m_warm.queue_free()
 
+	# Precalentar también el Mega Láser en el SubViewport activo
+	var l_warm = _create_mega_laser_warmup_node()
+	if l_warm:
+		l_warm.position = Vector3(0.0, -9999.0, 0.0)
+		sub_vp.add_child(l_warm)
+		_cache_materials_recursive(l_warm)
+		sub_vp.remove_child(l_warm)
+		l_warm.queue_free()
+
 	print("[VFXManager] Pool precalentado en SubViewport con éxito.")
 
 func _create_meteor_warmup_node() -> Node3D:
@@ -1294,4 +1314,137 @@ func _create_meteor_warmup_node() -> Node3D:
 	root.add_child(light)
 
 	return root
+
+func _create_mega_laser_warmup_node() -> Node3D:
+	var root = Node3D.new()
+	root.name = "MegaLaserWarmup"
+
+	var flare_tex = load("res://VFX/textures/T_VFX_Flare_15.PNG")
+	var sparks_tex = load("res://VFX/textures/T_VFX_sparks112.jpg")
+
+	# 1. Glow Cylinder
+	var glow = MeshInstance3D.new()
+	var glow_cyl = CylinderMesh.new()
+	glow_cyl.top_radius = 1.0
+	glow_cyl.bottom_radius = 1.0
+	glow_cyl.height = 10.0
+	glow.mesh = glow_cyl
+	var glow_mat = StandardMaterial3D.new()
+	glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	glow_mat.albedo_color = Color(1.0, 0.2, 0.02, 0.22)
+	glow_mat.emission_enabled = true
+	glow_mat.emission = Color(1.0, 0.15, 0.02)
+	glow_mat.emission_energy_multiplier = 3.0
+	glow.material_override = glow_mat
+	root.add_child(glow)
+
+	# 2. Beam Cylinder
+	var beam = MeshInstance3D.new()
+	var beam_cyl = CylinderMesh.new()
+	beam_cyl.top_radius = 0.5
+	beam_cyl.bottom_radius = 0.5
+	beam_cyl.height = 10.0
+	beam.mesh = beam_cyl
+	var beam_mat = StandardMaterial3D.new()
+	beam_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	beam_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	beam_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	beam_mat.albedo_color = Color(1.0, 0.35, 0.05, 0.85)
+	beam_mat.emission_enabled = true
+	beam_mat.emission = Color(1.0, 0.35, 0.08)
+	beam_mat.emission_energy_multiplier = 7.0
+	beam.material_override = beam_mat
+	root.add_child(beam)
+
+	# 3. Core Cylinder
+	var core = MeshInstance3D.new()
+	var core_cyl = CylinderMesh.new()
+	core_cyl.top_radius = 0.2
+	core_cyl.bottom_radius = 0.2
+	core_cyl.height = 10.0
+	core.mesh = core_cyl
+	var core_mat = StandardMaterial3D.new()
+	core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	core_mat.albedo_color = Color(1.0, 1.0, 0.95)
+	core_mat.emission_enabled = true
+	core_mat.emission = Color(1.0, 1.0, 1.0)
+	core_mat.emission_energy_multiplier = 14.0
+	core.material_override = core_mat
+	root.add_child(core)
+
+	# 4. Muzzle Flare
+	var flare_quad = MeshInstance3D.new()
+	var qm = QuadMesh.new()
+	qm.size = Vector2(2.0, 2.0)
+	flare_quad.mesh = qm
+	var flare_mat = StandardMaterial3D.new()
+	flare_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flare_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	flare_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	if flare_tex:
+		flare_mat.albedo_texture = flare_tex
+	flare_mat.albedo_color = Color(1.0, 0.5, 0.15, 0.95)
+	flare_quad.material_override = flare_mat
+	root.add_child(flare_quad)
+
+	var flare_core = MeshInstance3D.new()
+	var sm = SphereMesh.new()
+	sm.radius = 0.3
+	sm.height = 0.6
+	flare_core.mesh = sm
+	var flare_core_mat = StandardMaterial3D.new()
+	flare_core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flare_core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	flare_core_mat.albedo_color = Color(1.0, 0.95, 0.85)
+	flare_core_mat.emission_enabled = true
+	flare_core_mat.emission = Color(1.0, 1.0, 1.0)
+	flare_core_mat.emission_energy_multiplier = 12.0
+	flare_core.material_override = flare_core_mat
+	root.add_child(flare_core)
+
+	# 5. Sparks GPUParticles3D
+	var sparks = GPUParticles3D.new()
+	sparks.amount = 35
+	sparks.lifetime = 0.35
+	sparks.explosiveness = 0.0
+	sparks.randomness = 0.5
+	sparks.local_coords = true
+	sparks.emitting = true
+	
+	var spark_mesh = QuadMesh.new()
+	spark_mesh.size = Vector2(0.5, 0.5)
+	var spark_mat = StandardMaterial3D.new()
+	spark_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	spark_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	spark_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	if sparks_tex:
+		spark_mat.albedo_texture = sparks_tex
+	spark_mat.albedo_color = Color(1.0, 0.75, 0.35)
+	spark_mesh.material = spark_mat
+	sparks.draw_pass_1 = spark_mesh
+
+	var pmat = ParticleProcessMaterial.new()
+	pmat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pmat.emission_box_extents = Vector3(0.5, 0.5, 5.0)
+	pmat.gravity = Vector3.ZERO
+	pmat.spread = 180.0
+	pmat.initial_velocity_min = 0.8
+	pmat.initial_velocity_max = 2.5
+	pmat.scale_min = 0.4
+	pmat.scale_max = 1.0
+	sparks.process_material = pmat
+	root.add_child(sparks)
+
+	# 6. OmniLight3D
+	var light = OmniLight3D.new()
+	light.light_color = Color(1.0, 0.35, 0.08)
+	light.light_energy = 6.0
+	root.add_child(light)
+
+	return root
+
 
