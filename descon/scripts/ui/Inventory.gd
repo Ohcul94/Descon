@@ -11,6 +11,7 @@ const MapTabScript = preload("res://scripts/ui/inventory/MapTab.gd")
 const WeaponsTabScript = preload("res://scripts/ui/inventory/WeaponsTab.gd")
 const CraftingTabScript = preload("res://scripts/ui/inventory/CraftingTab.gd")
 const QuestsTabScript = preload("res://scripts/ui/inventory/QuestsTab.gd")
+const EstadisticasTabScript = preload("res://scripts/ui/inventory/EstadisticasTab.gd")
 
 # Inventory.gd (Omni-Control v164.1 - Phoenix Absolute)
 # Saneamiento total de diccionarios (Bracket Notation) + Exorcismo de Título.
@@ -161,6 +162,7 @@ func _ready():
 	_update_clan_ui()
 	_update_crafting_ui()
 	_update_quests_ui()
+	_update_estadisticas_ui()
 	
 	# v314.0: Iniciar la precarga en memoria de modelos 3D y texturas de todo el inventario
 	InventoryCache.preload_all()
@@ -228,6 +230,7 @@ func _on_player_stats_changed(p_data: Dictionary):
 	# Actualizar saldos locales para que el dibujo de _draw() sea correcto
 	if p_data.has("hubs"): hubs = int(p_data["hubs"])
 	if p_data.has("ohcu"): ohcu = int(p_data["ohcu"])
+	_update_estadisticas_ui()
 	queue_redraw()
 
 func _draw():
@@ -331,6 +334,28 @@ func _input(event):
 
 	if event.is_action_pressed("ui_inventory"):
 		toggle(); get_viewport().set_input_as_handled()
+	
+	# Atajo de teclado para abrir directamente la pestaña de Estadísticas
+	if event.is_action_pressed("ui_stats"):
+		var tabs = get_node_or_null("Window/TabContainer")
+		var is_on_stats = false
+		if tabs and is_open:
+			is_on_stats = (tabs.get_child(tabs.current_tab).name == "Estadisticas")
+		
+		if is_open and is_on_stats:
+			toggle()
+		else:
+			if tabs:
+				for i in range(tabs.get_child_count()):
+					if tabs.get_child(i).name == "Estadisticas":
+						if tabs.current_tab != i:
+							tabs.current_tab = i
+						break
+			if not is_open:
+				toggle()
+			else:
+				_update_active_tab_ui()
+		get_viewport().set_input_as_handled()
 	
 	if event is InputEventKey and event.pressed and event.keycode == KEY_M:
 		var tabs = get_node_or_null("Window/TabContainer")
@@ -692,3 +717,14 @@ func _update_quests_ui():
 			if qt.has_method("setup"): qt.setup(self)
 	
 	if is_open and qt and qt.has_method("update_ui"): qt.update_ui()
+
+func _update_estadisticas_ui():
+	var et = get_node_or_null("Window/TabContainer/Estadisticas")
+	if not et:
+		var tabs = get_node_or_null("Window/TabContainer")
+		if tabs:
+			et = Control.new(); et.name = "Estadisticas"; tabs.add_child(et)
+			et.set_script(EstadisticasTabScript)
+			if et.has_method("setup"): et.setup(self)
+	
+	if is_open and et and et.has_method("update_ui"): et.update_ui()

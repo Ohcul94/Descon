@@ -602,7 +602,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	
 	# v531.3: Control de Visibilidad independiente del Layout
 	# Los layouts cambian posiciones/escala, NO determinan qué ventanas están activas.
-	var _default_wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
+	var _default_wins = ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		_default_wins.append("CamEdit")
 		_default_wins.append("VirtualJoystick")
@@ -704,6 +704,27 @@ func _on_minimize_pressed(id: String):
 		_persist_hud_visibility()
 
 func _on_icon_pressed(id: String):
+	if id == "Stats":
+		var inv = get_tree().get_first_node_in_group("inventory")
+		if is_instance_valid(inv):
+			if inv.is_open:
+				var tabs = inv.get_node_or_null("Window/TabContainer")
+				if tabs:
+					for i in range(tabs.get_child_count()):
+						if tabs.get_child(i).name == "Estadisticas":
+							tabs.current_tab = i
+							break
+			else:
+				inv.toggle()
+				await get_tree().process_frame
+				var tabs2 = inv.get_node_or_null("Window/TabContainer")
+				if tabs2:
+					for i in range(tabs2.get_child_count()):
+						if tabs2.get_child(i).name == "Estadisticas":
+							tabs2.current_tab = i
+							break
+		return
+
 	if id == "CamEdit":
 		if SettingsManager and SettingsManager.mobile_mode:
 			var current_state = int(SettingsManager.mobile_camera_edit_enabled)
@@ -782,7 +803,7 @@ func _persist_hud_visibility():
 func _get_hud_node(id: String):
 	var real_id = id
 	if id == "Chat": real_id = "ChatUI"
-	if id == "Stats": real_id = "CenterStats"
+	if id == "Stats": real_id = "CenterStats"  # Legacy mapping, no longer used for icon press
 	if id == "Squad" or id == "Party": real_id = "PartyHUD"
 	if id == "SkillsContainer": real_id = "Skills"
 	if id == "Status" or id == "StatusEffects": real_id = "StatusEffects"
@@ -1042,7 +1063,7 @@ func _restore_default_layout():
 	
 	var default_layout = _get_default_positions()
 	var default_config = {
-		"CenterStats": true, "RadarWindow": true, "ChatUI": true, "PartyHUD": true,
+		"RadarWindow": true, "ChatUI": true, "PartyHUD": true,
 		"ControlBar": true, "StatusEffects": true, "TargetFrame": true,
 		"PortalBtnContainer": true, "CombatMeter": true, "TopLeft": true
 	}

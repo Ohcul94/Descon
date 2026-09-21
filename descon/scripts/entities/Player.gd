@@ -1194,13 +1194,13 @@ func _recalculate_stats():
 	var talent_system = get_tree().get_first_node_in_group("talent_system")
 	if is_instance_valid(talent_system):
 		var bonuses = talent_system.get_bonuses()
-		max_hp = base_hp_val * (1.0 + bonuses["hp_pct"]) * hp_mod_mult
-		max_shield = base_sh_val * (1.0 + bonuses["sh_pct"]) * shield_mod_mult
-		speed = base_speed_val * (1.0 + bonuses["speed_pct"]) * speed_mod_mult
-		base_laser_damage = (base_laser_damage * (1.0 + bonuses["dmg_pct"]) * dmg_mod_mult) + dmg_mod_flat
+		max_hp = base_hp_val * (1.0 + float(bonuses.get("hp_pct", 0.0))) * hp_mod_mult
+		max_shield = base_sh_val * (1.0 + float(bonuses.get("sh_pct", 0.0))) * shield_mod_mult
+		speed = base_speed_val * (1.0 + float(bonuses.get("speed_pct", 0.0))) * speed_mod_mult
+		base_laser_damage = (base_laser_damage * (1.0 + float(bonuses.get("dmg_pct", 0.0))) * dmg_mod_mult) + dmg_mod_flat
 		# Bonuses adicionales de talentos
-		hp_regen *= (1.0 + bonuses["hp_regen"])
-		sh_regen *= (1.0 + bonuses["shield_regen"])
+		hp_regen *= (1.0 + float(bonuses.get("hp_regen", 0.0)))
+		sh_regen *= (1.0 + float(bonuses.get("shield_regen", 0.0)))
 	else:
 		max_hp = base_hp_val * hp_mod_mult
 		max_shield = base_sh_val * shield_mod_mult

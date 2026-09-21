@@ -144,15 +144,15 @@ func get_bonuses() -> Dictionary:
 			var effects = t.get("effects", {})
 			var effects_meta = t.get("effectsMeta", {})
 			for key in effects:
-				# Saltar efectos de desbloqueo (se procesan en get_unlocks)
 				if key.begins_with("unlock:"):
 					continue
+				# Saltar efectos dinámicos (skill/weapon/ammo) - se procesan en get_dynamic_bonuses()
+				if key.begins_with("skill:") or key.begins_with("weapon:") or key.begins_with("ammo:"):
+					continue
 				var base_val = float(effects[key])
-				# Verificar metadata: ¿es fijo o porcentual?
 				var meta = effects_meta.get(key, {})
 				var is_flat = meta.get("flat", false)
 				var val = base_val * lvl
-				# Si effectsMeta indica flat, guardar con sufijo _flat para compatibilidad
 				if is_flat:
 					var flat_key = key + "_flat"
 					if bonuses.has(flat_key):
@@ -177,7 +177,7 @@ func get_bonuses() -> Dictionary:
 			var effects = cat_talents[i].get("effects", {})
 			var effects_meta = cat_talents[i].get("effectsMeta", {})
 			for key in effects:
-				if key.begins_with("unlock:"):
+				if key.begins_with("unlock:") or key.begins_with("skill:") or key.begins_with("weapon:") or key.begins_with("ammo:"):
 					continue
 				var base_val = float(effects[key])
 				var meta = effects_meta.get(key, {})
@@ -194,6 +194,43 @@ func get_bonuses() -> Dictionary:
 						bonuses[key] += val
 	
 	return bonuses
+
+# ═══════════════════════════════════════════════════════
+# BONIFICADORES DINÁMICOS (skills, armas, munición)
+# Devuelve: { "skill:SK-DEF-01:cd": { "val": -0.1, "flat": false }, ... }
+# ═══════════════════════════════════════════════════════
+
+func get_dynamic_bonuses() -> Dictionary:
+	var result: Dictionary = {}
+	if typeof(skill_tree) != TYPE_DICTIONARY:
+		return result
+	
+	var tc = talents_visual_config
+	var talents_list = tc.get("talents", [])
+	
+	for t in talents_list:
+		var cat = t.get("category", "")
+		var branch = skill_tree.get(cat, [])
+		var talents_in_cat = talents_list.filter(func(x): return x.get("category") == cat)
+		var idx = talents_in_cat.find(t)
+		if idx == -1 or idx >= branch.size():
+			continue
+		var lvl = branch[idx]
+		if lvl <= 0:
+			continue
+		var effects = t.get("effects", {})
+		var effects_meta = t.get("effectsMeta", {})
+		for key in effects:
+			if key.begins_with("skill:") or key.begins_with("weapon:") or key.begins_with("ammo:"):
+				var base_val = float(effects[key])
+				var meta = effects_meta.get(key, {})
+				var is_flat = meta.get("flat", false)
+				var val = base_val * lvl
+				if result.has(key):
+					result[key]["val"] += val
+				else:
+					result[key] = { "val": val, "flat": is_flat }
+	return result
 
 # ═══════════════════════════════════════════════════════
 # DESBLOQUEOS DE TALENTOS

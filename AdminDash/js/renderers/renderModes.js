@@ -2524,26 +2524,60 @@ window.renderTalentCreator = function() {
                             const meta = (t.effectsMeta && t.effectsMeta[key]) ? t.effectsMeta[key] : { flat: false };
                             const isFlat = meta.flat;
                             const isUnlock = _isUnlockEffect(key);
+                            const isSkillFx = _isSkillEffect(key);
+                            const isWeaponFx = _isWeaponEffect(key);
+                            const isAmmoFx = _isAmmoEffect(key);
+                            const isDynamic = isSkillFx || isWeaponFx || isAmmoFx;
                             const cat = TALENT_EFFECTS_CATALOG[key];
-                            const label = cat ? cat.icon + ' ' + cat.label : key;
-                            const catCol = cat ? _effectCatColor(cat.cat) : '#888';
+
+                            let label = key;
+                            let icon = '✨';
+                            let catCol = '#888';
+
+                            if (cat) {
+                                label = cat.label;
+                                icon = cat.icon;
+                                catCol = _effectCatColor(cat.cat);
+                            } else if (isSkillFx) {
+                                const parsed = _parseDynamicKey(key);
+                                const sk = config && config.skillsData ? config.skillsData[parsed.id] : null;
+                                const attrMeta = window.SKILL_ATTRS ? window.SKILL_ATTRS[parsed.attr] : null;
+                                label = `${sk ? sk.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                                icon = '🌀';
+                                catCol = '#f97316';
+                            } else if (isWeaponFx) {
+                                const parsed = _parseDynamicKey(key);
+                                const weps = config && config.shopItems && config.shopItems.weapons ? config.shopItems.weapons : [];
+                                const w = weps.find(x => x.id === parsed.id);
+                                const attrMeta = window.WEAPON_ATTRS ? window.WEAPON_ATTRS[parsed.attr] : null;
+                                label = `${w ? w.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                                icon = '🔫';
+                                catCol = '#ef4444';
+                            } else if (isAmmoFx) {
+                                const parsed = _parseDynamicKey(key);
+                                const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
+                                label = `Munición ${parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                                icon = '💥';
+                                catCol = '#ef4444';
+                            }
+
                             const displayVal = isUnlock ? '' : (isFlat ? (typeof formatCleanNumber === 'function' ? formatCleanNumber(val, 2) : val) : (typeof formatCleanNumber === 'function' ? formatCleanNumber(val * 100, 2) : (val * 100)));
                             const unitLabel = isUnlock ? 'SIEMPRE' : (isFlat ? '(fijo)' : '(%)');
                             return `
-                            <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid ${catCol}25;">
-                                <span style="font-size:1.1rem; flex-shrink:0;">${cat ? cat.icon : '✨'}</span>
+                            <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:6px 10px; border-radius:8px; border:1px solid ${catCol}30; transition:all 0.15s;">
+                                <span style="font-size:1.1rem; flex-shrink:0;">${icon}</span>
                                 <div style="flex:1; min-width:0;">
-                                    <div style="font-size:0.72rem; font-weight:bold; color:${catCol}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cat ? cat.label : key}</div>
-                                    <div style="font-size:0.6rem; color:#666; font-family:'JetBrains Mono';">${key}</div>
+                                    <div style="font-size:0.75rem; font-weight:bold; color:${catCol}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${label}</div>
+                                    <div style="font-size:0.6rem; color:#888; font-family:'JetBrains Mono';">${key}</div>
                                 </div>
                                 ${isUnlock ? `
-                                    <span style="font-size:0.65rem; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.12); color:#a855f7; border:1px solid rgba(168,85,247,0.25);">DESBLOQUEO</span>
+                                    <span style="font-size:0.65rem; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3); font-weight:bold;">🔓 DESBLOQUEO</span>
                                 ` : `
                                     <button onclick="toggleEffectFlat(${idx}, '${key}')" style="flex-shrink:0; padding:3px 8px; border-radius:4px; font-size:0.65rem; font-weight:bold; cursor:pointer; border:1px solid ${isFlat ? 'rgba(255,150,50,0.4)' : 'rgba(0,210,255,0.4)'}; background:${isFlat ? 'rgba(255,150,50,0.12)' : 'rgba(0,210,255,0.12)'}; color:${isFlat ? '#ff9632' : '#00d2ff'};" title="Clic para alternar entre fijo y porcentual">${isFlat ? 'FIJO' : '%'}</button>
-                                    <input type="number" step="0.01" value="${displayVal}" style="width:75px; text-align:center; font-size:0.78rem; padding:4px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = (${isFlat || false}) ? parseFloat(this.value) : (parseFloat(this.value) / 100)">
-                                    <span style="font-size:0.6rem; color:#888; min-width:28px;">${unitLabel}</span>
+                                    <input type="number" step="0.01" value="${displayVal}" style="width:80px; text-align:center; font-size:0.8rem; padding:4px 6px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:white; font-family:'JetBrains Mono';" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = (${isFlat || false}) ? parseFloat(this.value) : (parseFloat(this.value) / 100)">
+                                    <span style="font-size:0.65rem; color:#888; min-width:28px;">${unitLabel}</span>
                                 `}
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem; flex-shrink:0;" onclick="deleteTalentEffect(${idx}, '${key}')">✕</button>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; flex-shrink:0; padding:2px 6px;" onclick="deleteTalentEffect(${idx}, '${key}')" title="Eliminar efecto">✕</button>
                             </div>`;
                         }).join('')}
                     </div>
@@ -2562,42 +2596,32 @@ window.renderTalentCreator = function() {
 window.updateTalentCreatorNodeType = function(talentId, newType) {
     if (!config.talentsConfig.nodes) config.talentsConfig.nodes = {};
     if (!config.talentsConfig.nodes[talentId]) {
-        // Si el nodo no está mapeado, crearlo en posición 0,0
         config.talentsConfig.nodes[talentId] = { x: 100, y: 100 };
     }
     config.talentsConfig.nodes[talentId].nodeType = newType;
     renderTalentCreator();
-    // Re-renderizar mapper si está visible
     if (typeof renderTalentMapper === 'function') renderTalentMapper();
 };
 
 // ═══════════════════════════════════════════════════════════
 // CATÁLOGO UNIFICADO DE EFECTOS DE TALENTOS
-// clave → { label, icon, category, defaultValue }
-// _flat eliminado: el toggle fijo/% se decide AL EDITAR
 // ═══════════════════════════════════════════════════════════
 window.TALENT_EFFECTS_CATALOG = {
     // ── COMBATE ──
     laser_dmg_pct:       { label: 'Daño Láser',               icon: '🔫', cat: 'combate',   defaultValue: 0.01 },
     dmg_pct:             { label: 'Daño Total',               icon: '💥', cat: 'combate',   defaultValue: 0.01 },
-    crit_chance:         { label: 'Probabilidad Crítica',     icon: '🎯', cat: 'combate',   defaultValue: 0.01 },
-    crit_dmg:            { label: 'Daño Crítico',             icon: '🔥', cat: 'combate',   defaultValue: 0.01 },
     fire_rate_pct:       { label: 'Cadencia de Fuego',        icon: '⚔️', cat: 'combate',   defaultValue: 0.01 },
-    accuracy_pct:        { label: 'Puntería',                 icon: '👁️', cat: 'combate',   defaultValue: 0.01 },
     ignore_shield_pct:   { label: 'Perforación de Escudo',    icon: '⚡', cat: 'combate',   defaultValue: 0.01 },
     ammo_bonus_pct:      { label: 'Munición Extra',           icon: '💣', cat: 'combate',   defaultValue: 0.01 },
     // ── DEFENSA ──
     hp_pct:              { label: 'Vida Máxima',              icon: '🛡️', cat: 'defensa',   defaultValue: 0.01 },
-    sh_pct:              { label: 'Escudo Máximo',            icon: '🔵', cat: 'defensa',   defaultValue: 0.01 },
-    armor_pct:           { label: 'Armadura',                 icon: '⚙️', cat: 'defensa',   defaultValue: 0.01 },
     hp_regen:            { label: 'Regen. Vida',              icon: '🔧', cat: 'defensa',   defaultValue: 0.01 },
     shield_regen:        { label: 'Regen. Escudo',            icon: '🔋', cat: 'defensa',   defaultValue: 0.01 },
-    evasion_pct:         { label: 'Evasión',                  icon: '💨', cat: 'defensa',   defaultValue: 0.01 },
     stability:           { label: 'Estabilidad',              icon: '🛸', cat: 'defensa',   defaultValue: 0.01 },
     // ── UTILIDAD ──
     speed_pct:           { label: 'Velocidad',                icon: '🚀', cat: 'utilidad',  defaultValue: 0.01 },
-    cooldown_reduction:  { label: 'Reducción CD',             icon: '❄️', cat: 'utilidad',  defaultValue: 0.01 },
-    cast_time_reduction: { label: 'Reducción Cast Time',      icon: '⏱️', cat: 'utilidad',  defaultValue: 0.01 },
+    cooldown_reduction:  { label: 'Reducción CD Global',      icon: '❄️', cat: 'utilidad',  defaultValue: 0.01 },
+    cast_time_reduction: { label: 'Reducción Cast Time Global',icon: '⏱️', cat: 'utilidad',  defaultValue: 0.01 },
     dash_distance:       { label: 'Distancia Dash',           icon: '🌀', cat: 'utilidad',  defaultValue: 0.01 },
     minimap_range:       { label: 'Rango Radar',              icon: '📡', cat: 'utilidad',  defaultValue: 0.01 },
     energy_efficiency:   { label: 'Eficiencia Energía',       icon: '⚛️', cat: 'utilidad',  defaultValue: 0.01 },
@@ -2607,161 +2631,440 @@ window.TALENT_EFFECTS_CATALOG = {
     repair_cost_reduction:{ label: 'Costo Reparación',        icon: '💸', cat: 'economía',  defaultValue: 0.01 },
     boss_loot_bonus:     { label: 'Loot Bosses',              icon: '👑', cat: 'economía',  defaultValue: 0.01 },
     group_bonus:         { label: 'Bonus Escuadrón',          icon: '👥', cat: 'economía',  defaultValue: 0.01 },
-    // ── DESBLOQUEOS: ARMAS ──
-    'unlock:weapon:las1': { label: 'Desbloquear Láser LF-1',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:weapon:las2': { label: 'Desbloquear Láser LF-2',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:weapon:las3': { label: 'Desbloquear Láser LF-3',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:weapon:las4': { label: 'Desbloquear Láser LF-4',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:weapon:las5': { label: 'Desbloquear Láser Promet.',icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:weapon:las6': { label: 'Desbloquear Cañón Hyper',  icon: '🔫', cat: 'desbloqueo', defaultValue: 1 },
-    // ── DESBLOQUEOS: ESCUDOS ──
-    'unlock:shield:sh1':  { label: 'Desbloquear Escudo S1',   icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:shield:sh2':  { label: 'Desbloquear Escudo S2',   icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:shield:sh3':  { label: 'Desbloquear Escudo SG3',  icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:shield:sh4':  { label: 'Desbloquear Escudo NX',   icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:shield:sh5':  { label: 'Desbloquear Escudo Fusion',icon:'🛡️', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:shield:sh6':  { label: 'Desbloquear Generador Z+',icon: '🛡️', cat: 'desbloqueo', defaultValue: 1 },
-    // ── DESBLOQUEOS: MOTORES ──
-    'unlock:engine:en1':  { label: 'Desbloquear Motor M1',    icon: '🚀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:engine:en2':  { label: 'Desbloquear Motor M2',    icon: '🚀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:engine:en3':  { label: 'Desbloquear Motor M3',    icon: '🚀', cat: 'desbloqueo', defaultValue: 1 },
-    // ── DESBLOQUEOS: NAVES ──
-    'unlock:ship:2':      { label: 'Desbloquear Vulture-G2',  icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:ship:3':      { label: 'Desbloquear Falcon-A3',   icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:ship:4':      { label: 'Desbloquear Titan-S4',    icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:ship:5':      { label: 'Desbloquear Wraith-X5',   icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:ship:6':      { label: 'Desbloquear Galactus-Z6', icon: '🛸', cat: 'desbloqueo', defaultValue: 1 },
-    // ── DESBLOQUEOS: HABILIDADES ──
-    'unlock:skill:SK-DEF-01': { label: 'Desbloquear Escudo Celular',     icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-HEAL-01':{ label: 'Desbloquear Auto-Reparación',    icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-HEAL-02':{ label: 'Desbloquear Nano-Regeneración',  icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-HEAL-03':{ label: 'Desbloquear Regen. Alfa',        icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-HEAL-04':{ label: 'Desbloquear Vínculo Vital',      icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-HEAL-05':{ label: 'Desbloquear Baliza Curación',    icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-UTIL-01':{ label: 'Desbloquear Turbo-Impulso',      icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-UTIL-02':{ label: 'Desbloquear Hyper-Dash',         icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-UTIL-03':{ label: 'Desbloquear Invulnerabilidad',   icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-UTIL-04':{ label: 'Desbloquear Blink',              icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-UTIL-05':{ label: 'Desbloquear Stealth',            icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-UTIL-06':{ label: 'Desbloquear Resurrección',       icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-ATK-01': { label: 'Desbloquear Reflect-Omega',      icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-DEF-03': { label: 'Desbloquear Smoke-Bomb',         icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-DEF-04': { label: 'Desbloquear Frost-Trail',        icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-DEF-05': { label: 'Desbloquear Barrera de Viento',  icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
-    'unlock:skill:SK-DEF-06': { label: 'Desbloquear Provocación',        icon: '🌀', cat: 'desbloqueo', defaultValue: 1 },
 };
 
-// Helper: ¿es una key de desbloqueo?
+// Helpers de efectos
 function _isUnlockEffect(key) { return key && key.startsWith('unlock:'); }
+function _isSkillEffect(key) { return key && key.startsWith('skill:'); }
+function _isWeaponEffect(key) { return key && key.startsWith('weapon:'); }
+function _isAmmoEffect(key) { return key && key.startsWith('ammo:'); }
+function _isDynamicEffect(key) { return _isSkillEffect(key) || _isWeaponEffect(key) || _isAmmoEffect(key); }
 
-// Helper: color de categoría
+function _parseDynamicKey(key) {
+    if (!key) return null;
+    const parts = key.split(':');
+    if (parts.length >= 3 && ['skill','weapon','ammo'].includes(parts[0])) {
+        return { type: parts[0], id: parts[1], attr: parts.slice(2).join(':') };
+    }
+    return null;
+}
+
+window.SKILL_ATTRS = {
+    cd:              { label: 'Cooldown',         unit: 'ms',   icon: '⏱️' },
+    castTimeMs:      { label: 'Casteo',           unit: 'ms',   icon: '⏳' },
+    amount:          { label: 'Poder (pts)',       unit: 'pts',  icon: '💪' },
+    range:           { label: 'Rango',            unit: 'px',   icon: '📏' },
+    duration:        { label: 'Duración',         unit: 'ms',   icon: '⏳' },
+    radius:          { label: 'Radio/Área',       unit: 'px',   icon: '⭕' },
+    speed:           { label: 'Velocidad',        unit: 'px/s', icon: '🚀' },
+    width:           { label: 'Ancho',            unit: 'px',   icon: '↔️' },
+    heal_amount:     { label: 'Sanación',         unit: 'pts',  icon: '💚' },
+    pulse_interval:  { label: 'Int. Pulso',       unit: 'ms',   icon: '〰️' },
+    tickInterval:    { label: 'Int. Tick',        unit: 'ms',   icon: '⏱️' },
+    taunt_duration:  { label: 'Provocación',      unit: 'ms',   icon: '💢' },
+    breakRange:      { label: 'Rango Ruptura',    unit: 'px',   icon: '💥' },
+    revive_hp_pct:   { label: 'Vida Revivir',     unit: '%',    icon: '❤️' },
+    revive_shield_pct:{ label: 'Escudo Revivir',  unit: '%',    icon: '🛡️' }
+};
+
+window.WEAPON_ATTRS = {
+    base:            { label: 'Daño Base',        unit: 'pts',  icon: '💥' },
+    speedMod:        { label: 'Mod. Velocidad',   unit: 'x',    icon: '🚀' },
+};
+
+window.AMMO_ATTRS = {
+    cooldown:        { label: 'Cadencia',         unit: 'ms',   icon: '⏱️' },
+    bulletSpeed:     { label: 'Vel. Proyectil',   unit: 'px/s', icon: '🚀' },
+    range:           { label: 'Alcance',          unit: 'px',   icon: '📏' },
+    castTimeMs:      { label: 'Casteo',           unit: 'ms',   icon: '⏳' },
+};
+
 function _effectCatColor(cat) {
-    const m = { combate:'#ff3131', defensa:'#00d2ff', utilidad:'#f0c040', economía:'#10b981', desbloqueo:'#a855f7' };
+    const m = { combate:'#ff3131', defensa:'#00d2ff', utilidad:'#f0c040', economía:'#10b981', unlock:'#a855f7', desbloqueo:'#a855f7', skill:'#f97316', skills:'#f97316', weapon:'#ef4444', armas:'#ef4444', ammo:'#f43f5e', custom:'#38bdf8' };
     return m[cat] || '#888';
 }
 
 // ═══════════════════════════════════════════════════════════
-// MODAL DE BÚSQUEDA DE EFECTOS
+// MODAL UNIFICADO Y DINÁMICO DE SELECCIÓN DE EFECTOS
 // ═══════════════════════════════════════════════════════════
 window._effectModalTalentIdx = null;
+window._effectModalCallback = null;
 window._effectModalFilter = '';
+window._effectModalCategory = 'all';
 
-window.openEffectPickerModal = function(talentIdx) {
-    window._effectModalTalentIdx = talentIdx;
+window.openEffectPickerModal = function(talentIdxOrNull, onSelectCallback = null) {
+    window._effectModalTalentIdx = talentIdxOrNull;
+    window._effectModalCallback = onSelectCallback;
     window._effectModalFilter = '';
+    window._effectModalCategory = 'all';
     _renderEffectPickerModal();
 };
 
 window._renderEffectPickerModal = function() {
     const idx = window._effectModalTalentIdx;
-    if (idx === null) return;
-    const t = config.talentsConfig.talents[idx];
-    const existingKeys = Object.keys(t.effects || {});
-    const filter = (window._effectModalFilter || '').toLowerCase();
+    const cb = window._effectModalCallback;
+    if (idx === null && !cb) return;
 
-    // Agrupar por categoría
-    const groups = {};
-    for (const [key, meta] of Object.entries(TALENT_EFFECTS_CATALOG)) {
-        if (existingKeys.includes(key)) continue;
-        if (filter && !meta.label.toLowerCase().includes(filter) && !key.toLowerCase().includes(filter)) continue;
-        if (!groups[meta.cat]) groups[meta.cat] = [];
-        groups[meta.cat].push({ key, ...meta });
+    let existingKeys = [];
+    if (idx !== null && config?.talentsConfig?.talents?.[idx]) {
+        existingKeys = Object.keys(config.talentsConfig.talents[idx].effects || {});
+    } else if (Array.isArray(window._cmEffects)) {
+        existingKeys = window._cmEffects.map(e => e.key);
     }
 
-    const catOrder = ['combate', 'defensa', 'utilidad', 'economía', 'desbloqueo'];
-    const catLabels = { combate:'⚔️ COMBATE', defensa:'🛡️ DEFENSA', utilidad:'🚀 UTILIDAD', economía:'💰 ECONOMÍA', desbloqueo:'🔓 DESBLOQUEOS' };
+    const filter = (window._effectModalFilter || '').toLowerCase().trim();
+    const activeCategory = window._effectModalCategory || 'all';
+
+    // Compilar todas las opciones disponibles
+    const allItems = [];
+
+    // 1. Estadísticas fijas del catálogo
+    for (const [key, meta] of Object.entries(window.TALENT_EFFECTS_CATALOG || {})) {
+        allItems.push({
+            key: key,
+            label: meta.label,
+            icon: meta.icon,
+            cat: meta.cat,
+            sub: `Atributo • ${meta.cat}`,
+            defaultValue: meta.defaultValue || 0.01,
+            isFlat: false
+        });
+    }
+
+    // 2. Habilidades dinámicas
+    const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
+    const skills = cfg.skillsData || {};
+    for (const [skId, sk] of Object.entries(skills)) {
+        const skName = sk.name || skId;
+        for (const [attrKey, attrMeta] of Object.entries(window.SKILL_ATTRS || {})) {
+            allItems.push({
+                key: `skill:${skId}:${attrKey}`,
+                label: `${skName} → ${attrMeta.label}`,
+                icon: attrMeta.icon || '🌀',
+                cat: 'skill',
+                sub: `Habilidad • ID: ${skId} • Unidad: ${attrMeta.unit}`,
+                defaultValue: attrKey === 'cd' ? -0.1 : 0.05,
+                isFlat: false
+            });
+        }
+    }
+
+    // 3. Armas
+    const weapons = (cfg.shopItems && cfg.shopItems.weapons) ? cfg.shopItems.weapons : [];
+    weapons.forEach(w => {
+        const wName = w.name || w.id;
+        for (const [attrKey, attrMeta] of Object.entries(window.WEAPON_ATTRS || {})) {
+            allItems.push({
+                key: `weapon:${w.id}:${attrKey}`,
+                label: `${wName} → ${attrMeta.label}`,
+                icon: attrMeta.icon || '🔫',
+                cat: 'weapon',
+                sub: `Arma • ID: ${w.id} • Unidad: ${attrMeta.unit}`,
+                defaultValue: attrKey === 'base' ? 5 : 0.05,
+                isFlat: attrKey === 'base'
+            });
+        }
+    });
+
+    // 4. Municiones
+    const ammo = (cfg.shopItems && cfg.shopItems.ammo) ? cfg.shopItems.ammo : {};
+    for (const [ammoType, ammoData] of Object.entries(ammo)) {
+        const ammoName = ammoType.charAt(0).toUpperCase() + ammoType.slice(1);
+        for (const [attrKey, attrMeta] of Object.entries(window.AMMO_ATTRS || {})) {
+            allItems.push({
+                key: `ammo:${ammoType}:${attrKey}`,
+                label: `Munición ${ammoName} → ${attrMeta.label}`,
+                icon: attrMeta.icon || '💥',
+                cat: 'ammo',
+                sub: `Munición • ${ammoType} • Unidad: ${attrMeta.unit}`,
+                defaultValue: attrKey === 'bulletSpeed' ? 50 : 0.05,
+                isFlat: attrKey === 'bulletSpeed' || attrKey === 'range'
+            });
+        }
+    }
+
+    // 5. Desbloqueos
+    weapons.forEach(w => {
+        allItems.push({
+            key: `unlock:weapon:${w.id}`,
+            label: `Desbloquear Arma: ${w.name || w.id}`,
+            icon: '🔫',
+            cat: 'unlock',
+            sub: `Desbloqueo • Arma ID: ${w.id}`,
+            defaultValue: 1,
+            isFlat: true
+        });
+    });
+    const shields = (cfg.shopItems && cfg.shopItems.shields) ? cfg.shopItems.shields : [];
+    shields.forEach(s => {
+        allItems.push({
+            key: `unlock:shield:${s.id}`,
+            label: `Desbloquear Escudo: ${s.name || s.id}`,
+            icon: '🛡️',
+            cat: 'unlock',
+            sub: `Desbloqueo • Escudo ID: ${s.id}`,
+            defaultValue: 1,
+            isFlat: true
+        });
+    });
+    const engines = (cfg.shopItems && cfg.shopItems.engines) ? cfg.shopItems.engines : [];
+    engines.forEach(e => {
+        allItems.push({
+            key: `unlock:engine:${e.id}`,
+            label: `Desbloquear Motor: ${e.name || e.id}`,
+            icon: '🚀',
+            cat: 'unlock',
+            sub: `Desbloqueo • Motor ID: ${e.id}`,
+            defaultValue: 1,
+            isFlat: true
+        });
+    });
+    const ships = (cfg.shipModels) ? cfg.shipModels : [];
+    ships.forEach(ship => {
+        allItems.push({
+            key: `unlock:ship:${ship.id}`,
+            label: `Desbloquear Nave: ${ship.name || ship.id}`,
+            icon: '🛸',
+            cat: 'unlock',
+            sub: `Desbloqueo • Nave ID: ${ship.id}`,
+            defaultValue: 1,
+            isFlat: true
+        });
+    });
+    for (const [skId, sk] of Object.entries(skills)) {
+        allItems.push({
+            key: `unlock:skill:${skId}`,
+            label: `Desbloquear Habilidad: ${sk.name || skId}`,
+            icon: '🌀',
+            cat: 'unlock',
+            sub: `Desbloqueo • Habilidad ID: ${skId}`,
+            defaultValue: 1,
+            isFlat: true
+        });
+    }
+
+    // Filtrar elementos ya existentes en el talento
+    const availableItems = allItems.filter(item => !existingKeys.includes(item.key));
+
+    // Filtrar por categoría activa
+    let filteredItems = availableItems;
+    if (activeCategory !== 'all' && activeCategory !== 'custom') {
+        filteredItems = availableItems.filter(item => {
+            if (activeCategory === 'skill') {
+                return item.cat === 'skill' || (item.cat === 'unlock' && item.key.startsWith('unlock:skill:'));
+            }
+            if (activeCategory === 'weapon') {
+                return item.cat === 'weapon' || (item.cat === 'unlock' && item.key.startsWith('unlock:weapon:'));
+            }
+            return item.cat === activeCategory;
+        });
+    }
+
+    // Filtrar por término de búsqueda
+    if (filter) {
+        filteredItems = filteredItems.filter(item => 
+            item.label.toLowerCase().includes(filter) ||
+            item.key.toLowerCase().includes(filter) ||
+            item.sub.toLowerCase().includes(filter)
+        );
+    }
+
+    const categoryTabs = [
+        { id: 'all', label: '✨ Todas' },
+        { id: 'combate', label: '⚔️ Combate', color: '#ff3131' },
+        { id: 'defensa', label: '🛡️ Defensa', color: '#00d2ff' },
+        { id: 'utilidad', label: '🚀 Utilidad', color: '#f0c040' },
+        { id: 'economía', label: '💰 Economía', color: '#10b981' },
+        { id: 'skill', label: '🌀 Habilidades', color: '#f97316' },
+        { id: 'weapon', label: '🔫 Armas', color: '#ef4444' },
+        { id: 'ammo', label: '💥 Munición', color: '#f43f5e' },
+        { id: 'unlock', label: '🔓 Desbloqueos', color: '#a855f7' },
+        { id: 'custom', label: '⚙️ Personalizado', color: '#38bdf8' }
+    ];
+
+    let contentHtml = '';
+
+    if (activeCategory === 'custom') {
+        // Vista de Efecto Personalizado
+        contentHtml = `
+            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,210,255,0.2); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.6rem;">⚙️</span>
+                    <div>
+                        <h4 style="margin:0; color:var(--primary); font-size:1rem; letter-spacing:0.5px;">Crear Efecto Personalizado Libre</h4>
+                        <div style="font-size:0.72rem; color:#888; margin-top:2px;">Podés vincular cualquier clave de estadística, modificador especial o desbloqueo sin límites.</div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px; font-weight:bold;">CLAVE INTERNA (KEY) *</label>
+                        <input type="text" id="custom-effect-key" placeholder="ej: stealth_duration, crit_multiplier, bonus_xp" style="width:100%; font-family:'JetBrains Mono'; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:8px 10px; color:white; font-size:0.8rem;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px; font-weight:bold;">NOMBRE VISIBLE / ETIQUETA *</label>
+                        <input type="text" id="custom-effect-label" placeholder="ej: Duración de Sigilo, Multiplicador Crítico" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:8px 10px; color:white; font-size:0.8rem;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:12px; align-items:flex-end;">
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px; font-weight:bold;">ICONO</label>
+                        <input type="text" id="custom-effect-icon" value="✨" style="width:100%; text-align:center; font-size:1.4rem; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:4px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px; font-weight:bold;">VALOR BASE POR NIVEL</label>
+                        <input type="number" step="0.01" id="custom-effect-val" value="0.05" style="width:100%; font-family:'JetBrains Mono'; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:8px 10px; color:white; font-size:0.8rem;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px; font-weight:bold;">TIPO DE CÁLCULO</label>
+                        <div style="display:flex; gap:6px;">
+                            <button type="button" id="btn-custom-flat" onclick="window._customEffectFlat=true; document.getElementById('btn-custom-flat').style.background='rgba(255,150,50,0.2)'; document.getElementById('btn-custom-flat').style.borderColor='#ff9632'; document.getElementById('btn-custom-pct').style.background='rgba(255,255,255,0.05)'; document.getElementById('btn-custom-pct').style.borderColor='rgba(255,255,255,0.1)';" style="flex:1; padding:8px; font-size:0.75rem; font-weight:bold; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#ff9632; cursor:pointer;">FIJO (pts)</button>
+                            <button type="button" id="btn-custom-pct" onclick="window._customEffectFlat=false; document.getElementById('btn-custom-pct').style.background='rgba(0,210,255,0.2)'; document.getElementById('btn-custom-pct').style.borderColor='#00d2ff'; document.getElementById('btn-custom-flat').style.background='rgba(255,255,255,0.05)'; document.getElementById('btn-custom-flat').style.borderColor='rgba(255,255,255,0.1)';" style="flex:1; padding:8px; font-size:0.75rem; font-weight:bold; border-radius:6px; border:1px solid #00d2ff; background:rgba(0,210,255,0.2); color:#00d2ff; cursor:pointer;">% (Porcentual)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                    <button type="button" class="btn btn-primary" onclick="submitCustomEffect()" style="padding:10px 24px; font-size:0.85rem; font-weight:bold;">➕ AGREGAR ESTE EFECTO AL TALENTO</button>
+                </div>
+            </div>
+        `;
+    } else {
+        // Lista de efectos disponibles
+        if (filteredItems.length === 0) {
+            contentHtml = `
+                <div style="text-align:center; padding:3rem 1rem; color:#777;">
+                    <div style="font-size:2rem; margin-bottom:8px;">🔍</div>
+                    <div style="font-size:0.9rem; color:#aaa;">No se encontraron efectos coincidentes.</div>
+                    <div style="font-size:0.75rem; margin-top:4px;">Podés buscar otra palabra o usar la pestaña <b>⚙️ Personalizado</b> para crear uno nuevo.</div>
+                </div>
+            `;
+        } else {
+            contentHtml = `
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:8px;">
+                    ${filteredItems.map(item => {
+                        const col = _effectCatColor(item.cat);
+                        const isUnlock = item.cat === 'unlock';
+                        return `
+                        <div onclick="selectEffectFromPicker('${item.key}', ${item.defaultValue}, ${item.isFlat}, '${item.label.replace(/'/g, "\\'")}', '${item.icon}')" 
+                             style="display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px; cursor:pointer; background:rgba(255,255,255,0.02); border:1px solid ${col}25; transition:all 0.15s;"
+                             onmouseover="this.style.background='${col}12'; this.style.borderColor='${col}80'; this.style.transform='translateY(-1px)';"
+                             onmouseout="this.style.background='rgba(255,255,255,0.02)'; this.style.borderColor='${col}25'; this.style.transform='none';">
+                            <span style="font-size:1.6rem; flex-shrink:0;">${item.icon}</span>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:0.82rem; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.label}</div>
+                                <div style="font-size:0.65rem; color:#888; font-family:'JetBrains Mono'; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.key}</div>
+                                <div style="font-size:0.6rem; color:${col}; margin-top:2px;">${item.sub}</div>
+                            </div>
+                            <div style="flex-shrink:0;">
+                                ${isUnlock 
+                                    ? `<span style="font-size:0.6rem; font-weight:bold; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3);">DESBLOQUEO</span>`
+                                    : `<span style="font-size:0.65rem; font-weight:bold; padding:2px 6px; border-radius:4px; background:${item.isFlat ? 'rgba(255,150,50,0.12)' : 'rgba(0,210,255,0.12)'}; color:${item.isFlat ? '#ff9632' : '#00d2ff'}; border:1px solid ${item.isFlat ? 'rgba(255,150,50,0.3)' : 'rgba(0,210,255,0.3)'};">${item.isFlat ? 'FIJO' : '%'}</span>`
+                                }
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            `;
+        }
+    }
 
     let html = `
-    <div id="effect-picker-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:100001;display:flex;align-items:center;justify-content:center;padding:2rem;" onclick="if(event.target===this)closeEffectPickerModal()">
-        <div style="width:100%;max-width:600px;max-height:80vh;display:flex;flex-direction:column;background:#0b0f1a;border:1px solid rgba(0,210,255,0.25);border-radius:16px;box-shadow:0 40px 100px rgba(0,0,0,0.8);overflow:hidden;">
-            <div style="padding:1.2rem 1.6rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;background:rgba(0,210,255,0.04);">
-                <h2 style="color:var(--primary);font-size:1.15rem;margin:0;letter-spacing:0.05em;">⚡ AGREGAR EFECTO</h2>
-                <button onclick="closeEffectPickerModal()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#aaa;cursor:pointer;width:32px;height:32px;border-radius:8px;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
-            </div>
-            <div style="padding:0.8rem 1.6rem;border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(0,0,0,0.2);">
-                <input type="text" id="effect-picker-search" placeholder="🔍 Buscar efecto..." value="${filter}" oninput="window._effectModalFilter=this.value;_renderEffectPickerModal()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;color:white;font-size:0.85rem;outline:none;box-sizing:border-box;">
-            </div>
-            <div style="flex:1;overflow-y:auto;padding:1rem 1.6rem;">
-    `;
-
-    let totalResults = 0;
-    for (const cat of catOrder) {
-        const items = groups[cat];
-        if (!items || items.length === 0) continue;
-        totalResults += items.length;
-        const catCol = _effectCatColor(cat);
-        html += `<div style="margin-bottom:12px;">
-            <div style="font-size:0.72rem;font-weight:bold;color:${catCol};letter-spacing:1px;margin-bottom:6px;padding:4px 0;border-bottom:1px solid ${catCol}20;">${catLabels[cat] || cat.toUpperCase()}</div>
-            <div style="display:flex;flex-direction:column;gap:4px;">`;
-        for (const item of items) {
-            html += `<div onclick="selectEffectFromPicker('${item.key}')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background 0.15s;border:1px solid rgba(255,255,255,0.05);" onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.borderColor='${catCol}60'" onmouseout="this.style.background='';this.style.borderColor='rgba(255,255,255,0.05)'">
-                <span style="font-size:1.3rem;flex-shrink:0;">${item.icon}</span>
-                <div style="flex:1;">
-                    <div style="font-size:0.82rem;font-weight:bold;color:var(--text);">${item.label}</div>
-                    <div style="font-size:0.68rem;color:#888;font-family:'JetBrains Mono';">${item.key}</div>
+    <div id="effect-picker-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:100001; display:flex; align-items:center; justify-content:center; padding:1.5rem;" onclick="if(event.target===this)closeEffectPickerModal()">
+        <div style="width:100%; max-width:760px; max-height:88vh; display:flex; flex-direction:column; background:#0b0f1a; border:1px solid rgba(0,210,255,0.3); border-radius:18px; box-shadow:0 30px 90px rgba(0,0,0,0.85); overflow:hidden;">
+            <!-- Cabecera -->
+            <div style="padding:1.2rem 1.6rem; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; background:rgba(0,210,255,0.04);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.4rem;">⚡</span>
+                    <div>
+                        <h3 style="color:var(--primary); font-size:1.15rem; margin:0; letter-spacing:0.04em;">SELECTOR DINÁMICO DE EFECTOS</h3>
+                        <div style="font-size:0.7rem; color:#888;">Elegí o creá un efecto para este talento (${availableItems.length} disponibles)</div>
+                    </div>
                 </div>
-                ${_isUnlockEffect(item.key) ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:4px;background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);">DESBLOQUEO</span>' : ''}
-            </div>`;
-        }
-        html += `</div></div>`;
-    }
+                <button onclick="closeEffectPickerModal()" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#aaa; cursor:pointer; width:32px; height:32px; border-radius:8px; font-size:1rem; display:flex; align-items:center; justify-content:center; transition:all 0.15s;" onmouseover="this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.3)'" onmouseout="this.style.color='#aaa'; this.style.borderColor='rgba(255,255,255,0.1)'">✕</button>
+            </div>
 
-    if (totalResults === 0) {
-        html += '<div style="text-align:center;padding:2rem;color:#555;font-style:italic;">No se encontraron efectos disponibles</div>';
-    }
+            <!-- Buscador + Categorías -->
+            <div style="padding:1rem 1.6rem; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(0,0,0,0.25); display:flex; flex-direction:column; gap:10px;">
+                <input type="text" id="effect-picker-search" placeholder="🔍 Buscar por nombre, atributo, arma o habilidad..." value="${filter}" oninput="window._effectModalFilter=this.value; _renderEffectPickerModal()" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(0,210,255,0.25); border-radius:8px; padding:10px 14px; color:white; font-size:0.85rem; outline:none; box-sizing:border-box;">
+                
+                <!-- Chips de Categoría -->
+                <div style="display:flex; gap:6px; flex-wrap:wrap; overflow-x:auto; padding-bottom:2px;">
+                    ${categoryTabs.map(cat => {
+                        const isActive = activeCategory === cat.id;
+                        const col = cat.color || 'var(--primary)';
+                        return `
+                        <button onclick="window._effectModalCategory='${cat.id}'; _renderEffectPickerModal()" style="padding:4px 10px; font-size:0.7rem; border-radius:6px; cursor:pointer; font-weight:${isActive ? 'bold' : 'normal'}; border:1px solid ${isActive ? col : 'rgba(255,255,255,0.1)'}; background:${isActive ? col + '22' : 'rgba(255,255,255,0.03)'}; color:${isActive ? col : '#aaa'}; transition:all 0.15s; white-space:nowrap;">
+                            ${cat.label}
+                        </button>`;
+                    }).join('')}
+                </div>
+            </div>
 
-    html += `</div></div></div>`;
+            <!-- Contenido Scrollable -->
+            <div style="flex:1; overflow-y:auto; padding:1.2rem 1.6rem;">
+                ${contentHtml}
+            </div>
+        </div>
+    </div>`;
 
-    // Insertar modal en el DOM
     const existing = document.getElementById('effect-picker-overlay');
     if (existing) existing.remove();
     document.body.insertAdjacentHTML('beforeend', html);
-    // Autofocus search
-    setTimeout(() => { const s = document.getElementById('effect-picker-search'); if (s) s.focus(); }, 50);
+
+    if (activeCategory !== 'custom') {
+        setTimeout(() => {
+            const s = document.getElementById('effect-picker-search');
+            if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+        }, 50);
+    }
+};
+
+window.submitCustomEffect = function() {
+    const keyInput = document.getElementById('custom-effect-key');
+    const labelInput = document.getElementById('custom-effect-label');
+    const iconInput = document.getElementById('custom-effect-icon');
+    const valInput = document.getElementById('custom-effect-val');
+
+    if (!keyInput || !keyInput.value.trim()) {
+        if (keyInput) { keyInput.focus(); keyInput.style.borderColor = '#ff4444'; }
+        return;
+    }
+
+    const key = keyInput.value.trim().toLowerCase().replace(/\s+/g, '_');
+    const label = labelInput ? (labelInput.value.trim() || key) : key;
+    const icon = iconInput ? (iconInput.value.trim() || '✨') : '✨';
+    const isFlat = (window._customEffectFlat !== undefined) ? window._customEffectFlat : false;
+    const val = parseFloat(valInput ? valInput.value : 0.05) || 0.01;
+
+    selectEffectFromPicker(key, val, isFlat, label, icon);
 };
 
 window.closeEffectPickerModal = function() {
     const el = document.getElementById('effect-picker-overlay');
     if (el) el.remove();
     window._effectModalTalentIdx = null;
+    window._effectModalCallback = null;
 };
 
-window.selectEffectFromPicker = function(key) {
+window.selectEffectFromPicker = function(key, defaultVal, isFlat, label, icon) {
     const idx = window._effectModalTalentIdx;
-    if (idx === null) return;
-    const t = config.talentsConfig.talents[idx];
-    if (!t.effects) t.effects = {};
-    if (t.effects[key] !== undefined) return;
+    const cb = window._effectModalCallback;
+    const val = (typeof defaultVal === 'number') ? defaultVal : 0.01;
+    const flat = !!isFlat;
 
-    const meta = TALENT_EFFECTS_CATALOG[key] || {};
-    t.effects[key] = meta.defaultValue || 0.01;
-
-    // Inicializar metadata (flat/% por defecto: porcentual)
-    if (!t.effectsMeta) t.effectsMeta = {};
-    t.effectsMeta[key] = { flat: false };
-
+    if (cb) {
+        cb({ key, val, flat, label, icon });
+    } else if (idx !== null && config?.talentsConfig?.talents?.[idx]) {
+        const t = config.talentsConfig.talents[idx];
+        if (!t.effects) t.effects = {};
+        if (!t.effectsMeta) t.effectsMeta = {};
+        t.effects[key] = val;
+        t.effectsMeta[key] = { flat: flat };
+        renderTalentCreator();
+    }
     closeEffectPickerModal();
-    renderTalentCreator();
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -2771,12 +3074,16 @@ window.toggleEffectFlat = function(talentIdx, key) {
     const t = config.talentsConfig.talents[talentIdx];
     if (!t.effectsMeta) t.effectsMeta = {};
     if (!t.effectsMeta[key]) t.effectsMeta[key] = { flat: false };
-    t.effectsMeta[key].flat = !t.effectsMeta[key].flat;
+    const wasFlat = !!t.effectsMeta[key].flat;
+    t.effectsMeta[key].flat = !wasFlat;
+    if (t.effects && t.effects[key] !== undefined) {
+        t.effects[key] = wasFlat ? (t.effects[key] / 100) : (t.effects[key] * 100);
+    }
     renderTalentCreator();
 };
 
 // ═══════════════════════════════════════════════════════════
-// FUNCIONES CRUD DE EFECTOS (ACTUALIZADAS)
+// FUNCIONES CRUD DE EFECTOS
 // ═══════════════════════════════════════════════════════════
 window.addTalentEffect = function(talentIdx) {
     window.openEffectPickerModal(talentIdx);
@@ -2788,7 +3095,6 @@ window.updateTalentEffectKey = function(talentIdx, oldKey, newKey) {
     const val = t.effects[oldKey];
     delete t.effects[oldKey];
     t.effects[newKey] = val;
-    // Migrar metadata
     if (t.effectsMeta) {
         if (t.effectsMeta[oldKey]) { t.effectsMeta[newKey] = t.effectsMeta[oldKey]; delete t.effectsMeta[oldKey]; }
     }

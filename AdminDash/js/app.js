@@ -1,6 +1,7 @@
 let socket;
 let chatSocket = null;
 let config = {};
+window.config = config;
 
 let currentAmmoTab = 'laser';
 let currentEnemySubTab = 'regular';
@@ -1442,6 +1443,20 @@ function duplicateMapItem(kind, idx) {
 
 function handleGlobalKeydown(e) {
     if (e.key === 'Escape') {
+        // Modales de Talentos y Esferas
+        const effectPickerOverlay = document.getElementById('effect-picker-overlay');
+        if (effectPickerOverlay) { if (typeof closeEffectPickerModal === 'function') closeEffectPickerModal(); else effectPickerOverlay.remove(); return; }
+
+        const sphereStatModal = document.getElementById('sphere-stat-picker-modal');
+        if (sphereStatModal && sphereStatModal.style.display === 'flex') { if (typeof closeSphereStatPickerModal === 'function') closeSphereStatPickerModal(); else sphereStatModal.style.display = 'none'; return; }
+
+        const talentCreateModal = document.getElementById('talent-create-modal');
+        if (talentCreateModal && talentCreateModal.style.display === 'flex') { if (typeof closeTalentModal === 'function') closeTalentModal(); else talentCreateModal.style.display = 'none'; return; }
+
+        const talentCatModal = document.getElementById('talent-categories-modal');
+        if (talentCatModal && talentCatModal.style.display === 'flex') { if (typeof closeTalentCategoriesModal === 'function') closeTalentCategoriesModal(); else talentCatModal.style.display = 'none'; return; }
+
+        // Modales existentes
         const addOverlay = document.getElementById('map-add-overlay');
         if (addOverlay && addOverlay.style.display === 'flex') { closeMapAddModal(); return; }
         const confirmOverlay = document.getElementById('confirm-overlay');
@@ -1658,6 +1673,7 @@ function patchMechanicsLib() {
         }
     }
     AMMO_MECH_LIB = config.ammoMechLib;
+    window.config = config;
 
     // Sincronizar y persistir AMBIENCE_LIB
     if (!config.ambienceLib) {
@@ -3619,43 +3635,38 @@ window.cmUpdateMaxLevel = function() {
 };
 
 window.cmAddEffect = function() {
-    window._cmPickerOpen = true;
-    window._cmEffectFilter = '';
-    cmRenderEffects();
-    setTimeout(() => {
-        const s = document.getElementById('cm-effect-search');
-        if (s) s.focus();
-    }, 50);
-};
-
-window.cmClosePicker = function() {
-    window._cmPickerOpen = false;
-    window._cmEffectFilter = '';
-    cmRenderEffects();
-};
-
-window.cmPickEffect = function(key) {
-    window._cmEffects.push({ key: key, val: 0.01, flat: false });
-    window._cmPickerOpen = false;
-    window._cmEffectFilter = '';
-    cmRenderEffects();
+    if (typeof window.openEffectPickerModal === 'function') {
+        window.openEffectPickerModal(null, (selected) => {
+            if (!Array.isArray(window._cmEffects)) window._cmEffects = [];
+            if (!window._cmEffects.some(e => e.key === selected.key)) {
+                window._cmEffects.push({
+                    key: selected.key,
+                    val: selected.val,
+                    flat: selected.flat,
+                    label: selected.label,
+                    icon: selected.icon
+                });
+                cmRenderEffects();
+            }
+        });
+    }
 };
 
 window.cmRemoveEffect = function(i) {
-    window._cmEffects.splice(i, 1);
-    cmRenderEffects();
-};
-
-window.cmUpdateEffectKey = function(i, newKey) {
-    window._cmEffects[i].key = newKey;
+    if (Array.isArray(window._cmEffects)) {
+        window._cmEffects.splice(i, 1);
+        cmRenderEffects();
+    }
 };
 
 window.cmUpdateEffectVal = function(i, newVal) {
+    if (!window._cmEffects || !window._cmEffects[i]) return;
     const isFlat = !!window._cmEffects[i].flat;
     window._cmEffects[i].val = isFlat ? (parseFloat(newVal) || 0) : ((parseFloat(newVal) || 0) / 100);
 };
 
 window.cmToggleEffectFlat = function(i) {
+    if (!window._cmEffects || !window._cmEffects[i]) return;
     const oldFlat = !!window._cmEffects[i].flat;
     const oldVal = window._cmEffects[i].val;
     if (oldFlat) {
@@ -3671,90 +3682,78 @@ window.cmToggleEffectFlat = function(i) {
 function cmRenderEffects() {
     const container = document.getElementById('cm-effects-list');
     if (!container) return;
-    const catalog = window.TALENT_EFFECTS_CATALOG ? Object.entries(window.TALENT_EFFECTS_CATALOG).map(([k, v]) => ({ key: k, label: v.label, icon: v.icon, cat: v.cat })) : [];
-    const usedKeys = (window._cmEffects || []).map(e => e.key);
 
-    const catNames = { combate: '⚔️ Combate', defensa: '🛡️ Defensa', utilidad: '🔧 Utilidad', economia: '💰 Economía', desbloqueo: '🔓 Desbloqueo', otros: '📦 Otros' };
-
-    let pickerHtml = `<div id="cm-picker-panel" style="display:${window._cmPickerOpen ? 'block' : 'none'}; margin-bottom:10px; border:1px solid rgba(0,210,255,0.25); border-radius:8px; padding:10px; background:rgba(0,210,255,0.03);">`;
-    if (window._cmPickerOpen) {
-        pickerHtml += `
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                <input type="text" id="cm-effect-search" placeholder="🔍 Escribí para buscar..."
-                    oninput="cmFilterPicker(this.value)"
-                    style="flex:1; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:8px 12px; color:white; font-size:0.82rem; outline:none; box-sizing:border-box;">
-                <button onclick="cmClosePicker()" style="padding:6px 12px; font-size:0.72rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#aaa; cursor:pointer;">Cancelar</button>
-            </div>
-            <div id="cm-picker-results" style="max-height:200px; overflow-y:auto; border:1px solid rgba(255,255,255,0.06); border-radius:6px;"></div>
-        `;
-    }
-    pickerHtml += `</div>`;
-
-    let effectsHtml = '';
-    (window._cmEffects || []).forEach((e, i) => {
-        const isFlat = !!e.flat;
-        const numVal = isFlat ? e.val : (e.val * 100);
-        const cleanVal = formatCleanNumber(numVal, 2);
-        const cat = TALENT_EFFECTS_CATALOG[e.key];
-        const catColor = cat ? _effectCatColor(cat.cat) : '#888';
-
-        effectsHtml += `
-        <div style="display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid ${catColor}25;">
-            <span style="font-size:1rem; flex-shrink:0;">${cat ? cat.icon : '✨'}</span>
-            <div style="flex:1; min-width:0;">
-                <div style="font-size:0.72rem; font-weight:bold; color:${catColor}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cat ? cat.label : e.key}</div>
-                <div style="font-size:0.6rem; color:#555; font-family:'JetBrains Mono';">${e.key}</div>
-            </div>
-            <div style="display:flex; align-items:center; gap:4px;">
-                <input type="number" step="0.1" value="${cleanVal}" style="width:75px; text-align:center; font-size:0.78rem; padding:4px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;" onchange="cmUpdateEffectVal(${i}, this.value)">
-                <button onclick="cmToggleEffectFlat(${i})" style="min-width:36px; padding:2px 5px; font-size:0.65rem; border-radius:4px; cursor:pointer; font-weight:bold; border:1px solid rgba(255,255,255,0.15); ${isFlat ? 'background:rgba(0,210,255,0.25); color:var(--primary);' : 'background:rgba(255,170,0,0.2); color:#ffaa00;'}">${isFlat ? 'FIJO' : '%'}</button>
-            </div>
-            <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="cmRemoveEffect(${i})">✕</button>
-        </div>
-        `;
-    });
-
-    container.innerHTML = pickerHtml + effectsHtml;
-
-    if (window._cmPickerOpen) {
-        cmFilterPicker(window._cmEffectFilter || '');
-        setTimeout(() => { const s = document.getElementById('cm-effect-search'); if (s) s.focus(); }, 50);
-    }
-}
-
-window.cmFilterPicker = function(val) {
-    window._cmEffectFilter = val;
-    const results = document.getElementById('cm-picker-results');
-    if (!results) return;
-    const catalog = window.TALENT_EFFECTS_CATALOG ? Object.entries(window.TALENT_EFFECTS_CATALOG).map(([k, v]) => ({ key: k, label: v.label, icon: v.icon, cat: v.cat })) : [];
-    const usedKeys = (window._cmEffects || []).map(e => e.key);
-    const filtered = val
-        ? catalog.filter(c => (c.label + ' ' + c.key).toLowerCase().includes(val.toLowerCase()) && !usedKeys.includes(c.key))
-        : catalog.filter(c => !usedKeys.includes(c.key));
-
-    const catNames = { combate: '⚔️ Combate', defensa: '🛡️ Defensa', utilidad: '🔧 Utilidad', economia: '💰 Economía', desbloqueo: '🔓 Desbloqueo', otros: '📦 Otros' };
-
-    if (filtered.length === 0) {
-        results.innerHTML = `<div style="padding:12px; text-align:center; color:#666; font-size:0.78rem;">No se encontraron efectos</div>`;
+    if (!Array.isArray(window._cmEffects) || window._cmEffects.length === 0) {
+        container.innerHTML = '<div style="font-size:0.75rem; color:#666; text-align:center; padding:14px; border:1px dashed rgba(255,255,255,0.1); border-radius:8px; background:rgba(0,0,0,0.15);">Sin efectos asignados. Hacé clic en "+ EFECTO" para elegir o crear uno.</div>';
         return;
     }
 
-    const grouped = {};
-    filtered.forEach(c => {
-        const cat = c.cat || 'otros';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(c);
-    });
+    const catColors = { combate:'#ff3131', defensa:'#00d2ff', utilidad:'#f0c040', economía:'#10b981', unlock:'#a855f7', desbloqueo:'#a855f7', skill:'#f97316', weapon:'#ef4444', ammo:'#f43f5e', custom:'#38bdf8' };
 
     let html = '';
-    for (const [cat, items] of Object.entries(grouped)) {
-        html += `<div style="padding:4px 10px; font-size:0.6rem; color:#888; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; background:rgba(255,255,255,0.02);">${catNames[cat] || cat}</div>`;
-        items.forEach(c => {
-            html += `<div onclick="cmPickEffect('${c.key}')" style="padding:7px 10px; cursor:pointer; font-size:0.8rem; color:white; display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(255,255,255,0.03);" onmouseover="this.style.background='rgba(0,210,255,0.12)'" onmouseout="this.style.background='transparent'"><span>${c.icon}</span> ${c.label}</div>`;
-        });
-    }
-    results.innerHTML = html;
-};
+    window._cmEffects.forEach((e, i) => {
+        const isFlat = !!e.flat;
+        const numVal = isFlat ? e.val : (e.val * 100);
+        const cleanVal = (typeof formatCleanNumber === 'function') ? formatCleanNumber(numVal, 2) : (Number.isInteger(numVal) ? numVal : parseFloat(numVal.toFixed(2)));
+        const cat = window.TALENT_EFFECTS_CATALOG ? window.TALENT_EFFECTS_CATALOG[e.key] : null;
+        const parsed = (typeof _parseDynamicKey === 'function') ? _parseDynamicKey(e.key) : null;
+        const isUnlock = e.key.startsWith('unlock:');
+
+        let displayName = e.label || e.key;
+        let displayIcon = e.icon || '✨';
+        let catColor = '#888';
+
+        if (cat) {
+            displayName = cat.label;
+            displayIcon = cat.icon;
+            catColor = catColors[cat.cat] || '#888';
+        } else if (parsed) {
+            const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
+            if (parsed.type === 'skill') {
+                const sk = cfg.skillsData ? cfg.skillsData[parsed.id] : null;
+                const attrMeta = window.SKILL_ATTRS ? window.SKILL_ATTRS[parsed.attr] : null;
+                displayName = `${sk ? sk.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                displayIcon = '🌀';
+                catColor = '#f97316';
+            } else if (parsed.type === 'weapon') {
+                const weps = cfg.shopItems && cfg.shopItems.weapons ? cfg.shopItems.weapons : [];
+                const w = weps.find(x => x.id === parsed.id);
+                const attrMeta = window.WEAPON_ATTRS ? window.WEAPON_ATTRS[parsed.attr] : null;
+                displayName = `${w ? w.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                displayIcon = '🔫';
+                catColor = '#ef4444';
+            } else if (parsed.type === 'ammo') {
+                const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
+                displayName = `Munición ${parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                displayIcon = '💥';
+                catColor = '#f43f5e';
+            }
+        } else if (isUnlock) {
+            catColor = '#a855f7';
+            displayIcon = '🔓';
+        }
+
+        html += `
+        <div style="display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02); padding:6px 10px; border-radius:8px; border:1px solid ${catColor}30; transition:all 0.15s;">
+            <span style="font-size:1.2rem; flex-shrink:0;">${displayIcon}</span>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:0.75rem; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayName}</div>
+                <div style="font-size:0.6rem; color:#888; font-family:'JetBrains Mono'; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${e.key}</div>
+            </div>
+            ${isUnlock ? `
+                <span style="font-size:0.65rem; font-weight:bold; padding:2px 8px; border-radius:4px; background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3);">🔓 DESBLOQUEO</span>
+            ` : `
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <input type="number" step="0.01" value="${cleanVal}" style="width:75px; text-align:center; font-size:0.8rem; padding:4px 6px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:white; font-family:'JetBrains Mono';" onchange="cmUpdateEffectVal(${i}, this.value)">
+                    <button type="button" onclick="cmToggleEffectFlat(${i})" style="min-width:38px; padding:3px 6px; font-size:0.65rem; border-radius:4px; cursor:pointer; font-weight:bold; border:1px solid ${isFlat ? 'rgba(255,150,50,0.4)' : 'rgba(0,210,255,0.4)'}; background:${isFlat ? 'rgba(255,150,50,0.15)' : 'rgba(0,210,255,0.15)'}; color:${isFlat ? '#ff9632' : '#00d2ff'};">${isFlat ? 'FIJO' : '%'}</button>
+                </div>
+            `}
+            <button type="button" style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:2px 6px;" onclick="cmRemoveEffect(${i})" title="Quitar efecto">✕</button>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+}
 
 window.confirmCreateTalent = function() {
     const name = document.getElementById('cm-name').value.trim();

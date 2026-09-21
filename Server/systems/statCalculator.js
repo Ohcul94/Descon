@@ -174,16 +174,20 @@ function calculateFinalStats(player, config) {
             const master = masterSpheres.find(m => String(m.id) === String(sphereItem.id));
             if (master && master.hidden && !isAdmin) return;
             const src = master || sphereItem;
-            const sphereStats = src.stats || {};
-            for (const [key, val] of Object.entries(sphereStats)) {
-                const numVal = Number(val) || 0;
+            const rawStats = src.stats || {};
+            const sphereStats = Array.isArray(rawStats)
+                ? rawStats
+                : Object.entries(rawStats).map(([k, v]) => ({ key: k, val: v }));
+            sphereStats.forEach(e => {
+                const key = e.key;
+                const numVal = Number(e.val) || 0;
                 if (key === 'hpMod') hpModFlat += numVal;
                 else if (key === 'shieldMod') shieldModFlat += numVal;
                 else if (key === 'speedMod') speedModFlat += numVal;
                 else if (key === 'hpPct') hpModPct += numVal * 100;
                 else if (key === 'shieldPct') shieldModPct += numVal * 100;
                 else if (key === 'speedPct') speedModPct += numVal * 100;
-            }
+            });
         });
     }
 

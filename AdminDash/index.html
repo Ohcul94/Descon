@@ -914,11 +914,13 @@
     </button>
 
     <!-- Modal: Crear Nuevo Talento -->
-    <div id="talent-create-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
-        <div style="background:#0f1118; border:1px solid rgba(0,210,255,0.25); border-radius:14px; padding:28px 32px; width:480px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <div id="talent-create-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); align-items:center; justify-content:center;">
+        <div style="background:#0f1118; border:1px solid rgba(0,210,255,0.3); border-radius:14px; padding:28px 32px; width:580px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.75);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:14px;">
-                <h3 style="margin:0; color:var(--primary); font-size:1.15rem;">✨ Crear Nuevo Talento</h3>
-                <button onclick="closeTalentModal()" style="background:none; border:none; color:#ff4444; font-size:1.3rem; cursor:pointer; padding:4px 8px;">✕</button>
+                <h3 style="margin:0; color:var(--primary); font-size:1.15rem; display:flex; align-items:center; gap:8px;">
+                    <span>✨</span> Crear Nuevo Talento
+                </h3>
+                <button onclick="closeTalentModal()" style="background:none; border:none; color:#ff4444; font-size:1.3rem; cursor:pointer; padding:4px 8px; line-height:1;" title="Cerrar">✕</button>
             </div>
 
             <div style="display:flex; flex-direction:column; gap:14px;">
@@ -967,17 +969,49 @@
                 <!-- Efectos -->
                 <div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <label style="color:var(--accent); font-size:0.75rem; font-weight:bold;">⚡ EFECTOS POR NIVEL</label>
-                        <button class="btn" style="padding:2px 8px; font-size:0.65rem; background:rgba(0,210,255,0.1); border:1px solid rgba(0,210,255,0.3); color:var(--primary); border-radius:4px;" onclick="cmAddEffect()">+ EFECTO</button>
+                        <div>
+                            <label style="color:var(--accent); font-size:0.75rem; font-weight:bold;">⚡ EFECTOS POR NIVEL</label>
+                            <span style="font-size:0.65rem; color:#777; margin-left:6px;">(Se acumulan por cada punto invertido)</span>
+                        </div>
+                        <button class="btn" type="button" style="padding:4px 10px; font-size:0.7rem; background:rgba(0,210,255,0.12); border:1px solid rgba(0,210,255,0.35); color:var(--primary); border-radius:6px; font-weight:600; cursor:pointer;" onclick="cmAddEffect()">+ AGREGAR EFECTO</button>
                     </div>
-                    <div id="cm-effects-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+                    <div id="cm-effects-list" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; padding-right:4px;"></div>
                 </div>
 
                 <!-- Botones -->
                 <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.06);">
-                    <button onclick="closeTalentModal()" style="padding:8px 20px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#aaa; cursor:pointer; font-size:0.82rem;">Cancelar</button>
-                    <button onclick="confirmCreateTalent()" class="btn btn-primary" style="padding:8px 24px; font-size:0.85rem;">Crear Talento</button>
+                    <button type="button" onclick="closeTalentModal()" style="padding:8px 20px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#aaa; cursor:pointer; font-size:0.82rem;">Cancelar</button>
+                    <button type="button" onclick="confirmCreateTalent()" class="btn btn-primary" style="padding:8px 24px; font-size:0.85rem;">Crear Talento</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Selector de Estadísticas para Esferas -->
+    <div id="sphere-stat-picker-modal" style="display:none; position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); align-items:center; justify-content:center;">
+        <div style="background:#0f111a; border:1px solid rgba(0,210,255,0.35); border-radius:14px; padding:24px 28px; width:680px; max-width:96vw; max-height:92vh; display:flex; flex-direction:column; gap:14px; box-shadow:0 24px 70px rgba(0,0,0,0.8);">
+            <!-- Encabezado -->
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:12px;">
+                <div>
+                    <h3 id="sphere-picker-title" style="margin:0; color:var(--primary); font-size:1.15rem; display:flex; align-items:center; gap:8px;">
+                        <span>🔮</span> Agregar Estadística a la Esfera
+                    </h3>
+                    <div style="font-size:0.65rem; color:#777; margin-top:2px;">Elegí una estadística del catálogo o configurá una personalizada para esta esfera.</div>
+                </div>
+                <button type="button" onclick="closeSphereStatPickerModal()" style="background:none; border:none; color:#ff4444; font-size:1.3rem; cursor:pointer; padding:4px 8px; line-height:1;" title="Cerrar">✕</button>
+            </div>
+
+            <!-- Buscador + Tabs -->
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <input type="text" id="sphere-stat-search" placeholder="🔍 Buscar estadística (ej: daño, vida, crit, cooldown, radar...)" 
+                    oninput="_filterSphereStatPicker()"
+                    style="width:100%; padding:9px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; font-size:0.82rem; outline:none;">
+                <div id="sphere-stat-cat-tabs" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+            </div>
+
+            <!-- Contenedor dinámico de opciones -->
+            <div id="sphere-stat-options-container" style="flex:1; overflow-y:auto; max-height:420px; padding-right:4px; display:flex; flex-direction:column; gap:8px;">
+                <!-- Rellenado dinámicamente por _renderSphereStatPickerModal -->
             </div>
         </div>
     </div>

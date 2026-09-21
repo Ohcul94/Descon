@@ -11751,7 +11751,15 @@
                 "soulbound": true,
                 "sphereColor": "roja",
                 "type": "sphere",
-                "requirements": []
+                "requirements": [],
+                "stats": {
+                    "dmg_pct": 0.02
+                },
+                "statsMeta": {
+                    "dmg_pct": {
+                        "flat": false
+                    }
+                }
             },
             {
                 "color": "#389c99",
@@ -11766,7 +11774,15 @@
                 },
                 "soulbound": true,
                 "sphereColor": "azul",
-                "type": "sphere"
+                "type": "sphere",
+                "stats": {
+                    "shieldPct": 0.05
+                },
+                "statsMeta": {
+                    "shieldPct": {
+                        "flat": false
+                    }
+                }
             },
             {
                 "color": "#4f902c",
@@ -11781,7 +11797,10 @@
                 },
                 "soulbound": true,
                 "sphereColor": "verde",
-                "type": "sphere"
+                "type": "sphere",
+                "stats": {
+                    "healPct": 0.05
+                }
             },
             {
                 "color": "#e5fb3c",
@@ -11796,7 +11815,10 @@
                 },
                 "soulbound": true,
                 "sphereColor": "amarilla",
-                "type": "sphere"
+                "type": "sphere",
+                "stats": {
+                    "speedPct": 0.02
+                }
             }
         ],
         "weapons": [

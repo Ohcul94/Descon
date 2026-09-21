@@ -417,21 +417,15 @@ func _update_summary_display():
 	# Metadatos para presentación clara y limpia de cada efecto
 	var effect_meta = {
 		"hp_pct": {"name": "Vida Máxima", "icon": "🛡️", "unit": "%"},
-		"sh_pct": {"name": "Escudo Máximo", "icon": "🔵", "unit": "%"},
 		"hp_regen": {"name": "Regen. de Vida", "icon": "🔧", "unit": "%"},
 		"shield_regen": {"name": "Regen. de Escudo", "icon": "🔋", "unit": "%"},
-		"armor_pct": {"name": "Armadura Total", "icon": "⚙️", "unit": "%"},
 		"energy_efficiency": {"name": "Eficiencia de Energía", "icon": "⚛️", "unit": "%"},
 		"repair_cost_reduction": {"name": "Costo de Reparación", "icon": "💸", "unit": "%"},
 		"stability": {"name": "Estabilidad de Vuelo", "icon": "🛸", "unit": "%"},
 		"laser_dmg_pct": {"name": "Daño Láser", "icon": "🔫", "unit": "%"},
-		"crit_chance": {"name": "Probabilidad Crítica", "icon": "🎯", "unit": "%"},
-		"crit_dmg": {"name": "Daño Crítico", "icon": "🔥", "unit": "%"},
 		"ammo_bonus_pct": {"name": "Bonus de Munición", "icon": "💣", "unit": "%"},
-		"accuracy_pct": {"name": "Puntería de Disparo", "icon": "👁️", "unit": "%"},
 		"ignore_shield_pct": {"name": "Perforación de Escudo", "icon": "⚡", "unit": "%"},
 		"fire_rate_pct": {"name": "Cadencia de Fuego", "icon": "⚔️", "unit": "%"},
-		"evasion_pct": {"name": "Evasión en Combate", "icon": "💨", "unit": "%"},
 		"speed_pct": {"name": "Velocidad Base", "icon": "🚀", "unit": "%"},
 		"minimap_range": {"name": "Rango de Radar", "icon": "📡", "unit": "%"},
 		"ohcu_kill_bonus": {"name": "Bonus OHCU por Bajas", "icon": "💎", "unit": "%"},
@@ -449,6 +443,7 @@ func _update_summary_display():
 	var saved_effects: Dictionary = {}
 	var pend_effects: Dictionary = {}
 	var active_unlocks: Array = []
+	var active_dynamic_effects: Array = []
 	var active_by_cat: Dictionary = {}
 	var total_points_spent: int = 0
 	var total_active_talents: int = 0
@@ -485,8 +480,23 @@ func _update_summary_display():
 					if not active_unlocks.has(unlock_id):
 						active_unlocks.append(unlock_id)
 				continue
+			# Efectos dinámicos: skill, weapon, ammo
+			if key.begins_with("skill:") or key.begins_with("weapon:") or key.begins_with("ammo:"):
+				if saved > 0:
+					var already = false
+					for de in active_dynamic_effects:
+						if de["key"] == key:
+							already = true
+							break
+					if not already:
+						active_dynamic_effects.append({
+							"key": key,
+							"val": float(effects[key]),
+							"flat": (effects_meta.get(key, {}).get("flat", false)),
+							"total": total
+						})
+				continue
 			var base_val = float(effects[key])
-			# Verificar metadata flat/% del talento
 			var meta = effects_meta.get(key, {})
 			var is_flat = meta.get("flat", false)
 			var display_key = key
@@ -537,7 +547,24 @@ func _update_summary_display():
 			bb += icon + " [color=#c084fc][b]" + type_label + "[/b][/color]\n"
 		bb += "\n[center][color=#1e2d3d]──────────────────────[/color][/center]\n\n"
 
-	# ═══ 1. BONIFICADORES TOTALES ACUMULADOS ═══
+	# ═══ 1.5. EFECTOS DINÁMICOS (Skills, Armas, Munición) ═══
+	if active_dynamic_effects.size() > 0:
+		bb += "[center][color=#f97316][font_size=13][b]⚡ MEJORAS DE SKILLS / ARMAS[/b][/font_size][/color][/center]\n\n"
+		for de in active_dynamic_effects:
+			var de_parts = de["key"].split(":")
+			var de_type = de_parts[0]
+			var de_id = de_parts[1] if de_parts.size() > 1 else ""
+			var de_attr = de_parts[2] if de_parts.size() > 2 else ""
+			var de_icon = "🌀" if de_type == "skill" else ("🔫" if de_type == "weapon" else "💥")
+			var de_type_label = "Skill" if de_type == "skill" else ("Arma" if de_type == "weapon" else "Munición")
+			var de_flat = de["flat"]
+			var de_val = de["val"] * de["total"]
+			var de_str = _format_stat_value(de_val, de_flat, true)
+			var flat_tag = " [color=#ff9632](fijo)[/color]" if de_flat else ""
+			bb += de_icon + " [b]" + de_type_label + " " + de_id + " → " + de_attr + "[/b]" + flat_tag + ": [color=#10b981][b]" + de_str + "[/b][/color]\n"
+		bb += "\n[center][color=#1e2d3d]──────────────────────[/color][/center]\n\n"
+
+	# ═══ 2. BONIFICADORES TOTALES ACUMULADOS ═══
 	bb += "[center][color=#00d2ff][font_size=13][b]⚡ BONIFICADORES TOTALES ACUMULADOS[/b][/font_size][/color][/center]\n\n"
 
 	var all_stat_keys = []
@@ -616,6 +643,22 @@ func _update_summary_display():
 					if ek.begins_with("unlock:"):
 						if it["total"] > 0:
 							bb += "    [color=#556677]↳[/color] [color=#c084fc]🔓 Desbloquea:[/color] [color=#a855f7]" + ek.substr(7) + "[/color]\n"
+						continue
+					# Efectos dinámicos
+					if ek.begins_with("skill:") or ek.begins_with("weapon:") or ek.begins_with("ammo:"):
+						if it["total"] > 0:
+							var dparts = ek.split(":")
+							var dtype = dparts[0]
+							var did = dparts[1] if dparts.size() > 1 else ""
+							var dattr = dparts[2] if dparts.size() > 2 else ""
+							var dicon = "🌀" if dtype == "skill" else ("🔫" if dtype == "weapon" else "💥")
+							var base_eff = float(effs[ek])
+							var cur_eff = base_eff * it["total"]
+							var emeta = effs_meta.get(ek, {})
+							var is_flat_eff = emeta.get("flat", false)
+							var eff_str = _format_stat_value(cur_eff, is_flat_eff, true)
+							var flat_label = " (Fijo)" if is_flat_eff else ""
+							bb += "    [color=#556677]↳[/color] " + dicon + " " + dtype + " " + did + " → " + dattr + flat_label + ": [color=#10b981]" + eff_str + "[/color]\n"
 						continue
 					var base_eff = float(effs[ek])
 					var cur_eff = base_eff * it["total"]
@@ -1242,14 +1285,13 @@ func _update_tooltip(screen_pos: Vector2):
 	var is_locked = _is_node_locked(hovered_node_id)
 
 	var effect_labels = {
-		"hp_pct": "Vida Máxima", "sh_pct": "Escudo Máximo",
+		"hp_pct": "Vida Máxima",
 		"hp_regen": "Regen Vida", "shield_regen": "Regen Escudo",
-		"armor_pct": "Armadura", "energy_efficiency": "Eficiencia Energía",
+		"energy_efficiency": "Eficiencia Energía",
 		"repair_cost_reduction": "Costo Reparación", "stability": "Estabilidad",
-		"laser_dmg_pct": "Daño Láser", "crit_chance": "Prob. Crítico",
-		"crit_dmg": "Daño Crítico", "ammo_bonus_pct": "Munición Extra",
-		"accuracy_pct": "Puntería", "ignore_shield_pct": "Perforación Escudo",
-		"fire_rate_pct": "Cadencia", "evasion_pct": "Evasión",
+		"laser_dmg_pct": "Daño Láser", "ammo_bonus_pct": "Munición Extra",
+		"ignore_shield_pct": "Perforación Escudo",
+		"fire_rate_pct": "Cadencia",
 		"speed_pct": "Velocidad", "minimap_range": "Rango Minimapa",
 		"ohcu_kill_bonus": "Bonus OHCU", "shop_discount": "Descuento Tienda",
 		"cooldown_reduction": "Reducción CD", "cooldown_reduction_flat": "Reducción CD (fijo)",
@@ -1268,6 +1310,28 @@ func _update_tooltip(screen_pos: Vector2):
 				if current_effects_text != "":
 					current_effects_text += "\n"
 				current_effects_text += "  [color=#c084fc]🔓[/color] Desbloquea: [color=#a855f7][b]" + key.substr(7) + "[/b][/color]"
+				continue
+			# Efectos dinámicos: skill, weapon, ammo
+			if key.begins_with("skill:") or key.begins_with("weapon:") or key.begins_with("ammo:"):
+				if current_effects_text != "":
+					current_effects_text += "\n"
+				var parts = key.split(":")
+				var fx_type = parts[0]
+				var fx_id = parts[1] if parts.size() > 1 else ""
+				var fx_attr = parts[2] if parts.size() > 2 else ""
+				var fx_icon = "🌀" if fx_type == "skill" else ("🔫" if fx_type == "weapon" else "💥")
+				var fx_type_label = "Skill" if fx_type == "skill" else ("Arma" if fx_type == "weapon" else "Munición")
+				var emeta = talent_effects_meta.get(key, {})
+				var is_flat = emeta.get("flat", false)
+				var applied_val = val * saved
+				var pend_val = val * pend
+				var applied_str = _format_stat_value(applied_val, is_flat, true)
+				var flat_tag = " [color=#ff9632](fijo)[/color]" if is_flat else ""
+				current_effects_text += "  " + fx_icon + " " + fx_type_label + " " + fx_id + " → " + fx_attr + flat_tag + ": [color=#10b981][b]" + applied_str + "[/b][/color]"
+				if pend > 0:
+					var p_str = _format_stat_value(pend_val, is_flat, true)
+					current_effects_text += " [color=#ffd700](" + p_str + " pend.)[/color]"
+				current_effects_text += "\n"
 				continue
 			var label = effect_labels.get(key, key)
 			var emeta = talent_effects_meta.get(key, {})

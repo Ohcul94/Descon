@@ -378,32 +378,297 @@ function renderEngines() {
     });
 }
 
-const SPHERE_STAT_KEYS = [
-    { k: 'hpMod', l: '❤️ Vida (pts)' },
-    { k: 'shieldMod', l: '🛡️ Escudo (pts)' },
-    { k: 'speedMod', l: '💨 Velocidad (pts)' },
-    { k: 'dmgMod', l: '⚔️ Daño (pts)' },
-    { k: 'healMod', l: '💚 Curación (pts)' },
-    { k: 'hpPct', l: '❤️ Vida (%)' },
-    { k: 'shieldPct', l: '🛡️ Escudo (%)' },
-    { k: 'speedPct', l: '💨 Velocidad (%)' },
-    { k: 'dmgPct', l: '⚔️ Daño (%)' },
-    { k: 'healPct', l: '💚 Curación (%)' },
-    { k: 'critChance', l: '💎 Crítico Chance (%)' },
-    { k: 'critDmg', l: '💥 Daño Crítico (%)' },
-    { k: 'cooldownReduction', l: '⏱️ Reducción CD (%)' },
-    { k: 'evasion', l: '🌀 Evasión (%)' },
-    { k: 'armor', l: '🔒 Armadura (%)' },
-    { k: 'hpRegen', l: '💗 Regen. Vida (pts/s)' },
-    { k: 'shieldRegen', l: '🔵 Regen. Escudo (pts/s)' },
-    { k: 'fireRate', l: '🔥 Cadencia de Fuego (%)' },
-    { k: 'accuracy', l: '🎯 Precisión (%)' },
-    { k: 'dashDistance', l: '🚀 Distancia Dash (%)' },
-    { k: 'ignoreShield', l: '🔓 Ignorar Escudo (%)' },
-    { k: 'minimapRange', l: '🗺️ Rango Minimapa (pts)' },
-    { k: 'shopDiscount', l: '💰 Descuento Tienda (%)' },
-    { k: 'bossLootBonus', l: '🏆 Bonus Botín Boss (%)' }
+// ==========================================
+// CATÁLOGO DE ESTADÍSTICAS PARA ESFERAS (Iconos y categorías unificados con Talentos)
+// ==========================================
+const SPHERE_STATS_CATALOG = [
+    // Combate
+    { key: 'dmg_pct',           label: 'Daño Total',            icon: '💥', cat: 'combate',   defaultVal: 0.05, desc: 'Aumenta el daño total infligido.' },
+    { key: 'laser_dmg_pct',     label: 'Daño Láser',            icon: '🔫', cat: 'combate',   defaultVal: 0.05, desc: 'Aumenta el daño de armamento láser.' },
+    { key: 'fire_rate_pct',     label: 'Cadencia de Fuego',     icon: '⚔️', cat: 'combate',   defaultVal: 0.05, desc: 'Aumenta la velocidad de disparo.' },
+    { key: 'ignore_shield_pct', label: 'Perforación de Escudo', icon: '⚡', cat: 'combate',   defaultVal: 0.05, desc: 'Porcentaje del daño que penetra directo a la estructura/vida.' },
+    { key: 'ammo_bonus_pct',    label: 'Munición Extra',        icon: '💣', cat: 'combate',   defaultVal: 0.05, desc: 'Aumenta la capacidad de munición.' },
+    { key: 'crit_chance',       label: 'Probabilidad Crítica',  icon: '💎', cat: 'combate',   defaultVal: 0.05, desc: 'Chance de acertar un impacto crítico.' },
+    { key: 'crit_dmg',          label: 'Daño Crítico',          icon: '💥', cat: 'combate',   defaultVal: 0.20, desc: 'Multiplicador de daño al asestar un crítico.' },
+    { key: 'accuracy_pct',      label: 'Precisión',             icon: '🎯', cat: 'combate',   defaultVal: 0.05, desc: 'Reduce la dispersión de los disparos.' },
+
+    // Defensa
+    { key: 'hp_pct',            label: 'Vida Máxima',           icon: '🛡️', cat: 'defensa',   defaultVal: 0.05, desc: 'Aumenta la vida/estructura máxima de la nave.' },
+    { key: 'sh_pct',            label: 'Escudo Máximo',         icon: '🛡️', cat: 'defensa',   defaultVal: 0.05, desc: 'Aumenta la capacidad de escudo de la nave.' },
+    { key: 'hp_regen',          label: 'Regen. Vida',           icon: '🔧', cat: 'defensa',   defaultVal: 2,    desc: 'Puntos de vida regenerados por segundo.' },
+    { key: 'shield_regen',      label: 'Regen. Escudo',         icon: '🔋', cat: 'defensa',   defaultVal: 3,    desc: 'Puntos de escudo regenerados por segundo.' },
+    { key: 'armor_pct',         label: 'Armadura / Mitigación', icon: '🔒', cat: 'defensa',   defaultVal: 0.03, desc: 'Reduce el daño recibido.' },
+    { key: 'evasion_pct',       label: 'Evasión',               icon: '🌀', cat: 'defensa',   defaultVal: 0.04, desc: 'Chance de eludir un ataque por completo.' },
+    { key: 'stability',         label: 'Estabilidad',           icon: '🛸', cat: 'defensa',   defaultVal: 0.05, desc: 'Resistencia a desestabilizaciones y empujes.' },
+
+    // Utilidad
+    { key: 'speed_pct',          label: 'Velocidad',             icon: '🚀', cat: 'utilidad',  defaultVal: 0.05, desc: 'Aumenta la velocidad de desplazamiento.' },
+    { key: 'cooldown_reduction', label: 'Reducción CD Global',   icon: '❄️', cat: 'utilidad',  defaultVal: 0.05, desc: 'Reduce el tiempo de enfriamiento de habilidades.' },
+    { key: 'cast_time_reduction',label: 'Reducción Cast Time',   icon: '⏱️', cat: 'utilidad',  defaultVal: 0.05, desc: 'Reduce el tiempo de casteo de habilidades.' },
+    { key: 'dash_distance',      label: 'Distancia Dash',        icon: '🌀', cat: 'utilidad',  defaultVal: 0.10, desc: 'Aumenta el alcance del impulso/dash.' },
+    { key: 'minimap_range',      label: 'Rango Radar',           icon: '📡', cat: 'utilidad',  defaultVal: 100,  desc: 'Aumenta el rango de detección del minimapa.' },
+    { key: 'energy_efficiency',  label: 'Eficiencia Energía',    icon: '⚛️', cat: 'utilidad',  defaultVal: 0.05, desc: 'Disminuye el consumo de energía.' },
+
+    // Economía
+    { key: 'ohcu_kill_bonus',      label: 'Bonus OHCU por Bajas',  icon: '💎', cat: 'economía',  defaultVal: 0.05, desc: 'Mayor recompensa de OHCU al eliminar objetivos.' },
+    { key: 'shop_discount',        label: 'Descuento Tiendas',     icon: '🏪', cat: 'economía',  defaultVal: 0.05, desc: 'Descuento al adquirir ítems en tiendas.' },
+    { key: 'repair_cost_reduction',label: 'Costo Reparación',      icon: '💸', cat: 'economía',  defaultVal: 0.05, desc: 'Reduce el costo de reparación de nave.' },
+    { key: 'boss_loot_bonus',      label: 'Loot Bosses',           icon: '👑', cat: 'economía',  defaultVal: 0.10, desc: 'Mayor botín al derrotar jefes de zona.' },
+    { key: 'group_bonus',          label: 'Bonus Escuadrón',       icon: '👥', cat: 'economía',  defaultVal: 0.05, desc: 'Bonificaciones adicionales al jugar en grupo.' }
 ];
+
+const SPHERE_STAT_KEYS = SPHERE_STATS_CATALOG.map(s => ({ k: s.key, l: `${s.icon} ${s.label}` }));
+
+function _isSphereStatPct(key, val) {
+    if (window._sphereStatsMeta && window._sphereStatsMeta[key] && window._sphereStatsMeta[key].flat !== undefined) {
+        return !window._sphereStatsMeta[key].flat;
+    }
+    if (key.endsWith('Pct') || key.endsWith('Chance') || key.endsWith('Dmg') || 
+        key === 'evasion' || key === 'armor' || key === 'fireRate' || 
+        key === 'accuracy' || key === 'dashDistance' || key === 'ignoreShield' || 
+        key === 'shopDiscount' || key === 'bossLootBonus' || key === 'cooldownReduction' ||
+        key.endsWith('_pct') || key.endsWith('_bonus') || key === 'crit_chance' || key === 'crit_dmg') {
+        return true;
+    }
+    const catItem = SPHERE_STATS_CATALOG.find(x => x.key === key);
+    if (catItem && catItem.isPct !== undefined) return catItem.isPct;
+    if (typeof val === 'number' && val > 0 && val <= 1 && !key.endsWith('Mod') && !key.endsWith('Regen') && !key.endsWith('Range') && !key.endsWith('_regen') && !key.endsWith('_range')) {
+        return true;
+    }
+    return false;
+}
+
+function _getSphereStatMeta(key) {
+    const found = SPHERE_STATS_CATALOG.find(x => x.key === key);
+    if (found) return found;
+
+    // Chequear claves dinámicas (skill:..., weapon:..., ammo:...)
+    if (typeof _parseDynamicKey === 'function') {
+        const parsed = _parseDynamicKey(key);
+        if (parsed) {
+            const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
+            if (parsed.type === 'skill') {
+                const sk = cfg.skillsData ? cfg.skillsData[parsed.id] : null;
+                const attrMeta = window.SKILL_ATTRS ? window.SKILL_ATTRS[parsed.attr] : null;
+                return {
+                    key: key,
+                    label: `${sk ? sk.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`,
+                    icon: attrMeta ? (attrMeta.icon || '🌀') : '🌀',
+                    cat: 'dynamic',
+                    isPct: !(attrMeta && attrMeta.flat),
+                    desc: 'Modificador de habilidad'
+                };
+            } else if (parsed.type === 'weapon') {
+                const weps = cfg.shopItems && cfg.shopItems.weapons ? cfg.shopItems.weapons : [];
+                const w = weps.find(x => x.id === parsed.id);
+                const attrMeta = window.WEAPON_ATTRS ? window.WEAPON_ATTRS[parsed.attr] : null;
+                return {
+                    key: key,
+                    label: `${w ? w.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`,
+                    icon: attrMeta ? (attrMeta.icon || '🔫') : '🔫',
+                    cat: 'dynamic',
+                    isPct: !(attrMeta && attrMeta.flat),
+                    desc: 'Modificador de arma'
+                };
+            } else if (parsed.type === 'ammo') {
+                const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
+                return {
+                    key: key,
+                    label: `Munición ${parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`,
+                    icon: attrMeta ? (attrMeta.icon || '💣') : '💣',
+                    cat: 'dynamic',
+                    isPct: !(attrMeta && attrMeta.flat),
+                    desc: 'Modificador de munición'
+                };
+            }
+        }
+    }
+
+    // Mapeo específico para estadísticas legacy/existentes de esferas (mismos nombres que el catálogo)
+    const SPHERE_LEGACY_LABELS = {
+        dmgMod:     { label: 'Daño Total',                icon: '💥', cat: 'combate' },
+        dmgPct:     { label: 'Daño Total',                icon: '💥', cat: 'combate' },
+        dmg_pct:    { label: 'Daño Total',                icon: '💥', cat: 'combate' },
+        shieldMod:  { label: 'Escudo Máximo',             icon: '🛡️', cat: 'defensa' },
+        shieldPct:  { label: 'Escudo Máximo',             icon: '🛡️', cat: 'defensa' },
+        sh_pct:     { label: 'Escudo Máximo',             icon: '🛡️', cat: 'defensa' },
+        hpMod:      { label: 'Vida Máxima',               icon: '🛡️', cat: 'defensa' },
+        hpPct:      { label: 'Vida Máxima',               icon: '🛡️', cat: 'defensa' },
+        hp_pct:     { label: 'Vida Máxima',               icon: '🛡️', cat: 'defensa' },
+        healPct:    { label: 'Poder de Curación',         icon: '💚', cat: 'defensa' },
+        healMod:    { label: 'Poder de Curación',         icon: '💚', cat: 'defensa' },
+        speedMod:   { label: 'Velocidad',                 icon: '🚀', cat: 'utilidad' },
+        speedPct:   { label: 'Velocidad',                 icon: '🚀', cat: 'utilidad' },
+        speed_pct:  { label: 'Velocidad',                 icon: '🚀', cat: 'utilidad' },
+        energyPct:  { label: 'Eficiencia Energía',        icon: '⚛️', cat: 'utilidad' },
+        energyMod:  { label: 'Eficiencia Energía',        icon: '⚛️', cat: 'utilidad' },
+        evasion:    { label: 'Evasión',                   icon: '🌀', cat: 'defensa' },
+        armor:      { label: 'Armadura / Mitigación',     icon: '🔒', cat: 'defensa' }
+    };
+
+    if (SPHERE_LEGACY_LABELS[key]) {
+        const leg = SPHERE_LEGACY_LABELS[key];
+        return {
+            key: key,
+            label: leg.label,
+            icon: leg.icon,
+            cat: leg.cat,
+            isPct: _isSphereStatPct(key, 0),
+            desc: 'Modificador de esfera'
+        };
+    }
+
+    // Traductor amigable para claves técnicas en camelCase o snake_case
+    const SPHERE_TRANSLATIONS = {
+        dmg: 'Daño',
+        damage: 'Daño',
+        laser: 'Láser',
+        shield: 'Escudo',
+        hp: 'Vida',
+        heal: 'Curación',
+        speed: 'Velocidad',
+        regen: 'Regeneración',
+        rate: 'Cadencia',
+        range: 'Rango',
+        crit: 'Crítico',
+        chance: 'Probabilidad',
+        armor: 'Armadura',
+        evasion: 'Evasión',
+        energy: 'Energía',
+        discount: 'Descuento',
+        bonus: 'Bono',
+        loot: 'Botín',
+        repair: 'Reparación'
+    };
+
+    let prettyLabel = key;
+    // Si contiene snake_case o camelCase, intentar traducir palabras
+    const words = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').toLowerCase().trim().split(/\s+/);
+    const translatedWords = words.map(w => {
+        if (w === 'pct') return '(%)';
+        if (w === 'mod') return '(Mod)';
+        return SPHERE_TRANSLATIONS[w] || (w.charAt(0).toUpperCase() + w.slice(1));
+    });
+    prettyLabel = translatedWords.join(' ');
+
+    // Detectar icono según el tipo de stat
+    let fallbackIcon = '✨';
+    const keyLower = key.toLowerCase();
+    if (keyLower.includes('dmg') || keyLower.includes('damage') || keyLower.includes('ataque')) fallbackIcon = '💥';
+    else if (keyLower.includes('shield') || keyLower.includes('escudo')) fallbackIcon = '🛡️';
+    else if (keyLower.includes('hp') || keyLower.includes('vida')) fallbackIcon = '🛡️';
+    else if (keyLower.includes('heal') || keyLower.includes('cura')) fallbackIcon = '💚';
+    else if (keyLower.includes('speed') || keyLower.includes('vel')) fallbackIcon = '🚀';
+    else if (keyLower.includes('crit')) fallbackIcon = '💎';
+    else if (keyLower.includes('armor') || keyLower.includes('mitig')) fallbackIcon = '🔒';
+    else if (keyLower.includes('energy')) fallbackIcon = '⚛️';
+    else if (keyLower.includes('laser')) fallbackIcon = '🔫';
+
+    return {
+        key: key,
+        label: prettyLabel,
+        icon: fallbackIcon,
+        cat: 'custom',
+        isPct: _isSphereStatPct(key, 0),
+        desc: 'Estadística personalizada'
+    };
+}
+
+function _getSphereCatColor(cat) {
+    const colors = {
+        combate: '#ef4444',
+        combat: '#ef4444',
+        defensa: '#3b82f6',
+        defense: '#3b82f6',
+        utilidad: '#10b981',
+        utility: '#10b981',
+        economía: '#eab308',
+        economy: '#eab308',
+        dynamic: '#f97316',
+        custom: '#a855f7'
+    };
+    return colors[cat] || '#888888';
+}
+
+function renderSphereStatsBox(sphereIdx) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s) return '';
+    const stats = s.stats || {};
+    const statsMeta = s.statsMeta || {};
+    const entries = Object.entries(stats);
+    const count = entries.length;
+
+    let statsListHtml = '';
+    if (count === 0) {
+        statsListHtml = `
+            <div style="background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.08); border-radius:8px; padding:14px; text-align:center;">
+                <div style="font-size:0.75rem; color:#777; margin-bottom:4px;">🔮 Sin estadísticas configuradas</div>
+                <div style="font-size:0.65rem; color:#555;">Hacé clic en <b>+ AGREGAR ESTADÍSTICA</b> para añadir un modificador pasivo a esta esfera.</div>
+            </div>
+        `;
+    } else {
+        statsListHtml = entries.map(([key, val]) => {
+            const isFlatExplicit = statsMeta[key] && statsMeta[key].flat === true;
+            const isPct = !isFlatExplicit && _isSphereStatPct(key, val);
+            const displayVal = isPct ? (val * 100) : val;
+            const cleanVal = (typeof formatCleanNumber === 'function')
+                ? formatCleanNumber(displayVal, 2)
+                : (Number.isInteger(displayVal) ? displayVal : parseFloat(displayVal.toFixed(2)));
+            
+            const meta = _getSphereStatMeta(key);
+            const catColor = _getSphereCatColor(meta.cat);
+
+            return `
+            <div style="display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.03); padding:6px 10px; border-radius:8px; border:1px solid ${catColor}33; transition:all 0.15s;">
+                <span style="font-size:1.15rem; flex-shrink:0;">${meta.icon}</span>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:0.75rem; font-weight:bold; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${meta.label}</div>
+                    <div style="font-size:0.6rem; color:#888; font-family:'JetBrains Mono',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${key}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                    <input type="number" step="0.01" value="${cleanVal}" 
+                        style="width:75px; text-align:right; font-size:0.75rem; padding:4px 6px; background:#141724; border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:4px; font-family:'JetBrains Mono',monospace;" 
+                        onchange="updateSphereStatVal(${sphereIdx}, '${key}', this.value, ${isPct})">
+                    <button type="button" onclick="toggleSphereStatType(${sphereIdx}, '${key}')" 
+                        style="min-width:40px; padding:3px 6px; font-size:0.65rem; border-radius:4px; cursor:pointer; font-weight:bold; border:1px solid ${isPct ? 'rgba(0,210,255,0.4)' : 'rgba(255,150,50,0.4)'}; background:${isPct ? 'rgba(0,210,255,0.15)' : 'rgba(255,150,50,0.15)'}; color:${isPct ? '#00d2ff' : '#ff9632'};"
+                        title="Hacé clic para alternar entre Porcentaje (%) y Valor Fijo (pts)">
+                        ${isPct ? '%' : 'FIJO'}
+                    </button>
+                    <button type="button" onclick="removeSphereStat(${sphereIdx}, '${key}')" 
+                        style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:2px 6px; opacity:0.8; transition:opacity 0.15s;" 
+                        onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'"
+                        title="Eliminar estadística">✕</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    return `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+            <div>
+                <label style="color:var(--accent); font-size:0.72rem; font-weight:bold; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
+                    <span>📊 MODIFICADORES DE ESTADÍSTICAS</span>
+                    <span style="font-size:0.6rem; padding:1px 6px; border-radius:10px; background:rgba(255,255,255,0.06); color:#aaa;">${count}</span>
+                </label>
+                <p style="font-size:0.63rem; color:#777; margin:2px 0 0;">Se aplican de forma pasiva al equipar esta esfera en un slot orbital.</p>
+            </div>
+            <button class="btn" type="button" style="padding:4px 10px; font-size:0.68rem; background:linear-gradient(135deg, rgba(0,210,255,0.15), rgba(168,85,247,0.15)); border:1px solid rgba(0,210,255,0.4); color:var(--primary); border-radius:6px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 2px 8px rgba(0,210,255,0.1);" 
+                onclick="openSphereStatPickerModal(${sphereIdx})">
+                <span>+</span> AGREGAR ESTADÍSTICA
+            </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+            ${statsListHtml}
+        </div>
+    `;
+}
+
+function refreshSphereStatsBox(sphereIdx) {
+    const el = document.getElementById('sphere-stats-box-' + sphereIdx);
+    if (el) {
+        el.innerHTML = renderSphereStatsBox(sphereIdx);
+    }
+}
 
 function renderSpheres() {
     const grid = document.getElementById('spheres-grid'); grid.innerHTML = '';
@@ -423,8 +688,6 @@ function renderSpheres() {
             { value: 'verde', label: '🟢 Verde (Curación)', color: '#44cc44' },
             { value: 'amarilla', label: '🟡 Amarilla (Utilidad)', color: '#ffcc00' }
         ];
-
-        const stats = s.stats || {};
 
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
@@ -470,35 +733,8 @@ function renderSpheres() {
                 </div>
             </div>
 
-            <div style="margin-top:1rem; padding-top:1rem; border-top: 1px solid rgba(255,255,255,0.05);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
-                    <div>
-                        <label style="color:var(--accent); font-size:0.7rem; font-weight:bold;">📊 MODIFICADORES DE ESTADÍSTICAS</label>
-                        <p style="font-size:0.65rem; color:#666; margin:2px 0 0;">Agregá las stat que quieras. Se aplican al equipar la esfera.</p>
-                    </div>
-                    <button class="btn" style="padding:3px 10px; font-size:0.65rem; background:rgba(0,210,255,0.1); border:1px solid rgba(0,210,255,0.3); color:var(--primary); border-radius:4px;" onclick="addSphereStat(${i})">+ ESTADÍSTICA</button>
-                </div>
-                <div id="sphere-stats-${i}" style="display:flex; flex-direction:column; gap:5px;">
-                    ${Object.entries(stats).map(([key, val]) => {
-                        const isPct = key.endsWith('Pct') || key.endsWith('Chance') || key.endsWith('Dmg') || key === 'evasion' || key === 'armor' || key === 'fireRate' || key === 'accuracy' || key === 'dashDistance' || key === 'ignoreShield' || key === 'shopDiscount' || key === 'bossLootBonus' || key === 'cooldownReduction';
-                        const displayVal = isPct ? (val * 100) : val;
-                        const cleanVal = Number.isInteger(displayVal) ? displayVal : parseFloat(displayVal.toFixed(2));
-                        const statInfo = SPHERE_STAT_KEYS.find(sk => sk.k === key);
-                        const label = statInfo ? statInfo.l : key;
-                        return `
-                        <div style="display:flex; gap:6px; align-items:center; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-                            <select style="flex:1; background:transparent; border:none; color:white; font-size:0.75rem;" onchange="updateSphereStatKey(${i}, '${key}', this.value)">
-                                ${SPHERE_STAT_KEYS.map(sk => `<option value="${sk.k}" ${key === sk.k ? 'selected' : ''}>${sk.l}</option>`).join('')}
-                            </select>
-                            <input type="number" step="0.1" value="${cleanVal}" style="width:80px; text-align:right; font-size:0.75rem; padding:4px;" onchange="updateSphereStatVal(${i}, '${key}', this.value)">
-                            <select style="width:50px; font-size:0.65rem; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:3px; padding:2px;" onchange="updateSphereStatType(${i}, '${key}', this.value)">
-                                <option value="${isPct ? 'pct' : 'flat'}" ${isPct ? 'selected' : ''}>%</option>
-                                <option value="${isPct ? 'flat' : 'pct'}" ${!isPct ? 'selected' : ''}>FIJO</option>
-                            </select>
-                            <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="removeSphereStat(${i}, '${key}')">✕</button>
-                        </div>`;
-                    }).join('')}
-                </div>
+            <div id="sphere-stats-box-${i}" style="margin-top:1rem; padding-top:1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                ${renderSphereStatsBox(i)}
             </div>
 
             <div class="price-group" style="display:flex; gap:15px; margin-top:1rem; border-top:1px solid #333; padding-top:1rem;">
@@ -513,50 +749,366 @@ function renderSpheres() {
     });
 }
 
-window.addSphereStat = function(sphereIdx) {
+// ==========================================
+// MODAL SELECTOR DE ESTADÍSTICAS PARA ESFERAS
+// ==========================================
+window._activeSphereIdx = null;
+window._sphereStatActiveTab = 'all';
+
+window.openSphereStatPickerModal = function(sphereIdx) {
+    window._activeSphereIdx = sphereIdx;
+    window._sphereStatActiveTab = 'all';
+
     const s = config.shopItems.spheres[sphereIdx];
-    if (!s.stats) s.stats = {};
-    const usedKeys = Object.keys(s.stats);
-    const nextStat = SPHERE_STAT_KEYS.find(sk => !usedKeys.includes(sk.k));
-    const keyToAdd = nextStat ? nextStat.k : 'custom_' + Date.now();
-    s.stats[keyToAdd] = 0;
-    renderSpheres();
+    const titleEl = document.getElementById('sphere-picker-title');
+    if (titleEl && s) {
+        titleEl.innerHTML = `<span>🔮</span> Agregar Estadística a: <span style="color:#fff; font-weight:bold; margin-left:6px;">${s.name || s.id}</span>`;
+    }
+
+    const searchInput = document.getElementById('sphere-stat-search');
+    if (searchInput) searchInput.value = '';
+
+    _renderSphereStatPickerModal();
+
+    const modal = document.getElementById('sphere-stat-picker-modal');
+    if (modal) modal.style.display = 'flex';
 };
 
-window.updateSphereStatKey = function(sphereIdx, oldKey, newKey) {
-    const s = config.shopItems.spheres[sphereIdx];
-    if (!s.stats) s.stats = {};
-    if (s.stats[newKey] !== undefined) return;
-    const val = s.stats[oldKey];
-    delete s.stats[oldKey];
-    s.stats[newKey] = val;
-    renderSpheres();
+window.closeSphereStatPickerModal = function() {
+    const modal = document.getElementById('sphere-stat-picker-modal');
+    if (modal) modal.style.display = 'none';
+    window._activeSphereIdx = null;
 };
 
-window.updateSphereStatVal = function(sphereIdx, key, newVal) {
-    const s = config.shopItems.spheres[sphereIdx];
-    if (!s.stats) s.stats = {};
-    const isPct = key.endsWith('Pct') || key.endsWith('Chance') || key.endsWith('Dmg') || key === 'evasion' || key === 'armor' || key === 'fireRate' || key === 'accuracy' || key === 'dashDistance' || key === 'ignoreShield' || key === 'shopDiscount' || key === 'bossLootBonus' || key === 'cooldownReduction';
-    s.stats[key] = isPct ? ((parseFloat(newVal) || 0) / 100) : (parseFloat(newVal) || 0);
+window._setSphereStatPickerTab = function(tab) {
+    window._sphereStatActiveTab = tab;
+    _renderSphereStatPickerModal();
 };
 
-window.updateSphereStatType = function(sphereIdx, key, newType) {
+window._filterSphereStatPicker = function() {
+    _renderSphereStatPickerModal();
+};
+
+window._renderSphereStatPickerModal = function() {
+    const sphereIdx = window._activeSphereIdx;
+    if (sphereIdx === null || !config.shopItems.spheres || !config.shopItems.spheres[sphereIdx]) return;
+
+    const s = config.shopItems.spheres[sphereIdx];
+    const currentStats = s.stats || {};
+    const searchVal = (document.getElementById('sphere-stat-search')?.value || '').trim().toLowerCase();
+    const activeTab = window._sphereStatActiveTab || 'all';
+
+    // Tabs
+    const tabsContainer = document.getElementById('sphere-stat-cat-tabs');
+    if (tabsContainer) {
+        const tabs = [
+            { id: 'all', label: 'Todas', icon: '🌐' },
+            { id: 'combate', label: 'Combate', icon: '⚔️' },
+            { id: 'defensa', label: 'Defensa', icon: '🛡️' },
+            { id: 'utilidad', label: 'Utilidad', icon: '🚀' },
+            { id: 'economía', label: 'Economía', icon: '💎' },
+            { id: 'dynamic', label: 'Dinámicas', icon: '🌀' },
+            { id: 'custom', label: 'Personalizada', icon: '✨' }
+        ];
+
+        tabsContainer.innerHTML = tabs.map(t => {
+            const isActive = activeTab === t.id;
+            return `
+                <button type="button" onclick="_setSphereStatPickerTab('${t.id}')"
+                    style="padding:5px 12px; font-size:0.75rem; border-radius:6px; cursor:pointer; font-weight:${isActive ? 'bold' : 'normal'}; border:1px solid ${isActive ? 'rgba(0,210,255,0.5)' : 'rgba(255,255,255,0.1)'}; background:${isActive ? 'rgba(0,210,255,0.18)' : 'rgba(255,255,255,0.03)'}; color:${isActive ? '#00d2ff' : '#aaa'}; transition:all 0.15s; display:flex; align-items:center; gap:5px;">
+                    <span>${t.icon}</span> ${t.label}
+                </button>
+            `;
+        }).join('');
+    }
+
+    const optionsContainer = document.getElementById('sphere-stat-options-container');
+    if (!optionsContainer) return;
+
+    // Caso 1: Pestaña Personalizada
+    if (activeTab === 'custom') {
+        optionsContainer.innerHTML = `
+            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(168,85,247,0.3); border-radius:10px; padding:18px; display:flex; flex-direction:column; gap:12px;">
+                <div style="font-size:0.85rem; font-weight:bold; color:#a855f7; display:flex; align-items:center; gap:6px;">
+                    <span>✨</span> Crear Estadística Libre
+                </div>
+                <div style="font-size:0.7rem; color:#888;">
+                    Podés definir cualquier estadística para esta esfera (ej: un multiplicador especial, un atributo nuevo o una stat custom).
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Clave Técnica (Key)</label>
+                        <input type="text" id="custom-sphere-stat-key" placeholder="ej: laser_burn_dmg o hp_pct" 
+                            style="width:100%; padding:8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#fff; font-family:'JetBrains Mono',monospace; font-size:0.75rem;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Nombre Visible (Etiqueta)</label>
+                        <input type="text" id="custom-sphere-stat-label" placeholder="ej: Quema de Láser" 
+                            style="width:100%; padding:8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#fff; font-size:0.75rem;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:flex-end;">
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Ícono</label>
+                        <input type="text" id="custom-sphere-stat-icon" value="🔮" 
+                            style="width:100%; padding:6px; text-align:center; font-size:1.3rem; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#fff;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Valor Inicial</label>
+                        <input type="number" step="0.01" id="custom-sphere-stat-val" value="0.05" 
+                            style="width:100%; padding:8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#fff; font-family:'JetBrains Mono',monospace; font-size:0.75rem;">
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                    <button type="button" onclick="submitCustomSphereStat(${sphereIdx})" 
+                        class="btn btn-primary" style="padding:8px 22px; font-size:0.8rem;">
+                        + Agregar a la Esfera
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Caso 2: Pestaña Dinámicas (Skills, Armas, Munición)
+    if (activeTab === 'dynamic') {
+        const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
+        const skillsList = cfg.skillsData ? Object.values(cfg.skillsData) : [];
+        const weaponsList = cfg.shopItems && cfg.shopItems.weapons ? cfg.shopItems.weapons : [];
+        const ammosList = [
+            { id: 'laser', name: 'Láser Estándar' },
+            { id: 'plasma', name: 'Plasma Pesado' },
+            { id: 'missile', name: 'Misiles Dirigidos' },
+            { id: 'emp', name: 'Pulso EMP' }
+        ];
+
+        const skillAttrs = window.SKILL_ATTRS || {
+            cd:              { label: 'Cooldown',         icon: '⏱️' },
+            castTimeMs:      { label: 'Casteo',           icon: '⏳' },
+            amount:          { label: 'Poder (pts)',       icon: '💪' },
+            range:           { label: 'Rango',            icon: '📏' },
+            duration:        { label: 'Duración',         icon: '⏳' },
+            radius:          { label: 'Radio/Área',       icon: '⭕' },
+            speed:           { label: 'Velocidad',        icon: '🚀' }
+        };
+
+        const weaponAttrs = window.WEAPON_ATTRS || {
+            base:            { label: 'Daño Base',        icon: '💥' },
+            speedMod:        { label: 'Mod. Velocidad',   icon: '🚀' }
+        };
+
+        const ammoAttrs = window.AMMO_ATTRS || {
+            cooldown:        { label: 'Cadencia',         icon: '⏱️' },
+            bulletSpeed:     { label: 'Vel. Proyectil',   icon: '🚀' },
+            range:           { label: 'Alcance',          icon: '📏' }
+        };
+
+        optionsContainer.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <!-- Habilidades -->
+                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(249,115,22,0.3); border-radius:8px; padding:12px;">
+                    <div style="font-size:0.8rem; font-weight:bold; color:#f97316; margin-bottom:8px;">🌀 Potenciar Habilidad Específica</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:center;">
+                        <select id="sphere-dyn-skill-id" style="padding:6px; background:#141724; border:1px solid rgba(255,255,255,0.12); border-radius:4px; color:#fff; font-size:0.75rem;">
+                            ${skillsList.map(s => `<option value="${s.id}">${s.name || s.id}</option>`).join('')}
+                        </select>
+                        <select id="sphere-dyn-skill-attr" style="padding:6px; background:#141724; border:1px solid rgba(255,255,255,0.12); border-radius:4px; color:#fff; font-size:0.75rem;">
+                            ${Object.entries(skillAttrs).map(([k, v]) => `<option value="${k}">${v.label || k}</option>`).join('')}
+                        </select>
+                        <button type="button" class="btn" style="padding:6px 12px; font-size:0.7rem; background:rgba(249,115,22,0.2); border:1px solid #f97316; color:#fff; border-radius:4px;"
+                            onclick="selectSphereDynamic('skill', document.getElementById('sphere-dyn-skill-id').value, document.getElementById('sphere-dyn-skill-attr').value)">
+                            + Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Armas -->
+                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:12px;">
+                    <div style="font-size:0.8rem; font-weight:bold; color:#ef4444; margin-bottom:8px;">🔫 Potenciar Arma Específica</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:center;">
+                        <select id="sphere-dyn-wep-id" style="padding:6px; background:#141724; border:1px solid rgba(255,255,255,0.12); border-radius:4px; color:#fff; font-size:0.75rem;">
+                            ${weaponsList.map(w => `<option value="${w.id}">${w.name || w.id}</option>`).join('')}
+                        </select>
+                        <select id="sphere-dyn-wep-attr" style="padding:6px; background:#141724; border:1px solid rgba(255,255,255,0.12); border-radius:4px; color:#fff; font-size:0.75rem;">
+                            ${Object.entries(weaponAttrs).map(([k, v]) => `<option value="${k}">${v.label || k}</option>`).join('')}
+                        </select>
+                        <button type="button" class="btn" style="padding:6px 12px; font-size:0.7rem; background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#fff; border-radius:4px;"
+                            onclick="selectSphereDynamic('weapon', document.getElementById('sphere-dyn-wep-id').value, document.getElementById('sphere-dyn-wep-attr').value)">
+                            + Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Munición -->
+                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(244,63,94,0.3); border-radius:8px; padding:12px;">
+                    <div style="font-size:0.8rem; font-weight:bold; color:#f43f5e; margin-bottom:8px;">💣 Potenciar Tipo de Munición</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:center;">
+                        <select id="sphere-dyn-ammo-id" style="padding:6px; background:#141724; border:1px solid rgba(255,255,255,0.12); border-radius:4px; color:#fff; font-size:0.75rem;">
+                            ${ammosList.map(a => `<option value="${a.id}">${a.name || a.id}</option>`).join('')}
+                        </select>
+                        <select id="sphere-dyn-ammo-attr" style="padding:6px; background:#141724; border:1px solid rgba(255,255,255,0.12); border-radius:4px; color:#fff; font-size:0.75rem;">
+                            ${Object.entries(ammoAttrs).map(([k, v]) => `<option value="${k}">${v.label || k}</option>`).join('')}
+                        </select>
+                        <button type="button" class="btn" style="padding:6px 12px; font-size:0.7rem; background:rgba(244,63,94,0.2); border:1px solid #f43f5e; color:#fff; border-radius:4px;"
+                            onclick="selectSphereDynamic('ammo', document.getElementById('sphere-dyn-ammo-id').value, document.getElementById('sphere-dyn-ammo-attr').value)">
+                            + Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Caso 3: Catálogo Normal (all, combate, defensa, utilidad, economía)
+    const filtered = SPHERE_STATS_CATALOG.filter(item => {
+        if (activeTab !== 'all' && item.cat !== activeTab) return false;
+        if (searchVal) {
+            const matchesKey = item.key.toLowerCase().includes(searchVal);
+            const matchesLabel = item.label.toLowerCase().includes(searchVal);
+            const matchesDesc = (item.desc || '').toLowerCase().includes(searchVal);
+            if (!matchesKey && !matchesLabel && !matchesDesc) return false;
+        }
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        optionsContainer.innerHTML = `
+            <div style="text-align:center; padding:30px; color:#666;">
+                <div style="font-size:1.5rem; margin-bottom:6px;">🔍</div>
+                <div style="font-size:0.8rem;">No se encontraron estadísticas para esa búsqueda.</div>
+                <div style="font-size:0.7rem; margin-top:6px; color:#888;">Podés crear una nueva en la pestaña <b>Personalizada</b>.</div>
+            </div>
+        `;
+        return;
+    }
+
+    optionsContainer.innerHTML = `
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            ${filtered.map(item => {
+                const isAlreadyAdded = currentStats.hasOwnProperty(item.key);
+                const catColor = _getSphereCatColor(item.cat);
+                return `
+                <div style="background:rgba(255,255,255,0.025); border:1px solid ${isAlreadyAdded ? 'rgba(0,210,255,0.4)' : catColor + '25'}; border-radius:8px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:${isAlreadyAdded ? 'default' : 'pointer'}; transition:all 0.15s; ${isAlreadyAdded ? 'opacity:0.85;' : ''}"
+                    ${!isAlreadyAdded ? `onclick="selectSphereStat(${sphereIdx}, '${item.key}', ${item.defaultVal})"` : ''}
+                    onmouseover="if(!${isAlreadyAdded}) { this.style.borderColor='${catColor}'; this.style.background='rgba(255,255,255,0.05)'; }"
+                    onmouseout="if(!${isAlreadyAdded}) { this.style.borderColor='${catColor}25'; this.style.background='rgba(255,255,255,0.025)'; }">
+                    <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                        <span style="font-size:1.4rem; flex-shrink:0;">${item.icon}</span>
+                        <div style="min-width:0;">
+                            <div style="font-size:0.78rem; font-weight:bold; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.label}</div>
+                            <div style="font-size:0.62rem; color:#777; font-family:'JetBrains Mono',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.key}</div>
+                            <div style="font-size:0.62rem; color:#999; margin-top:2px; line-height:1.2;">${item.desc}</div>
+                        </div>
+                    </div>
+                    <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                        ${isAlreadyAdded ? `
+                            <span style="font-size:0.65rem; color:#00d2ff; font-weight:bold;">✓ Activa</span>
+                        ` : `
+                            <span style="font-size:0.68rem; color:#aaa; padding:3px 8px; border-radius:4px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);">+ Agregar</span>
+                        `}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+    `;
+};
+
+window.selectSphereStat = function(sphereIdx, key, defaultVal) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s) return;
+    if (!s.stats) s.stats = {};
+    s.stats[key] = (typeof defaultVal === 'number') ? defaultVal : 0.05;
+    closeSphereStatPickerModal();
+    refreshSphereStatsBox(sphereIdx);
+};
+
+window.selectSphereDynamic = function(type, id, attr) {
+    const sphereIdx = window._activeSphereIdx;
+    if (sphereIdx === null || !config.shopItems.spheres || !config.shopItems.spheres[sphereIdx]) return;
     const s = config.shopItems.spheres[sphereIdx];
     if (!s.stats) s.stats = {};
+
+    const key = `${type}:${id}:${attr}`;
+    s.stats[key] = 0.05;
+    closeSphereStatPickerModal();
+    refreshSphereStatsBox(sphereIdx);
+};
+
+window.submitCustomSphereStat = function(sphereIdx) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s) return;
+    if (!s.stats) s.stats = {};
+
+    const keyInput = document.getElementById('custom-sphere-stat-key');
+    const valInput = document.getElementById('custom-sphere-stat-val');
+
+    let key = (keyInput ? keyInput.value : '').trim();
+    if (!key) {
+        if (keyInput) keyInput.style.borderColor = '#ff4444';
+        return;
+    }
+
+    const rawVal = parseFloat(valInput ? valInput.value : 0.05) || 0.05;
+    s.stats[key] = rawVal;
+    closeSphereStatPickerModal();
+    refreshSphereStatsBox(sphereIdx);
+};
+
+window.updateSphereStatVal = function(sphereIdx, key, newVal, isPct) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s) return;
+    if (!s.stats) s.stats = {};
+    const parsed = parseFloat(newVal) || 0;
+    s.stats[key] = isPct ? (parsed / 100) : parsed;
+};
+
+window.toggleSphereStatType = function(sphereIdx, key) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s || !s.stats) return;
+    if (!s.statsMeta) s.statsMeta = {};
+    if (!s.statsMeta[key]) s.statsMeta[key] = {};
+
     const currentVal = s.stats[key] || 0;
-    const wasPctKey = key.endsWith('Pct') || key.endsWith('Chance') || key.endsWith('Dmg') || key === 'evasion' || key === 'armor' || key === 'fireRate' || key === 'accuracy' || key === 'dashDistance' || key === 'ignoreShield' || key === 'shopDiscount' || key === 'bossLootBonus' || key === 'cooldownReduction';
-    if (wasPctKey && newType === 'flat') {
+    const isCurrentlyFlat = s.statsMeta[key].flat === true;
+
+    // Invertir flag flat en statsMeta
+    s.statsMeta[key].flat = !isCurrentlyFlat;
+
+    // Si pasa a flat (fijo), el valor se multiplica por 100 si era porcentaje
+    // Si pasa a pct (%), el valor se divide por 100 si era fijo
+    if (!isCurrentlyFlat) {
+        // Ahora es FIJO
         s.stats[key] = currentVal * 100;
-    } else if (!wasPctKey && newType === 'pct') {
+    } else {
+        // Ahora es %
         s.stats[key] = currentVal / 100;
     }
-    renderSpheres();
+
+    refreshSphereStatsBox(sphereIdx);
 };
 
 window.removeSphereStat = function(sphereIdx, key) {
     const s = config.shopItems.spheres[sphereIdx];
-    if (s.stats) delete s.stats[key];
-    renderSpheres();
+    if (s && s.stats) {
+        delete s.stats[key];
+        if (s.statsMeta && s.statsMeta[key]) delete s.statsMeta[key];
+        refreshSphereStatsBox(sphereIdx);
+    }
+};
+
+// Retrocompatibilidad con nombres anteriores
+window.addSphereStat = function(sphereIdx) {
+    openSphereStatPickerModal(sphereIdx);
+};
+window.updateSphereStatKey = function(sphereIdx, oldKey, newKey) {
+    const s = config.shopItems.spheres[sphereIdx];
+    if (!s || !s.stats) return;
+    if (s.stats[newKey] !== undefined) return;
+    const val = s.stats[oldKey];
+    delete s.stats[oldKey];
+    s.stats[newKey] = val;
+    refreshSphereStatsBox(sphereIdx);
 };
 
 function renderShips() {
