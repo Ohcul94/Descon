@@ -437,7 +437,9 @@ func _update_summary_display():
 		"group_bonus": {"name": "Bonus en Escuadrón", "icon": "👥", "unit": "%"},
 		"boss_loot_bonus": {"name": "Botín de Jefes", "icon": "👑", "unit": "%"},
 		"dash_distance": {"name": "Distancia de Dash", "icon": "🌀", "unit": "%"},
-		"dmg_pct": {"name": "Daño Total", "icon": "💥", "unit": "%"}
+		"dmg_pct": {"name": "Daño Total", "icon": "💥", "unit": "%"},
+		"heal_pct": {"name": "Curación", "icon": "💚", "unit": "%"},
+		"heal_pct_flat": {"name": "Curación (Fijo)", "icon": "💚", "unit": "pts"}
 	}
 
 	var saved_effects: Dictionary = {}
@@ -652,21 +654,18 @@ func _update_summary_display():
 							var did = dparts[1] if dparts.size() > 1 else ""
 							var dattr = dparts[2] if dparts.size() > 2 else ""
 							var dicon = "🌀" if dtype == "skill" else ("🔫" if dtype == "weapon" else "💥")
-							var base_eff = float(effs[ek])
-							var cur_eff = base_eff * it["total"]
-							var emeta = effs_meta.get(ek, {})
-							var is_flat_eff = emeta.get("flat", false)
-							var eff_str = _format_stat_value(cur_eff, is_flat_eff, true)
-							var flat_label = " (Fijo)" if is_flat_eff else ""
-							bb += "    [color=#556677]↳[/color] " + dicon + " " + dtype + " " + did + " → " + dattr + flat_label + ": [color=#10b981]" + eff_str + "[/color]\n"
+							var dyn_base_eff = float(effs[ek])
+							var dyn_cur_eff = dyn_base_eff * it["total"]
+							var dyn_emeta = effs_meta.get(ek, {})
+							var dyn_is_flat_eff = dyn_emeta.get("flat", false)
+							var dyn_eff_str = _format_stat_value(dyn_cur_eff, dyn_is_flat_eff, true)
+							var dyn_flat_label = " (Fijo)" if dyn_is_flat_eff else ""
+							bb += "    [color=#556677]↳[/color] " + dicon + " " + dtype + " " + did + " → " + dattr + dyn_flat_label + ": [color=#10b981]" + dyn_eff_str + "[/color]\n"
 						continue
 					var base_eff = float(effs[ek])
 					var cur_eff = base_eff * it["total"]
 					var emeta = effs_meta.get(ek, {})
 					var is_flat_eff = emeta.get("flat", false)
-					var display_ek = ek
-					if is_flat_eff:
-						display_ek = ek + "_flat"
 					var em = effect_meta.get(ek, {"name": ek, "unit": "%"})
 					var eff_str = _format_stat_value(cur_eff, is_flat_eff, true)
 					var flat_label = " (Fijo)" if is_flat_eff else ""
@@ -1321,16 +1320,16 @@ func _update_tooltip(screen_pos: Vector2):
 				var fx_attr = parts[2] if parts.size() > 2 else ""
 				var fx_icon = "🌀" if fx_type == "skill" else ("🔫" if fx_type == "weapon" else "💥")
 				var fx_type_label = "Skill" if fx_type == "skill" else ("Arma" if fx_type == "weapon" else "Munición")
-				var emeta = talent_effects_meta.get(key, {})
-				var is_flat = emeta.get("flat", false)
-				var applied_val = val * saved
-				var pend_val = val * pend
-				var applied_str = _format_stat_value(applied_val, is_flat, true)
-				var flat_tag = " [color=#ff9632](fijo)[/color]" if is_flat else ""
-				current_effects_text += "  " + fx_icon + " " + fx_type_label + " " + fx_id + " → " + fx_attr + flat_tag + ": [color=#10b981][b]" + applied_str + "[/b][/color]"
+				var dyn_emeta = talent_effects_meta.get(key, {})
+				var dyn_is_flat = dyn_emeta.get("flat", false)
+				var dyn_applied_val = val * saved
+				var dyn_pend_val = val * pend
+				var dyn_applied_str = _format_stat_value(dyn_applied_val, dyn_is_flat, true)
+				var dyn_flat_tag = " [color=#ff9632](fijo)[/color]" if dyn_is_flat else ""
+				current_effects_text += "  " + fx_icon + " " + fx_type_label + " " + fx_id + " → " + fx_attr + dyn_flat_tag + ": [color=#10b981][b]" + dyn_applied_str + "[/b][/color]"
 				if pend > 0:
-					var p_str = _format_stat_value(pend_val, is_flat, true)
-					current_effects_text += " [color=#ffd700](" + p_str + " pend.)[/color]"
+					var dyn_p_str = _format_stat_value(dyn_pend_val, dyn_is_flat, true)
+					current_effects_text += " [color=#ffd700](" + dyn_p_str + " pend.)[/color]"
 				current_effects_text += "\n"
 				continue
 			var label = effect_labels.get(key, key)

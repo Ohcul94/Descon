@@ -122,7 +122,8 @@ func get_bonuses() -> Dictionary:
 		"repair_cost_reduction": 0.0, "minimap_range": 0.0,
 		"ohcu_kill_bonus": 0.0, "shop_discount": 0.0,
 		"group_bonus": 0.0, "boss_loot_bonus": 0.0,
-		"dash_distance": 0.0
+		"dash_distance": 0.0,
+		"heal_pct": 0.0, "heal_pct_flat": 0.0
 	}
 	if typeof(skill_tree) != TYPE_DICTIONARY:
 		return bonuses

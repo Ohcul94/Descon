@@ -289,7 +289,12 @@ app.use((req, res, next) => {
 
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/assets', express.static(path.join(__dirname, '../descon/assets')));
+// Assets del juego: permitir embeber desde AdminDash/file:// y el juego (COEP)
+app.use('/assets', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+}, express.static(path.join(__dirname, '../descon/assets')));
 
 app.post('/api/upload-asset', express.json({ limit: '20mb' }), async (req, res) => {
     try {

@@ -212,12 +212,6 @@ func _register_input_actions():
 		var ev = InputEventKey.new()
 		ev.keycode = KEY_O
 		InputMap.action_add_event("toggle_free_camera", ev)
-	
-	if not InputMap.has_action("toggle_orbit_mode"):
-		InputMap.add_action("toggle_orbit_mode")
-		var ev = InputEventKey.new()
-		ev.keycode = KEY_SEMICOLON
-		InputMap.action_add_event("toggle_orbit_mode", ev)
 
 func _force_altar_lighting_to_map2():
 	# v770.8: Fuerza iluminación idéntica a Mapa2 (copia exacta de MapEditor3D_2_Mapa_2.tscn)
@@ -2750,24 +2744,6 @@ func _input(event):
 		print("[BaseMap] MODO DE CÁMARA CAMBIADO A: ", new_mode_name)
 		get_viewport().set_input_as_handled()
 
-	
-	# Toggle orbit/free mode dentro de cámara libre (tecla Tab)
-	if free_cam_active and event.is_action_pressed("toggle_orbit_mode") and not event.is_echo():
-		free_orbit_mode = !free_orbit_mode
-		_save_camera_state()
-		# Al entrar en PANEO, cancelar aiming (en ORBIT los skills funcionan)
-		if not free_orbit_mode:
-			var pn = get_tree().get_first_node_in_group("player")
-			if is_instance_valid(pn) and is_instance_valid(pn._skill_controller):
-				pn._skill_controller.is_aiming = false
-				pn._skill_controller.queue_redraw()
-		var hud_f = get_tree().get_first_node_in_group("hud")
-		var msg_f = "CÁMARA LIBRE " + ("ORBIT" if free_orbit_mode else "PANEO")
-		if hud_f and hud_f.has_method("notify"):
-			hud_f.notify(msg_f, "info")
-		print("[BaseMap] ", msg_f)
-		get_viewport().set_input_as_handled()
-	
 	# Click/drag para rotación de cámara (configurable: por defecto LMB)
 	if event is InputEventMouseButton:
 		# v302.145: En Modo Celular, la rotación de cámara es EXCLUSIVA del panel táctil (CameraJoystick).

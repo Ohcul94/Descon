@@ -3691,7 +3691,7 @@ function cmRenderEffects() {
         return;
     }
 
-    const catColors = { combate:'#ff3131', defensa:'#00d2ff', utilidad:'#f0c040', economía:'#10b981', unlock:'#a855f7', desbloqueo:'#a855f7', skill:'#f97316', weapon:'#ef4444', ammo:'#f43f5e', custom:'#38bdf8' };
+    const catColors = { combate:'#ff3131', defensa:'#00d2ff', utilidad:'#f0c040', economía:'#10b981', 'curación':'#4ade80', unlock:'#a855f7', desbloqueo:'#a855f7', skill:'#f97316', weapon:'#ef4444', ammo:'#f43f5e', custom:'#38bdf8' };
 
     let html = '';
     window._cmEffects.forEach((e, i) => {

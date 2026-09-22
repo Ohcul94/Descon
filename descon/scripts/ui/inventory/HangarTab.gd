@@ -2,6 +2,7 @@ extends Control
 
 # HangarTab.gd - REPARACIÓN DE INTERACCIÓN (v300.80)
 # Corregido: Doble click, desequipado, limpieza de iconos y visor 3D central.
+# v761.0: Click-simple = tooltip de stats (paridad Baúl)
 
 var inv_main = null
 var preview_mesh: Node3D = null
@@ -17,6 +18,7 @@ func setup(p_inv_main):
 
 func update_ui():
 	if not inv_main: return
+	inv_main.hide_item_info()
 	var h = self
 	# Guardar la posición de scroll horizontal antes de limpiar
 	var last_scroll_h = 0
@@ -481,6 +483,7 @@ func _render_group(parent, type, title, count):
 				if ev is InputEventMouseButton and ev.pressed:
 					get_viewport().set_input_as_handled() # v305.61: Bloqueo absoluto
 					if ev.double_click:
+						inv_main.hide_item_info()
 						var player_node = get_tree().get_first_node_in_group("player")
 						var in_combat = false
 						if is_instance_valid(player_node) and player_node.has_method("is_in_combat"):
@@ -500,6 +503,9 @@ func _render_group(parent, type, title, count):
 								"msg": "ERROR: No puedes modificar tu equipamiento en combate.",
 								"type": "error"
 							})
+					elif ev.button_index == MOUSE_BUTTON_LEFT:
+						# v761.0: Click simple = mostrar stats del módulo equipado (estilo Baúl)
+						inv_main.show_item_info(item_data, p)
 			)
 		else: var c = Label.new(); c.text = "+"; c.horizontal_alignment = 1; c.modulate.a = 0.1; p.add_child(c)
 		grid.add_child(p)
@@ -835,6 +841,7 @@ func _create_item_row(it, parent):
 		# Doble Click en toda la fila para equipar
 		p.gui_input.connect(func(ev):
 			if ev is InputEventMouseButton and ev.pressed and ev.double_click:
+				inv_main.hide_item_info()
 				equip_func.call()
 		)
 
@@ -896,6 +903,16 @@ func _create_item_row(it, parent):
 			)
 		)
 		action_hb.add_child(b_use)
+
+	# v761.0: Click simple en la fila = tooltip de stats (paridad con el Baúl)
+	p.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			if ev.double_click:
+				inv_main.hide_item_info()
+			else:
+				inv_main.show_item_info(it, p)
+				get_viewport().set_input_as_handled()
+	)
 	parent.add_child(p)
 
 func _get_fallback_icon(id: String) -> String:

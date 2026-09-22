@@ -46,6 +46,13 @@ var active_modales = [] # v307: Registro de modales activos para cerrado en capa
 var _last_tab_ui_update_frame: int = -1
 var _pending_tab_ui_update: bool = false
 
+# Tooltip de stats al click-simple (paridad con el Baúl) — v761.0
+var info_panel: PanelContainer = null
+var info_title: Label = null
+var info_type: Label = null
+var info_stats: Label = null
+var info_target: Control = null
+
 
 
 
@@ -265,15 +272,138 @@ func _format_val(v):
 		if c == 3 and i != 0: r = "." + r; c = 0
 	return r
 
+# v761.0: Tooltip de stats al click-simple (misma estética que el Baúl)
+func show_item_info(item: Dictionary, target: Control):
+	if not is_instance_valid(target): return
+	_ensure_info_panel()
+	if not is_instance_valid(info_panel): return
+
+	var ItemInfoHelper = preload("res://scripts/ui/inventory/ItemInfoHelper.gd")
+	var rarity = int(item.get("rarity", 0))
+	var rarity_color = ItemInfoHelper.rarity_color(rarity)
+	if item.has("color") and str(item.get("color", "")) != "":
+		rarity_color = Color.from_string(str(item["color"]), rarity_color)
+
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.02, 0.02, 0.05, 0.96)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = rarity_color
+	sb.set_corner_radius_all(6)
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 8
+	info_panel.add_theme_stylebox_override("panel", sb)
+
+	info_title.text = str(item.get("name", "ÍTEM")).to_upper()
+	info_title.add_theme_color_override("font_color", rarity_color)
+
+	var amount = int(item.get("amount", 1))
+	var type_line = ItemInfoHelper.rarity_label(rarity) + " | " + str(item.get("type", "MÓDULO")).to_upper()
+	if amount > 1:
+		type_line += " x" + str(amount)
+	info_type.text = type_line
+
+	info_stats.text = ItemInfoHelper.format_stats(item)
+
+	info_target = target
+	info_panel.visible = true
+	# Bugfix: si el panel aún no tiene ancho, AUTOWRAP calcula altura ~1char/línea y explota
+	if info_panel.size.x < 50.0:
+		info_panel.size = Vector2(200, 80)
+	info_panel.reset_size()
+	if info_panel.size.y > 420.0:
+		info_panel.size = Vector2(maxf(info_panel.size.x, 200.0), 420.0)
+	if get_parent() and info_panel.get_parent() == self:
+		move_child(info_panel, get_child_count() - 1)
+
+	var target_pos = target.global_position
+	var new_pos = target_pos + Vector2(target.size.x + 10, -10)
+	if new_pos.x + info_panel.size.x > get_viewport().get_visible_rect().size.x:
+		new_pos.x = target_pos.x - info_panel.size.x - 10
+	if new_pos.x < 0:
+		new_pos.x = target_pos.x + target.size.x + 10
+	info_panel.global_position = new_pos
+
+func hide_item_info():
+	if is_instance_valid(info_panel):
+		info_panel.visible = false
+	info_target = null
+
+func _ensure_info_panel():
+	if is_instance_valid(info_panel): return
+
+	info_panel = PanelContainer.new()
+	info_panel.name = "ItemInfoTooltip"
+	info_panel.visible = false
+	info_panel.custom_minimum_size = Vector2(200, 70)
+	info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(info_panel)
+
+	var info_margin = MarginContainer.new()
+	info_margin.add_theme_constant_override("margin_left", 10)
+	info_margin.add_theme_constant_override("margin_right", 10)
+	info_margin.add_theme_constant_override("margin_top", 8)
+	info_margin.add_theme_constant_override("margin_bottom", 8)
+	info_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_panel.add_child(info_margin)
+
+	var info_vbox = VBoxContainer.new()
+	info_vbox.add_theme_constant_override("separation", 4)
+	info_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_margin.add_child(info_vbox)
+
+	info_title = Label.new()
+	info_title.add_theme_font_size_override("font_size", 11)
+	info_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info_title.custom_minimum_size.x = 160
+	info_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(info_title)
+
+	info_type = Label.new()
+	info_type.add_theme_font_size_override("font_size", 8)
+	info_type.modulate = Color(0.7, 0.7, 0.7)
+	info_type.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(info_type)
+
+	var info_sep = HSeparator.new()
+	info_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(info_sep)
+
+	info_stats = Label.new()
+	info_stats.add_theme_font_size_override("font_size", 9)
+	info_stats.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	info_stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info_stats.custom_minimum_size.x = 160
+	info_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(info_stats)
+
+func _process(_delta):
+	if is_instance_valid(info_panel) and info_panel.visible and (info_target == null or not is_instance_valid(info_target)):
+		hide_item_info()
+
 func _input(event):
-	# v303.12: Soporte para toques nativos de Android (InputEventScreenTouch) 
+	# v761.1: Cerrar tooltip de stats — click afuera, ESC, o si el target ya no existe
+	if is_instance_valid(info_panel) and info_panel.visible:
+		if info_target == null or not is_instance_valid(info_target):
+			hide_item_info()
+		elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+			hide_item_info()
+			get_viewport().set_input_as_handled()
+			return
+		elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if not info_panel.get_global_rect().has_point(event.position):
+				hide_item_info()
+
+	# v303.12: Soporte para toques nativos de Android (InputEventScreenTouch)
 	# Evita la pérdida de eventos cuando se emulan clics de mouse.
 	var is_click = false
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		is_click = true
 	elif event is InputEventScreenTouch and event.pressed:
 		is_click = true
-		
+
 	# v244.75: Las funciones de cerrado de menú (ESC y Botón X) deben funcionar SIEMPRE, incluso si estás escribiendo
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		# v307: Cerrar primero los modales activos por orden de capas (LIFO)
@@ -388,6 +518,7 @@ func toggle():
 	visible = is_open
 	
 	if not is_open:
+		hide_item_info()
 		# v307: Cerrar de forma limpia cualquier modal huérfano activo al cerrar el inventario
 		for m in active_modales:
 			if is_instance_valid(m):
@@ -526,6 +657,7 @@ func _do_pending_tab_ui_update():
 		_render_active_tab_ui()
 
 func _render_active_tab_ui():
+	hide_item_info()
 	var tab_container = get_node_or_null("Window/TabContainer")
 	if not tab_container: return
 	

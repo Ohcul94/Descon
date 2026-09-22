@@ -225,18 +225,30 @@ func _load_skill_icon_texture(skill_name: String) -> Texture2D:
 		server_skills = NetworkManager.server_config.get("skillsData", {})
 		
 	var lookup_key = clean_name
+	# Normalizar acentos para matchear claves del server (VÍNCULO VITAL, REGENERACIÓN ALFA…)
+	var clean_name_no_accents = clean_name.replace("Ó", "O").replace("É", "E").replace("Í", "I").replace("Á", "A").replace("Ú", "U").replace("Ü", "U")
 	if "REFLECT" in clean_name:
 		for key in server_skills.keys():
 			if "REFLECT" in key.to_upper():
 				lookup_key = key
 				break
+	if not server_skills.has(lookup_key):
+		if server_skills.has(clean_name_no_accents):
+			lookup_key = clean_name_no_accents
+		else:
+			for key in server_skills.keys():
+				var k = str(key).to_upper().strip_edges().replace("Ó", "O").replace("É", "E").replace("Í", "I").replace("Á", "A").replace("Ú", "U").replace("Ü", "U")
+				if k == clean_name_no_accents:
+					lookup_key = key
+					break
 	
 	if not server_skills.has(lookup_key):
 		_texture_cache[clean_name] = null
 		return null
 		
 	var icon_path = server_skills[lookup_key].get("icon", "")
-	if icon_path == "" or not icon_path.ends_with(".png"):
+	var lower_path = icon_path.to_lower() if icon_path else ""
+	if icon_path == "" or not (lower_path.ends_with(".png") or lower_path.ends_with(".jpg") or lower_path.ends_with(".jpeg") or lower_path.ends_with(".webp")):
 		_texture_cache[clean_name] = null
 		return null
 		

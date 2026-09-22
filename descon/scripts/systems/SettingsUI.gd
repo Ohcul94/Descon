@@ -314,10 +314,9 @@ func _setup_ui():
 		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (F1)", "ui_battlepass": "PASE DE BATALLA (F4)",
 		"ui_events": "MENÚ DE EVENTOS (F2)",
 		"ui_housing": "MENÚ DE HOUSING (F3)",
-		"ui_map": "MAPA (M)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (Z)", "ui_stats": "ESTADÍSTICAS (C)",
+		"ui_map": "MAPA GRANDE (TAB)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (Z)", "ui_stats": "ESTADÍSTICAS (C)",
 		"portal_jump": "INGRESAR AL PORTAL",
 		"toggle_free_camera": "MODO CÁMARA LIBRE 3D",
-		"toggle_orbit_mode": "ORBITAR / PANEO (CÁMARA LIBRE)",
 		"loot_claim": "ABRIR BOTÍN / COFRE",
 		"chat_toggle": "ABRIR / CERRAR CHAT"
 	}

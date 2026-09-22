@@ -190,7 +190,7 @@ func toggle(zone_id_to_show: String = ""):
 
 func _input(event):
 	if not visible: return
-	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("ui_map") or (event is InputEventKey and event.pressed and (event.keycode == KEY_ESCAPE or event.keycode == KEY_M)):
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("ui_map"):
 		close()
 		get_viewport().set_input_as_handled()
 

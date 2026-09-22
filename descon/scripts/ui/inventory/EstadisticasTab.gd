@@ -431,7 +431,7 @@ func _get_sphere_modifiers(player) -> Dictionary:
 					elif key == "healPct": result.total_heal_pct += val * 100.0
 	return result
 
-func _get_talent_bonuses(player) -> Dictionary:
+func _get_talent_bonuses(_player) -> Dictionary:
 	var ts = get_tree().get_first_node_in_group("talent_system")
 	if is_instance_valid(ts):
 		return ts.get_bonuses()
@@ -606,7 +606,7 @@ func _add_mod_summary(parent, label: String, flat_val: float, pct_val: float):
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(v)
 
-func _add_talent_bonus_row(parent, name: String, val: float, is_flat: bool):
+func _add_talent_bonus_row(parent, display_name: String, val: float, is_flat: bool):
 	if abs(val) < 0.0001: return
 	var h = HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
@@ -614,7 +614,7 @@ func _add_talent_bonus_row(parent, name: String, val: float, is_flat: bool):
 	parent.add_child(h)
 
 	var l = Label.new()
-	l.text = name
+	l.text = display_name
 	l.add_theme_font_size_override("font_size", 10)
 	l.modulate = Color(0.6, 0.65, 0.75)
 	l.custom_minimum_size.x = 160.0
@@ -683,7 +683,6 @@ func _add_exp_bar(parent, player):
 
 	var bar_fg = ColorRect.new()
 	bar_fg.color = Color(0.2, 0.7, 1.0)
-	bar_fg.anchor_right = 1.0
 	bar_fg.offset_bottom = 8.0
 	bar_v.add_child(bar_fg)
 	bar_fg.size = Vector2(bar_bg.size.x * pct / 100.0, 8) if bar_bg.size.x > 0 else Vector2(0, 8)
@@ -812,7 +811,9 @@ func _get_effect_display_name(key: String) -> String:
 		"shop_discount": "Descuento Tienda",
 		"group_bonus": "Bonus Escuadrón",
 		"boss_loot_bonus": "Botín Jefes",
-		"dash_distance": "Distancia Dash"
+		"dash_distance": "Distancia Dash",
+		"heal_pct": "Curación",
+		"heal_pct_flat": "Curación (Fijo)"
 	}
 	return names.get(key, key)
 

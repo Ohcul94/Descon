@@ -15,10 +15,11 @@ function renderSkills() {
         if(s.targetFilters.blockProjectiles === undefined) s.targetFilters.blockProjectiles = false;
 
         // Ícono actual
-        const skillIconWeb = resolveAssetWebUrl(s.icon || '');
-        const iconPreviewHtml = skillIconWeb
-            ? `<img src="${skillIconWeb}" style="width:72px; height:72px; object-fit:contain; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
-            : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:10px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
+        const iconPreviewHtml = assetIconHtml(s.icon || '', {
+            size: 72,
+            fallback: '🌀',
+            emptyHtml: `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:10px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px; box-sizing:border-box;">Sin Ícono</div>`
+        });
 
         card.innerHTML = `
             <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">

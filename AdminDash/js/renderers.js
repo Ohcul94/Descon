@@ -3,16 +3,48 @@
 
 window.resolveAssetWebUrl = function(iconPath) {
     if (!iconPath) return '';
-    let path = iconPath;
+    let path = String(iconPath).replace(/\\/g, '/');
     const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+    const encodeRest = (rest) => rest.split('/').map(seg => {
+        try { return encodeURIComponent(decodeURIComponent(seg)); }
+        catch (e) { return encodeURIComponent(seg); }
+    }).join('/');
     if (path.includes('res://assets/')) {
-        return path.replace('res://assets/', activeURL + '/assets/');
+        return activeURL + '/assets/' + encodeRest(path.substring(path.indexOf('res://assets/') + 'res://assets/'.length));
     }
     let idx = path.indexOf('assets/');
     if (idx !== -1) {
-        return activeURL + '/' + path.substring(idx);
+        return activeURL + '/assets/' + encodeRest(path.substring(idx + 'assets/'.length));
     }
     return path;
+};
+
+window._assetIconFail = function(img, fallback) {
+    if (!img || !img.parentNode) return;
+    const span = document.createElement('span');
+    span.style.cssText = img.style.cssText + ';display:inline-flex;align-items:center;justify-content:center;opacity:0.7;';
+    span.textContent = fallback || '🌀';
+    img.replaceWith(span);
+};
+
+// Renderiza un ícono (ruta res:// o emoji) como <img> con fallback visible
+window.assetIconHtml = function(iconPath, opts = {}) {
+    const size = opts.size || 72;
+    const fallback = opts.fallback || '🌀';
+    const showEmpty = opts.showEmpty !== false;
+    const style = opts.style || `width:${size}px;height:${size}px;object-fit:contain;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.3);`;
+    if (!iconPath) {
+        if (!showEmpty) return '';
+        if (opts.emptyHtml) return opts.emptyHtml;
+        return `<div style="width:${size}px;height:${size}px;border:1px dashed rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:0.7rem;text-align:center;padding:4px;box-sizing:border-box;">Sin Ícono</div>`;
+    }
+    const isPath = /assets\//.test(iconPath) || iconPath.indexOf('res://') !== -1 || /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(iconPath);
+    if (!isPath) {
+        return `<span style="display:inline-flex;width:${size}px;height:${size}px;align-items:center;justify-content:center;font-size:${opts.emojiSize || Math.max(14, Math.round(size * 0.45)) + 'px'};">${iconPath}</span>`;
+    }
+    const url = resolveAssetWebUrl(iconPath);
+    const fb = String(fallback).replace(/'/g, "\\'");
+    return `<img src="${url}" style="${style}" alt="" onerror="window._assetIconFail(this,'${fb}')">`;
 };
 
 function refreshCurrentTab() {

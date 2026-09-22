@@ -2707,7 +2707,17 @@ func _safe_float(val, default: float = 0.0) -> float:
 
 func _predict_local_heal(target: Node2D, amount: float):
 	if not is_instance_valid(target): return
-	
+
+	# Bonus de talentos de Curación del atacante/caster
+	var heal_mult := 1.0
+	var heal_flat := 0.0
+	var ts = get_tree().get_first_node_in_group("talent_system")
+	if is_instance_valid(ts) and ts.has_method("get_bonuses"):
+		var bonuses = ts.get_bonuses()
+		heal_mult += float(bonuses.get("heal_pct", 0.0))
+		heal_flat += float(bonuses.get("heal_pct_flat", 0.0))
+	amount = maxf(0.0, amount * heal_mult + heal_flat)
+
 	var heal_shield = 0.0
 	var heal_hp = 0.0
 	

@@ -226,14 +226,14 @@ func _draw_corner_brackets(rect: Rect2, c: float, b_len: float, col: Color):
 	_draw_bracket_pip(Vector2(rect.position.x, rect.position.y + c + b_len), col)
 
 	# 2. Top-Right
-	var tr = PackedVector2Array([
+	var tr_pts = PackedVector2Array([
 		Vector2(rect.end.x - c - b_len, rect.position.y),
 		Vector2(rect.end.x - c, rect.position.y),
 		Vector2(rect.end.x, rect.position.y + c),
 		Vector2(rect.end.x, rect.position.y + c + b_len)
 	])
-	draw_polyline(tr, glow_col, 3.0)
-	draw_polyline(tr, col, 1.5)
+	draw_polyline(tr_pts, glow_col, 3.0)
+	draw_polyline(tr_pts, col, 1.5)
 	_draw_bracket_pip(Vector2(rect.end.x - c - b_len, rect.position.y), col)
 	_draw_bracket_pip(Vector2(rect.end.x, rect.position.y + c + b_len), col)
 
@@ -352,14 +352,14 @@ static func draw_tactical_modal(canvas: CanvasItem, r_pos: Vector2, r_size: Vect
 	canvas.draw_circle(Vector2(r.position.x, r.position.y + c + b_len), 1.5, col)
 	
 	# TR
-	var tr = PackedVector2Array([
+	var tr_pts = PackedVector2Array([
 		Vector2(r.end.x - c - b_len, r.position.y),
 		Vector2(r.end.x - c, r.position.y),
 		Vector2(r.end.x, r.position.y + c),
 		Vector2(r.end.x, r.position.y + c + b_len)
 	])
-	canvas.draw_polyline(tr, glow_col, 3.0)
-	canvas.draw_polyline(tr, col, 1.5)
+	canvas.draw_polyline(tr_pts, glow_col, 3.0)
+	canvas.draw_polyline(tr_pts, col, 1.5)
 	canvas.draw_circle(Vector2(r.end.x - c - b_len, r.position.y), 1.5, col)
 	canvas.draw_circle(Vector2(r.end.x, r.end.y - c - b_len), 1.5, col)
 	

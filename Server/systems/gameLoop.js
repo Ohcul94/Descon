@@ -9,6 +9,7 @@ const { checkAndProcessDeathDrop } = require('./deathDropHelper');
 const combatTracker = require('./combatTracker');
 const altarDefenseManager = require('./altarDefenseManager');
 const { updatePartyCombatLoop, recordPlayerCombat } = require('../utils/partyUtils');
+const { applyHealTalentBonus } = require('./statCalculator');
 
 const { normalizeZone } = require('../utils/zoneUtils');
 
@@ -979,8 +980,8 @@ function startGameLoop(io, state, aiManager) {
                     // Emitir evento de pulso a la zona para VFX en el cliente
                     io.to(`zone_${area.zone}`).emit('beaconPulse', { id: area.id, radius: area.radius });
                     
-                    const healVal = area.heal_amount || 250;
                     const owner = players[area.ownerId];
+                    const healVal = applyHealTalentBonus(owner, area.heal_amount || 250);
                     const filters = area.targetFilters || { allies: true, enemies: false, bosses: false, players: true };
                     
                     // Obtener tanto jugadores como enemigos cercanos
@@ -1142,7 +1143,7 @@ function startGameLoop(io, state, aiManager) {
                     const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
                     const mapCfg = maps[targetZone] || maps[targetZone.toString()];
                     const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
-                    let finalHealVal = area.amount || 250;
+                    let finalHealVal = applyHealTalentBonus(owner, area.amount || 250);
                     if (healPenaltyMech) {
                         if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
                             const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
@@ -1228,7 +1229,7 @@ function startGameLoop(io, state, aiManager) {
                                 const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
                                 const mapCfg = maps[p.zone] || maps[p.zone.toString()];
                                 const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
-                                let finalHealVal = area.amount || 1500;
+                                let finalHealVal = applyHealTalentBonus(players[area.ownerId], area.amount || 1500);
                                 if (healPenaltyMech) {
                                     if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
                                         const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;

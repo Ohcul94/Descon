@@ -155,7 +155,7 @@ func _ready():
 	btn_world_map = Button.new()
 	btn_world_map.name = "BtnWorldMap"
 	btn_world_map.text = " 🗺️ "
-	btn_world_map.tooltip_text = "Abrir Mapa Completo [M]"
+	btn_world_map.tooltip_text = "Abrir Mapa Completo [TAB]"
 	btn_world_map.add_theme_font_size_override("font_size", 9)
 	var b_sb = StyleBoxFlat.new()
 	b_sb.bg_color = Color(0, 0.08, 0.14, 0.85)

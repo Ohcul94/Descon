@@ -23,7 +23,8 @@ function getTalentBonuses(skillTree, talentsConfig) {
         repair_cost_reduction: 0, minimap_range: 0,
         ohcu_kill_bonus: 0, shop_discount: 0,
         group_bonus: 0, boss_loot_bonus: 0,
-        dash_distance: 0
+        dash_distance: 0,
+        heal_pct: 0, heal_pct_flat: 0
     };
 
     // Asegurar que skillTree tenga arrays para todas las categorías conocidas
@@ -51,8 +52,17 @@ function getTalentBonuses(skillTree, talentsConfig) {
         const lvl = Math.min(Math.max(0, rawLvl), maxLvl);
         if (lvl <= 0) continue;
         const effects = t.effects || {};
+        const effectsMeta = t.effectsMeta || {};
         for (const [key, val] of Object.entries(effects)) {
-            if (bonuses.hasOwnProperty(key)) {
+            const meta = effectsMeta[key] || {};
+            if (meta.flat) {
+                const flatKey = key + '_flat';
+                if (bonuses.hasOwnProperty(flatKey)) {
+                    bonuses[flatKey] += val * lvl;
+                } else if (bonuses.hasOwnProperty(key)) {
+                    bonuses[key] += val * lvl;
+                }
+            } else if (bonuses.hasOwnProperty(key)) {
                 bonuses[key] += val * lvl;
             }
         }
@@ -224,4 +234,16 @@ function calculateFinalStats(player, config) {
     player.baseShield = baseShield;
 }
 
-module.exports = { calculateFinalStats, getTalentBonuses };
+module.exports = { calculateFinalStats, getTalentBonuses, applyHealTalentBonus };
+
+/**
+ * Aplica el bonus de talentos de Curación (heal_pct / heal_pct_flat) a una cantidad de curación.
+ * heal_pct es porcentual (0.02 = +2%); heal_pct_flat suma puntos fijos.
+ */
+function applyHealTalentBonus(player, amount) {
+    const base = Math.max(0, Number(amount) || 0);
+    const b = (player && player._talentBonuses) || {};
+    const pct = Number(b.heal_pct) || 0;
+    const flat = Number(b.heal_pct_flat) || 0;
+    return Math.max(0, base * (1 + pct) + flat);
+}

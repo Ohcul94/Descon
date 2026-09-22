@@ -2544,13 +2544,18 @@ window.renderTalentCreator = function() {
                             Object.entries(skillGroups).forEach(([skId, items]) => {
                                 const sk = (typeof config !== 'undefined' && config.skillsData) ? config.skillsData[skId] : null;
                                 const skName = sk ? (sk.name || skId) : skId;
-                                const skIcon = (sk && sk.icon) ? sk.icon : '🌀';
+                                const skIconHtml = assetIconHtml((sk && sk.icon) ? sk.icon : '', {
+                                    size: 26,
+                                    fallback: '🌀',
+                                    emojiSize: '18px',
+                                    emptyHtml: '<span style="font-size:1.1rem;">🌀</span>'
+                                });
 
                                 htmlStr += `
                                 <div style="background:rgba(249,115,22,0.06); border:1px solid rgba(249,115,22,0.3); border-radius:10px; padding:8px 10px; margin-bottom:6px;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid rgba(249,115,22,0.15); padding-bottom:5px;">
                                         <div style="display:flex; align-items:center; gap:6px;">
-                                            <span style="font-size:1.1rem;">${skIcon}</span>
+                                            ${skIconHtml}
                                             <span style="font-size:0.8rem; font-weight:bold; color:#f97316;">${skName}</span>
                                             <span style="font-size:0.6rem; color:#888; font-family:'JetBrains Mono';">(${skId})</span>
                                         </div>
@@ -2682,6 +2687,8 @@ window.TALENT_EFFECTS_CATALOG = {
     hp_regen:            { label: 'Regen. Vida',              icon: '🔧', cat: 'defensa',   defaultValue: 0.01 },
     shield_regen:        { label: 'Regen. Escudo',            icon: '🔋', cat: 'defensa',   defaultValue: 0.01 },
     stability:           { label: 'Estabilidad',              icon: '🛸', cat: 'defensa',   defaultValue: 0.01 },
+    // ── CURACIÓN ──
+    heal_pct:            { label: 'Curación',                 icon: '💚', cat: 'curación',  defaultValue: 0.01 },
     // ── UTILIDAD ──
     speed_pct:           { label: 'Velocidad',                icon: '🚀', cat: 'utilidad',  defaultValue: 0.01 },
     cooldown_reduction:  { label: 'Reducción CD Global',      icon: '❄️', cat: 'utilidad',  defaultValue: 0.01 },
@@ -2744,7 +2751,7 @@ window.AMMO_ATTRS = {
 };
 
 function _effectCatColor(cat) {
-    const m = { combate:'#ff3131', defensa:'#00d2ff', utilidad:'#f0c040', economía:'#10b981', unlock:'#a855f7', desbloqueo:'#a855f7', skill:'#f97316', skills:'#f97316', weapon:'#ef4444', armas:'#ef4444', ammo:'#f43f5e', custom:'#38bdf8' };
+    const m = { combate:'#ff3131', defensa:'#00d2ff', utilidad:'#f0c040', economía:'#10b981', 'curación':'#4ade80', unlock:'#a855f7', desbloqueo:'#a855f7', skill:'#f97316', skills:'#f97316', weapon:'#ef4444', armas:'#ef4444', ammo:'#f43f5e', custom:'#38bdf8' };
     return m[cat] || '#888';
 }
 
@@ -2945,6 +2952,7 @@ window._renderEffectPickerModal = function() {
         { id: 'all', label: '✨ Todas' },
         { id: 'combate', label: '⚔️ Combate', color: '#ff3131' },
         { id: 'defensa', label: '🛡️ Defensa', color: '#00d2ff' },
+        { id: 'curación', label: '💚 Curación', color: '#4ade80' },
         { id: 'utilidad', label: '🚀 Utilidad', color: '#f0c040' },
         { id: 'economía', label: '💰 Economía', color: '#10b981' },
         { id: 'skill', label: '🌀 Habilidades', color: '#f97316' },
@@ -3019,11 +3027,11 @@ window._renderEffectPickerModal = function() {
                         const col = _effectCatColor(item.cat);
                         const isUnlock = item.cat === 'unlock';
                         return `
-                        <div onclick="selectEffectFromPicker('${item.key}', ${item.defaultValue}, ${item.isFlat}, '${item.label.replace(/'/g, "\\'")}', '${item.icon}')" 
+                        <div onclick="selectEffectFromPicker('${item.key}', ${item.defaultValue}, ${item.isFlat}, '${item.label.replace(/'/g, "\\'")}', '${item.icon.replace(/'/g, "\\'")}')" 
                              style="display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px; cursor:pointer; background:rgba(255,255,255,0.02); border:1px solid ${col}25; transition:all 0.15s;"
-                             onmouseover="this.style.background='${col}12'; this.style.borderColor='${col}80'; this.style.transform='translateY(-1px)';"
+                             onmouseover="this.style.background='${col}12'; this.style.borderColor='${col}80'; this.style.transform='translateY(-1px);'"
                              onmouseout="this.style.background='rgba(255,255,255,0.02)'; this.style.borderColor='${col}25'; this.style.transform='none';">
-                            <span style="font-size:1.6rem; flex-shrink:0;">${item.icon}</span>
+                            <span style="font-size:1.6rem; flex-shrink:0; display:inline-flex; width:28px; height:28px; align-items:center; justify-content:center;">${assetIconHtml(item.icon, { size: 28, fallback: '🌀', emojiSize: '22px', emptyHtml: '🌀' })}</span>
                             <div style="flex:1; min-width:0;">
                                 <div style="font-size:0.82rem; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.label}</div>
                                 <div style="font-size:0.65rem; color:#888; font-family:'JetBrains Mono'; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.key}</div>

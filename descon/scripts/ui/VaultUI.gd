@@ -2,6 +2,11 @@ extends CanvasLayer
 
 # VaultUI.gd (v1.0 - Interfaz AAA de Almacenamiento Personal)
 # Interfaz de doble panel de alta gama para almacenar y retirar ítems en el lobby.
+# v761.0: Estética igualada al Inventario F1 (marco táctico HUDFrame) + sección de
+# efectos de esferas + tooltip con stats compartidas (ItemInfoHelper).
+
+const ItemInfoHelper = preload("res://scripts/ui/inventory/ItemInfoHelper.gd")
+const VaultTacticalFrameScript = preload("res://scripts/ui/VaultTacticalFrame.gd")
 
 var is_open: bool = false
 var vault_items: Array = []
@@ -15,6 +20,7 @@ var player_ohcu: int = 0
 # Referencias a nodos UI
 var control_root: Control = null
 var overlay: ColorRect = null
+var frame: Control = null
 var tab_bar: TabBar = null
 var vault_grid: GridContainer = null
 var inv_container: GridContainer = null
@@ -24,11 +30,13 @@ var lbl_ohcu: Label = null
 var lbl_slots_info: Label = null
 var lbl_inv_slots: Label = null
 var btn_expand_inv: Button = null
+var lbl_sphere_effects: Label = null
 var inventory_max_slots: int = 30
 var inventory_config: Dictionary = {}
 
 # Tooltip Premium
 var info_panel: PanelContainer = null
+var info_target: Control = null
 var lbl_info_title: Label = null
 var lbl_info_type: Label = null
 var lbl_info_stats: Label = null
@@ -54,24 +62,33 @@ func _ready():
 	overlay.modulate.a = 0.0
 	control_root.visible = false
 	
+	# 2b. v761.0: Marco exterior táctico (misma estética que el Inventario F1)
+	frame = Control.new()
+	frame.name = "TacticalFrame"
+	frame.set_script(VaultTacticalFrameScript)
+	frame.position = Vector2(-444, -292)
+	frame.size = Vector2(889, 584)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	control_root.add_child(frame)
+	
 	# 3. Diseñar panel de doble panel (HBoxContainer)
 	var hbox = HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 25)
-	hbox.custom_minimum_size = Vector2(865, 480)
-	hbox.position = Vector2(-432, -240) # Centrar en pantalla
+	hbox.custom_minimum_size = Vector2(865, 560)
+	hbox.position = Vector2(-432, -280) # Centrar en pantalla
 	control_root.add_child(hbox)
 	
-	# A) PANEL IZQUIERDO: EL BAÚL DE SEGURIDAD
+	# A) PANEL IZQUIERDO: EL BAÚL DE SEGURIDAD (paleta obsidiana/cian = Inventario F1)
 	var panel_vault = PanelContainer.new()
-	panel_vault.custom_minimum_size = Vector2(460, 480)
+	panel_vault.custom_minimum_size = Vector2(460, 560)
 	
 	var sb_vault = StyleBoxFlat.new()
-	sb_vault.bg_color = Color(0.02, 0.02, 0.05, 0.98)
-	sb_vault.border_width_top = 3
+	sb_vault.bg_color = Color(0.012, 0.022, 0.035, 0.97)
+	sb_vault.border_width_top = 2
 	sb_vault.border_width_bottom = 2
 	sb_vault.border_width_left = 2
 	sb_vault.border_width_right = 2
-	sb_vault.border_color = Color(1.0, 0.75, 0.0, 0.8) # Borde dorado neón
+	sb_vault.border_color = Color(0.0, 0.82, 0.96, 0.7) # Borde cian neón (paridad F1)
 	sb_vault.corner_radius_top_left = 8
 	sb_vault.corner_radius_top_right = 8
 	sb_vault.corner_radius_bottom_left = 8
@@ -96,8 +113,8 @@ func _ready():
 	var lbl_vault_title = Label.new()
 	lbl_vault_title.text = "BAÚL DE SEGURIDAD PERSONAL"
 	lbl_vault_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl_vault_title.add_theme_font_size_override("font_size", 14)
-	lbl_vault_title.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0)) # Dorado
+	lbl_vault_title.add_theme_font_size_override("font_size", 13)
+	lbl_vault_title.add_theme_color_override("font_color", Color(0.0, 0.9, 1.0)) # Cian (paridad Inventario F1)
 	vbox_vault.add_child(lbl_vault_title)
 	
 	# TabBar para pestañas
@@ -108,7 +125,7 @@ func _ready():
 	
 	# Scroll para el Grid de Slots
 	var scroll_vault = ScrollContainer.new()
-	scroll_vault.custom_minimum_size = Vector2(0, 320)
+	scroll_vault.custom_minimum_size = Vector2(0, 300)
 	scroll_vault.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vbox_vault.add_child(scroll_vault)
 	
@@ -139,33 +156,33 @@ func _ready():
 	btn_unlock.add_theme_font_size_override("font_size", 10)
 	
 	var btn_unlock_style = StyleBoxFlat.new()
-	btn_unlock_style.bg_color = Color(0.2, 0.15, 0.0, 0.5)
+	btn_unlock_style.bg_color = Color(0.0, 0.15, 0.22, 0.5)
 	btn_unlock_style.border_width_left = 1
 	btn_unlock_style.border_width_top = 1
 	btn_unlock_style.border_width_right = 1
 	btn_unlock_style.border_width_bottom = 1
-	btn_unlock_style.border_color = Color(1.0, 0.8, 0.0)
+	btn_unlock_style.border_color = Color(0.0, 0.8, 1.0) # Cian (paridad Inventario F1)
 	btn_unlock_style.set_corner_radius_all(4)
 	btn_unlock.add_theme_stylebox_override("normal", btn_unlock_style)
 	
 	var btn_unlock_hover = btn_unlock_style.duplicate()
-	btn_unlock_hover.bg_color = Color(0.35, 0.25, 0.0, 0.7)
+	btn_unlock_hover.bg_color = Color(0.0, 0.25, 0.35, 0.7)
 	btn_unlock.add_theme_stylebox_override("hover", btn_unlock_hover)
 	
 	btn_unlock.pressed.connect(_on_unlock_pressed)
 	hbox_vault_footer.add_child(btn_unlock)
 	
-	# B) PANEL DERECHO: INVENTARIO DEL PILOTO
+	# B) PANEL DERECHO: INVENTARIO DEL PILOTO (misma paleta que el izquierdo / F1)
 	var panel_inv = PanelContainer.new()
-	panel_inv.custom_minimum_size = Vector2(380, 480)
+	panel_inv.custom_minimum_size = Vector2(380, 560)
 	
 	var sb_inv = StyleBoxFlat.new()
-	sb_inv.bg_color = Color(0.01, 0.02, 0.04, 0.98)
-	sb_inv.border_width_top = 3
+	sb_inv.bg_color = Color(0.012, 0.022, 0.035, 0.97)
+	sb_inv.border_width_top = 2
 	sb_inv.border_width_bottom = 2
 	sb_inv.border_width_left = 2
 	sb_inv.border_width_right = 2
-	sb_inv.border_color = Color(0.0, 0.8, 1.0, 0.8) # Borde cian neón
+	sb_inv.border_color = Color(0.0, 0.82, 0.96, 0.85) # Borde cian neón (paridad F1)
 	sb_inv.corner_radius_top_left = 8
 	sb_inv.corner_radius_top_right = 8
 	sb_inv.corner_radius_bottom_left = 8
@@ -190,7 +207,7 @@ func _ready():
 	var lbl_inv_title = Label.new()
 	lbl_inv_title.text = "INVENTARIO DEL PILOTO"
 	lbl_inv_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl_inv_title.add_theme_font_size_override("font_size", 14)
+	lbl_inv_title.add_theme_font_size_override("font_size", 13)
 	lbl_inv_title.add_theme_color_override("font_color", Color(0.0, 0.9, 1.0))
 	vbox_inv.add_child(lbl_inv_title)
 	
@@ -219,7 +236,7 @@ func _ready():
 	
 	# Scroll para lista de ítems de inventario
 	var scroll_inv = ScrollContainer.new()
-	scroll_inv.custom_minimum_size = Vector2(0, 320)
+	scroll_inv.custom_minimum_size = Vector2(0, 260)
 	scroll_inv.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vbox_inv.add_child(scroll_inv)
 	
@@ -265,6 +282,23 @@ func _ready():
 	btn_expand_inv.pressed.connect(_on_expand_inv_pressed)
 	hbox_slots_inv.add_child(btn_expand_inv)
 	
+	# v761.0: Sección de efectos que ofrecen las esferas instaladas (nuevo)
+	var sph_sep = HSeparator.new()
+	vbox_inv.add_child(sph_sep)
+	
+	var sph_title = Label.new()
+	sph_title.text = "🔮 EFECTOS DE ESFERAS"
+	sph_title.add_theme_font_size_override("font_size", 10)
+	sph_title.add_theme_color_override("font_color", Color(0.85, 0.45, 1.0))
+	vbox_inv.add_child(sph_title)
+	
+	lbl_sphere_effects = Label.new()
+	lbl_sphere_effects.text = ItemInfoHelper.sphere_summary_text()
+	lbl_sphere_effects.add_theme_font_size_override("font_size", 9)
+	lbl_sphere_effects.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl_sphere_effects.add_theme_color_override("font_color", Color(0.75, 0.9, 1.0, 0.9))
+	vbox_inv.add_child(lbl_sphere_effects)
+	
 	# Botón de Cerrar general
 	var btn_close = Button.new()
 	btn_close.text = "CERRAR BAÚL"
@@ -301,6 +335,7 @@ func _ready():
 	lbl_info_title = Label.new()
 	lbl_info_title.add_theme_font_size_override("font_size", 11)
 	lbl_info_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl_info_title.custom_minimum_size.x = 160
 	lbl_info_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info_vbox.add_child(lbl_info_title)
 	
@@ -318,6 +353,7 @@ func _ready():
 	lbl_info_stats.add_theme_font_size_override("font_size", 9)
 	lbl_info_stats.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	lbl_info_stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl_info_stats.custom_minimum_size.x = 160
 	lbl_info_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info_vbox.add_child(lbl_info_stats)
 
@@ -328,17 +364,37 @@ func _input(event):
 			close_vault()
 			get_viewport().set_input_as_handled()
 		elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+			# Si hay tooltip abierto, solo cerrarlo (no el Baúl)
+			if is_instance_valid(info_panel) and info_panel.visible:
+				_hide_info_panel()
+				get_viewport().set_input_as_handled()
+				return
 			close_vault()
 			get_viewport().set_input_as_handled()
 		# Click fuera del modal para cerrar
 		elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			# Ocultar panel de información en cualquier click de mouse
+			var _tip_rect = Rect2()
+			var _tip_visible = is_instance_valid(info_panel) and info_panel.visible
+			if _tip_visible:
+				_tip_rect = info_panel.get_global_rect()
 			_hide_info_panel()
-			
+
+			# v761.0: Hit-test de la X dibujada del marco táctico (paridad Inventario F1)
+			if is_instance_valid(frame):
+				var x_rect = Rect2(frame.global_position + Vector2(frame.size.x - 55, 6), Vector2(44, 24))
+				if x_rect.has_point(event.position):
+					close_vault()
+					get_viewport().set_input_as_handled()
+					return
+
 			var root_rect = Rect2(control_root.global_position + control_root.get_child(0).position, control_root.get_child(0).size)
 			if not root_rect.has_point(event.position):
 				close_vault()
 				get_viewport().set_input_as_handled()
+			elif _tip_visible and not _tip_rect.has_point(event.position):
+				# Click afuera del tooltip pero dentro del Baúl: ya se ocultó arriba
+				pass
 
 func _on_vault_data_received(data: Dictionary):
 	vault_items = data.get("items", [])
@@ -373,6 +429,7 @@ func _on_vault_updated_received(data: Dictionary):
 	
 	_refresh_vault()
 	_refresh_inventory()
+	_update_sphere_effects()
 
 func _on_inventory_received(data: Dictionary):
 	var gd = data
@@ -413,6 +470,8 @@ func _on_inventory_received(data: Dictionary):
 			lbl_hubs.text = "Hubs: " + _format_number(player_hubs)
 		if lbl_ohcu:
 			lbl_ohcu.text = "Ohcu: " + _format_number(player_ohcu)
+		_update_sphere_effects()
+		_update_frame_badges()
 
 func open_vault():
 	if not is_open:
@@ -440,10 +499,22 @@ func open_vault():
 		lbl_hubs.text = "Hubs: " + _format_number(player_hubs)
 	if lbl_ohcu:
 		lbl_ohcu.text = "Ohcu: " + _format_number(player_ohcu)
+	_update_frame_badges()
 		
 	_refresh_vault()
 	_refresh_inventory()
 	_update_unlock_tab_button()
+	_update_sphere_effects()
+
+func _update_frame_badges():
+	if is_instance_valid(frame) and "hubs_str" in frame:
+		frame.hubs_str = _format_number(player_hubs)
+		frame.ohcu_str = _format_number(player_ohcu)
+		frame.queue_redraw()
+
+func _update_sphere_effects():
+	if is_instance_valid(lbl_sphere_effects):
+		lbl_sphere_effects.text = ItemInfoHelper.sphere_summary_text()
 
 func close_vault():
 	_hide_info_panel()
@@ -709,35 +780,19 @@ func _show_info_panel(item_data: Dictionary, target_node: Control):
 	
 	lbl_info_type.text = _get_rarity_label(rarity) + " | " + str(item_data.get("type", "MÓDULO")).to_upper()
 	
-	# Estadísticas
-	var base_val = int(item_data.get("base", 0))
-	var type_str = str(item_data.get("type", "")).to_lower()
-	var stat_text = ""
-	var search_id = str(item_data.get("id", "")).to_lower()
-	
-	if type_str == "consumible" or type_str == "sphere" or search_id.begins_with("ship_"):
-		# v720.0: Naves y esferas fabricadas: objetos usables/comerciables, sin stats de módulo
-		var grant_ship = int(item_data.get("grantShip", 0))
-		if grant_ship > 0:
-			stat_text = "NAVE DESBLOQUEABLE — USÁLA EN TU BODEGA"
-		else:
-			stat_text = "ESFERA DE PODER — COMERCIABLE"
-	elif type_str == "laser" or type_str == "weapon" or search_id.begins_with("las"):
-		stat_text = "DAÑO: +" + str(base_val)
-	elif type_str == "shield" or search_id.begins_with("sh"):
-		stat_text = "ESCUDO: +" + str(base_val)
-	elif type_str == "engine" or search_id.begins_with("en"):
-		stat_text = "PROPULSIÓN: +" + str(base_val)
-	else:
-		stat_text = "ESTADÍSTICA BASE: +" + str(base_val)
-		
-	lbl_info_stats.text = stat_text
+	# v761.0: Estadísticas compartidas con el Inventario/Hangar (ItemInfoHelper)
+	lbl_info_stats.text = ItemInfoHelper.format_stats(item_data)
 	
 	# Posicionar al lado del nodo de forma inteligente
+	info_target = target_node
 	info_panel.visible = true
-	# Forzar el cálculo del tamaño del panel para que posicione bien
+	# Bugfix: si el panel aún no tiene ancho, AUTOWRAP calcula altura ~1char/línea y explota
+	if info_panel.size.x < 50.0:
+		info_panel.size = Vector2(200, 80)
 	info_panel.reset_size()
-	
+	if info_panel.size.y > 420.0:
+		info_panel.size = Vector2(maxf(info_panel.size.x, 200.0), 420.0)
+
 	var target_pos = target_node.global_position
 	# Posicionar a la derecha del slot
 	var new_pos = target_pos + Vector2(target_node.size.x + 10, -10)
@@ -752,6 +807,11 @@ func _show_info_panel(item_data: Dictionary, target_node: Control):
 func _hide_info_panel():
 	if info_panel:
 		info_panel.visible = false
+	info_target = null
+
+func _process(_delta):
+	if is_instance_valid(info_panel) and info_panel.visible and (info_target == null or not is_instance_valid(info_target)):
+		_hide_info_panel()
 
 func _parse_price(price_data) -> Dictionary:
 	var parsed = { "hubs": 0, "ohcu": 0 }

@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Logger = require('../utils/logger');
 const { handleEnemyDeath } = require('./enemyLogic');
-const { calculateFinalStats } = require('./statCalculator');
+const { calculateFinalStats, applyHealTalentBonus } = require('./statCalculator');
 const { checkAndProcessDeathDrop } = require('./deathDropHelper');
 const SkillManager = require('./skills/SkillManager');
 const altarDefenseManager = require('./altarDefenseManager');
@@ -659,7 +659,7 @@ socket.on('playerFire', (fireData) => {
         } else if (activeAmmo === 'heal') {
             // Curativa: Restaura HP y Escudo al propio jugador en PvE
             const healPct = (ammoConfig.healPctPvE !== undefined ? ammoConfig.healPctPvE : 40) / 100;
-            const healAmount = finalDamage * healPct;
+            const healAmount = applyHealTalentBonus(p, finalDamage * healPct);
 
             const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
             const mapCfg = maps[p.zone] || maps[p.zone.toString()];
@@ -694,7 +694,7 @@ socket.on('playerFire', (fireData) => {
             if (activeAmmo === 'siphon') {
                 // Vampírica (Sifón): cura una porción del daño infligido al atacante
                 const siphonPct = (ammoConfig.siphonPct !== undefined ? ammoConfig.siphonPct : 25) / 100;
-                const siphonAmount = finalDamage * siphonPct;
+                const siphonAmount = applyHealTalentBonus(p, finalDamage * siphonPct);
                 const oldHp = p.hp;
                 const oldShield = p.shield;
                 p.hp = Math.min(p.maxHp, p.hp + siphonAmount);
@@ -1339,7 +1339,7 @@ socket.on('playerFire', (fireData) => {
                     const healVictimPct = (attackerAmmoConfig.healPctVictimPvP !== undefined ? attackerAmmoConfig.healPctVictimPvP : 80) / 100;
                     const healAttackerPct = (attackerAmmoConfig.healPctAttackerPvP !== undefined ? attackerAmmoConfig.healPctAttackerPvP : 30) / 100;
                     const healVictim = dmg * healVictimPct;
-                    const healAttacker = dmg * healAttackerPct;
+                    const healAttacker = applyHealTalentBonus(attacker, dmg * healAttackerPct);
 
                     const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
                     

@@ -591,8 +591,17 @@ func _update_sphere_ui(id: int, ref, slot):
 					var server_skills = {}
 					if NetworkManager and NetworkManager.server_config:
 						server_skills = NetworkManager.server_config.get("skillsData", {})
+					# Claves del server suelen llevar acentos (VÍNCULO VITAL, etc.)
+					var lookup_accented = equipped_name.to_upper().strip_edges()
 					if server_skills.has(lookup_name):
 						icon_path = server_skills[lookup_name].get("icon", "")
+					elif server_skills.has(lookup_accented):
+						icon_path = server_skills[lookup_accented].get("icon", "")
+					else:
+						for sk_key in server_skills:
+							if str(sk_key).to_upper().strip_edges().replace("Ó", "O").replace("É", "E").replace("Í", "I").replace("Á", "A").replace("Ú", "U").replace("Ü", "U") == clean_name:
+								icon_path = server_skills[sk_key].get("icon", "")
+								break
 				
 				if icon_path != "" and ResourceLoader.exists(icon_path):
 					skill_icon_tex = load(icon_path)

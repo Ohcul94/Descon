@@ -73,13 +73,21 @@ func _apply_healing(player):
 	if "current_hp" in player:
 		var mh = player.get("max_hp")
 		if mh == null: mh = 3000.0
+		var heal_mult := 1.0
+		var heal_flat := 0.0
+		var ts = player.get_tree().get_first_node_in_group("talent_system")
+		if is_instance_valid(ts) and ts.has_method("get_bonuses"):
+			var bonuses = ts.get_bonuses()
+			heal_mult += float(bonuses.get("heal_pct", 0.0))
+			heal_flat += float(bonuses.get("heal_pct_flat", 0.0))
+		var boosted := maxf(0.0, power_value * heal_mult + heal_flat)
 		var available = max(0.0, mh - player.current_hp)
-		var actual_heal = min(power_value, available)
-		
-		if actual_heal > 0: 
+		var actual_heal = min(boosted, available)
+
+		if actual_heal > 0:
 			player.current_hp += actual_heal
 			if player.has_method("_update_tags"): player._update_tags()
 			if player.has_method("_emit_stats"): player._emit_stats()
-			
-		if player.has_method("play_skill_vfx"): 
+
+		if player.has_method("play_skill_vfx"):
 			player.play_skill_vfx(skill_name, actual_heal)

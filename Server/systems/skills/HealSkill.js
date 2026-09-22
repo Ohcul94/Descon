@@ -1,5 +1,6 @@
 const BaseSkill = require('./BaseSkill');
 const combatTracker = require('../combatTracker');
+const { applyHealTalentBonus } = require('../statCalculator');
 
 class HealSkill extends BaseSkill {
     constructor(name) {
@@ -21,10 +22,10 @@ class HealSkill extends BaseSkill {
             actual_val = target.shield - oldS;
         } else {
             // HP: AUTO-REPARACIÓN, NANO-REGENERACIÓN
+            let finalPower = applyHealTalentBonus(p, powerValue);
             const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
             const mapCfg = maps[target.zone] || maps[target.zone.toString()];
             const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
-            let finalPower = powerValue;
             if (healPenaltyMech) {
                 if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
                     const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;

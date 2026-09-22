@@ -12,11 +12,10 @@ var default_keys = {
 	"slot_1": KEY_Q, "slot_2": KEY_W, "slot_3": KEY_E, "slot_4": KEY_R,
 	"slot_5": KEY_A, "slot_6": KEY_D, "slot_7": KEY_F,
 	"ui_inventory": KEY_F1, "ui_menu": KEY_ESCAPE, "ui_events": KEY_F2, "ui_housing": KEY_F3, "ui_battlepass": KEY_F4,
-	"ui_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_Z, "ui_stats": KEY_C,
+	"ui_map": KEY_TAB, "ui_party": KEY_P, "ui_pvp_toggle": KEY_Z, "ui_stats": KEY_C,
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
 	"toggle_free_camera": KEY_O, # Atajo para cámara libre 3D
-	"toggle_orbit_mode": KEY_SEMICOLON, # Ñ en teclado español (física); orbit/free mode
 	"chat_toggle": KEY_ENTER, # Atajo para chat
 	"loot_claim": KEY_Y, # Atajo para abrir cofres de botín
 	"stay_still": KEY_S # Atajo para quedarse quieto (detener navegación)
@@ -285,6 +284,9 @@ func load_settings():
 	for action in default_keys:
 		var default_val = default_keys[action]
 		var val = config_file.get_value("keys", action, default_val)
+		# Mapa grande: forzar TAB (los cfg viejos podían tener M u otra tecla)
+		if action == "ui_map":
+			val = KEY_TAB
 		_apply_key_to_inputmap(action, val)
 	
 	if err == OK:
