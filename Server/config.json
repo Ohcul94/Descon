@@ -12690,17 +12690,6 @@
                 "name": "CAPACITOR OHCU"
             },
             {
-                "category": "fender",
-                "desc": "+1% Estabilidad (Vel)",
-                "effects": {
-                    "stability": 0.01
-                },
-                "icon": "🛸",
-                "id": "eng_8",
-                "maxLevel": 5,
-                "name": "ESTABL FLOTANTE"
-            },
-            {
                 "category": "attack",
                 "desc": "+3% Daño Láser",
                 "effects": {
@@ -12743,17 +12732,6 @@
                 "id": "sci_1",
                 "maxLevel": 2,
                 "name": "MOTORES FUSIÓN"
-            },
-            {
-                "category": "utility",
-                "desc": "+10% Rango Minimapa",
-                "effects": {
-                    "minimap_range": 0.1
-                },
-                "icon": "📡",
-                "id": "sci_2",
-                "maxLevel": 5,
-                "name": "ESCÁNER TÁCTICO"
             },
             {
                 "category": "utility",

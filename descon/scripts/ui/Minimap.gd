@@ -236,18 +236,31 @@ func _update_info_label():
 	# Centrar dinámicamente justo encima del minimapa (soporta top_level = true)
 	info_label.reset_size()
 	
+	# v270: Aplicar escala del padre a label y botón (son top_level, no heredan escala)
+	var _par_label = get_parent()
+	var _p_sx = 1.0
+	var _p_sy = 1.0
+	if _par_label and _par_label is Control:
+		_p_sx = _par_label.scale.x
+		_p_sy = _par_label.scale.y
+	info_label.scale = Vector2(_p_sx, _p_sy)
+	var _vis_w = size.x * _p_sx
+	var _y_offset = -24.0 * _p_sy
+	
 	if is_instance_valid(btn_world_map) and btn_world_map.visible:
 		btn_world_map.reset_size()
-		var total_top_w = info_label.size.x + btn_world_map.size.x + 4.0
-		var start_x = global_position.x + (size.x - total_top_w) / 2.0
+		btn_world_map.scale = Vector2(_p_sx, _p_sy)
+		var total_top_w = (info_label.size.x + btn_world_map.size.x + 4.0) * _p_sx
+		var start_x = global_position.x + (_vis_w - total_top_w) / 2.0
 		info_label.global_position.x = start_x
-		info_label.global_position.y = global_position.y - 24.0
+		info_label.global_position.y = global_position.y + _y_offset
 		
-		btn_world_map.global_position.x = start_x + info_label.size.x + 4.0
-		btn_world_map.global_position.y = global_position.y - 24.0
+		btn_world_map.global_position.x = start_x + info_label.size.x * _p_sx + 4.0 * _p_sx
+		btn_world_map.global_position.y = global_position.y + _y_offset
 	else:
-		info_label.global_position.x = global_position.x + (size.x - info_label.size.x) / 2.0
-		info_label.global_position.y = global_position.y - 24.0
+		var total_w = info_label.size.x * _p_sx
+		info_label.global_position.x = global_position.x + (_vis_w - total_w) / 2.0
+		info_label.global_position.y = global_position.y + _y_offset
 
 func _draw():
 	var player = get_tree().get_first_node_in_group("player")
@@ -277,8 +290,14 @@ func _draw():
 	
 	# Base scale para encajar el mapa completo en el visor cuadrado del minimapa
 	var base_scale: float = min(r_size.x / worldW, r_size.y / worldH)
+	# v270: Compensar escala del RadarWindow en editor de Layout
+	# Escalar el dibujado del mundo para que el contenido NO se achique al reducir el marco
+	var _world_scale_comp = 1.0
+	var _par = get_parent()
+	if _par and _par is Control:
+		_world_scale_comp = 1.0 / maxf(_par.scale.x, 0.01)
 	var is_rotate_mode = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
-	var effective_scale: float = base_scale * MINIMAP_ZOOM
+	var effective_scale: float = base_scale * MINIMAP_ZOOM * _world_scale_comp
 	var scale_x: float = effective_scale
 	var scale_y: float = effective_scale
 	var _map_scale: float = scale_x

@@ -280,6 +280,13 @@ func _input(event: InputEvent):
 		if (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT) or event is InputEventScreenTouch:
 			if _is_pos_over_priority_ui(event.position, true): return
 			
+			# v270: Prioridad absoluta al PropertyPanel - si el clic cae sobre él, no interceptar
+			var edit_ui_pp = get_node_or_null("EditLayoutUI")
+			if edit_ui_pp:
+				var pp_check = edit_ui_pp.find_child("PropertyPanel", true, false)
+				if pp_check and pp_check.visible and pp_check.get_global_rect().has_point(event.position):
+					return # Permitir que Godot procese el clic en sliders/inputs del panel
+			
 			if event.pressed:
 				var clicked_node = null
 				var handle = get_node_or_null("SkillsMasterHandle")
@@ -324,6 +331,8 @@ func _input(event: InputEvent):
 						var pp = edit_ui.find_child("PropertyPanel", true, false)
 						if pp:
 							pp.visible = true
+							# v270: Traer PropertyPanel al frente para que reciba input por encima de DragOverlays
+							edit_ui.move_child(pp, edit_ui.get_child_count() - 1)
 							var t_name = pp.find_child("TargetName", true, false)
 							if t_name: t_name.text = clicked_node.name.to_upper()
 							
@@ -1670,13 +1679,12 @@ func _make_node_draggable(node: Control, _hud_id: String):
 			
 			# Añadir etiqueta descriptiva pequeña en el centro (solo si no es slot de Habilidad/Esfera)
 			var is_slot = "Slot" in _hud_id or _hud_id in ["Util1", "Util2", "Def", "Cur"]
-			if not is_slot:
+			if not is_slot and _hud_id != "RadarWindow":
 				var lbl = Label.new()
 				lbl.name = "OverlayLabel"
 				var clean_name = _hud_id
 				if clean_name == "ChatUI": clean_name = "CHAT"
 				elif clean_name == "CenterStats": clean_name = "ESTADÍSTICAS"
-				elif clean_name == "RadarWindow": clean_name = "MINIMAPA"
 				elif clean_name == "PartyHUD": clean_name = "EQUIPO"
 				elif clean_name == "ControlBar": clean_name = "CONTROLES"
 				elif clean_name == "StatusEffects": clean_name = "ESTADOS ACTÍVOS"
