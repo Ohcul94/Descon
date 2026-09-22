@@ -53,61 +53,73 @@ func _input(event):
 			get_viewport().set_input_as_handled()
 			return
 
-	if event is InputEventMouseButton and event.pressed:
+	# PC: clic derecho fija rumbo. Móvil: toque (ScreenTouch) fija rumbo.
+	var is_nav_press = false
+	var nav_view_pos = Vector2.ZERO # coords de viewport (para menu_rect)
+	var nav_global_pos = Vector2.ZERO # coords globales del canvas (para get_global_rect)
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		is_nav_press = true
+		nav_view_pos = event.position
+		nav_global_pos = get_global_mouse_position()
+	elif event is InputEventScreenTouch and event.pressed:
+		is_nav_press = true
+		nav_view_pos = event.position
+		nav_global_pos = get_canvas_transform().affine_inverse() * event.position
+
+	if is_nav_press:
 		# v269.150: Bloqueo de navegación durante edición de HUD
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.get("is_editing_layout"): return
 
-		if event.button_index == MOUSE_BUTTON_RIGHT:
-			# v244.85: Bloqueo inteligente si hay menús superpuestos (F1 / F2)
-			var screen_size = get_viewport().get_visible_rect().size
-			var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
-			var r_pos = (screen_size - r_size) / 2.0
-			var menu_rect = Rect2(r_pos, r_size)
-			
-			if menu_rect.has_point(event.position):
-				var inv = get_tree().get_first_node_in_group("inventory_ui")
-				var admin = get_tree().get_first_node_in_group("admin_panel_ui")
-				if (inv and inv.visible) or (admin and admin.visible):
-					return # Ignorar clic, cae en el área de un menú abierto
+		# v244.85: Bloqueo inteligente si hay menús superpuestos (F1 / F2)
+		var screen_size = get_viewport().get_visible_rect().size
+		var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
+		var r_pos = (screen_size - r_size) / 2.0
+		var menu_rect = Rect2(r_pos, r_size)
+		
+		if menu_rect.has_point(nav_view_pos):
+			var inv = get_tree().get_first_node_in_group("inventory_ui")
+			var admin = get_tree().get_first_node_in_group("admin_panel_ui")
+			if (inv and inv.visible) or (admin and admin.visible):
+				return # Ignorar clic, cae en el área de un menú abierto
 
-			# v269.160: Convertir con la transformada global real (soporta escala dinámica del RadarWindow en HUD editor)
-			var global_m_pos = get_global_mouse_position()
-			if get_global_rect().has_point(global_m_pos):
-				var g_tr = get_global_transform()
-				var local_m_pos = g_tr.affine_inverse() * global_m_pos
-				var target_world_pos = Vector2.ZERO
-				var is_rotate = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
-				var p = get_tree().get_first_node_in_group("player")
-				
-				var world_rect = get_current_world_rect()
-				var worldW = world_rect.size.x
-				var worldH = world_rect.size.y
-				
-				var base_scale = min(size.x / worldW, size.y / worldH)
-				var effective_scale = base_scale * MINIMAP_ZOOM
-				var center_radar = size / 2.0
-				var delta_mouse = local_m_pos - center_radar
-				
-				if is_rotate and is_instance_valid(p):
-					var derotated = delta_mouse.rotated(PI/2 + p.rotation)
-					target_world_pos = p.global_position + (derotated / max(effective_scale, 0.001))
-				elif is_instance_valid(p):
-					target_world_pos = p.global_position + (delta_mouse / max(effective_scale, 0.001))
-				else:
-					target_world_pos = world_rect.position + (local_m_pos / max(effective_scale, 0.001))
-				
-				target_world_pos.x = clamp(target_world_pos.x, world_rect.position.x, world_rect.end.x)
-				target_world_pos.y = clamp(target_world_pos.y, world_rect.position.y, world_rect.end.y)
-				
-				if is_instance_valid(p) and p.has_method("set_autopilot"):
-					if p.get_meta("spawn_locked", false):
-						print("[NAV] BLOQUEADO: No puedes fijar rumbo mientras esté activa la barrera de spawn.")
-						get_viewport().set_input_as_handled()
-						return
-					p.set_autopilot(target_world_pos)
-					print("[NAV] DESTINO FIJADO: ", target_world_pos)
-					get_viewport().set_input_as_handled() # Consumir evento
+		# v269.160: Convertir con la transformada global real (soporta escala dinámica del RadarWindow en HUD editor)
+		var global_m_pos = nav_global_pos
+		if get_global_rect().has_point(global_m_pos):
+			var g_tr = get_global_transform()
+			var local_m_pos = g_tr.affine_inverse() * global_m_pos
+			var target_world_pos = Vector2.ZERO
+			var is_rotate = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
+			var p = get_tree().get_first_node_in_group("player")
+			
+			var world_rect = get_current_world_rect()
+			var worldW = world_rect.size.x
+			var worldH = world_rect.size.y
+			
+			var base_scale = min(size.x / worldW, size.y / worldH)
+			var effective_scale = base_scale * MINIMAP_ZOOM
+			var center_radar = size / 2.0
+			var delta_mouse = local_m_pos - center_radar
+			
+			if is_rotate and is_instance_valid(p):
+				var derotated = delta_mouse.rotated(PI/2 + p.rotation)
+				target_world_pos = p.global_position + (derotated / max(effective_scale, 0.001))
+			elif is_instance_valid(p):
+				target_world_pos = p.global_position + (delta_mouse / max(effective_scale, 0.001))
+			else:
+				target_world_pos = world_rect.position + (local_m_pos / max(effective_scale, 0.001))
+			
+			target_world_pos.x = clamp(target_world_pos.x, world_rect.position.x, world_rect.end.x)
+			target_world_pos.y = clamp(target_world_pos.y, world_rect.position.y, world_rect.end.y)
+			
+			if is_instance_valid(p) and p.has_method("set_autopilot"):
+				if p.get_meta("spawn_locked", false):
+					print("[NAV] BLOQUEADO: No puedes fijar rumbo mientras esté activa la barrera de spawn.")
+					get_viewport().set_input_as_handled()
+					return
+				p.set_autopilot(target_world_pos)
+				print("[NAV] DESTINO FIJADO: ", target_world_pos)
+				get_viewport().set_input_as_handled() # Consumir evento
 
 func _ready():
 	WorldMapDialog.terrain_cache_by_zone.clear()

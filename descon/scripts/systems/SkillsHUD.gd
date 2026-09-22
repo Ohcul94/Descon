@@ -972,9 +972,10 @@ func _update_aim_drag_from_vp(sc, vp_pos: Vector2):
 	var world_diff = diff_global / zoom_val
 	
 	var max_range = sc.current_skill.get("range", 500.0)
-	var sensitivity = SettingsManager.mobile_aim_sensitivity
+	var sensitivity = SettingsManager.mobile_aim_sensitivity if SettingsManager else 1.0
 	
-	if diff_global.length() > 5:
+	# Umbral bajo: un micro-drag en táctil ya debe apuntar (antes 5px filtraba toques reales)
+	if diff_global.length() > 2.0:
 		var screen_dir = diff_global.normalized()
 		var map_node = get_tree().get_first_node_in_group("map")
 		var oriented_dir = screen_dir
@@ -984,7 +985,7 @@ func _update_aim_drag_from_vp(sc, vp_pos: Vector2):
 		if max_range <= 0:
 			sc.external_aim_vector = oriented_dir * world_diff.length()
 		else:
-			var px_for_max = 80.0 / sensitivity
+			var px_for_max = 80.0 / maxf(sensitivity, 0.01)
 			var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
 			sc.external_aim_vector = oriented_dir * mapped_range
 	else:
@@ -1001,28 +1002,30 @@ func _input(event: InputEvent):
 	
 	# TOUCH DRAG — sigue el dedo aunque salga del botón
 	if event is InputEventScreenDrag:
-		if event.index != _aim_touch_index: return
+		if _aim_touch_index != -1 and event.index != _aim_touch_index:
+			return
 		if is_mobile and sc.is_aiming:
 			_update_aim_drag_from_vp(sc, event.position)
 			get_viewport().set_input_as_handled()
 		return
 	
-	# TOUCH RELEASE
+	# TOUCH RELEASE — solo si es el dedo del aim (evita que un segundo toque corte el cast)
 	if event is InputEventScreenTouch and not event.pressed:
-		if event.index != _aim_touch_index: return
+		if _aim_touch_index != -1 and event.index != _aim_touch_index:
+			return
 		_finish_aim_drag(sc, is_mobile)
 		get_viewport().set_input_as_handled()
 		return
 	
-	# Emulación mouse (F10 / testing móvil en PC)
-	if event is InputEventMouseMotion and _aim_touch_index == 0:
-		if is_mobile and sc.is_aiming and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	# Emulación mouse (F10 / testing móvil en PC) o Android que solo reporta MouseMotion
+	if event is InputEventMouseMotion:
+		if is_mobile and sc.is_aiming and (_aim_touch_index == 0 or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
 			_update_aim_drag_from_vp(sc, event.position)
 			get_viewport().set_input_as_handled()
 		return
 	
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		if _aim_touch_index != 0: return
+		if _aim_touch_index != 0 and _aim_touch_index != -1: return
 		_finish_aim_drag(sc, is_mobile)
 		get_viewport().set_input_as_handled()
 		return

@@ -154,7 +154,7 @@ func _build_ui():
 	_add_legend_item(footer_bar, "✨ [A] Altares", Color(0.0, 1.0, 0.5))
 	_add_legend_item(footer_bar, "🟡 [B] Baúles", Color(1.0, 0.85, 0.0))
 	_add_legend_item(footer_bar, "🔴 [N] Nexos / Pilares", Color(1.0, 0.3, 0.3))
-	_add_legend_item(footer_bar, "🖱️ Clic Derecho: Fijar Rumbo", Color(0.7, 0.9, 1.0, 0.7))
+	_add_legend_item(footer_bar, "🖱️ Clic Derecho / Toque: Fijar Rumbo", Color(0.7, 0.9, 1.0, 0.7))
 
 func _add_legend_item(parent: Container, label_text: String, col: Color):
 	var lbl = Label.new()
@@ -229,28 +229,38 @@ func get_zone_dimensions(zone_id: String) -> Vector2:
 	return get_zone_rect(zone_id, get_tree()).size
 
 func _on_canvas_gui_input(event: InputEvent):
+	# PC: clic derecho. Móvil: toque nativo (InputEventScreenTouch).
+	var is_nav = false
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-		var player = get_tree().get_first_node_in_group("player")
-		if not is_instance_valid(player): return
-		var p_zone = str(player.current_zone) if "current_zone" in player else "1"
-		if p_zone != target_zone_id: return # Solo fijar rumbo si es el mapa en que se encuentra el jugador
-		
-		var world_rect = get_zone_rect(target_zone_id, get_tree())
-		var worldW = world_rect.size.x
-		var worldH = world_rect.size.y
-		var canvas_size = map_canvas.size
-		var scale_val = min(canvas_size.x / worldW, canvas_size.y / worldH)
-		var map_draw_size = Vector2(worldW * scale_val, worldH * scale_val)
-		var map_draw_offset = (canvas_size - map_draw_size) / 2.0
-		
-		var m_pos = event.position - map_draw_offset
-		if m_pos.x >= 0 and m_pos.x <= map_draw_size.x and m_pos.y >= 0 and m_pos.y <= map_draw_size.y:
-			var target_world_pos = world_rect.position + Vector2(m_pos.x / scale_val, m_pos.y / scale_val)
-			target_world_pos.x = clamp(target_world_pos.x, world_rect.position.x, world_rect.end.x)
-			target_world_pos.y = clamp(target_world_pos.y, world_rect.position.y, world_rect.end.y)
-			if player.has_method("set_autopilot"):
-				player.set_autopilot(target_world_pos)
-				print("[WorldMap] Rumbo fijado desde mapa completo a: ", target_world_pos)
+		is_nav = true
+	elif event is InputEventScreenTouch and event.pressed:
+		is_nav = true
+
+	if not is_nav:
+		return
+
+	var player = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(player): return
+	var p_zone = str(player.current_zone) if "current_zone" in player else "1"
+	if p_zone != target_zone_id: return # Solo fijar rumbo si es el mapa en que se encuentra el jugador
+	
+	var world_rect = get_zone_rect(target_zone_id, get_tree())
+	var worldW = world_rect.size.x
+	var worldH = world_rect.size.y
+	var canvas_size = map_canvas.size
+	var scale_val = min(canvas_size.x / worldW, canvas_size.y / worldH)
+	var map_draw_size = Vector2(worldW * scale_val, worldH * scale_val)
+	var map_draw_offset = (canvas_size - map_draw_size) / 2.0
+	
+	var m_pos = event.position - map_draw_offset
+	if m_pos.x >= 0 and m_pos.x <= map_draw_size.x and m_pos.y >= 0 and m_pos.y <= map_draw_size.y:
+		var target_world_pos = world_rect.position + Vector2(m_pos.x / scale_val, m_pos.y / scale_val)
+		target_world_pos.x = clamp(target_world_pos.x, world_rect.position.x, world_rect.end.x)
+		target_world_pos.y = clamp(target_world_pos.y, world_rect.position.y, world_rect.end.y)
+		if player.has_method("set_autopilot"):
+			player.set_autopilot(target_world_pos)
+			print("[WorldMap] Rumbo fijado desde mapa completo a: ", target_world_pos)
+			get_viewport().set_input_as_handled()
 
 static var terrain_cache_by_zone: Dictionary = {}
 static var terrain_image_by_zone: Dictionary = {}

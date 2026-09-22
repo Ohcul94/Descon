@@ -312,15 +312,17 @@ func execute_skill():
 				elif s_name == "VÍNCULO VITAL":
 					payload.target = _find_closest_ally_in_range(max_range)
 		else:
-			# Tap simple en botón
+			# Tap simple en botón (sin drag de apuntado)
 			var fwd = Vector2.RIGHT.rotated(get_parent().rotation)
 			payload.angle = get_parent().rotation
 			payload.pos = global_position + fwd * min(max_range, 100.0)
 			
 			if s_type == SkillType.AREA:
-				# Habilidades de Área (Baliza de Curación, Resurrección): se plantan en el suelo, NUNCA target self
+				# Áreas (Baliza, Resurrección): sin drag, colocar AL ALCANCE max en la dirección de la nave,
+				# no clavada en los pies del jugador (bug móvil: siempre caía en self).
 				payload.target = null
-				payload.pos = global_position + fwd * 80.0
+				var place_dist = max_range if max_range > 0.0 else 80.0
+				payload.pos = global_position + fwd * place_dist
 			elif s_type == SkillType.POINT_CLICK:
 				# Habilidades Point & Click (Vínculo Vital):
 				if is_instance_valid(selected_target) and _is_target_valid_for_skill(selected_target):
