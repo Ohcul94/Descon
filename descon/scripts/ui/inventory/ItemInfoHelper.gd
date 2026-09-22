@@ -79,12 +79,12 @@ static func _append_mod(parts: Array, label: String, raw, mod_type) -> void:
 	if absf(v) < 0.0001: return
 	var t = str(mod_type)
 	if t == "flat":
-		var sign = "+" if v > 0 else "-"
-		parts.append(label + ": " + sign + str(int(round(absf(v)))) + " (fijo)")
+		var sign_ch = "+" if v > 0 else "-"
+		parts.append(label + ": " + sign_ch + str(int(round(absf(v)))) + " (fijo)")
 	else:
-		var sign2 = "+" if v > 0 else "-"
+		var sign_ch = "+" if v > 0 else "-"
 		var pts = v * 100.0 if absf(v) < 1.0 else v
-		parts.append(label + ": " + sign2 + str(int(round(absf(pts)))) + "%")
+		parts.append(label + ": " + sign_ch + str(int(round(absf(pts)))) + "%")
 
 # ── Esferas ──────────────────────────────────────────────────────────────────
 

@@ -12,6 +12,19 @@ var _cooldown_fill_shader: Shader = null
 # v301.4: Cache de texturas de íconos para no recargar desde disco en cada frame
 var _skill_icon_cache: Dictionary = {}
 
+# Iconos de munición (estilo skill icons) — 1 por tipo, compartido entre tiers
+var _ammo_icon_cache: Dictionary = {}
+var _ammo_icon_paths: Dictionary = {
+	"laser": "res://assets/Municiones/Iconos/laser/Laser.png",
+	"missile": "res://assets/Municiones/Iconos/missile/Missile.png",
+	"mine": "res://assets/Municiones/Iconos/mine/Mine.png",
+	"siphon": "res://assets/Municiones/Iconos/siphon/Siphon.png",
+	"emp": "res://assets/Municiones/Iconos/emp/Emp.png",
+	"electron": "res://assets/Municiones/Iconos/electron/Electron.png",
+	"melee": "res://assets/Municiones/Iconos/melee/Melee.png",
+	"heal": "res://assets/Municiones/Iconos/heal/Heal.png",
+}
+
 var _skill_icon_paths: Dictionary = {
 	"BLINK": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
 	"TURBO-IMPULSO": "res://assets/Skills/Iconos/Utilidad/Turbo Impulso/Turbo Impulso.png",
@@ -198,13 +211,44 @@ func _create_ammo_menu():
 			sb.border_color = Color(1, 1, 1, 0.1)
 			slot_p.add_theme_stylebox_override("panel", sb)
 			
+			# Icono de munición estilo skill (fondo del tier)
+			var ammo_tex = _get_ammo_icon(t)
+			if ammo_tex:
+				var tier_icon = TextureRect.new()
+				tier_icon.name = "AmmoTierIcon"
+				tier_icon.texture = ammo_tex
+				tier_icon.layout_mode = 1
+				tier_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				tier_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				tier_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				slot_p.add_child(tier_icon)
+				# Centrado simétrico dentro del botón del tier
+				tier_icon.anchor_left = 0.0
+				tier_icon.anchor_top = 0.0
+				tier_icon.anchor_right = 1.0
+				tier_icon.anchor_bottom = 1.0
+				tier_icon.offset_left = 2
+				tier_icon.offset_top = 2
+				tier_icon.offset_right = -2
+				tier_icon.offset_bottom = -2
+				# Fondo tenue para que el label Tn siga siendo legible
+				var dim = ColorRect.new()
+				dim.name = "TierLabelDim"
+				dim.color = Color(0, 0, 0, 0.35)
+				dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				slot_p.add_child(dim)
+				dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
 			var lbl = Label.new()
+			lbl.name = "TierLabel"
 			lbl.text = "T" + str(i+1)
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			lbl.add_theme_font_size_override("font_size", 12)
+			lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+			lbl.add_theme_constant_override("outline_size", 4)
 			slot_p.add_child(lbl)
-			
+
 			slot_p.gui_input.connect(_on_ammo_slot_clicked.bind(t, i))
 			menu.add_child(slot_p)
 		
@@ -313,9 +357,17 @@ func _sync_hud_keys():
 			slot.move_child(lbl, slot.get_child_count() - 1)
 			lbl.visible = true
 		
+		# ¿Hay icono de munición visible? Si sí, el label de tipo "Label" queda oculto
+		var ammo_icon = slot.get_node_or_null("AmmoIconRect") as TextureRect
+		var has_ammo_icon = is_instance_valid(ammo_icon) and ammo_icon.visible and ammo_icon.texture != null
+
 		for child in slot.get_children():
 			if child is Label and child.name != "BindingLabel" and child.name != "CD":
 				if child.name == "Key":
+					child.visible = false
+					continue
+				# El label central de tipo de munición se oculta si hay icono
+				if child.name == "Label" and has_ammo_icon:
 					child.visible = false
 					continue
 				child.visible = true
@@ -411,7 +463,10 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 	else:
 		slot.modulate = Color(1, 1, 1, 1)
 	
-	# Control de Overlay de Cooldown Oscuro
+	# Icono de munición del slot (según tipo equipado en ammo_slots)
+	_update_ammo_slot_icon(slot, type)
+
+	# Control de Overlay de Cooldown Oscuro (encima del icono)
 	var overlay = slot.get_node_or_null("CooldownOverlay") as ColorRect
 	if rv > 0.05 and max_cd > 0.05:
 		var progress = clamp(rv / max_cd, 0.0, 1.0)
@@ -421,9 +476,9 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			slot.add_child(overlay)
-			# Mandar detrás del texto pero delante del fondo
-			slot.move_child(overlay, 1)
-			
+		# Siempre por encima del icono y Fill, debajo de labels de texto
+		slot.move_child(overlay, _cooldown_overlay_index(slot))
+
 		var mat = overlay.material as ShaderMaterial
 		if not mat or mat.shader != _get_cooldown_dark_shader():
 			mat = ShaderMaterial.new()
@@ -461,9 +516,14 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 				"melee": "MELEE",
 				"heal": "CURAR",
 				"siphon": "SIFÓN",
-				"emp": "EMP"
+				"emp": "EMP",
+				"electron": "ELECTRÓN"
 			}
-			main_label.text = type_names.get(type, type.to_upper())
+			# Si hay icono cargado, ocultar el label de texto (el icono ya identifica el tipo)
+			var has_icon = slot.get_node_or_null("AmmoIconRect") != null and (slot.get_node_or_null("AmmoIconRect") as TextureRect).texture != null
+			main_label.visible = not has_icon
+			if not has_icon:
+				main_label.text = type_names.get(type, type.to_upper())
 		
 		l_am.text = "T" + str(int(sel + 1)) + ": " + _format_val(a_count)
 		if rv > 0.05:
@@ -613,12 +673,16 @@ func _update_sphere_ui(id: int, ref, slot):
 		if not is_instance_valid(icon_rect):
 			icon_rect = TextureRect.new()
 			icon_rect.name = "SkillIconRect"
-			icon_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			icon_rect.layout_mode = 1
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon_rect.anchor_left = 0.0
+			icon_rect.anchor_top = 0.0
+			icon_rect.anchor_right = 1.0
+			icon_rect.anchor_bottom = 1.0
 			icon_rect.offset_left = 6; icon_rect.offset_right = -6
 			icon_rect.offset_top = 6; icon_rect.offset_bottom = -6
-			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-			icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 			slot.add_child(icon_rect)
 
@@ -660,9 +724,83 @@ func _update_sphere_ui(id: int, ref, slot):
 
 func _on_config_updated(_config: Dictionary = {}):
 	_skill_icon_cache.clear()
+	_ammo_icon_cache.clear()
 
 func clear_icon_cache():
 	_skill_icon_cache.clear()
+	_ammo_icon_cache.clear()
+
+# Obtiene (con cache) la textura del icono de munición para un tipo dado
+func _get_ammo_icon(ammo_type: String) -> Texture2D:
+	if ammo_type.is_empty():
+		return null
+	var key = ammo_type.to_lower()
+	if _ammo_icon_cache.has(key):
+		return _ammo_icon_cache[key]
+	var path = _ammo_icon_paths.get(key, "")
+	if path == "" or not ResourceLoader.exists(path):
+		_ammo_icon_cache[key] = null
+		return null
+	var tex = load(path) as Texture2D
+	_ammo_icon_cache[key] = tex
+	return tex
+
+# Crea/actualiza el TextureRect del icono dentro de un slot del HUD
+func _update_ammo_slot_icon(slot, ammo_type: String):
+	if not slot:
+		return
+	var icon = slot.get_node_or_null("AmmoIconRect") as TextureRect
+	var tex = _get_ammo_icon(ammo_type)
+	if tex == null:
+		if is_instance_valid(icon):
+			icon.visible = false
+			icon.texture = null
+		return
+	if not is_instance_valid(icon):
+		icon = TextureRect.new()
+		icon.name = "AmmoIconRect"
+		# Idéntico a SkillIconRect: FULL_RECT simétrico + KEEP_ASPECT_CENTERED
+		icon.layout_mode = 1
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(icon)
+		# Debajo de Fill y CooldownOverlay, encima del fondo del panel
+		var fill_node = slot.get_node_or_null("Fill")
+		var start_idx = 0
+		if is_instance_valid(fill_node):
+			start_idx = fill_node.get_index() + 1
+		slot.move_child(icon, start_idx)
+	icon.texture = tex
+	icon.visible = true
+	# Mismos insets que SkillIconRect (6) — el rect cuadrado llena el slot y KEEP_ASPECT centra el PNG
+	icon.layout_mode = 1
+	icon.anchor_left = 0.0
+	icon.anchor_top = 0.0
+	icon.anchor_right = 1.0
+	icon.anchor_bottom = 1.0
+	icon.offset_left = 6
+	icon.offset_top = 6
+	icon.offset_right = -6
+	icon.offset_bottom = -6
+	icon.size_flags_horizontal = Control.SIZE_FILL
+	icon.size_flags_vertical = Control.SIZE_FILL
+	# Asegurar orden: Fill < icon < CooldownOverlay
+	var fill_n = slot.get_node_or_null("Fill")
+	if is_instance_valid(fill_n) and icon.get_index() < fill_n.get_index():
+		slot.move_child(icon, fill_n.get_index() + 1)
+
+# Índice correcto para el overlay de cooldown (encima del icono, debajo de labels)
+func _cooldown_overlay_index(slot) -> int:
+	# Buscar el índice más alto entre Fill y AmmoIconRect
+	var idx = 0
+	var fill_n = slot.get_node_or_null("Fill")
+	if is_instance_valid(fill_n):
+		idx = max(idx, fill_n.get_index())
+	var icon_n = slot.get_node_or_null("AmmoIconRect")
+	if is_instance_valid(icon_n):
+		idx = max(idx, icon_n.get_index())
+	return idx + 1
 
 func _make_clickable(node: Control, callback: Callable):
 	if not node: return

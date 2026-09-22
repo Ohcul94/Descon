@@ -697,16 +697,23 @@ func _update_clan_ui():
 	if is_open and ct and ct.has_method("update_ui"): ct.update_ui()
 
 func _update_weapons_ui():
-	var wt = get_node_or_null("Window/TabContainer/Armas")
+	# v700: pestaña renombrada de "Armas" a "Municiones"
+	var wt = get_node_or_null("Window/TabContainer/Municiones")
+	if not wt:
+		# Compatibilidad si existía el nodo viejo en runtime
+		var old = get_node_or_null("Window/TabContainer/Armas")
+		if old:
+			old.name = "Municiones"
+			wt = old
 	if not wt:
 		var tabs = get_node_or_null("Window/TabContainer")
 		if tabs:
-			wt = Control.new(); wt.name = "Armas"; tabs.add_child(wt)
+			wt = Control.new(); wt.name = "Municiones"; tabs.add_child(wt)
 			wt.set_script(WeaponsTabScript)
 			if wt.has_method("setup"): wt.setup(self)
 			
 			# Reordenar pestaña para que aparezca al lado de Esferas (Esferas suele ser la 2da o 3ra pestaña)
-			# Hangar es 0, Esferas es 1. Queremos que Armas sea la pestaña 2.
+			# Hangar es 0, Esferas es 1. Queremos que Municiones sea la pestaña 2.
 			tabs.move_child(wt, 2)
 	
 	if is_open and wt and wt.has_method("update_ui"): wt.update_ui()

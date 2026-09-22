@@ -12,51 +12,175 @@ var WEAPONS_DATA = {
 		"name": "LÁSER FRONTAL",
 		"desc": "Proyectil de energía continua. Rango medio, daño estable.",
 		"color": Color.CYAN,
-		"icon": "⚡"
+		"icon": "⚡",
+		"icon_path": "res://assets/Municiones/Iconos/laser/Laser.png"
 	},
 	"missile": {
 		"name": "MISIL TÁCTICO",
 		"desc": "Misil teleguiado de alta potencia y daño en área.",
 		"color": Color(1.0, 0.5, 0.0), # Naranja
-		"icon": "🚀"
+		"icon": "🚀",
+		"icon_path": "res://assets/Municiones/Iconos/missile/Missile.png"
 	},
 	"mine": {
 		"name": "MINA DE PROXIMIDAD",
 		"desc": "Trampa explosiva de alta densidad para control de zona.",
 		"color": Color.YELLOW,
-		"icon": "💥"
+		"icon": "💥",
+		"icon_path": "res://assets/Municiones/Iconos/mine/Mine.png"
 	},
 	"melee": {
 		"name": "CORTADOR MELEE",
 		"desc": "Sierra de plasma a corta distancia para naves ofensivas/tanques.",
 		"color": Color.RED,
-		"icon": "⚔️"
+		"icon": "⚔️",
+		"icon_path": "res://assets/Municiones/Iconos/melee/Melee.png"
 	},
 	"heal": {
 		"name": "PROYECTIL CURATIVO",
 		"desc": "Soporte táctico. Cura la estructura de la nave aliada seleccionada.",
 		"color": Color.GREEN,
-		"icon": "💚"
+		"icon": "💚",
+		"icon_path": "res://assets/Municiones/Iconos/heal/Heal.png"
 	},
 	"siphon": {
 		"name": "SIFÓN DE ENERGÍA",
 		"desc": "Drena el escudo y la vida del enemigo para reparar tus sistemas.",
 		"color": Color(1.0, 0.0, 1.0), # Púrpura/Rosa
-		"icon": "🔮"
+		"icon": "🔮",
+		"icon_path": "res://assets/Municiones/Iconos/siphon/Siphon.png"
 	},
 	"emp": {
 		"name": "PULSO EMP",
 		"desc": "Desactiva sensores y sistemas enemigos. Silencia habilidades.",
 		"color": Color(0.2, 0.5, 1.0), # Azul eléctrico
-		"icon": "📡"
+		"icon": "📡",
+		"icon_path": "res://assets/Municiones/Iconos/emp/Emp.png"
 	},
 	"electron": {
 		"name": "ELECTRÓN",
 		"desc": "Bomba de energía parabólica. Explota en área y otorga velocidad acumulable al impactar.",
 		"color": Color(0.3, 0.7, 1.0), # Celeste eléctrico
-		"icon": "⚛️"
+		"icon": "⚛️",
+		"icon_path": "res://assets/Municiones/Iconos/electron/Electron.png"
 	}
 }
+
+func _ammo_icon_texture(w_id: String) -> Texture2D:
+	var path = str(WEAPONS_DATA.get(w_id, {}).get("icon_path", ""))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
+
+# Mismo contenedor SciFi "slot" que los slots de habilidades del HUD (HUDFrame.gd)
+func _make_unified_ammo_slot(w_id: String, slot_size: float, locked := false, key_text := "") -> Control:
+	# Panel como raíz: respeta custom_minimum_size dentro de HBox/VBox de forma fiable
+	var root = Panel.new()
+	root.name = "AmmoIconSlot"
+	root.custom_minimum_size = Vector2(slot_size, slot_size)
+	root.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	root.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.clip_contents = false
+	root.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+
+	var cfg = WEAPONS_DATA.get(w_id, {})
+	var accent: Color = cfg.get("color", Color(0.0, 0.82, 0.96))
+	accent.a = 0.85
+	if locked:
+		accent = Color(1.0, 0.35, 0.35, 0.85)
+
+	# Fondo/marco idéntico al de habilidades
+	var frame_script = load("res://scripts/ui/HUDFrame.gd")
+	if frame_script:
+		var frame = Control.new()
+		frame.set_script(frame_script)
+		frame.name = "SciFiFrame"
+		if "variant" in frame:
+			frame.set("variant", "slot")
+		if "accent_color" in frame:
+			frame.set("accent_color", accent)
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(frame)
+		frame.layout_mode = 1
+		frame.anchor_left = 0.0
+		frame.anchor_top = 0.0
+		frame.anchor_right = 1.0
+		frame.anchor_bottom = 1.0
+		frame.offset_left = 0
+		frame.offset_top = 0
+		frame.offset_right = 0
+		frame.offset_bottom = 0
+
+	# Icono: FULL_RECT simétrico + KEEP_ASPECT_CENTERED (mismo patrón que SkillIconRect)
+	var tex = _ammo_icon_texture(w_id)
+	if tex:
+		var ammo_icon = TextureRect.new()
+		ammo_icon.name = "AmmoIcon"
+		ammo_icon.texture = tex
+		ammo_icon.layout_mode = 1
+		ammo_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ammo_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ammo_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ammo_icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		root.add_child(ammo_icon)
+		ammo_icon.anchor_left = 0.0
+		ammo_icon.anchor_top = 0.0
+		ammo_icon.anchor_right = 1.0
+		ammo_icon.anchor_bottom = 1.0
+		ammo_icon.offset_left = 6
+		ammo_icon.offset_top = 6
+		ammo_icon.offset_right = -6
+		ammo_icon.offset_bottom = -6
+		if locked:
+			ammo_icon.modulate = Color(1.0, 0.45, 0.45, 0.95)
+	elif w_id != "":
+		var fallback = Label.new()
+		fallback.text = "🔒" if locked else str(cfg.get("icon", "—"))
+		fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		fallback.add_theme_font_size_override("font_size", 18)
+		fallback.modulate = accent
+		fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(fallback)
+		fallback.layout_mode = 1
+		fallback.anchor_left = 0.0
+		fallback.anchor_top = 0.0
+		fallback.anchor_right = 1.0
+		fallback.anchor_bottom = 1.0
+		fallback.offset_left = 6
+		fallback.offset_top = 6
+		fallback.offset_right = -6
+		fallback.offset_bottom = -6
+
+	# Tecla de atajo (esquina superior izq, como en slots HUD)
+	if key_text != "":
+		var key_lbl = Label.new()
+		key_lbl.name = "Key"
+		key_lbl.text = key_text
+		key_lbl.add_theme_font_size_override("font_size", 11)
+		key_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		key_lbl.add_theme_constant_override("outline_size", 3)
+		key_lbl.modulate = Color.CYAN if not locked else Color(1, 0.5, 0.5)
+		key_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(key_lbl)
+		key_lbl.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		key_lbl.position = Vector2(4, 2)
+
+	# Candado si está bloqueada
+	if locked:
+		var lock_badge = Label.new()
+		lock_badge.text = "🔒"
+		lock_badge.add_theme_font_size_override("font_size", 11)
+		lock_badge.add_theme_color_override("font_outline_color", Color.BLACK)
+		lock_badge.add_theme_constant_override("outline_size", 3)
+		lock_badge.modulate = Color(1, 0.3, 0.3)
+		lock_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(lock_badge)
+		lock_badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		lock_badge.position = Vector2(slot_size - 16, 2)
+
+	return root
 
 func setup(p_inv_main):
 	inv_main = p_inv_main
@@ -84,7 +208,7 @@ func update_ui():
 	master_v.add_child(header)
 	
 	var title = Label.new()
-	title.text = "SISTEMA DE CONFIGURACIÓN DE ARMAMENTO DE COMBATE"
+	title.text = "SISTEMA DE CONFIGURACIÓN DE MUNICIÓN DE COMBATE"
 	title.add_theme_font_size_override("font_size", 13)
 	title.modulate = Color.CYAN
 	header.add_child(title)
@@ -177,7 +301,7 @@ func _render_equipped_slots(parent, p, is_comb):
 		var count = a_list[t_idx] if t_idx < a_list.size() else 0
 		
 		var slot_panel = PanelContainer.new()
-		slot_panel.custom_minimum_size = Vector2(0, 90)
+		slot_panel.custom_minimum_size = Vector2(0, 95)
 		parent.add_child(slot_panel)
 		
 		var sb = StyleBoxFlat.new()
@@ -191,28 +315,14 @@ func _render_equipped_slots(parent, p, is_comb):
 		hb.add_theme_constant_override("separation", 15)
 		slot_panel.add_child(hb)
 		
-		# Indicador de Tecla / Icono
-		var key_center = CenterContainer.new()
-		key_center.custom_minimum_size = Vector2(60, 0)
-		hb.add_child(key_center)
-		
-		var key_vbox = VBoxContainer.new()
-		key_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-		key_center.add_child(key_vbox)
-		
-		var key_label = Label.new()
-		key_label.text = "[" + keys[i] + "]"
-		key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		key_label.add_theme_font_size_override("font_size", 14)
-		key_label.modulate = Color.CYAN if not is_empty else Color(1, 1, 1, 0.3)
-		key_vbox.add_child(key_label)
-		
-		var ico_label = Label.new()
-		ico_label.text = w_cfg["icon"]
-		ico_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		ico_label.add_theme_font_size_override("font_size", 20)
-		ico_label.modulate = w_cfg["color"]
-		key_vbox.add_child(ico_label)
+		# Slot unificado estilo habilidades (mismo marco HUDFrame + icono centrado)
+		var icon_slot = _make_unified_ammo_slot(
+			"" if is_empty else w_id,
+			65.0,
+			false,
+			keys[i]
+		)
+		hb.add_child(icon_slot)
 		
 		if is_empty:
 			# v690.2: Slot vacío — solo mostrar tecla, sin detalles
@@ -260,7 +370,7 @@ func _render_weapons_library(grid, p, is_comb):
 			lock_msg = str(req_check.get("msg", "REQUISITOS NO CUMPLIDOS"))
 		
 		var card = PanelContainer.new()
-		card.custom_minimum_size = Vector2(400, 75)
+		card.custom_minimum_size = Vector2(400, 78)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(card)
 		
@@ -275,16 +385,9 @@ func _render_weapons_library(grid, p, is_comb):
 		hb.add_theme_constant_override("separation", 15)
 		card.add_child(hb)
 		
-		# Icono grande de arma
-		var ico_center = CenterContainer.new()
-		ico_center.custom_minimum_size = Vector2(50, 0)
-		hb.add_child(ico_center)
-		
-		var ico = Label.new()
-		ico.text = "🔒" if locked else w_cfg["icon"]
-		ico.add_theme_font_size_override("font_size", 24)
-		ico.modulate = w_cfg["color"] if not locked else Color(1, 0.3, 0.3)
-		ico_center.add_child(ico)
+		# Icono unificado estilo habilidades (mismo marco + centrado fijo)
+		var icon_slot = _make_unified_ammo_slot(w_id, 58.0, locked, "")
+		hb.add_child(icon_slot)
 		
 		# Nombre e Info de arma
 		var info_v = VBoxContainer.new()
