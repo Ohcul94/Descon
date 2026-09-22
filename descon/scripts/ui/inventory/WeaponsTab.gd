@@ -66,6 +66,121 @@ var WEAPONS_DATA = {
 	}
 }
 
+# === LECTURA DINÁMICA DE STATS DESDE ADMIN DASH (config.json → GameConstants) ===
+
+func _ammo_tier_cfg(w_id: String, t_idx: int) -> Dictionary:
+	if not GameConstants:
+		return {}
+	var ammo_base = GameConstants.SHOP_ITEMS.get("ammo", {})
+	var list = ammo_base.get(w_id, [])
+	if typeof(list) != TYPE_ARRAY or t_idx < 0 or t_idx >= list.size():
+		return {}
+	var entry = list[t_idx]
+	return entry if typeof(entry) == TYPE_DICTIONARY else {}
+
+# Normaliza TODO tiempo a segundos (nunca mezclar ms y s en la UI del juego)
+func _fmt_time_ms(v) -> String:
+	return _fmt_num(snappedf(float(v) / 1000.0, 0.01)) + "s"
+
+func _fmt_num(v) -> String:
+	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
+		var f = float(v)
+		if f == floor(f):
+			return str(int(f))
+		return str(snappedf(f, 0.01))
+	return str(v)
+
+func _ammo_mechanics_text(cfg: Dictionary) -> String:
+	var mechs = cfg.get("mechanics", [])
+	if typeof(mechs) != TYPE_ARRAY or mechs.is_empty():
+		return ""
+	var mech_lib = {}
+	if GameConstants and typeof(GameConstants.FULL_CONFIG) == TYPE_DICTIONARY:
+		mech_lib = GameConstants.FULL_CONFIG.get("ammoMechLib", {})
+	if typeof(mech_lib) != TYPE_DICTIONARY:
+		mech_lib = {}
+	var out := PackedStringArray()
+	for m in mechs:
+		if typeof(m) != TYPE_DICTIONARY:
+			continue
+		var mtype = str(m.get("type", ""))
+		var minfo = mech_lib.get(mtype, {}) if typeof(mech_lib) == TYPE_DICTIONARY else {}
+		if typeof(minfo) != TYPE_DICTIONARY:
+			minfo = {}
+		var mlabel = str(minfo.get("label", mtype))
+		var micon = str(minfo.get("icon", "•"))
+		var mfields = minfo.get("fields", [])
+		if typeof(mfields) != TYPE_ARRAY:
+			mfields = []
+		var vals := PackedStringArray()
+		for f in mfields:
+			if not m.has(f):
+				continue
+			var fv = m[f]
+			match str(f):
+				"duration":
+					vals.append(_fmt_time_ms(fv))
+				"chance":
+					vals.append(_fmt_num(fv) + "%")
+				"damagePerSecond":
+					vals.append(_fmt_num(fv) + "/s")
+				"radius":
+					vals.append(str(int(fv)))
+				_:
+					vals.append(str(fv))
+		var line = micon + " " + mlabel
+		if not vals.is_empty():
+			line += " " + " · ".join(vals)
+		out.append(line)
+	return " | ".join(out)
+
+# Devuelve una línea (o varias) con TODOS los inputs configurados en Admin Dash
+# para el tier indicado: daño, alcance, velocidad, CD/cadencia, canalizado y
+# los efectos específicos de cada munición (cura, sifón, silencio, ralentizado, buff...).
+func _ammo_stats_text(w_id: String, t_idx: int) -> String:
+	var cfg = _ammo_tier_cfg(w_id, t_idx)
+	var parts := PackedStringArray()
+
+	if GameConstants:
+		var mults = GameConstants.AMMO_MULTIPLIERS.get(w_id, [])
+		if typeof(mults) == TYPE_ARRAY and t_idx < mults.size() and mults[t_idx] != null:
+			parts.append("Daño x" + _fmt_num(mults[t_idx]))
+
+	if cfg.has("range"):
+		parts.append("Alcance " + str(int(cfg.range)))
+	if cfg.has("bulletSpeed"):
+		parts.append("Velocidad " + str(int(cfg.bulletSpeed)))
+	if cfg.has("cooldown"):
+		var cd = int(cfg.cooldown)
+		parts.append("CD " + _fmt_time_ms(cd))
+		if cd > 0:
+			parts.append("Cadencia " + _fmt_num(snappedf(100000.0 / float(cd), 0.01) / 100.0) + "/s")
+	if cfg.has("castTimeMs") and int(cfg.castTimeMs) > 0:
+		parts.append("Canalizado " + _fmt_time_ms(cfg.castTimeMs))
+	if cfg.has("explosionRadius"):
+		parts.append("Radio de explosión " + str(int(cfg.explosionRadius)))
+	if cfg.has("lifetimeMs"):
+		parts.append("Duración en mapa " + _fmt_time_ms(cfg.lifetimeMs))
+
+	match w_id:
+		"heal":
+			parts.append("Cura " + str(int(cfg.get("healPctPvE", 40))) + "% del daño como vida (PvE)")
+			parts.append("PvP: aliado cura " + str(int(cfg.get("healPctVictimPvP", 80))) + "% / atacante " + str(int(cfg.get("healPctAttackerPvP", 30))) + "%")
+		"siphon":
+			parts.append("Absorbe " + str(int(cfg.get("siphonPct", 25))) + "% del daño como vida")
+		"emp":
+			parts.append("Silencia " + _fmt_time_ms(cfg.get("silenceDurationMs", 3000)))
+		"melee":
+			parts.append("Ralentiza " + _fmt_time_ms(cfg.get("slowDurationMs", 1000)) + " (-" + str(int(cfg.get("slowAmount", 200))) + " vel.)")
+		"electron":
+			parts.append("Buff velocidad +" + str(int(cfg.get("speedBuffPct", 15))) + "% durante " + _fmt_time_ms(cfg.get("speedBuffDurationMs", 3000)) + " (máx " + str(int(cfg.get("speedBuffMaxStacks", 4))) + " acum.)")
+
+	var mech_text = _ammo_mechanics_text(cfg)
+	if mech_text != "":
+		parts.append(mech_text)
+
+	return " · ".join(parts)
+
 func _ammo_icon_texture(w_id: String) -> Texture2D:
 	var path = str(WEAPONS_DATA.get(w_id, {}).get("icon_path", ""))
 	if path.is_empty() or not ResourceLoader.exists(path):
@@ -349,7 +464,17 @@ func _render_equipped_slots(parent, p, is_comb):
 			ammo_lbl.add_theme_font_size_override("font_size", 10)
 			ammo_lbl.modulate.a = 0.7
 			details_v.add_child(ammo_lbl)
-		
+
+			# Stats dinámicas del tier equipado (Admin Dash)
+			var eq_stats = _ammo_stats_text(w_id, int(t_idx))
+			if eq_stats != "":
+				var eq_stats_lbl = Label.new()
+				eq_stats_lbl.text = eq_stats
+				eq_stats_lbl.add_theme_font_size_override("font_size", 8)
+				eq_stats_lbl.modulate = Color(0.35, 0.9, 1.0, 0.85)
+				eq_stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				details_v.add_child(eq_stats_lbl)
+
 		# Efecto visual de deshabilitar si está en combate
 		if is_comb:
 			slot_panel.modulate.a = 0.5
@@ -407,7 +532,18 @@ func _render_weapons_library(grid, p, is_comb):
 		desc_lbl.modulate.a = 0.6
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		info_v.add_child(desc_lbl)
-		
+
+		# Stats DINÁMICAS del tier seleccionado (todo lo configurado en Admin Dash)
+		var stats_text = _ammo_stats_text(w_id, t_idx)
+		if stats_text != "":
+			var stats_lbl = Label.new()
+			stats_lbl.name = "StatsLabel"
+			stats_lbl.text = stats_text
+			stats_lbl.add_theme_font_size_override("font_size", 9)
+			stats_lbl.modulate = Color(0.35, 0.9, 1.0, 0.95)
+			stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			info_v.add_child(stats_lbl)
+
 		# v690.0: Aviso rojo de requisito faltante en la propia tarjeta
 		if locked:
 			var lock_lbl = Label.new()

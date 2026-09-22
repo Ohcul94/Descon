@@ -9,6 +9,13 @@ var _touch_registry = {}
 var _is_interference_ui_active = false
 var _cooldown_fill_shader: Shader = null
 
+# Apuntado MOBA: el drag se sigue a nivel HUD (no del botón) para que
+# funcione aunque el dedo salga del rectángulo chiquito del slot.
+var _aim_drag_active: bool = false
+var _aim_touch_index: int = -1
+var _aim_origin_vp: Vector2 = Vector2.ZERO
+var _aim_node: Control = null
+
 # v301.4: Cache de texturas de íconos para no recargar desde disco en cada frame
 var _skill_icon_cache: Dictionary = {}
 
@@ -863,7 +870,7 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 				var sc = p._skill_controller
 				if is_instance_valid(sc) and sc.is_aiming:
 					if sc.config.get("cast_mode") == 1:
-						sc.execute_skill(true)
+						sc.execute_skill()
 
 func _on_base_slot_gui_input(event: InputEvent, slot_idx: int):
 	var p = get_tree().get_first_node_in_group("player")
@@ -882,67 +889,83 @@ func _on_base_slot_gui_input(event: InputEvent, slot_idx: int):
 				if sc.config.get("cast_mode") == 1:
 					sc.execute_skill()
 
+func _vp_pos_from_local(node: Control, local_pos: Vector2) -> Vector2:
+	return node.get_global_transform() * local_pos
+
+func _set_aim_indicators_visible(node: Control, visible_flag: bool, vp_pos: Vector2 = Vector2.ZERO):
+	if not is_instance_valid(node): return
+	var aim = node.get_node_or_null("AimIndicator")
+	var aim_bg = node.get_node_or_null("AimIndicatorBG")
+	if aim_bg:
+		aim_bg.visible = visible_flag
+		if visible_flag:
+			aim_bg.global_position = vp_pos - (aim_bg.size / 2)
+	if aim:
+		aim.visible = visible_flag
+		if visible_flag:
+			aim.global_position = vp_pos - (aim.size / 2)
+
 func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable):
 	var p = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(p) or not p._skill_controller: return
 	var sc = p._skill_controller
-	var aim = node.get_node_or_null("AimIndicator")
-	var aim_bg = node.get_node_or_null("AimIndicatorBG")
 	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	
-	# PRESS
+	# PRESS — solo inicia el aim; drag/release los maneja SkillsHUD._input
 	var is_press = (event is InputEventScreenTouch and event.pressed) or \
 				   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 	
 	if is_press:
-		var g_pos = event.position
-		node.set_meta("touch_index", event.index if event is InputEventScreenTouch else 0)
-		node.set_meta("touch_origin_global", g_pos)
+		# Un solo aim a la vez: evita doble start por emulación touch→mouse
+		# y que un segundo dedo robe el apuntado.
+		if _aim_drag_active:
+			get_viewport().set_input_as_handled()
+			return
+		
+		var vp_pos = _vp_pos_from_local(node, event.position)
+		_aim_drag_active = true
+		_aim_touch_index = event.index if event is InputEventScreenTouch else 0
+		_aim_origin_vp = vp_pos
+		_aim_node = node
+		node.set_meta("touch_index", _aim_touch_index)
+		node.set_meta("touch_origin_global", vp_pos)
 		callback.call()
 		
 		if is_mobile:
-			if aim_bg:
-				aim_bg.visible = true
-				aim_bg.global_position = g_pos - (aim_bg.size / 2)
-			if aim:
-				aim.visible = true
-				aim.global_position = g_pos - (aim.size / 2)
+			_set_aim_indicators_visible(node, true, vp_pos)
 		
 		get_viewport().set_input_as_handled()
 		return
 
-	# RELEASE
+	# RELEASE — fallback si por algún motivo llega al botón (normalmente lo come _input)
 	var is_release = (event is InputEventScreenTouch and not event.pressed) or \
 					 (event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 	
-	if is_release:
-		var stored_index = node.get_meta("touch_index", -1)
-		if event is InputEventScreenTouch and event.index != stored_index: return
-		
-		if aim: aim.visible = false
-		if aim_bg: aim_bg.visible = false
-		
-		if sc.is_aiming:
-			if is_mobile or sc.config.get("cast_mode") == 1:
-				sc.execute_skill()
-		
-		sc.external_aim_vector = Vector2.ZERO
-		node.remove_meta("touch_index")
-		node.remove_meta("touch_origin_global")
+	if is_release and _aim_drag_active and node == _aim_node:
+		_finish_aim_drag(sc, is_mobile)
+		get_viewport().set_input_as_handled()
 		return
 
-	# DRAG
-	if not is_mobile or not sc.is_aiming: return
+func _finish_aim_drag(sc, is_mobile: bool):
+	if is_instance_valid(_aim_node):
+		_set_aim_indicators_visible(_aim_node, false)
+		_aim_node.remove_meta("touch_index")
+		_aim_node.remove_meta("touch_origin_global")
 	
-	var is_drag = (event is InputEventScreenDrag) or \
-				  (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
-	if not is_drag: return
+	if sc.is_aiming:
+		if is_mobile or sc.config.get("cast_mode") == 1:
+			sc.execute_skill()
 	
-	if event is InputEventScreenDrag:
-		if event.index != node.get_meta("touch_index", -1): return
+	sc.external_aim_vector = Vector2.ZERO
+	_aim_drag_active = false
+	_aim_touch_index = -1
+	_aim_origin_vp = Vector2.ZERO
+	_aim_node = null
+
+func _update_aim_drag_from_vp(sc, vp_pos: Vector2):
+	if not is_instance_valid(_aim_node): return
 	
-	var g_origin = node.get_meta("touch_origin_global", event.position)
-	var diff_global = event.position - g_origin
+	var diff_global = vp_pos - _aim_origin_vp
 	
 	var cam = get_viewport().get_camera_2d()
 	var zoom_val = cam.zoom.x if cam else 1.0
@@ -967,11 +990,39 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	else:
 		sc.external_aim_vector = Vector2.ZERO
 	
-	if aim:
-		aim.visible = true
-		aim.global_position = event.position - (aim.size / 2)
-	if aim_bg:
-		aim_bg.visible = true
-		aim_bg.global_position = g_origin - (aim_bg.size / 2)
+	_set_aim_indicators_visible(_aim_node, true, vp_pos)
+
+func _input(event: InputEvent):
+	if not _aim_drag_active: return
+	var p = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(p) or not p._skill_controller: return
+	var sc = p._skill_controller
+	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	
-	get_viewport().set_input_as_handled()
+	# TOUCH DRAG — sigue el dedo aunque salga del botón
+	if event is InputEventScreenDrag:
+		if event.index != _aim_touch_index: return
+		if is_mobile and sc.is_aiming:
+			_update_aim_drag_from_vp(sc, event.position)
+			get_viewport().set_input_as_handled()
+		return
+	
+	# TOUCH RELEASE
+	if event is InputEventScreenTouch and not event.pressed:
+		if event.index != _aim_touch_index: return
+		_finish_aim_drag(sc, is_mobile)
+		get_viewport().set_input_as_handled()
+		return
+	
+	# Emulación mouse (F10 / testing móvil en PC)
+	if event is InputEventMouseMotion and _aim_touch_index == 0:
+		if is_mobile and sc.is_aiming and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			_update_aim_drag_from_vp(sc, event.position)
+			get_viewport().set_input_as_handled()
+		return
+	
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		if _aim_touch_index != 0: return
+		_finish_aim_drag(sc, is_mobile)
+		get_viewport().set_input_as_handled()
+		return

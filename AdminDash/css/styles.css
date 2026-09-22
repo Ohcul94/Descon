@@ -133,10 +133,12 @@ nav.collapsed {
     padding: 1rem 1.5rem;
 }
 
-/* Scrollbar finita y elegante */
-#sidebar-scroll::-webkit-scrollbar { width: 4px; }
+/* Scrollbar del menú lateral: ensanchada para fácil agarre en celu */
+#sidebar-scroll::-webkit-scrollbar { width: 16px; }
 #sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-#sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+#sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); border-radius: 10px; border: 4px solid transparent; background-clip: padding-box; }
+#sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,0.6); background-clip: padding-box; }
+#sidebar-scroll { scrollbar-width: auto; scrollbar-color: rgba(255,255,255,0.35) transparent; }
 
 .nav-group {
     display: flex;
@@ -520,3 +522,11 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(6, 182, 21
     opacity: 0;
     pointer-events: none;
 }
+
+/* --- Scrollbars ensanchadas en todos los menús/paneles (fáciles de tocar en celu) --- */
+::-webkit-scrollbar { width: 16px; height: 16px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); border-radius: 10px; border: 4px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,0.6); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+html { scrollbar-width: auto; scrollbar-color: rgba(255,255,255,0.35) rgba(255,255,255,0.04); }

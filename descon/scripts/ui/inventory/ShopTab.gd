@@ -29,7 +29,7 @@ func update_ui():
 	
 	# --- BARRA DE CATEGORÍAS ---
 	var bar = HBoxContainer.new(); bar.add_theme_constant_override("separation", 15); main_v.add_child(bar)
-	var lbats = {"ships": "NAVES", "weapons": "ARMAS", "shields": "ESCUDOS", "engines": "MOTORES", "ammo": "MUNICIONES", "extras": "EXTRAS"}
+	var lbats = {"ships": "NAVES", "weapons": "ARMAS", "shields": "ESCUDOS", "engines": "MOTORES", "ammo": "MUNICIONES"}
 	for k in lbats:
 		var b = Button.new(); b.text = lbats[k]; b.flat = true
 		b.modulate = Color.CYAN if shop_tab == k else Color.WHITE
@@ -486,6 +486,18 @@ func _process(delta):
 		preview_mesh.rotate_y(delta * 0.5)
 
 
+# Icono de cada tipo de munición (el mismo asset para todos sus tiers)
+var AMMO_TYPE_ICONS = {
+	"laser": "res://assets/Municiones/Iconos/laser/Laser.png",
+	"missile": "res://assets/Municiones/Iconos/missile/Missile.png",
+	"mine": "res://assets/Municiones/Iconos/mine/Mine.png",
+	"melee": "res://assets/Municiones/Iconos/melee/Melee.png",
+	"heal": "res://assets/Municiones/Iconos/heal/Heal.png",
+	"siphon": "res://assets/Municiones/Iconos/siphon/Siphon.png",
+	"emp": "res://assets/Municiones/Iconos/emp/Emp.png",
+	"electron": "res://assets/Municiones/Iconos/electron/Electron.png"
+}
+
 func _render_ammo_shop(parent, grid):
 	var bar = HBoxContainer.new(); bar.add_theme_constant_override("separation", 10); parent.add_child(bar); parent.move_child(bar, 1)
 	for t in ["laser", "missile", "mine", "melee", "heal", "siphon", "emp", "electron"]:
@@ -494,9 +506,13 @@ func _render_ammo_shop(parent, grid):
 		bar.add_child(b)
 	var ammo_base = GameConstants.SHOP_ITEMS.get("ammo", {})
 	var items = ammo_base.get(ammo_sub_tab, [])
+	var icon_path = str(AMMO_TYPE_ICONS.get(ammo_sub_tab, ""))
 	for it in items:
 		if it.get("hidden", false): continue # v620.0: Ojito de visibilidad
-		_create_shop_card(it, "ammo", grid)
+		var it_view = it.duplicate()
+		if icon_path != "" and str(it_view.get("icon", "")) == "":
+			it_view["icon"] = icon_path
+		_create_shop_card(it_view, "ammo", grid)
 
 func _buy_request(cat, it, cur):
 	var price = it["prices"][cur]
