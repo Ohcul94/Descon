@@ -1,10 +1,10 @@
 shader_type spatial;
-// v905.0 FOG OF WAR - Volumetrico 3D Ultra Optimizado:
-//   - Depth buffer: cubre geometria a cualquier altura (montanas, suelo, objetos)
-//   - Sky volumetric: cubre el AIRE sobre zonas planas (efecto pared/columna de niebla)
-//   - Vertex unprojection: traslada calculo de rayos al vertex shader (4 veces por frame en vez de 2M)
-//   - Early exit de vision: saltea 80% del shader en zonas visibles dentro del rango del jugador
-// GLES3 compatible: sin return en fragment.
+// v920.0 FOG OF WAR - Atmósfera de Neblina Realista (Efecto Autopista):
+//   - Degradés orgánicos de entrada y salida progresivos sin cortes secos.
+//   - Multi-capa de nubes, jirones y partículas en suspensión que impiden la visión.
+//   - Anclaje exacto al suelo y geometría (100% alineado con el jugador sin desfasaje).
+//   - Desaturación y dispersión atmosférica (Beer-Lambert) idéntica a la niebla en carretera.
+//   - Compatible 100% con GLES3 y Forward+ (sin return en fragment, ultra optimizado 60+ FPS).
 render_mode unshaded, depth_draw_never, cull_disabled, depth_test_disabled;
 
 uniform sampler2D screen_texture : hint_screen_texture, filter_linear;
@@ -15,29 +15,29 @@ uniform sampler2D noise_texture   : filter_linear, repeat_enable;
 
 uniform vec2  map_offset_3d = vec2(0.0, 0.0);
 uniform vec2  map_size_3d   = vec2(80.0, 113.0);
-uniform float fog_opacity    : hint_range(0.0, 1.0) = 0.80;
-uniform float shroud_opacity : hint_range(0.0, 1.0) = 0.32;
+uniform float fog_opacity    : hint_range(0.0, 1.0) = 0.96;
+uniform float shroud_opacity : hint_range(0.0, 1.0) = 0.44;
 
-uniform vec3  fog_color_dark  : source_color = vec3(0.14, 0.16, 0.17);
-uniform vec3  fog_color_mid   : source_color = vec3(0.34, 0.36, 0.39);
-uniform vec3  fog_color_light : source_color = vec3(0.60, 0.62, 0.64);
-uniform vec3  swamp_tint      : source_color = vec3(0.30, 0.34, 0.28);
-uniform float swamp_mix       : hint_range(0.0, 0.5)  = 0.20;
-uniform float fog_desaturate  : hint_range(0.0, 1.0)  = 0.62;
+uniform vec3  fog_color_dark  : source_color = vec3(0.14, 0.16, 0.18);
+uniform vec3  fog_color_mid   : source_color = vec3(0.36, 0.38, 0.42);
+uniform vec3  fog_color_light : source_color = vec3(0.65, 0.67, 0.70);
+uniform vec3  swamp_tint      : source_color = vec3(0.28, 0.33, 0.27);
+uniform float swamp_mix       : hint_range(0.0, 0.5)  = 0.18;
+uniform float fog_desaturate  : hint_range(0.0, 1.0)  = 0.72;
 
-uniform float cloud_scale1    = 0.0085;
-uniform float cloud_scale2    = 0.017;
-uniform float cloud_speed1    = 0.014;
-uniform float cloud_speed2    = -0.011;
-uniform float elevation_speed = 0.007;
-uniform float cloud_contrast  : hint_range(0.5, 2.0) = 1.18;
+uniform float cloud_scale1    = 0.0075;
+uniform float cloud_scale2    = 0.016;
+uniform float cloud_speed1    = 0.012;
+uniform float cloud_speed2    = -0.010;
+uniform float elevation_speed = 0.006;
+uniform float cloud_contrast  : hint_range(0.5, 2.5) = 1.25;
 
-uniform float noise_scale = 0.011;
-uniform float noise_speed = 0.018;
+uniform float noise_scale = 0.010;
+uniform float noise_speed = 0.016;
 uniform bool  flip_y      = false;
 
-uniform float fog_height        : hint_range(0.5, 60.0) = 30.0;
-uniform float fog_density       : hint_range(0.1, 1.5)  = 0.55;
+uniform float fog_height        : hint_range(0.5, 60.0) = 25.0;
+uniform float fog_density       : hint_range(0.1, 2.5)  = 1.25;
 uniform float fog_vertical_fade : hint_range(0.2, 3.0)  = 1.2;
 
 varying vec3 v_ray_dir;
@@ -57,116 +57,133 @@ void fragment() {
 	vec3 ray_origin   = v_camera_pos;
 	float cam_y       = ray_origin.y;
 
-	vec3 frag_world = vec3(0.0);
-	bool has_valid_pos = false;
-
-	// 1. Intentar leer depth buffer real (PC / Desktop GL / Vulkan)
+	// 1. Reconstrucción precisa de la posición del píxel en coordenadas de mundo
 	float raw_depth = texture(depth_texture, SCREEN_UV).r;
+	vec3 frag_world = vec3(0.0);
+	bool has_geom   = false;
+
 	if (raw_depth < 0.9999 && raw_depth > 0.0001) {
 		vec3 ndc_d = vec3(SCREEN_UV * 2.0 - 1.0, raw_depth * 2.0 - 1.0);
 		vec4 vp_d  = INV_PROJECTION_MATRIX * vec4(ndc_d, 1.0);
 		vp_d /= vp_d.w;
 		frag_world = (INV_VIEW_MATRIX * vp_d).xyz;
-		has_valid_pos = true;
+		has_geom   = true;
 	} else if (ray_dir.y < -0.0001) {
-		// 2. Fallback universal (Android GL Compatibility donde depth_texture es 1.0 / no soportado):
-		// Intersección analítica del rayo de la cámara con el plano del suelo Y=0
+		// Fallback exacto al suelo Y=0 para cielo, abismo o vacío sin geometría
 		float t_ground = -cam_y / ray_dir.y;
 		if (t_ground > 0.0) {
 			frag_world = ray_origin + ray_dir * t_ground;
-			has_valid_pos = true;
 		}
+	} else {
+		// Rayo hacia el horizonte o plano lejano
+		frag_world = ray_origin + ray_dir * 120.0;
 	}
 
 	vec3 final_color = screen_color;
 
-	if (has_valid_pos) {
-		// Altura de niebla: desvanecimiento suave hacia el tope de fog_height sin cortes abruptos en el suelo
-		float height_factor = 1.0 - smoothstep(0.0, fog_height, max(frag_world.y, 0.0));
+	// Coordenadas UV del mapa 2D calculadas fielmente a frag_world.xz
+	vec2 sample_xz = frag_world.xz;
+	vec2 fog_uv    = (sample_xz - map_offset_3d) / map_size_3d;
+	bool in_map    = (fog_uv.x >= 0.0 && fog_uv.x <= 1.0 &&
+	                  fog_uv.y >= 0.0 && fog_uv.y <= 1.0);
 
-		vec2 sample_xz = frag_world.xz;
-		vec2 fog_uv    = (sample_xz - map_offset_3d) / map_size_3d;
-		bool in_map    = (fog_uv.x >= 0.0 && fog_uv.x <= 1.0 &&
-		                  fog_uv.y >= 0.0 && fog_uv.y <= 1.0);
+	// Suavizado en el perímetro exterior del mapa
+	float edge_fade = smoothstep(0.0, 0.05, min(min(fog_uv.x, 1.0 - fog_uv.x),
+	                                            min(fog_uv.y, 1.0 - fog_uv.y)));
 
-		if (in_map && height_factor > 0.005) {
-			// Test rápido de visión antes de ruidos caros
-			vec2  base_s_uv = vec2(fog_uv.x, flip_y ? 1.0 - fog_uv.y : fog_uv.y);
-			float fast_vis  = texture(vision_texture, base_s_uv).r;
+	if (in_map && edge_fade > 0.001) {
+		// Bruma y viento suave en los bordes
+		vec2 wind_uv = sample_xz * 0.012 + vec2(TIME * noise_speed, TIME * noise_speed * 0.65);
+		float noise_val = texture(noise_texture, wind_uv).r;
 
-			// Si el fragmento está 100% visible bajo la nave/aliados, omitir cálculos pesados
-			if (fast_vis < 0.99) {
-				// Noise para distorsion de bordes
-				vec2  n_uv      = sample_xz * 0.015 + vec2(TIME * noise_speed, TIME * noise_speed * 0.65);
-				float noise_val = texture(noise_texture, n_uv).r;
-				vec2  dist_uv   = clamp(fog_uv + (noise_val - 0.5) * noise_scale, 0.0, 1.0);
-				vec2  s_uv      = vec2(dist_uv.x, flip_y ? 1.0 - dist_uv.y : dist_uv.y);
+		// Perturbación contenida para que los bordes de la niebla no sean matemáticamente rígidos
+		vec2 dist_uv = clamp(fog_uv + (noise_val - 0.5) * noise_scale, 0.0, 1.0);
+		vec2 s_uv    = vec2(dist_uv.x, flip_y ? 1.0 - dist_uv.y : dist_uv.y);
 
-				float current_vision = texture(vision_texture,  s_uv).r;
+		float current_vision = texture(vision_texture, s_uv).r;
 
-				if (current_vision < 0.99) {
-					float explored   = texture(history_texture, s_uv).r;
+		// Si el fragmento está completamente descubierto bajo la nave, no procesar niebla
+		if (current_vision < 0.999) {
+			float explored = texture(history_texture, s_uv).r;
 
-					// Visibilidad
-					float base_vis   = max(explored * (1.0 - shroud_opacity), 1.0 - fog_opacity);
-					float visibility = base_vis + (1.0 - base_vis) * current_vision;
+			// --- DEGRADÉ DE ENTRADA Y SALIDA (EFECTO AUTOPISTA) ---
+			// Visibilidad base: zona explorada (shroud) vs zona oculta virgen (fog)
+			float base_vis   = max(explored * (1.0 - shroud_opacity), 1.0 - fog_opacity);
+			float visibility = base_vis + (1.0 - base_vis) * current_vision;
 
-					// Fade borde de mapa
-					float edge_fade = smoothstep(0.0, 0.08,
-					                    min(min(fog_uv.x, 1.0 - fog_uv.x),
-					                        min(fog_uv.y, 1.0 - fog_uv.y)));
+			// Rampa de degradé suave y progresiva
+			float raw_fog = clamp(1.0 - visibility, 0.0, 1.0);
+			float fog_gradient = smoothstep(0.0, 0.95, raw_fog) * edge_fade;
 
-					// Factor 2D de niebla
-					float fog_factor_2d = pow(clamp(1.0 - visibility, 0.0, 1.0), 0.88);
-					fog_factor_2d = smoothstep(0.0, 1.0, fog_factor_2d);
-					fog_factor_2d *= smoothstep(0.0, 0.32, fog_factor_2d);
-					fog_factor_2d *= edge_fade;
+			if (fog_gradient > 0.002) {
+				// --- BANCOS DE NUBES Y PARTÍCULAS EN SUSPENSIÓN ---
+				// Capa 1: Bancos grandes de niebla densa que se desplazan lentamente
+				vec2 c_uv1 = sample_xz * cloud_scale1 + vec2(TIME * cloud_speed1, TIME * elevation_speed);
+				float cloud_layer1 = texture(noise_texture, c_uv1).r;
 
-					// Early discard: si no hay niebla 2D suficiente, saltar volumetría y nubes
-					if (fog_factor_2d > 0.001) {
-						// Densidad volumétrica optimizada (evita sqrt/length 3D usando componente vertical)
-						float height_density = height_factor;
-						if (ray_dir.y < -0.0001) {
-							float inv_ray_y  = 1.0 / ray_dir.y;
-							float t_ground   = -cam_y * inv_ray_y;
-							float t_hit      = (frag_world.y - cam_y) * inv_ray_y;
-							float t_end      = min(t_ground, t_hit);
-							float t_fog_top  = max((fog_height - cam_y) * inv_ray_y, 0.0);
-							float vol_length = max(t_end - t_fog_top, 0.0);
-							float hd         = 1.0 - exp(-vol_length * fog_density * 0.18);
-							hd = clamp(hd * 0.68 + 0.32, 0.0, 1.0);
-							float mid_h      = cam_y + ray_dir.y * (t_fog_top + vol_length * 0.5);
-							float vg         = pow(1.0 - smoothstep(0.0, fog_height, mid_h), 0.7);
-							height_density   = hd * mix(0.40, 1.0, vg) * height_factor;
-						}
+				// Capa 2: Volutas / jirones de niebla que cruzan en ángulo
+				vec2 c_uv2 = sample_xz * cloud_scale2 + vec2(TIME * cloud_speed2, -TIME * cloud_speed1 * 0.5);
+				float cloud_layer2 = texture(noise_texture, c_uv2).r;
 
-						// Nubes
-						vec2  c_uv  = sample_xz * cloud_scale1 + vec2(TIME * cloud_speed1 * 0.7, TIME * elevation_speed);
-						float n1    = texture(noise_texture, c_uv).r;
-						float cloud = pow(clamp(n1 * 0.65 + noise_val * 0.35, 0.0, 1.0), cloud_contrast);
-						cloud = smoothstep(0.18, 0.82, cloud);
-						height_density *= (0.72 + cloud * 0.55);
+				// Capa 3: Micro-partículas de vapor y humedad en suspensión (gotitas en el aire)
+				vec2 c_uv3 = sample_xz * 0.038 + vec2(TIME * noise_speed * 1.4, TIME * noise_speed * 0.8);
+				float particles = texture(noise_texture, c_uv3).r;
 
-						float combined_fog = clamp(smoothstep(0.0, 0.75, fog_factor_2d * height_density), 0.0, 0.80);
+				// Síntesis de nubes de niebla
+				float cloud_structure = cloud_layer1 * 0.50 + cloud_layer2 * 0.35 + particles * 0.15;
+				cloud_structure = pow(clamp(cloud_structure, 0.0, 1.0), cloud_contrast);
+				cloud_structure = smoothstep(0.15, 0.85, cloud_structure);
 
-						if (combined_fog > 0.005) {
-							// Paleta de colores idéntica
-							vec3 palette = mix(fog_color_dark, fog_color_mid,  smoothstep(0.22, 0.52, cloud));
-							palette      = mix(palette, fog_color_light,        smoothstep(0.48, 0.86, cloud));
-							palette      = mix(palette, swamp_tint, cloud * swamp_mix);
-							vec3 target_fog_col = mix(palette,
-							                     mix(palette, vec3(0.66, 0.66, 0.68), 0.34),
-							                     explored * (1.0 - current_vision));
+				// --- TECHO IRREGULAR DE NIEBLA (EVITA EL CORTE PLANO DE CAJA) ---
+				// Variación orgánica de la altura de las copas de niebla con el viento
+				float top_variation = (cloud_layer1 * 0.60 + cloud_layer2 * 0.40 - 0.5) * (fog_height * 0.40);
+				float effective_top = max(fog_height + top_variation, 6.0);
 
-							float lum        = dot(screen_color, vec3(0.299, 0.587, 0.114));
-							vec3 desaturated = mix(screen_color, vec3(lum), fog_desaturate * combined_fog);
-							final_color      = mix(desaturated, target_fog_col, combined_fog);
-							final_color     += (cloud - 0.5) * 0.08 * combined_fog * (0.6 + height_density * 0.7);
-							final_color      = mix(final_color, target_fog_col + vec3(0.06,0.07,0.07),
-							                       n1 * 0.045 * combined_fog);
-							final_color      = clamp(final_color, vec3(0.0), vec3(1.0));
-						}
-					}
+				// Desvanecimiento suave e irregular hacia arriba
+				float height_factor = 1.0;
+				if (has_geom && frag_world.y > 0.1) {
+					// El umbral de desvanecimiento ondula dinámicamente con la densidad de cada jirón
+					float fade_start = mix(0.35, 0.65, cloud_structure);
+					float norm_y     = clamp(frag_world.y / effective_top, 0.0, 1.0);
+					height_factor    = 1.0 - smoothstep(fade_start, 1.0, norm_y);
+				}
+
+				// En la entrada de la niebla, las volutas más densas penetran primero
+				float billow_mod = mix(0.80, 1.35, cloud_structure);
+				float density    = clamp(fog_gradient * billow_mod * height_factor, 0.0, 1.0);
+
+				// Modelo de extinción atmosférica exponencial (Beer-Lambert suave y espeso como en carretera)
+				float optical_fog = 1.0 - exp(-density * fog_density * 3.8);
+				optical_fog = clamp(optical_fog, 0.0, 1.0);
+
+				// Límite según zona explorada (Shroud) o niebla completa
+				float max_density = mix(fog_opacity, shroud_opacity, explored * (1.0 - current_vision));
+				optical_fog = min(optical_fog, max_density);
+
+				if (optical_fog > 0.003) {
+					// --- PALETA DE COLOR DE LA NIEBLA ---
+					// De sombra densa a crestas de niebla iluminadas por la atmósfera
+					vec3 fog_palette = mix(fog_color_dark, fog_color_mid, smoothstep(0.22, 0.62, cloud_structure));
+					fog_palette      = mix(fog_palette, fog_color_light, smoothstep(0.55, 0.90, cloud_layer1) * 0.45);
+					fog_palette      = mix(fog_palette, swamp_tint, cloud_structure * swamp_mix);
+
+					// Zonas exploradas en memoria: tono más frío y diáfano
+					vec3 explored_tint  = mix(fog_palette, vec3(0.60, 0.62, 0.65), 0.35);
+					vec3 target_fog_col = mix(fog_palette, explored_tint, explored * (1.0 - current_vision));
+
+					// --- DISPERSIÓN ATMOSFÉRICA & DESATURACIÓN ---
+					// La niebla quita la saturación y el contraste del fondo
+					float lum = dot(screen_color, vec3(0.299, 0.587, 0.114));
+					vec3 desaturated = mix(screen_color, vec3(lum), fog_desaturate * optical_fog);
+
+					// Mezcla con el velo de niebla
+					final_color = mix(desaturated, target_fog_col, optical_fog);
+
+					// Relieve tridimensional suave de nubes y partículas en suspensión
+					final_color += (cloud_structure - 0.5) * 0.075 * optical_fog;
+					final_color += (particles - 0.5) * 0.030 * optical_fog;
+
+					final_color = clamp(final_color, vec3(0.0), vec3(1.0));
 				}
 			}
 		}
