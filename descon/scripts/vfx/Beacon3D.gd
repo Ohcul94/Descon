@@ -138,7 +138,7 @@ func _build_beacon():
 	_ring_t.rotation_degrees.z = 45
 	_floating.add_child(_ring_t)
 
-	for i in 5:
+	for i in range(5):
 		var mote = MeshInstance3D.new()
 		mote.name = "Mote%d" % i
 		var ms = SphereMesh.new()

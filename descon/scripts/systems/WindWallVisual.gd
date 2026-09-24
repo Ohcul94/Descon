@@ -171,7 +171,7 @@ func _draw() -> void:
 	var t := Time.get_ticks_msec() / 1000.0
 	var hw := _width / 2.0
 	# Remolinos/estrías que viajan a lo largo de la pared
-	for i in 6:
+	for i in range(6):
 		var base_y := lerpf(-hw, hw, (i + 0.5) / 6.0)
 		var off := fmod(t * 24.0 + float(i) * 0.6, 1.0)
 		var x0 := -30.0 + off * 60.0

@@ -30,6 +30,9 @@ var zoom_level: float = 1.0
 var pan_offset: Vector2 = Vector2.ZERO
 var is_panning: bool = false
 var pan_start: Vector2 = Vector2.ZERO
+var _press_node_id: String = ""
+var _drag_moved: bool = false
+var _camera_ready: bool = false
 var hovered_node_id: String = ""
 
 # UI references
@@ -48,6 +51,9 @@ var tooltip_panel: PanelContainer
 
 # Categorías dinámicas
 var categories_list: Array = []
+
+# Caché local de texturas de iconos (además de InventoryCache)
+var _icon_tex_cache: Dictionary = {}
 
 # Colores (dinámicos desde config)
 var cat_colors: Dictionary = {}
@@ -82,6 +88,14 @@ func update_ui():
 	# Reset pending
 	pending_points.clear()
 	total_pending_cost = 0
+
+	# Reconstrucción → nueva cámara (centrar una vez en el próximo resize)
+	_camera_ready = false
+	is_panning = false
+	_press_node_id = ""
+	_drag_moved = false
+	hovered_node_id = ""
+	tree_canvas = null
 
 	# Cargar config
 	_load_talents_config()
@@ -215,9 +229,10 @@ func _build_ui():
 	tree_canvas.gui_input.connect(_on_tree_input)
 	tree_canvas.mouse_exited.connect(_on_tree_mouse_exit)
 
-	# Centrar cámara en el origen después del primer resize
-	tree_canvas.resized.connect(_center_camera_on_origin)
-	call_deferred("_center_camera_on_origin")
+	# Centrar una sola vez tras el primer resize (no recentrar en cada layout:
+	# eso reseteaba la cámara y "parpadeaba" el árbol al arrastrar / abrir paneles)
+	tree_canvas.resized.connect(_on_tree_canvas_resized)
+	call_deferred("_on_tree_canvas_resized")
 
 	# ═══ Tooltip (hijo de tree_canvas para que la posición sea correcta) ═══
 	tooltip_panel = PanelContainer.new()
@@ -896,11 +911,21 @@ func _draw_nodes():
 			# Fondo poligonal oscuro detrás del icono para nitidez
 			_draw_hexagon(scr, radius * 0.52, Color(0.01, 0.02, 0.06, 0.65 * alpha), Color(cc.r, cc.g, cc.b, 0.2 * alpha), 1.0)
 
-			# Icono (centrado manualmente)
+			# Icono: textura si el icon es ruta res://, si no emoji
 			var icon = talent.get("icon", "🌳")
-			var icon_fs = max(int(16 * zoom_level), 8) if ntype == "small" else (max(int(20 * zoom_level), 10) if ntype == "notable" else max(int(28 * zoom_level), 14))
-			var icon_sz = default_font.get_string_size(icon, HORIZONTAL_ALIGNMENT_CENTER, -1, icon_fs)
-			tree_canvas.draw_string(default_font, Vector2(scr.x - icon_sz.x * 0.45, scr.y + icon_sz.y * 0.35), icon, HORIZONTAL_ALIGNMENT_LEFT, -1, icon_fs, Color(1, 1, 1, alpha))
+			var icon_drawn := false
+			if typeof(icon) == TYPE_STRING and (icon.begins_with("res://") or icon.contains("/assets/") or icon.ends_with(".png") or icon.ends_with(".webp") or icon.ends_with(".jpg")):
+				var tex = _get_talent_icon_texture(icon)
+				if tex:
+					var base_sz = (radius * 1.15) if ntype != "small" else (radius * 1.05)
+					var tex_sz = Vector2(base_sz, base_sz)
+					var dest = Rect2(scr - tex_sz * 0.5, tex_sz)
+					tree_canvas.draw_texture_rect(tex, dest, false, Color(1, 1, 1, alpha))
+					icon_drawn = true
+			if not icon_drawn:
+				var icon_fs = max(int(16 * zoom_level), 8) if ntype == "small" else (max(int(20 * zoom_level), 10) if ntype == "notable" else max(int(28 * zoom_level), 14))
+				var icon_sz = default_font.get_string_size(icon, HORIZONTAL_ALIGNMENT_CENTER, -1, icon_fs)
+				tree_canvas.draw_string(default_font, Vector2(scr.x - icon_sz.x * 0.45, scr.y + icon_sz.y * 0.35), icon, HORIZONTAL_ALIGNMENT_LEFT, -1, icon_fs, Color(1, 1, 1, alpha))
 
 			# Nombre: ubicado de manera limpia y con espacio DEBAJO de las barritas (sin taparse jamás)
 			var nm = talent.get("name", "")
@@ -918,6 +943,21 @@ func _draw_nodes():
 				var lk_fs = max(int(16 * zoom_level), 6)
 				var lk_sz = default_font.get_string_size(lk, HORIZONTAL_ALIGNMENT_CENTER, -1, lk_fs)
 				tree_canvas.draw_string(default_font, scr - lk_sz / 2, lk, HORIZONTAL_ALIGNMENT_LEFT, -1, lk_fs, Color(1, 0.84, 0, 0.85))
+
+func _get_talent_icon_texture(icon: String) -> Texture2D:
+	if icon == "":
+		return null
+	if _icon_tex_cache.has(icon):
+		return _icon_tex_cache[icon]
+	var tex: Texture2D = null
+	if ResourceLoader.exists(icon):
+		tex = load(icon)
+		if not (tex is Texture2D):
+			tex = null
+	if tex == null and InventoryCache:
+		tex = InventoryCache.get_texture(icon)
+	_icon_tex_cache[icon] = tex
+	return tex
 
 func _draw_hexagon_border(center: Vector2, radius: float, color: Color, width: float):
 	var pts = PackedVector2Array()
@@ -1031,76 +1071,125 @@ func _draw_rect_dashed_border(rect: Rect2, color: Color, width: float):
 # ═══════════════════════════════════════════════════════
 
 func _on_tree_input(event: InputEvent):
-	if not tree_canvas:
+	if not tree_canvas or not is_visible_in_tree():
 		return
 
-	# Cerrar panel de resumen con tecla ESC
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		if summary_panel and summary_panel.visible:
-			_set_summary_panel_visible(false)
-			accept_event()
-			return
-
+	# ═══ Presión / botones: solo en el canvas (gui_input) ═══
 	if event is InputEventMouseButton:
-		# ═══ ZOOM (rueda) ═══
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			_zoom_at(event.position, 0.1)
+		# Zoom (rueda) — accept_event evita scroll paralelo del TabContainer
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			accept_event()
+			_zoom_at(event.position, 1.0)
 			return
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			_zoom_at(event.position, -0.1)
-			return
-
-		# ═══ LEFT CLICK: agregar punto pendiente o pan ═══
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
-				var nid = _get_node_at_position(event.position)
-				if nid != "":
-					_try_add_pending(nid)
-				else:
-					is_panning = true
-					pan_start = event.position
-			else:
-				is_panning = false
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			accept_event()
+			_zoom_at(event.position, -1.0)
 			return
 
-		# ═══ RIGHT CLICK: quitar punto pendiente ═══
+		# Left: iniciar pan/click (el release y el motion se resuelven en _input)
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			accept_event()
+			pan_start = event.global_position
+			_press_node_id = _get_node_at_position(event.position)
+			_drag_moved = false
+			is_panning = true
+			return
+
+		# Right: quitar punto pendiente
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			accept_event()
 			var nid = _get_node_at_position(event.position)
 			if nid != "":
 				_try_remove_pending(nid)
 			return
 
-		# ═══ MIDDLE CLICK: reset zoom y centrar en origen ═══
+		# Middle: zoom 1 + centrar árbol
 		if event.button_index == MOUSE_BUTTON_MIDDLE and event.pressed:
+			accept_event()
 			zoom_level = 1.0
-			if tree_canvas:
-				pan_offset = tree_canvas.size / 2.0
-			else:
-				pan_offset = Vector2.ZERO
-			tree_canvas.queue_redraw()
+			_center_camera_on_bounds()
 			return
 
-	elif event is InputEventMouseMotion:
-		if is_panning:
-			pan_offset += event.position - pan_start
-			pan_start = event.position
-			_clamp_pan()
+	# Hover solo cuando no arrastramos (posición local del canvas)
+	if event is InputEventMouseMotion and not is_panning:
+		var new_h = _get_node_at_position(event.position)
+		if new_h != hovered_node_id:
+			hovered_node_id = new_h
 			tree_canvas.queue_redraw()
-		else:
-			var new_h = _get_node_at_position(event.position)
-			if new_h != hovered_node_id:
-				hovered_node_id = new_h
-				tree_canvas.queue_redraw()
+			if new_h != "":
 				_update_tooltip(event.position)
+			else:
+				_hide_tooltip()
 
 func _on_tree_mouse_exit():
+	# No cortar el hover/pan si el ratón sale un frame al arrastrar
+	if is_panning:
+		return
 	hovered_node_id = ""
 	tree_canvas.queue_redraw()
 	_hide_tooltip()
 
-func _zoom_at(mouse_pos: Vector2, delta: float):
+func _input(event):
+	# is_visible_in_tree: pestaña activa + inventario abierto
+	if not is_visible_in_tree() or not tree_canvas:
+		return
+
+	# ESC cierra el resumen (sin depender del foco del canvas)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if summary_panel and summary_panel.visible:
+			_set_summary_panel_visible(false)
+			get_viewport().set_input_as_handled()
+			return
+
+	if not is_panning:
+		return
+
+	# Pan/click se resuelven aquí: sigue funcionando si el mouse sale del canvas
+	# y evita pelear con scroll/handlers hermanos (el clásico "parpadeo").
+	if event is InputEventMouseMotion:
+		var g = event.global_position
+		var delta = g - pan_start
+		if not _drag_moved and delta.length() >= 5.0:
+			_drag_moved = true
+		if _drag_moved:
+			pan_offset += delta
+			pan_start = g
+			if hovered_node_id != "" or (tooltip_panel and tooltip_panel.visible):
+				hovered_node_id = ""
+				_hide_tooltip()
+			_clamp_pan()
+			tree_canvas.queue_redraw()
+			get_viewport().set_input_as_handled()
+		return
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		# Release fuera del canvas o tras drag → no cuentan como click en nodo
+		if _drag_moved or not tree_canvas.get_global_rect().has_point(event.global_position):
+			_press_node_id = ""
+		var add_id = _press_node_id
+		_press_node_id = ""
+		_drag_moved = false
+		is_panning = false
+		if add_id != "":
+			_try_add_pending(add_id)
+		get_viewport().set_input_as_handled()
+
+func _notification(what: int):
+	if what == NOTIFICATION_VISIBILITY_CHANGED:
+		# Si la pestaña se oculta a mitad de drag, no dejar pan "pegado"
+		if not is_visible_in_tree():
+			is_panning = false
+			_press_node_id = ""
+			_drag_moved = false
+			hovered_node_id = ""
+			_hide_tooltip()
+
+func _zoom_at(mouse_pos: Vector2, dir: float):
 	var old_zoom = zoom_level
-	zoom_level = clamp(zoom_level + delta, 0.2, 3.0)
+	# Multiplicativo: natural y estable en 0.15–4.0
+	zoom_level = clamp(zoom_level * (1.12 if dir > 0 else 1.0 / 1.12), 0.15, 4.0)
+	if old_zoom == zoom_level:
+		return
 
 	var world_under_mouse = (mouse_pos - pan_offset) / old_zoom
 	pan_offset = mouse_pos - world_under_mouse * zoom_level
@@ -1395,10 +1484,24 @@ func _hide_tooltip():
 # UTILIDADES
 # ═══════════════════════════════════════════════════════
 
-func _center_camera_on_origin():
-	if tree_canvas and tree_canvas.size.x > 0:
-		pan_offset = tree_canvas.size / 2.0
+func _on_tree_canvas_resized():
+	if not tree_canvas or tree_canvas.size.x <= 0:
+		return
+	if _camera_ready:
+		# Solo re-clamp suave; no resetear la vista del jugador
+		_clamp_pan()
 		tree_canvas.queue_redraw()
+		return
+	_camera_ready = true
+	_center_camera_on_bounds()
+
+func _center_camera_on_bounds():
+	if not tree_canvas or tree_canvas.size.x <= 0:
+		return
+	var bounds = _get_node_bounds()
+	var center = bounds.position + bounds.size * 0.5
+	pan_offset = tree_canvas.size * 0.5 - center * zoom_level
+	tree_canvas.queue_redraw()
 
 func _world_to_screen(world_pos: Vector2) -> Vector2:
 	return world_pos * zoom_level + pan_offset
@@ -1419,39 +1522,37 @@ func _get_node_bounds() -> Rect2:
 	return Rect2(min_pos - Vector2(pad, pad), (max_pos - min_pos) + Vector2(pad * 2, pad * 2))
 
 func _get_tree_center() -> Vector2:
-	return Vector2.ZERO
+	var bounds = _get_node_bounds()
+	return bounds.position + bounds.size * 0.5
 
 func _clamp_pan():
+	# Soft clamp: solo evita perder el árbol por completo.
+	# NO fuerza el origen (0,0) a la pantalla (eso peleaba con el drag y
+	# bloqueaba llegar a los bordes al hacer zoom in).
+	if not tree_canvas or tree_canvas.size.x <= 0:
+		return
 	var sz = tree_canvas.size
-	# El origen (0,0) siempre debe estar visible, centrado ligeramente
-	var origin_scr = _world_to_screen(Vector2.ZERO)
-	var margin = sz * 0.2
-	if origin_scr.x < margin.x:
-		pan_offset.x += margin.x - origin_scr.x
-	if origin_scr.y < margin.y:
-		pan_offset.y += margin.y - origin_scr.y
-	if origin_scr.x > sz.x - margin.x:
-		pan_offset.x -= origin_scr.x - (sz.x - margin.x)
-	if origin_scr.y > sz.y - margin.y:
-		pan_offset.y -= origin_scr.y - (sz.y - margin.y)
-	# También limitar por los bounds de nodos
 	if nodes_data.is_empty():
 		return
+
 	var bounds = _get_node_bounds()
-	var tl = bounds.position * zoom_level + pan_offset
-	var br = (bounds.position + bounds.size) * zoom_level + pan_offset
-	var over_l = max(0.0, tl.x - margin.x)
-	var over_t = max(0.0, tl.y - margin.y)
-	var over_r = max(0.0, (sz.x - margin.x) - br.x)
-	var over_b = max(0.0, (sz.y - margin.y) - br.y)
-	if over_l > 0:
-		pan_offset.x -= over_l
-	if over_t > 0:
-		pan_offset.y -= over_t
-	if over_r > 0:
-		pan_offset.x += over_r
-	if over_b > 0:
-		pan_offset.y += over_b
+	var tl = _world_to_screen(bounds.position)
+	var br = _world_to_screen(bounds.position + bounds.size)
+
+	# Debe quedar al menos un trozo del árbol visible en cada eje
+	var min_visible = min(80.0, sz.x * 0.12, sz.y * 0.12)
+
+	# Árbol casi fuera por la derecha/abajo → empujar de vuelta
+	if tl.x > sz.x - min_visible:
+		pan_offset.x -= tl.x - (sz.x - min_visible)
+	if tl.y > sz.y - min_visible:
+		pan_offset.y -= tl.y - (sz.y - min_visible)
+
+	# Árbol casi fuera por la izquierda/arriba → empujar de vuelta
+	if br.x < min_visible:
+		pan_offset.x += min_visible - br.x
+	if br.y < min_visible:
+		pan_offset.y += min_visible - br.y
 
 func _get_node_at_position(screen_pos: Vector2) -> String:
 	var closest_id = ""

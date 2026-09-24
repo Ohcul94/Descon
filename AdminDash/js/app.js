@@ -3986,7 +3986,7 @@ function showTalentTooltip(nodeId, mouseX, mouseY) {
     
     tooltip.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
-            <span style="font-size: 1.8rem;">${talent.icon || '🌳'}</span>
+            <span style="display:inline-flex; width:32px; height:32px; align-items:center; justify-content:center; flex-shrink:0;">${assetIconHtml(talent.icon, { size: 32, fallback: '🌀', emojiSize: '26px', emptyHtml: '🌳', style: 'width:32px;height:32px;object-fit:contain;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.3);' })}</span>
             <div>
                 <div style="font-weight: bold; color: ${catColor}; font-size: 0.9rem;">${talent.name}</div>
                 <div style="font-size: 0.7rem; color: #888;">${catLabel} • ${typeInfo.label} (Nivel ${(talent.currentLevel || 0)}/${talent.maxLevel || 5})</div>
@@ -4431,7 +4431,7 @@ function showTalentNodeEditor(nodeId) {
     
     // Generar campos de edición rápida del nodo mapeado
     content.innerHTML = `
-        <div style="font-size: 1.8rem; text-align:center; margin-bottom: 10px;">${talent.icon || '🌳'}</div>
+        <div style="font-size: 1.8rem; text-align:center; margin-bottom: 10px; display:flex; justify-content:center;">${assetIconHtml(talent.icon, { size: 40, fallback: '🌀', emojiSize: '32px', emptyHtml: '🌳', style: 'width:40px;height:40px;object-fit:contain;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.3);' })}</div>
         <div style="font-weight:bold; color:var(--accent); text-align:center; margin-bottom: 15px;">${talent.name}</div>
         
         <div class="field" style="margin-bottom: 12px;">

@@ -11908,7 +11908,7 @@
             "duration": 8000,
             "heal_amount": 250,
             "icon": "res://assets/Skills/Iconos/Cura/Baliza Curativa/Baliza Curativa.png",
-            "id": "SK-HEAL-02",
+            "id": "SK-HEAL-05",
             "name": "BALIZA DE CURACION",
             "pulse_interval": 1500,
             "radius": 200,
@@ -12092,7 +12092,8 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "id": "SK-ATK-02"
         },
         "FROST-TRAIL": {
             "canTargetOthers": false,
@@ -12579,241 +12580,862 @@
         "connections": [
             {
                 "from": "atk_root",
-                "to": "atk_m1"
+                "to": "atk_stats"
             },
             {
-                "from": "atk_m1",
-                "to": "atk_m1_s1"
+                "from": "atk_stats",
+                "to": "atk_weapons"
             },
             {
-                "from": "atk_m1",
-                "to": "atk_m1_s2"
+                "from": "atk_stats",
+                "to": "atk_am_electron"
+            },
+            {
+                "from": "atk_am_electron",
+                "to": "atk_am_electron_cast"
+            },
+            {
+                "from": "atk_am_electron",
+                "to": "atk_am_electron_cd"
+            },
+            {
+                "from": "atk_stats",
+                "to": "atk_am_emp"
+            },
+            {
+                "from": "atk_am_emp",
+                "to": "atk_am_emp_cast"
+            },
+            {
+                "from": "atk_am_emp",
+                "to": "atk_am_emp_cd"
+            },
+            {
+                "from": "atk_stats",
+                "to": "atk_am_heal"
+            },
+            {
+                "from": "atk_am_heal",
+                "to": "atk_am_heal_cast"
+            },
+            {
+                "from": "atk_am_heal",
+                "to": "atk_am_heal_cd"
+            },
+            {
+                "from": "atk_stats",
+                "to": "atk_am_laser"
+            },
+            {
+                "from": "atk_am_laser",
+                "to": "atk_am_laser_cast"
+            },
+            {
+                "from": "atk_am_laser",
+                "to": "atk_am_laser_cd"
+            },
+            {
+                "from": "atk_stats",
+                "to": "atk_am_melee"
+            },
+            {
+                "from": "atk_am_melee",
+                "to": "atk_am_melee_cast"
+            },
+            {
+                "from": "atk_am_melee",
+                "to": "atk_am_melee_cd"
+            },
+            {
+                "from": "atk_stats",
+                "to": "atk_am_mine"
+            },
+            {
+                "from": "atk_am_mine",
+                "to": "atk_am_mine_cast"
+            },
+            {
+                "from": "atk_am_mine",
+                "to": "atk_am_mine_cd"
+            },
+            {
+                "from": "atk_stats",
+                "to": "atk_am_missile"
+            },
+            {
+                "from": "atk_am_missile",
+                "to": "atk_am_missile_cast"
+            },
+            {
+                "from": "atk_am_missile",
+                "to": "atk_am_missile_cd"
+            },
+            {
+                "from": "atk_stats",
+                "to": "atk_am_siphon"
+            },
+            {
+                "from": "atk_am_siphon",
+                "to": "atk_am_siphon_cast"
+            },
+            {
+                "from": "atk_am_siphon",
+                "to": "atk_am_siphon_cd"
             },
             {
                 "from": "atk_root",
-                "to": "atk_m2"
+                "to": "attack_skills"
             },
             {
-                "from": "atk_m2",
-                "to": "atk_m2_s1"
+                "from": "attack_skills",
+                "to": "attack_sk1"
             },
             {
-                "from": "atk_m2",
-                "to": "atk_m2_s2"
+                "from": "attack_sk1",
+                "to": "attack_sk1_s1"
+            },
+            {
+                "from": "attack_sk1",
+                "to": "attack_sk1_s2"
+            },
+            {
+                "from": "attack_skills",
+                "to": "attack_sk2"
+            },
+            {
+                "from": "attack_sk2",
+                "to": "attack_sk2_s1"
+            },
+            {
+                "from": "attack_sk2",
+                "to": "attack_sk2_s2"
+            },
+            {
+                "from": "attack_skills",
+                "to": "attack_sk3"
+            },
+            {
+                "from": "attack_sk3",
+                "to": "attack_sk3_s1"
+            },
+            {
+                "from": "attack_sk3",
+                "to": "attack_sk3_s2"
             },
             {
                 "from": "def_root",
-                "to": "def_m1"
+                "to": "def_stats"
             },
             {
-                "from": "def_m1",
-                "to": "def_m1_s1"
+                "from": "def_stats",
+                "to": "def_stats_s1"
             },
             {
-                "from": "def_m1",
-                "to": "def_m1_s2"
+                "from": "def_stats",
+                "to": "def_stats_s2"
             },
             {
                 "from": "def_root",
-                "to": "def_m2"
+                "to": "fender_skills"
             },
             {
-                "from": "def_m2",
-                "to": "def_m2_s1"
+                "from": "fender_skills",
+                "to": "fender_sk1"
             },
             {
-                "from": "def_m2",
-                "to": "def_m2_s2"
+                "from": "fender_sk1",
+                "to": "fender_sk1_s1"
+            },
+            {
+                "from": "fender_sk1",
+                "to": "fender_sk1_s2"
+            },
+            {
+                "from": "fender_skills",
+                "to": "fender_sk2"
+            },
+            {
+                "from": "fender_sk2",
+                "to": "fender_sk2_s1"
+            },
+            {
+                "from": "fender_sk2",
+                "to": "fender_sk2_s2"
+            },
+            {
+                "from": "fender_skills",
+                "to": "fender_sk3"
+            },
+            {
+                "from": "fender_sk3",
+                "to": "fender_sk3_s1"
+            },
+            {
+                "from": "fender_sk3",
+                "to": "fender_sk3_s2"
+            },
+            {
+                "from": "fender_skills",
+                "to": "fender_sk4"
+            },
+            {
+                "from": "fender_sk4",
+                "to": "fender_sk4_s1"
+            },
+            {
+                "from": "fender_sk4",
+                "to": "fender_sk4_s2"
             },
             {
                 "from": "heal_root",
-                "to": "heal_m1"
+                "to": "heal_stats"
             },
             {
-                "from": "heal_m1",
-                "to": "heal_m1_s1"
+                "from": "heal_stats",
+                "to": "heal_stats_s1"
             },
             {
-                "from": "heal_m1",
-                "to": "heal_m1_s2"
+                "from": "heal_stats",
+                "to": "heal_stats_s2"
             },
             {
                 "from": "heal_root",
-                "to": "heal_m2"
+                "to": "healing_skills"
             },
             {
-                "from": "heal_m2",
-                "to": "heal_m2_s1"
+                "from": "healing_skills",
+                "to": "healing_sk1"
             },
             {
-                "from": "heal_m2",
-                "to": "heal_m2_s2"
+                "from": "healing_sk1",
+                "to": "healing_sk1_s1"
+            },
+            {
+                "from": "healing_sk1",
+                "to": "healing_sk1_s2"
+            },
+            {
+                "from": "healing_skills",
+                "to": "healing_sk2"
+            },
+            {
+                "from": "healing_sk2",
+                "to": "healing_sk2_s1"
+            },
+            {
+                "from": "healing_sk2",
+                "to": "healing_sk2_s2"
+            },
+            {
+                "from": "healing_skills",
+                "to": "healing_sk3"
+            },
+            {
+                "from": "healing_sk3",
+                "to": "healing_sk3_s1"
+            },
+            {
+                "from": "healing_sk3",
+                "to": "healing_sk3_s2"
+            },
+            {
+                "from": "healing_skills",
+                "to": "healing_sk4"
+            },
+            {
+                "from": "healing_sk4",
+                "to": "healing_sk4_s1"
+            },
+            {
+                "from": "healing_sk4",
+                "to": "healing_sk4_s2"
+            },
+            {
+                "from": "healing_skills",
+                "to": "healing_sk5"
+            },
+            {
+                "from": "healing_sk5",
+                "to": "healing_sk5_s1"
+            },
+            {
+                "from": "healing_sk5",
+                "to": "healing_sk5_s2"
             },
             {
                 "from": "uti_root",
-                "to": "uti_m1"
+                "to": "uti_stats"
             },
             {
-                "from": "uti_m1",
-                "to": "uti_m1_s1"
+                "from": "uti_stats",
+                "to": "uti_stats_s1"
             },
             {
-                "from": "uti_m1",
-                "to": "uti_m1_s2"
+                "from": "uti_stats",
+                "to": "uti_stats_s2"
             },
             {
                 "from": "uti_root",
-                "to": "uti_m2"
+                "to": "utility_skills"
             },
             {
-                "from": "uti_m2",
-                "to": "uti_m2_s1"
+                "from": "utility_skills",
+                "to": "utility_sk1"
             },
             {
-                "from": "uti_m2",
-                "to": "uti_m2_s2"
+                "from": "utility_sk1",
+                "to": "utility_sk1_s1"
+            },
+            {
+                "from": "utility_sk1",
+                "to": "utility_sk1_s2"
+            },
+            {
+                "from": "utility_skills",
+                "to": "utility_sk2"
+            },
+            {
+                "from": "utility_sk2",
+                "to": "utility_sk2_s1"
+            },
+            {
+                "from": "utility_sk2",
+                "to": "utility_sk2_s2"
+            },
+            {
+                "from": "utility_skills",
+                "to": "utility_sk3"
+            },
+            {
+                "from": "utility_sk3",
+                "to": "utility_sk3_s1"
+            },
+            {
+                "from": "utility_sk3",
+                "to": "utility_sk3_s2"
+            },
+            {
+                "from": "utility_skills",
+                "to": "utility_sk4"
+            },
+            {
+                "from": "utility_sk4",
+                "to": "utility_sk4_s1"
+            },
+            {
+                "from": "utility_sk4",
+                "to": "utility_sk4_s2"
+            },
+            {
+                "from": "utility_skills",
+                "to": "utility_sk5"
+            },
+            {
+                "from": "utility_sk5",
+                "to": "utility_sk5_s1"
+            },
+            {
+                "from": "utility_sk5",
+                "to": "utility_sk5_s2"
+            },
+            {
+                "from": "utility_skills",
+                "to": "utility_sk6"
+            },
+            {
+                "from": "utility_sk6",
+                "to": "utility_sk6_s1"
+            },
+            {
+                "from": "utility_sk6",
+                "to": "utility_sk6_s2"
             }
         ],
         "nodes": {
             "atk_root": {
                 "nodeType": "keystone",
                 "x": 0,
-                "y": 170
+                "y": 190
             },
-            "atk_m1": {
+            "atk_stats": {
                 "nodeType": "notable",
-                "x": 97,
-                "y": 303
+                "x": 110,
+                "y": 313
             },
-            "atk_m1_s1": {
-                "nodeType": "small",
-                "x": 222,
-                "y": 354
-            },
-            "atk_m1_s2": {
-                "nodeType": "small",
-                "x": 106,
-                "y": 438
-            },
-            "atk_m2": {
+            "atk_weapons": {
                 "nodeType": "notable",
-                "x": -97,
-                "y": 303
+                "x": 1229,
+                "y": 747
             },
-            "atk_m2_s1": {
-                "nodeType": "small",
-                "x": -106,
-                "y": 438
+            "atk_am_electron": {
+                "nodeType": "notable",
+                "x": 1166,
+                "y": 883
             },
-            "atk_m2_s2": {
+            "atk_am_electron_cast": {
                 "nodeType": "small",
-                "x": -222,
-                "y": 354
+                "x": 1275,
+                "y": 901
+            },
+            "atk_am_electron_cd": {
+                "nodeType": "small",
+                "x": 1240,
+                "y": 964
+            },
+            "atk_am_emp": {
+                "nodeType": "notable",
+                "x": 1086,
+                "y": 1011
+            },
+            "atk_am_emp_cast": {
+                "nodeType": "small",
+                "x": 1191,
+                "y": 1042
+            },
+            "atk_am_emp_cd": {
+                "nodeType": "small",
+                "x": 1150,
+                "y": 1101
+            },
+            "atk_am_heal": {
+                "nodeType": "notable",
+                "x": 991,
+                "y": 1128
+            },
+            "atk_am_heal_cast": {
+                "nodeType": "small",
+                "x": 1092,
+                "y": 1172
+            },
+            "atk_am_heal_cd": {
+                "nodeType": "small",
+                "x": 1043,
+                "y": 1225
+            },
+            "atk_am_laser": {
+                "nodeType": "notable",
+                "x": 881,
+                "y": 1232
+            },
+            "atk_am_laser_cast": {
+                "nodeType": "small",
+                "x": 975,
+                "y": 1289
+            },
+            "atk_am_laser_cd": {
+                "nodeType": "small",
+                "x": 920,
+                "y": 1335
+            },
+            "atk_am_melee": {
+                "nodeType": "notable",
+                "x": 760,
+                "y": 1322
+            },
+            "atk_am_melee_cast": {
+                "nodeType": "small",
+                "x": 846,
+                "y": 1390
+            },
+            "atk_am_melee_cd": {
+                "nodeType": "small",
+                "x": 786,
+                "y": 1429
+            },
+            "atk_am_mine": {
+                "nodeType": "notable",
+                "x": 628,
+                "y": 1395
+            },
+            "atk_am_mine_cast": {
+                "nodeType": "small",
+                "x": 705,
+                "y": 1473
+            },
+            "atk_am_mine_cd": {
+                "nodeType": "small",
+                "x": 641,
+                "y": 1504
+            },
+            "atk_am_missile": {
+                "nodeType": "notable",
+                "x": 489,
+                "y": 1452
+            },
+            "atk_am_missile_cast": {
+                "nodeType": "small",
+                "x": 556,
+                "y": 1539
+            },
+            "atk_am_missile_cd": {
+                "nodeType": "small",
+                "x": 488,
+                "y": 1562
+            },
+            "atk_am_siphon": {
+                "nodeType": "notable",
+                "x": 343,
+                "y": 1490
+            },
+            "atk_am_siphon_cast": {
+                "nodeType": "small",
+                "x": 398,
+                "y": 1585
+            },
+            "atk_am_siphon_cd": {
+                "nodeType": "small",
+                "x": 328,
+                "y": 1599
+            },
+            "attack_skills": {
+                "nodeType": "notable",
+                "x": 0,
+                "y": 355
+            },
+            "attack_sk1": {
+                "nodeType": "notable",
+                "x": 98,
+                "y": 624
+            },
+            "attack_sk1_s1": {
+                "nodeType": "small",
+                "x": 171,
+                "y": 725
+            },
+            "attack_sk1_s2": {
+                "nodeType": "small",
+                "x": 107,
+                "y": 749
+            },
+            "attack_sk2": {
+                "nodeType": "notable",
+                "x": 0,
+                "y": 641
+            },
+            "attack_sk2_s1": {
+                "nodeType": "small",
+                "x": 34,
+                "y": 761
+            },
+            "attack_sk2_s2": {
+                "nodeType": "small",
+                "x": -34,
+                "y": 761
+            },
+            "attack_sk3": {
+                "nodeType": "notable",
+                "x": -98,
+                "y": 624
+            },
+            "attack_sk3_s1": {
+                "nodeType": "small",
+                "x": -107,
+                "y": 749
+            },
+            "attack_sk3_s2": {
+                "nodeType": "small",
+                "x": -171,
+                "y": 725
             },
             "def_root": {
                 "nodeType": "keystone",
-                "x": -170,
+                "x": -190,
                 "y": 0
             },
-            "def_m1": {
+            "def_stats": {
                 "nodeType": "notable",
-                "x": -303,
-                "y": 97
+                "x": -313,
+                "y": 110
             },
-            "def_m1_s1": {
+            "def_stats_s1": {
                 "nodeType": "small",
-                "x": -354,
-                "y": 222
+                "x": -360,
+                "y": 226
             },
-            "def_m1_s2": {
+            "def_stats_s2": {
                 "nodeType": "small",
-                "x": -438,
-                "y": 106
+                "x": -433,
+                "y": 144
             },
-            "def_m2": {
+            "fender_skills": {
                 "nodeType": "notable",
-                "x": -303,
-                "y": -97
+                "x": -355,
+                "y": 0
             },
-            "def_m2_s1": {
-                "nodeType": "small",
-                "x": -438,
-                "y": -106
+            "fender_sk1": {
+                "nodeType": "notable",
+                "x": -603,
+                "y": 143
             },
-            "def_m2_s2": {
+            "fender_sk1_s1": {
                 "nodeType": "small",
-                "x": -354,
-                "y": -222
+                "x": -690,
+                "y": 233
+            },
+            "fender_sk1_s2": {
+                "nodeType": "small",
+                "x": -724,
+                "y": 173
+            },
+            "fender_sk2": {
+                "nodeType": "notable",
+                "x": -637,
+                "y": 50
+            },
+            "fender_sk2_s1": {
+                "nodeType": "small",
+                "x": -749,
+                "y": 105
+            },
+            "fender_sk2_s2": {
+                "nodeType": "small",
+                "x": -761,
+                "y": 37
+            },
+            "fender_sk3": {
+                "nodeType": "notable",
+                "x": -637,
+                "y": -50
+            },
+            "fender_sk3_s1": {
+                "nodeType": "small",
+                "x": -761,
+                "y": -37
+            },
+            "fender_sk3_s2": {
+                "nodeType": "small",
+                "x": -749,
+                "y": -105
+            },
+            "fender_sk4": {
+                "nodeType": "notable",
+                "x": -603,
+                "y": -143
+            },
+            "fender_sk4_s1": {
+                "nodeType": "small",
+                "x": -724,
+                "y": -173
+            },
+            "fender_sk4_s2": {
+                "nodeType": "small",
+                "x": -690,
+                "y": -233
             },
             "heal_root": {
                 "nodeType": "keystone",
                 "x": 0,
-                "y": -170
+                "y": -190
             },
-            "heal_m1": {
+            "heal_stats": {
                 "nodeType": "notable",
-                "x": -97,
-                "y": -303
+                "x": -110,
+                "y": -313
             },
-            "heal_m1_s1": {
+            "heal_stats_s1": {
                 "nodeType": "small",
-                "x": -222,
-                "y": -354
+                "x": -226,
+                "y": -360
             },
-            "heal_m1_s2": {
+            "heal_stats_s2": {
                 "nodeType": "small",
-                "x": -106,
-                "y": -438
+                "x": -144,
+                "y": -433
             },
-            "heal_m2": {
+            "healing_skills": {
                 "nodeType": "notable",
-                "x": 97,
-                "y": -303
+                "x": 0,
+                "y": -355
             },
-            "heal_m2_s1": {
-                "nodeType": "small",
-                "x": 106,
-                "y": -438
+            "healing_sk1": {
+                "nodeType": "notable",
+                "x": -184,
+                "y": -574
             },
-            "heal_m2_s2": {
+            "healing_sk1_s1": {
                 "nodeType": "small",
-                "x": 222,
-                "y": -354
+                "x": -288,
+                "y": -644
+            },
+            "healing_sk1_s2": {
+                "nodeType": "small",
+                "x": -235,
+                "y": -688
+            },
+            "healing_sk2": {
+                "nodeType": "notable",
+                "x": -98,
+                "y": -624
+            },
+            "healing_sk2_s1": {
+                "nodeType": "small",
+                "x": -171,
+                "y": -725
+            },
+            "healing_sk2_s2": {
+                "nodeType": "small",
+                "x": -107,
+                "y": -749
+            },
+            "healing_sk3": {
+                "nodeType": "notable",
+                "x": 0,
+                "y": -641
+            },
+            "healing_sk3_s1": {
+                "nodeType": "small",
+                "x": -34,
+                "y": -761
+            },
+            "healing_sk3_s2": {
+                "nodeType": "small",
+                "x": 34,
+                "y": -761
+            },
+            "healing_sk4": {
+                "nodeType": "notable",
+                "x": 98,
+                "y": -624
+            },
+            "healing_sk4_s1": {
+                "nodeType": "small",
+                "x": 107,
+                "y": -749
+            },
+            "healing_sk4_s2": {
+                "nodeType": "small",
+                "x": 171,
+                "y": -725
+            },
+            "healing_sk5": {
+                "nodeType": "notable",
+                "x": 184,
+                "y": -574
+            },
+            "healing_sk5_s1": {
+                "nodeType": "small",
+                "x": 235,
+                "y": -688
+            },
+            "healing_sk5_s2": {
+                "nodeType": "small",
+                "x": 288,
+                "y": -644
             },
             "uti_root": {
                 "nodeType": "keystone",
-                "x": 170,
+                "x": 190,
                 "y": 0
             },
-            "uti_m1": {
+            "uti_stats": {
                 "nodeType": "notable",
-                "x": 303,
-                "y": -97
+                "x": 313,
+                "y": -110
             },
-            "uti_m1_s1": {
+            "uti_stats_s1": {
                 "nodeType": "small",
-                "x": 354,
-                "y": -222
+                "x": 360,
+                "y": -226
             },
-            "uti_m1_s2": {
+            "uti_stats_s2": {
                 "nodeType": "small",
-                "x": 438,
-                "y": -106
+                "x": 433,
+                "y": -144
             },
-            "uti_m2": {
+            "utility_skills": {
                 "nodeType": "notable",
-                "x": 303,
-                "y": 97
+                "x": 355,
+                "y": 0
             },
-            "uti_m2_s1": {
-                "nodeType": "small",
-                "x": 438,
-                "y": 106
+            "utility_sk1": {
+                "nodeType": "notable",
+                "x": 539,
+                "y": -219
             },
-            "uti_m2_s2": {
+            "utility_sk1_s1": {
                 "nodeType": "small",
-                "x": 354,
-                "y": 222
+                "x": 590,
+                "y": -333
+            },
+            "utility_sk1_s2": {
+                "nodeType": "small",
+                "x": 643,
+                "y": -289
+            },
+            "utility_sk2": {
+                "nodeType": "notable",
+                "x": 603,
+                "y": -143
+            },
+            "utility_sk2_s1": {
+                "nodeType": "small",
+                "x": 690,
+                "y": -233
+            },
+            "utility_sk2_s2": {
+                "nodeType": "small",
+                "x": 724,
+                "y": -173
+            },
+            "utility_sk3": {
+                "nodeType": "notable",
+                "x": 637,
+                "y": -50
+            },
+            "utility_sk3_s1": {
+                "nodeType": "small",
+                "x": 749,
+                "y": -105
+            },
+            "utility_sk3_s2": {
+                "nodeType": "small",
+                "x": 761,
+                "y": -37
+            },
+            "utility_sk4": {
+                "nodeType": "notable",
+                "x": 637,
+                "y": 50
+            },
+            "utility_sk4_s1": {
+                "nodeType": "small",
+                "x": 761,
+                "y": 37
+            },
+            "utility_sk4_s2": {
+                "nodeType": "small",
+                "x": 749,
+                "y": 105
+            },
+            "utility_sk5": {
+                "nodeType": "notable",
+                "x": 603,
+                "y": 143
+            },
+            "utility_sk5_s1": {
+                "nodeType": "small",
+                "x": 724,
+                "y": 173
+            },
+            "utility_sk5_s2": {
+                "nodeType": "small",
+                "x": 690,
+                "y": 233
+            },
+            "utility_sk6": {
+                "nodeType": "notable",
+                "x": 539,
+                "y": 219
+            },
+            "utility_sk6_s1": {
+                "nodeType": "small",
+                "x": 643,
+                "y": 289
+            },
+            "utility_sk6_s2": {
+                "nodeType": "small",
+                "x": 590,
+                "y": 333
             }
         },
         "talents": [
@@ -12822,75 +13444,388 @@
                 "name": "ATAQUE",
                 "desc": "Nodo maestro de combate. +4% Daño Total por nivel.",
                 "icon": "⚔️",
-                "maxLevel": 3,
                 "effects": {
                     "dmg_pct": 0.04
                 },
+                "maxLevel": 4,
                 "category": "attack"
             },
             {
-                "id": "atk_m1",
-                "name": "CANALIZADOR LÁSER",
-                "desc": "+3% Daño Láser por nivel. Potencia los haces de energía.",
-                "icon": "🔫",
-                "maxLevel": 5,
+                "id": "atk_stats",
+                "name": "DAÑO",
+                "desc": "Mejora el daño de cada arma y las municiones por separado.",
+                "icon": "💥",
+                "effects": {},
+                "smalls": [],
+                "gear": true,
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_weapons",
+                "name": "ARMAS",
+                "desc": "+1% Daño de cada arma por nivel.",
+                "icon": "res://assets/Armas/Arma1/Arma1.png",
                 "effects": {
-                    "laser_dmg_pct": 0.03
+                    "weapon:las1:base": 0.01,
+                    "weapon:las2:base": 0.01
+                },
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_electron",
+                "name": "MUNICIÓN ELECTRÓN",
+                "desc": "Mejoras de Electrón: casteo y enfriamiento.",
+                "icon": "res://assets/Municiones/Iconos/electron/Electron.png",
+                "effects": {},
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_electron_cast",
+                "name": "CASTEO",
+                "desc": "-5% Velocidad de casteo de Electrón por nivel.",
+                "icon": "⏳",
+                "effects": {
+                    "ammo:electron:castTimeMs": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_electron_cd",
+                "name": "ENFRIAMIENTO",
+                "desc": "-5% CD de Electrón por nivel.",
+                "icon": "⏱️",
+                "effects": {
+                    "ammo:electron:cooldown": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_emp",
+                "name": "MUNICIÓN EMP",
+                "desc": "Mejoras de EMP: casteo y enfriamiento.",
+                "icon": "res://assets/Municiones/Iconos/emp/Emp.png",
+                "effects": {},
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_emp_cast",
+                "name": "CASTEO",
+                "desc": "-5% Velocidad de casteo de EMP por nivel.",
+                "icon": "⏳",
+                "effects": {
+                    "ammo:emp:castTimeMs": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_emp_cd",
+                "name": "ENFRIAMIENTO",
+                "desc": "-5% CD de EMP por nivel.",
+                "icon": "⏱️",
+                "effects": {
+                    "ammo:emp:cooldown": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_heal",
+                "name": "MUNICIÓN DRONES",
+                "desc": "Mejoras de Drones: casteo y enfriamiento.",
+                "icon": "res://assets/Municiones/Iconos/heal/Heal.png",
+                "effects": {},
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_heal_cast",
+                "name": "CASTEO",
+                "desc": "-5% Velocidad de casteo de Drones por nivel.",
+                "icon": "⏳",
+                "effects": {
+                    "ammo:heal:castTimeMs": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_heal_cd",
+                "name": "ENFRIAMIENTO",
+                "desc": "-5% CD de Drones por nivel.",
+                "icon": "⏱️",
+                "effects": {
+                    "ammo:heal:cooldown": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_laser",
+                "name": "MUNICIÓN LÁSER",
+                "desc": "Mejoras de Láser: casteo y enfriamiento.",
+                "icon": "res://assets/Municiones/Iconos/laser/Laser.png",
+                "effects": {},
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_laser_cast",
+                "name": "CASTEO",
+                "desc": "-5% Velocidad de casteo de Láser por nivel.",
+                "icon": "⏳",
+                "effects": {
+                    "ammo:laser:castTimeMs": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_laser_cd",
+                "name": "ENFRIAMIENTO",
+                "desc": "-5% CD de Láser por nivel.",
+                "icon": "⏱️",
+                "effects": {
+                    "ammo:laser:cooldown": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_melee",
+                "name": "MUNICIÓN PLASMA",
+                "desc": "Mejoras de Plasma: casteo y enfriamiento.",
+                "icon": "res://assets/Municiones/Iconos/melee/Melee.png",
+                "effects": {},
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_melee_cast",
+                "name": "CASTEO",
+                "desc": "-5% Velocidad de casteo de Plasma por nivel.",
+                "icon": "⏳",
+                "effects": {
+                    "ammo:melee:castTimeMs": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_melee_cd",
+                "name": "ENFRIAMIENTO",
+                "desc": "-5% CD de Plasma por nivel.",
+                "icon": "⏱️",
+                "effects": {
+                    "ammo:melee:cooldown": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_mine",
+                "name": "MUNICIÓN MINA",
+                "desc": "Mejoras de Mina: casteo y enfriamiento.",
+                "icon": "res://assets/Municiones/Iconos/mine/Mine.png",
+                "effects": {},
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_mine_cast",
+                "name": "CASTEO",
+                "desc": "-5% Velocidad de casteo de Mina por nivel.",
+                "icon": "⏳",
+                "effects": {
+                    "ammo:mine:castTimeMs": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_mine_cd",
+                "name": "ENFRIAMIENTO",
+                "desc": "-5% CD de Mina por nivel.",
+                "icon": "⏱️",
+                "effects": {
+                    "ammo:mine:cooldown": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_missile",
+                "name": "MUNICIÓN MISIL",
+                "desc": "Mejoras de Misil: casteo y enfriamiento.",
+                "icon": "res://assets/Municiones/Iconos/missile/Missile.png",
+                "effects": {},
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_missile_cast",
+                "name": "CASTEO",
+                "desc": "-5% Velocidad de casteo de Misil por nivel.",
+                "icon": "⏳",
+                "effects": {
+                    "ammo:missile:castTimeMs": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_missile_cd",
+                "name": "ENFRIAMIENTO",
+                "desc": "-5% CD de Misil por nivel.",
+                "icon": "⏱️",
+                "effects": {
+                    "ammo:missile:cooldown": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_siphon",
+                "name": "MUNICIÓN SIFÓN",
+                "desc": "Mejoras de Sifón: casteo y enfriamiento.",
+                "icon": "res://assets/Municiones/Iconos/siphon/Siphon.png",
+                "effects": {},
+                "maxLevel": 3,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_siphon_cast",
+                "name": "CASTEO",
+                "desc": "-5% Velocidad de casteo de Sifón por nivel.",
+                "icon": "⏳",
+                "effects": {
+                    "ammo:siphon:castTimeMs": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "atk_am_siphon_cd",
+                "name": "ENFRIAMIENTO",
+                "desc": "-5% CD de Sifón por nivel.",
+                "icon": "⏱️",
+                "effects": {
+                    "ammo:siphon:cooldown": -0.05
+                },
+                "maxLevel": 2,
+                "category": "attack"
+            },
+            {
+                "id": "attack_skills",
+                "name": "RUTAS DE HABILIDAD",
+                "desc": "Mejoras de habilidades de Ataque.",
+                "icon": "🌀",
+                "maxLevel": 3,
+                "effects": {},
+                "category": "attack"
+            },
+            {
+                "id": "attack_sk1",
+                "name": "REFLECT-OMEGA",
+                "desc": "Maestría de REFLECT-OMEGA. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-ATK-01:cd": -0.03
                 },
                 "category": "attack"
             },
             {
-                "id": "atk_m1_s1",
-                "name": "PERFORACIÓN TÉRMICA",
-                "desc": "+3% de ignorar escudo por nivel.",
+                "id": "attack_sk1_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de REFLECT-OMEGA por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-ATK-01:cd": -0.04
+                },
+                "category": "attack"
+            },
+            {
+                "id": "attack_sk1_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Potencia de Reflejo de REFLECT-OMEGA por nivel.",
                 "icon": "⚡",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "effects": {
-                    "ignore_shield_pct": 0.03
+                    "skill:SK-ATK-01:amount": 0.05
                 },
                 "category": "attack"
             },
             {
-                "id": "atk_m1_s2",
-                "name": "CADENCIA MILITAR",
-                "desc": "+2% Cadencia de fuego por nivel.",
-                "icon": "⚔️",
-                "maxLevel": 5,
+                "id": "attack_sk2",
+                "name": "ESFERA DE TERROR",
+                "desc": "Maestría de ESFERA DE TERROR. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Ataque/Miedo/Miedo.png",
+                "maxLevel": 3,
                 "effects": {
-                    "fire_rate_pct": 0.02
+                    "skill:SK-ATK-02:cd": -0.03
                 },
                 "category": "attack"
             },
             {
-                "id": "atk_m2",
-                "name": "ARSENAL PESADO",
-                "desc": "+4% Munición extra por nivel. Más proyectiles en combate.",
-                "icon": "💣",
-                "maxLevel": 5,
+                "id": "attack_sk2_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de ESFERA DE TERROR por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
                 "effects": {
-                    "ammo_bonus_pct": 0.04
+                    "skill:SK-ATK-02:cd": -0.04
                 },
                 "category": "attack"
             },
             {
-                "id": "atk_m2_s1",
-                "name": "IMPULSO LÁSER",
-                "desc": "+5% Alcance de munición láser por nivel.",
-                "icon": "🎯",
-                "maxLevel": 5,
+                "id": "attack_sk2_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Potencia de ESFERA DE TERROR por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
                 "effects": {
-                    "ammo:laser:range": 0.05
+                    "skill:SK-ATK-02:amount": 0.05
                 },
                 "category": "attack"
             },
             {
-                "id": "atk_m2_s2",
-                "name": "MILOS MISIL",
-                "desc": "+5% Velocidad de proyectil de misil por nivel.",
-                "icon": "🚀",
-                "maxLevel": 5,
+                "id": "attack_sk3",
+                "name": "PROVOCACION",
+                "desc": "Maestría de PROVOCACION. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Ataque/Provocacion/Provocacion.png",
+                "maxLevel": 3,
                 "effects": {
-                    "ammo:missile:bulletSpeed": 0.05
+                    "skill:SK-DEF-06:cd": -0.03
+                },
+                "category": "attack"
+            },
+            {
+                "id": "attack_sk3_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de PROVOCACION por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-06:cd": -0.04
+                },
+                "category": "attack"
+            },
+            {
+                "id": "attack_sk3_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Duración Provocación de PROVOCACION por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-06:taunt_duration": 0.05
                 },
                 "category": "attack"
             },
@@ -12899,7 +13834,7 @@
                 "name": "DEFENSA",
                 "desc": "Nodo maestro de supervivencia. +5% Vida y +5% Escudo por nivel.",
                 "icon": "🛡️",
-                "maxLevel": 3,
+                "maxLevel": 4,
                 "effects": {
                     "hp_pct": 0.05,
                     "sh_pct": 0.05
@@ -12907,68 +13842,199 @@
                 "category": "fender"
             },
             {
-                "id": "def_m1",
-                "name": "NÚCLEO DE CASCO",
-                "desc": "+3% Vida máxima por nivel. Refuerza la estructura interna.",
+                "id": "def_stats",
+                "name": "CASCO REFORZADO",
+                "desc": "Stats de nave de resistencia. +3% Vida y +3% Escudo por nivel.",
                 "icon": "💠",
-                "maxLevel": 5,
+                "maxLevel": 3,
                 "effects": {
-                    "hp_pct": 0.03
+                    "hp_pct": 0.03,
+                    "sh_pct": 0.03
                 },
+                "smalls": [
+                    {
+                        "id": "def_stats_s1",
+                        "name": "REGEN DE COMBATE",
+                        "desc": "+4% Regeneración de vida por nivel.",
+                        "icon": "🔧",
+                        "maxLevel": 5,
+                        "effects": {
+                            "hp_regen": 0.04
+                        }
+                    },
+                    {
+                        "id": "def_stats_s2",
+                        "name": "CAPACITOR DINÁMICO",
+                        "desc": "+5% Regeneración de escudo por nivel.",
+                        "icon": "🔋",
+                        "maxLevel": 5,
+                        "effects": {
+                            "shield_regen": 0.05
+                        }
+                    }
+                ],
                 "category": "fender"
             },
             {
-                "id": "def_m1_s1",
+                "id": "def_stats_s1",
                 "name": "REGEN DE COMBATE",
                 "desc": "+4% Regeneración de vida por nivel.",
                 "icon": "🔧",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "effects": {
                     "hp_regen": 0.04
                 },
                 "category": "fender"
             },
             {
-                "id": "def_m1_s2",
-                "name": "PLACAS NANOBOT",
-                "desc": "+2% Armadura total por nivel.",
-                "icon": "⚙️",
-                "maxLevel": 5,
-                "effects": {
-                    "armor_pct": 0.02
-                },
-                "category": "fender"
-            },
-            {
-                "id": "def_m2",
-                "name": "BARRERA DE PLASMA",
-                "desc": "+4% Escudo máximo por nivel. Campo de contención mejorado.",
-                "icon": "🔵",
-                "maxLevel": 5,
-                "effects": {
-                    "sh_pct": 0.04
-                },
-                "category": "fender"
-            },
-            {
-                "id": "def_m2_s1",
+                "id": "def_stats_s2",
                 "name": "CAPACITOR DINÁMICO",
                 "desc": "+5% Regeneración de escudo por nivel.",
                 "icon": "🔋",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "effects": {
                     "shield_regen": 0.05
                 },
                 "category": "fender"
             },
             {
-                "id": "def_m2_s2",
-                "name": "BARRERA REFORZADA",
-                "desc": "-5% Enfriamiento de Barrera de Viento por nivel.",
-                "icon": "🌪️",
-                "maxLevel": 5,
+                "id": "fender_skills",
+                "name": "PROTOCOLOS DEFENSIVOS",
+                "desc": "Mejoras de habilidades de Defensa.",
+                "icon": "🌀",
+                "maxLevel": 3,
+                "effects": {},
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk1",
+                "name": "BARRERA DE VIENTO",
+                "desc": "Maestría de BARRERA DE VIENTO. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Defensa/Barrera de Viento/Barrera de Viento.png",
+                "maxLevel": 3,
                 "effects": {
-                    "skill:SK-DEF-05:cd": -0.05
+                    "skill:SK-DEF-05:cd": -0.03
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk1_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de BARRERA DE VIENTO por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-05:cd": -0.04
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk1_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Duración de BARRERA DE VIENTO por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-05:duration": 0.05
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk2",
+                "name": "ESCUDO CELULAR",
+                "desc": "Maestría de ESCUDO CELULAR. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Defensa/Escudo Celular/Escudo Celular.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-DEF-01:cd": -0.03
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk2_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de ESCUDO CELULAR por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-01:cd": -0.04
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk2_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Potencia de ESCUDO CELULAR por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-01:amount": 0.05
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk3",
+                "name": "FROST-TRAIL",
+                "desc": "Maestría de FROST-TRAIL. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Defensa/Camino de Hielo/Camino de Hielo.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-DEF-04:cd": -0.03
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk3_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de FROST-TRAIL por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-04:cd": -0.04
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk3_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Duración de FROST-TRAIL por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-04:duration": 0.05
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk4",
+                "name": "SMOKE-BOMB",
+                "desc": "Maestría de SMOKE-BOMB. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Defensa/Bomba de Humo/Bomba de Humo.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-DEF-03:cd": -0.03
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk4_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de SMOKE-BOMB por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-03:cd": -0.04
+                },
+                "category": "fender"
+            },
+            {
+                "id": "fender_sk4_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Duración de SMOKE-BOMB por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-DEF-03:duration": 0.05
                 },
                 "category": "fender"
             },
@@ -12977,73 +14043,236 @@
                 "name": "CURACIÓN",
                 "desc": "Nodo maestro de restauración. +6% Curación por nivel.",
                 "icon": "🔮",
-                "maxLevel": 3,
+                "maxLevel": 4,
                 "effects": {
                     "heal_pct": 0.06
                 },
                 "category": "healing"
             },
             {
-                "id": "heal_m1",
-                "name": "CANALIZADORES",
-                "desc": "+3% Curación por nivel. Optimiza los pulsos de reparación.",
+                "id": "heal_stats",
+                "name": "PULSO VITAL",
+                "desc": "Stats de nave curativos. +3% Curación por nivel.",
                 "icon": "💚",
-                "maxLevel": 5,
+                "maxLevel": 3,
                 "effects": {
                     "heal_pct": 0.03
                 },
+                "smalls": [
+                    {
+                        "id": "heal_stats_s1",
+                        "name": "METABOLISMO COMBATIVO",
+                        "desc": "+3% Regeneración de vida por nivel.",
+                        "icon": "🌿",
+                        "maxLevel": 5,
+                        "effects": {
+                            "hp_regen": 0.03
+                        }
+                    },
+                    {
+                        "id": "heal_stats_s2",
+                        "name": "NÚCLEO VITAL",
+                        "desc": "+2% Vida máxima por nivel.",
+                        "icon": "❤️",
+                        "maxLevel": 5,
+                        "effects": {
+                            "hp_pct": 0.02
+                        }
+                    }
+                ],
                 "category": "healing"
             },
             {
-                "id": "heal_m1_s1",
-                "name": "DRONES MÉDICOS",
-                "desc": "+5% Poder de Auto-Reparación por nivel.",
-                "icon": "🤖",
-                "maxLevel": 5,
-                "effects": {
-                    "skill:SK-HEAL-01:amount": 0.05
-                },
-                "category": "healing"
-            },
-            {
-                "id": "heal_m1_s2",
-                "name": "BALIZA MEJORADA",
-                "desc": "+5% Sanación de Baliza de Curación por nivel.",
-                "icon": "🏮",
-                "maxLevel": 5,
-                "effects": {
-                    "skill:SK-HEAL-02:heal_amount": 0.05
-                },
-                "category": "healing"
-            },
-            {
-                "id": "heal_m2",
-                "name": "REGENERACIÓN ALFA",
-                "desc": "+3% Regeneración de vida por nivel. Metabolismo de combate.",
+                "id": "heal_stats_s1",
+                "name": "METABOLISMO COMBATIVO",
+                "desc": "+3% Regeneración de vida por nivel.",
                 "icon": "🌿",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "effects": {
                     "hp_regen": 0.03
                 },
                 "category": "healing"
             },
             {
-                "id": "heal_m2_s1",
-                "name": "NANO-REGENERACIÓN",
-                "desc": "-5% Enfriamiento de NANO-REGENERACIÓN por nivel.",
-                "icon": "🦠",
-                "maxLevel": 5,
+                "id": "heal_stats_s2",
+                "name": "NÚCLEO VITAL",
+                "desc": "+2% Vida máxima por nivel.",
+                "icon": "❤️",
+                "maxLevel": 2,
                 "effects": {
-                    "skill:SK-HEAL-02:cd": -0.05
+                    "hp_pct": 0.02
                 },
                 "category": "healing"
             },
             {
-                "id": "heal_m2_s2",
+                "id": "healing_skills",
+                "name": "PROTOCOLOS MÉDICOS",
+                "desc": "Mejoras de habilidades de Curación.",
+                "icon": "🌀",
+                "maxLevel": 3,
+                "effects": {},
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk1",
+                "name": "AUTO-REPARACIÓN",
+                "desc": "Maestría de AUTO-REPARACIÓN. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-HEAL-01:cd": -0.03
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk1_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de AUTO-REPARACIÓN por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-01:cd": -0.04
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk1_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Potencia de AUTO-REPARACIÓN por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-01:amount": 0.05
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk2",
+                "name": "BALIZA DE CURACION",
+                "desc": "Maestría de BALIZA DE CURACION. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Cura/Baliza Curativa/Baliza Curativa.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-HEAL-05:cd": -0.03
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk2_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de BALIZA DE CURACION por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-05:cd": -0.04
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk2_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Sanación de BALIZA DE CURACION por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-05:heal_amount": 0.05
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk3",
+                "name": "NANO-REGENERACIÓN",
+                "desc": "Maestría de NANO-REGENERACIÓN. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-HEAL-02:cd": -0.03
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk3_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de NANO-REGENERACIÓN por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-02:cd": -0.04
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk3_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Potencia de NANO-REGENERACIÓN por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-02:amount": 0.05
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk4",
+                "name": "REGENERACIÓN ALFA",
+                "desc": "Maestría de REGENERACIÓN ALFA. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-HEAL-03:cd": -0.03
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk4_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de REGENERACIÓN ALFA por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-03:cd": -0.04
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk4_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Potencia de REGENERACIÓN ALFA por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-03:amount": 0.05
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk5",
                 "name": "VÍNCULO VITAL",
-                "desc": "+5% Poder de Vínculo Vital por nivel.",
-                "icon": "❤️‍🔥",
-                "maxLevel": 5,
+                "desc": "Maestría de VÍNCULO VITAL. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Cura/Vinculo Vital/Vinculo Vital.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-HEAL-04:cd": -0.03
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk5_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de VÍNCULO VITAL por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-HEAL-04:cd": -0.04
+                },
+                "category": "healing"
+            },
+            {
+                "id": "healing_sk5_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Potencia de VÍNCULO VITAL por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
                 "effects": {
                     "skill:SK-HEAL-04:amount": 0.05
                 },
@@ -13054,75 +14283,271 @@
                 "name": "UTILIDAD",
                 "desc": "Nodo maestro de eficiencia. -4% Enfriamiento global por nivel.",
                 "icon": "🔬",
-                "maxLevel": 3,
+                "maxLevel": 4,
                 "effects": {
                     "cooldown_reduction": 0.04
                 },
                 "category": "utility"
             },
             {
-                "id": "uti_m1",
-                "name": "PROPULSIÓN AVANZADA",
-                "desc": "+2% Velocidad base por nivel. Motores de fusión calibrados.",
-                "icon": "🚀",
-                "maxLevel": 5,
+                "id": "uti_stats",
+                "name": "EFICIENCIA GLOBAL",
+                "desc": "Stats de nave de utilidad. -3% Enfriamiento global por nivel.",
+                "icon": "❄️",
+                "maxLevel": 3,
                 "effects": {
-                    "speed_pct": 0.02
+                    "cooldown_reduction": 0.03
+                },
+                "smalls": [
+                    {
+                        "id": "uti_stats_s1",
+                        "name": "REDUCCIÓN DE CASTEO",
+                        "desc": "-3% Tiempo de casteo global por nivel.",
+                        "icon": "⏱️",
+                        "maxLevel": 5,
+                        "effects": {
+                            "cast_time_reduction": 0.03
+                        }
+                    },
+                    {
+                        "id": "uti_stats_s2",
+                        "name": "CADENCIA OPTIMIZADA",
+                        "desc": "+2% Cadencia de fuego por nivel.",
+                        "icon": "🎯",
+                        "maxLevel": 5,
+                        "effects": {
+                            "fire_rate_pct": 0.02
+                        }
+                    }
+                ],
+                "category": "utility"
+            },
+            {
+                "id": "uti_stats_s1",
+                "name": "REDUCCIÓN DE CASTEO",
+                "desc": "-3% Tiempo de casteo global por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "cast_time_reduction": 0.03
                 },
                 "category": "utility"
             },
             {
-                "id": "uti_m1_s1",
-                "name": "SALTO HIPERESPACIAL",
-                "desc": "+10% Distancia de Dash por nivel.",
+                "id": "uti_stats_s2",
+                "name": "CADENCIA OPTIMIZADA",
+                "desc": "+2% Cadencia de fuego por nivel.",
+                "icon": "🎯",
+                "maxLevel": 2,
+                "effects": {
+                    "fire_rate_pct": 0.02
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_skills",
+                "name": "PROTOCOLOS TÁCTICOS",
+                "desc": "Mejoras de habilidades de Utilidad.",
                 "icon": "🌀",
-                "maxLevel": 5,
+                "maxLevel": 3,
+                "effects": {},
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk1",
+                "name": "TURBO-IMPULSO",
+                "desc": "Maestría de TURBO-IMPULSO. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Utilidad/Turbo Impulso/Turbo Impulso.png",
+                "maxLevel": 3,
                 "effects": {
-                    "dash_distance": 0.1
+                    "skill:SK-UTIL-01:cd": -0.03
                 },
                 "category": "utility"
             },
             {
-                "id": "uti_m1_s2",
-                "name": "TURBO-IMPULSO",
-                "desc": "-5% Enfriamiento de Turbo-Impulso por nivel.",
-                "icon": "💨",
-                "maxLevel": 5,
+                "id": "utility_sk1_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de TURBO-IMPULSO por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-01:cd": -0.04
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk1_s2",
+                "name": "SOBRECARGA",
+                "desc": "-5% Enfriamiento de TURBO-IMPULSO por nivel.",
+                "icon": "🔥",
+                "maxLevel": 2,
                 "effects": {
                     "skill:SK-UTIL-01:cd": -0.05
                 },
                 "category": "utility"
             },
             {
-                "id": "uti_m2",
-                "name": "SISTEMAS TÁCTICOS",
-                "desc": "+8% Rango de radar por nivel. Sensores de largo alcance.",
-                "icon": "📡",
-                "maxLevel": 5,
+                "id": "utility_sk2",
+                "name": "HYPER-DASH",
+                "desc": "Maestría de HYPER-DASH. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png",
+                "maxLevel": 3,
                 "effects": {
-                    "minimap_range": 0.08
+                    "skill:SK-UTIL-02:cd": -0.03
                 },
                 "category": "utility"
             },
             {
-                "id": "uti_m2_s1",
-                "name": "ESCÁNER ORBITAL",
-                "desc": "+3% Eficiencia de energía por nivel.",
-                "icon": "⚛️",
-                "maxLevel": 5,
+                "id": "utility_sk2_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de HYPER-DASH por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
                 "effects": {
-                    "energy_efficiency": 0.03
+                    "skill:SK-UTIL-02:cd": -0.04
                 },
                 "category": "utility"
             },
             {
-                "id": "uti_m2_s2",
-                "name": "MERCADO GALÁCTICO",
-                "desc": "-2% Descuento en tiendas por nivel (mejores precios).",
-                "icon": "🏪",
-                "maxLevel": 5,
+                "id": "utility_sk2_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Rango de HYPER-DASH por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
                 "effects": {
-                    "shop_discount": 0.02
+                    "skill:SK-UTIL-02:range": 0.05
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk3",
+                "name": "INVULNERABILIDAD",
+                "desc": "Maestría de INVULNERABILIDAD. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-UTIL-03:cd": -0.03
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk3_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de INVULNERABILIDAD por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-03:cd": -0.04
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk3_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Duración de INVULNERABILIDAD por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-03:duration": 0.05
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk4",
+                "name": "BLINK",
+                "desc": "Maestría de BLINK. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-UTIL-04:cd": -0.03
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk4_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de BLINK por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-04:cd": -0.04
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk4_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Rango de BLINK por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-04:range": 0.05
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk5",
+                "name": "STEALTH",
+                "desc": "Maestría de STEALTH. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Utilidad/Invisibilidad/Invisibilidad.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-UTIL-05:cd": -0.03
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk5_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de STEALTH por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-05:cd": -0.04
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk5_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Duración de STEALTH por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-05:duration": 0.05
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk6",
+                "name": "RESURRECCIÓN",
+                "desc": "Maestría de RESURRECCIÓN. -3% Enfriamiento por nivel.",
+                "icon": "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
+                "maxLevel": 3,
+                "effects": {
+                    "skill:SK-UTIL-06:cd": -0.03
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk6_s1",
+                "name": "AFINADO",
+                "desc": "-4% Enfriamiento de RESURRECCIÓN por nivel.",
+                "icon": "⏱️",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-06:cd": -0.04
+                },
+                "category": "utility"
+            },
+            {
+                "id": "utility_sk6_s2",
+                "name": "POTENCIADOR",
+                "desc": "+5% Radio de RESURRECCIÓN por nivel.",
+                "icon": "⚡",
+                "maxLevel": 2,
+                "effects": {
+                    "skill:SK-UTIL-06:radius": 0.05
                 },
                 "category": "utility"
             }

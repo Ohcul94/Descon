@@ -266,6 +266,7 @@ func _on_slow_state(data: Dictionary):
 			slow_points = data.get("amount", slow_points)
 			slow_is_percentage = data.get("isPercentage", slow_is_percentage)
 			slow_timer = float(data.get("duration", 3000.0)) / 1000.0
+			set_debuff_timer("slow", slow_timer)
 			if data.get("isSleep", false):
 				_sleep_grace = 10.0
 				_start_sleep_aura()
@@ -273,6 +274,7 @@ func _on_slow_state(data: Dictionary):
 			slow_points = 0.0
 			slow_is_percentage = false
 			slow_timer = 0.0
+			set_debuff_timer("slow", 0.0)
 			if data.get("isSleep", false):
 				_stop_sleep_aura()
 
@@ -379,6 +381,7 @@ func _on_stun_state(data: Dictionary):
 		else:
 			is_stunned = true
 			stun_timer = float(data.get("duration", 2000.0)) / 1000.0
+			set_debuff_timer("stun", stun_timer)
 			is_moving = false
 			target_position = global_position
 			velocity = Vector2.ZERO
@@ -541,19 +544,29 @@ func _physics_process(p_delta):
 	# Decrementar temporizadores de efectos de estado activos
 	if slow_timer > 0.0:
 		slow_timer = max(0.0, slow_timer - p_delta)
+		if slow_timer <= 0.0:
+			slow_points = 0.0
+			slow_is_percentage = false
+			set_debuff_timer("slow", 0.0)
 	if heal_timer > 0.0:
 		heal_timer = max(0.0, heal_timer - p_delta)
 		if heal_timer <= 0.0:
 			heal_stacks = 0
+			set_debuff_timer("heal", 0.0)
 	if bleed_timer > 0.0:
 		bleed_timer = max(0.0, bleed_timer - p_delta)
+		if bleed_timer <= 0.0:
+			set_debuff_timer("bleed", 0.0)
 	if poison_timer > 0.0:
 		poison_timer = max(0.0, poison_timer - p_delta)
+		if poison_timer <= 0.0:
+			set_debuff_timer("poison", 0.0)
 	if electron_speed_buff_timer > 0.0:
 		electron_speed_buff_timer = max(0.0, electron_speed_buff_timer - p_delta)
 		if electron_speed_buff_timer <= 0.0:
 			electron_speed_buff_stacks = 0
 			_recalculate_stats()
+			set_debuff_timer("electron_speed", 0.0)
 	if _sleep_grace > 0.0:
 		_sleep_grace = max(0.0, _sleep_grace - p_delta)
 	
@@ -574,12 +587,14 @@ func _physics_process(p_delta):
 		if fear_timer <= 0:
 			is_feared = false
 			modulate = Color.WHITE
+			set_debuff_timer("fear", 0.0)
 
 	if is_stunned:
 		stun_timer -= p_delta
 		if stun_timer <= 0:
 			is_stunned = false
 			modulate = Color.WHITE
+			set_debuff_timer("stun", 0.0)
 		return # Bloquear TODO el proceso si está stuneado
 
 	# v410: Polimorfia - Bloquear movimiento/habilidades según checks configurables
@@ -593,6 +608,7 @@ func _physics_process(p_delta):
 			modulate = Color.WHITE
 			status_effects["polymorphed"] = false
 			_force_clear_poly_visual()
+			set_debuff_timer("poly", 0.0)
 		else:
 			_poly_authoritative = true
 			status_effects["polymorphed"] = true

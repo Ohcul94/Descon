@@ -717,8 +717,13 @@ func _on_minimize_pressed(id: String):
 
 func _on_icon_pressed(id: String):
 	if id == "Stats":
-		var inv = get_tree().get_first_node_in_group("inventory_ui")
-		if is_instance_valid(inv):
+		var inv = get_tree().get_first_node_in_group("main_inventory_ui")
+		if not is_instance_valid(inv):
+			for node in get_tree().get_nodes_in_group("inventory_ui"):
+				if "is_open" in node and node.has_method("toggle"):
+					inv = node
+					break
+		if is_instance_valid(inv) and "is_open" in inv:
 			if inv.is_open:
 				var tabs = inv.get_node_or_null("Window/TabContainer")
 				if tabs:
@@ -727,7 +732,8 @@ func _on_icon_pressed(id: String):
 							tabs.current_tab = i
 							break
 			else:
-				inv.toggle()
+				if inv.has_method("toggle"):
+					inv.toggle()
 				await get_tree().process_frame
 				var tabs2 = inv.get_node_or_null("Window/TabContainer")
 				if tabs2:
@@ -2651,18 +2657,23 @@ func _update_status_effects_ui():
 	if not _status_effects_panel.visible:
 		return
 		
-	for child in _status_hbox.get_children():
-		child.queue_free()
-		
 	if is_editing_layout and not is_any_status:
-		_add_status_box("❄️", "3.0", Color(0.0, 0.7, 1.0, 0.7), 0.7)
-		_add_status_box("💚", "3x 4.5", Color(0.0, 0.8, 0.2, 0.7), 0.5)
-		_add_status_box("⚡", "4x 5.0", Color(1.0, 0.8, 0.0, 0.7), 0.9)
-		_add_status_box("🩸", "2.1", Color(0.9, 0.1, 0.1, 0.7), 0.3)
-		_add_status_box("🧪", "5.0", Color(0.7, 0.1, 0.9, 0.7), 0.2)
-		_add_status_box("🛡️", "1.5", Color(0.5, 0.5, 0.5, 0.7), 0.8)
+		_sync_preview_status_boxes()
 		return
-		
+
+	# Limpiar cajas de vista previa si existían
+	for child in _status_hbox.get_children():
+		if child.has_meta("is_preview"):
+			child.queue_free()
+
+	# Eliminar cajas de debuffs que expiraron
+	for child in _status_hbox.get_children():
+		if not child.has_meta("is_preview"):
+			var k = child.get_meta("debuff_key", "")
+			if k != "" and not p_node.debuffs.has(k):
+				child.queue_free()
+
+	# Crear o actualizar en tiempo real sin destruir el árbol UI por frame
 	for key in p_node.debuffs:
 		var d = p_node.debuffs[key]
 		var info = _get_effect_info(key)
@@ -2670,7 +2681,7 @@ func _update_status_effects_ui():
 		var color = info.color
 		var box_color = Color(color.r, color.g, color.b, 0.7)
 		
-		var time_left = d.time_left
+		var time_left = maxf(0.0, d.time_left)
 		var total = d.total
 		var progress = (time_left / total) if total > 0.01 else 0.0
 		
@@ -2678,7 +2689,83 @@ func _update_status_effects_ui():
 		if d.stacks > 1:
 			txt = "%dx" % d.stacks + txt
 			
-		_add_status_box(icon, txt, box_color, progress)
+		_update_or_create_status_box(key, icon, txt, box_color, progress)
+
+func _sync_preview_status_boxes():
+	var children = _status_hbox.get_children()
+	if children.size() == 6 and children[0].has_meta("is_preview"):
+		return
+	for child in children:
+		child.queue_free()
+	_add_status_box("❄️", "3.0", Color(0.0, 0.7, 1.0, 0.7), 0.7, true)
+	_add_status_box("💚", "3x 4.5", Color(0.0, 0.8, 0.2, 0.7), 0.5, true)
+	_add_status_box("⚡", "4x 5.0", Color(1.0, 0.8, 0.0, 0.7), 0.9, true)
+	_add_status_box("🩸", "2.1", Color(0.9, 0.1, 0.1, 0.7), 0.3, true)
+	_add_status_box("🧪", "5.0", Color(0.7, 0.1, 0.9, 0.7), 0.2, true)
+	_add_status_box("🛡️", "1.5", Color(0.5, 0.5, 0.5, 0.7), 0.8, true)
+
+func _update_or_create_status_box(key: String, emoji: String, text: String, color: Color, progress: float = 0.0):
+	var box: PanelContainer = null
+	for child in _status_hbox.get_children():
+		if child.get_meta("debuff_key", "") == key:
+			box = child
+			break
+			
+	if not is_instance_valid(box):
+		box = PanelContainer.new()
+		box.name = "StatusBox_" + key
+		box.set_meta("debuff_key", key)
+		box.custom_minimum_size = Vector2(32, 32)
+		box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = color
+		sb.border_width_left = 1; sb.border_width_top = 1
+		sb.border_width_right = 1; sb.border_width_bottom = 1
+		sb.border_color = Color(1, 1, 1, 0.25)
+		sb.set_corner_radius_all(4)
+		box.add_theme_stylebox_override("panel", sb)
+		
+		var icon_lbl = Label.new()
+		icon_lbl.name = "IconLabel"
+		icon_lbl.text = emoji
+		icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		icon_lbl.add_theme_font_size_override("font_size", 20)
+		icon_lbl.modulate.a = 0.55
+		box.add_child(icon_lbl)
+		
+		var overlay = ColorRect.new()
+		overlay.name = "OverlayRect"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat = ShaderMaterial.new()
+		mat.shader = _get_cooldown_shader()
+		overlay.material = mat
+		box.add_child(overlay)
+		
+		var txt_lbl = Label.new()
+		txt_lbl.name = "TextLabel"
+		txt_lbl.text = text
+		txt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		txt_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		txt_lbl.add_theme_font_size_override("font_size", 10)
+		txt_lbl.add_theme_color_override("font_color", Color.WHITE)
+		txt_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		txt_lbl.add_theme_constant_override("outline_size", 3)
+		box.add_child(txt_lbl)
+		
+		_status_hbox.add_child(box)
+
+	# Actualización reactiva sin instanciación repetida ni tirones de layout
+	var cur_txt_lbl = box.get_node_or_null("TextLabel") as Label
+	if is_instance_valid(cur_txt_lbl) and cur_txt_lbl.text != text:
+		cur_txt_lbl.text = text
+		
+	var cur_overlay = box.get_node_or_null("OverlayRect") as ColorRect
+	if is_instance_valid(cur_overlay) and cur_overlay.material is ShaderMaterial:
+		(cur_overlay.material as ShaderMaterial).set_shader_parameter("progress", progress)
 
 func update_skill_slots():
 	if not is_instance_valid(skills_hud):
@@ -2692,8 +2779,10 @@ func update_skill_slots():
 				icon.queue_free()
 	skills_hud.clear_icon_cache()
 
-func _add_status_box(emoji: String, text: String, color: Color, progress: float = 0.0):
+func _add_status_box(emoji: String, text: String, color: Color, progress: float = 0.0, is_preview: bool = false):
 	var box = PanelContainer.new()
+	if is_preview:
+		box.set_meta("is_preview", true)
 	box.custom_minimum_size = Vector2(32, 32)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -2714,12 +2803,10 @@ func _add_status_box(emoji: String, text: String, color: Color, progress: float 
 	icon_lbl.modulate.a = 0.55
 	box.add_child(icon_lbl)
 	
-	# Cooldown Shader Overlay
 	if progress > 0.0:
 		var overlay = ColorRect.new()
 		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		
 		var mat = ShaderMaterial.new()
 		mat.shader = _get_cooldown_shader()
 		mat.set_shader_parameter("progress", progress)

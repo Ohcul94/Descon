@@ -274,7 +274,7 @@ func _process(delta):
 							else:
 								# Fallback original
 								circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
-							for i in 5:
+							for i in range(5):
 								var ring = circle_3d.get_node_or_null("FireRing_" + str(i))
 								if is_instance_valid(ring):
 									var ring_mat = ring.material_override
@@ -296,7 +296,7 @@ func _process(delta):
 						area.global_position = en_vis
 						area.global_rotation = en.global_rotation - PI / 2
 						
-						# Sincronizar rotación del cono 3D
+						# Sincronizar rotacion del cono 3D
 						var cone_rot = area.get_meta("cone_rotator") if area.has_meta("cone_rotator") else null
 						if is_instance_valid(cone_rot):
 							var dir_2d = Vector2.RIGHT.rotated(en.global_rotation - PI / 2)
@@ -306,20 +306,20 @@ func _process(delta):
 								var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 								var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
 								cone_rot.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
-					elif area.has_meta("is_conforming") and area.get_meta("is_conforming", false):
-						var cur_map_h = get_tree().get_first_node_in_group("map")
-						var cone_3d_h = area.get_meta("cone_3d", false)
-						if not (cone_3d_h is Node):
-							cone_3d_h = null
+						if area.has_meta("is_conforming") and area.get_meta("is_conforming", false):
+							var cur_map_h = get_tree().get_first_node_in_group("map")
+							var cone_3d_h = area.get_meta("cone_3d", false)
+							if not (cone_3d_h is Node):
+								cone_3d_h = null
 							# Suavizar altura Y siempre (lerp) para que no pegue saltos en lomas, incluso sin regenerar
 							if is_instance_valid(cone_3d_h) and is_instance_valid(cur_map_h) and is_instance_valid(cur_map_h.get("terrain_node")):
 								var target_h = _sample_terrain_height(en.global_position, cur_map_h)
 								var target_y = target_h - _attack_vfx_base_y()
 								cone_3d_h.position.y = lerp(cone_3d_h.position.y, target_y, clamp(delta*10.0, 0.0, 1.0))
-							# Regeneración suave para homing: umbral bajo + interpolación
+							# Regeneracion suave para homing: umbral bajo + interpolacion
 							var last_rot = area.get_meta("last_rot", en.rotation)
 							var last_pos = area.get_meta("last_pos", en.global_position)
-							# Homing necesita actualización casi por frame para verse fluido: 0.015 rad (~0.9°) y 6px
+							# Homing necesita actualizacion casi por frame para verse fluido: 0.015 rad (~0.9 grados) y 6px
 							if abs(angle_difference(last_rot, en.rotation)) > 0.015 or last_pos.distance_to(en.global_position) > 6.0:
 								var cur_map = get_tree().get_first_node_in_group("map")
 								if is_instance_valid(cur_map) and is_instance_valid(cur_map.get("terrain_node")):
@@ -341,36 +341,16 @@ func _process(delta):
 						if not (_c3d is Node):
 							_c3d = null
 						if is_instance_valid(_c3d) and _c3d.get_child_count() > 1:
-								var _fill = _c3d.get_child(1) as MeshInstance3D
-								if is_instance_valid(_fill) and _fill.name != "ChargeGlow":
-									var _mId = str(area.get_meta("mId", ""))
-									var _prog = _get_cast_progress(enemy_id, _mId)
-									if _prog < 0.0:
-										var _dur = float(area.get_meta("charge_duration", 1.0))
-										var _st = int(area.get_meta("charge_start", Time.get_ticks_msec()))
-										_prog = clamp(float(Time.get_ticks_msec() - _st) / (_dur * 1000.0), 0.0, 1.0)
-									var _sc = lerp(0.01, 1.0, _prog)
-									_fill.scale = Vector3(_sc, _sc, _sc)
-					# --- Glow del vértice (solo si el área es un indicador de cono) ---
-					if area.has_meta("is_cone_indicator") and area.get_meta("is_cone_indicator", false):
-						var _c3d_g = area.get_meta("cone_3d", false)
-						if not (_c3d_g is Node):
-							_c3d_g = null
-						if is_instance_valid(_c3d_g):
-							var _glow = _c3d_g.get_node_or_null("ChargeGlow")
-							if is_instance_valid(_glow):
-								var _mId_g = str(area.get_meta("mId", enemy_id))
-								var _prog_g = _get_cast_progress(enemy_id, _mId_g)
-								if _prog_g < 0.0:
-									var _dur_g = float(area.get_meta("charge_duration", 1.0))
-									var _st_g = int(area.get_meta("charge_start", Time.get_ticks_msec()))
-									_prog_g = clamp(float(Time.get_ticks_msec() - _st_g) / (_dur_g * 1000.0), 0.0, 1.0)
-								var _gm = _glow.material_override
-								if _gm is StandardMaterial3D:
-									_gm.emission_energy_multiplier = _prog_g * 7.0
-									_gm.albedo_color.a = _prog_g * 0.55
-								var _gs = 0.4 + _prog_g * 0.9
-								_glow.scale = Vector3(_gs, _gs, _gs)
+							var _fill = _c3d.get_child(1) as MeshInstance3D
+							if is_instance_valid(_fill) and _fill.name != "ChargeGlow":
+								var _mId = str(area.get_meta("mId", ""))
+								var _prog = _get_cast_progress(enemy_id, _mId)
+								if _prog < 0.0:
+									var _dur = float(area.get_meta("charge_duration", 1.0))
+									var _st = int(area.get_meta("charge_start", Time.get_ticks_msec()))
+									_prog = clamp(float(Time.get_ticks_msec() - _st) / (_dur * 1000.0), 0.0, 1.0)
+								var _sc = lerp(0.01, 1.0, _prog)
+								_fill.scale = Vector3(_sc, _sc, _sc)
 			else:
 				active_areas.erase(id)
 				area.queue_free()
@@ -919,24 +899,6 @@ func _on_enemy_action(data: Dictionary):
 					decal.modulate.a = 0.0
 					var tw_d = decal.create_tween()
 					tw_d.tween_property(decal, "modulate:a", 1.0, charge_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-					# Glow en el vértice (decal path)
-					var charge_glow_d = MeshInstance3D.new()
-					charge_glow_d.name = "ChargeGlow"
-					var glow_sd = SphereMesh.new()
-					glow_sd.radius = maxf(range_val * s_factor * 0.1, 0.12)
-					glow_sd.height = glow_sd.radius * 2.0
-					charge_glow_d.mesh = glow_sd
-					var glow_md = StandardMaterial3D.new()
-					glow_md.albedo_color = Color(1.0, 0.7, 0.2, 0.0)
-					glow_md.emission_enabled = true
-					glow_md.emission = Color(1.0, 0.55, 0.1)
-					glow_md.emission_energy_multiplier = 0.0
-					glow_md.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					glow_md.cull_mode = BaseMaterial3D.CULL_DISABLED
-					glow_md.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-					charge_glow_d.material_override = glow_md
-					charge_glow_d.position = Vector3(0, 1.0, 0)
-					decal.add_child(charge_glow_d)
 				elif has_terrain:
 					# ---- Malla Conformante (gl_compatibility) - Muestrea altura por vértice ----
 					var cone_3d = Node3D.new()
@@ -976,25 +938,6 @@ func _on_enemy_action(data: Dictionary):
 					mesh_fill.material_override = mat_fill
 					cone_3d.add_child(mesh_fill)
 					mesh_fill.scale = Vector3(0.01, 0.01, 0.01)
-
-					# Glow en el vértice: intensifica con el progreso del casteo
-					var charge_glow = MeshInstance3D.new()
-					charge_glow.name = "ChargeGlow"
-					var glow_s = SphereMesh.new()
-					glow_s.radius = maxf(range_val * (current_map.scale_factor if "scale_factor" in current_map else 0.02) * 0.1, 0.12)
-					glow_s.height = glow_s.radius * 2.0
-					charge_glow.mesh = glow_s
-					var glow_mat = StandardMaterial3D.new()
-					glow_mat.albedo_color = Color(1.0, 0.7, 0.2, 0.0)
-					glow_mat.emission_enabled = true
-					glow_mat.emission = Color(1.0, 0.55, 0.1)
-					glow_mat.emission_energy_multiplier = 0.0
-					glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-					glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-					charge_glow.material_override = glow_mat
-					charge_glow.position = Vector3(0, 0.8, 0)
-					cone_3d.add_child(charge_glow)
 
 					cone_node.set_meta("cone_3d", cone_3d)
 					cone_node.set_meta("cone_rotator", null)
@@ -1039,25 +982,6 @@ func _on_enemy_action(data: Dictionary):
 					mesh_fill.material_override = mat_fill
 					cone_rotator.add_child(mesh_fill)
 					mesh_fill.scale = Vector3(0.01, 0.01, 0.01)
-
-					# Glow en el vértice (fallback plano)
-					var charge_glow = MeshInstance3D.new()
-					charge_glow.name = "ChargeGlow"
-					var glow_s = SphereMesh.new()
-					glow_s.radius = maxf(range_3d * 0.1, 0.12)
-					glow_s.height = glow_s.radius * 2.0
-					charge_glow.mesh = glow_s
-					var glow_mat = StandardMaterial3D.new()
-					glow_mat.albedo_color = Color(1.0, 0.7, 0.2, 0.0)
-					glow_mat.emission_enabled = true
-					glow_mat.emission = Color(1.0, 0.55, 0.1)
-					glow_mat.emission_energy_multiplier = 0.0
-					glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-					glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-					charge_glow.material_override = glow_mat
-					charge_glow.position = Vector3(0, 0.8, 0)
-					cone_3d.add_child(charge_glow)
 
 					cone_node.set_meta("cone_3d", cone_3d)
 					cone_node.set_meta("cone_rotator", cone_rotator)
@@ -1128,7 +1052,8 @@ func _on_enemy_action(data: Dictionary):
 				var s_factor_b = current_map.scale_factor if "scale_factor" in current_map else 0.02
 				var correction_z_b = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var r3d_b = range_val * s_factor_b
-				var mesh_rot_b = face_angle + PI / 2.0
+				# Terrain: misma rot que la carga (en.rotation) para que pinches/mark coincidan con el cono naranja
+				var mesh_rot_b = en.rotation if has_terrain_b else (face_angle + PI / 2.0)
 
 				var blast_3d = Node3D.new()
 				blast_3d.name = "ConeBlast3D_" + enemy_id
@@ -1173,69 +1098,96 @@ func _on_enemy_action(data: Dictionary):
 				tw_mark.tween_interval(1.4)
 				tw_mark.tween_property(mark_mat, "albedo_color:a", 0.0, 0.4)
 				tw_mark.parallel().tween_property(mark_mat, "emission_energy_multiplier", 0.0, 0.4)
-				tw_mark.finished.connect(func(): if is_instance_valid(ground_mark): ground_mark.queue_free())
+				tw_mark.finished.connect(func():
+					if is_instance_valid(ground_mark):
+						ground_mark.queue_free()
+				)
 
 				var spike_h_ship = 1.35
 				var rng_sp = RandomNumberGenerator.new()
 				rng_sp.seed = hash(enemy_id + "spikes")
-				var spike_count = 14
 				var h_c_sp = _sample_terrain_height(en.global_position, current_map) if has_terrain_b else 0.0
 				var spikes_root = Node3D.new()
 				spikes_root.name = "ConeSpikes"
 				aim.add_child(spikes_root)
 
-				for si in range(spike_count):
-					var t_r = 0.18 + rng_sp.randf() * 0.77
-					var half_sp = deg_to_rad(cone_angle * 0.5) * 0.92
-					var a_sp = rng_sp.randf_range(-half_sp, half_sp)
-					var r_local = r3d_b * t_r
-					var off_x = sin(a_sp) * r_local
-					var off_z = -cos(a_sp) * r_local
-					var local_y = 0.0
-					if has_terrain_b:
-						var off_w = Vector2(off_x, off_z).rotated(mesh_rot_b)
-						var world_off = Vector2(off_w.x / maxf(s_factor_b, 0.0001), off_w.y / maxf(s_factor_b * correction_z_b, 0.0001))
-						var hh = _sample_terrain_height(en.global_position + world_off, current_map)
-						local_y = hh - h_c_sp
-						off_x = off_w.x
-						off_z = off_w.y
+				# Pinches en anillos densos: cubren TODO el sector con la MISMA matemática que el mesh conformante
+				var half_sp = deg_to_rad(cone_angle * 0.5) * 0.97
+				var ring_t = [0.05, 0.14, 0.24, 0.34, 0.44, 0.54, 0.64, 0.74, 0.84, 0.93, 0.99]
+				var ring_n = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23]
+				var si = 0
+				for ri in range(ring_t.size()):
+					var n_r = ring_n[ri]
+					for j in range(n_r):
+						var ang01 = (float(j) + 0.5) / float(n_r)
+						var a_sp = lerp(-half_sp, half_sp, ang01) + rng_sp.randf_range(-0.05, 0.05) * half_sp
+						var t_r = clamp(ring_t[ri] + rng_sp.randf_range(-0.02, 0.02), 0.04, 1.0)
+						# Igual que _make_cone_mesh_conforming: off lógico → rotar → escalar x/z
+						var r_logical = range_val * t_r
+						var off_l = Vector2(sin(a_sp) * r_logical, -cos(a_sp) * r_logical)
+						var off_x: float
+						var off_z: float
+						var local_y = 0.0
+						if has_terrain_b:
+							off_l = off_l.rotated(mesh_rot_b)
+							var w_sp = en.global_position + off_l
+							var hh = _sample_terrain_height(w_sp, current_map)
+							local_y = (hh - h_c_sp) + 0.35
+							off_x = off_l.x * s_factor_b
+							off_z = off_l.y * s_factor_b * correction_z_b
+						else:
+							# Flat: aim ya tiene rotation.y; blast_3d escala z por cz
+							off_x = off_l.x * s_factor_b
+							off_z = off_l.y * s_factor_b
 
-					var spike = MeshInstance3D.new()
-					spike.name = "Spike_%d" % si
-					var base_w = rng_sp.randf_range(0.18, 0.38) * maxf(r3d_b * 0.15, 0.25)
-					var h_full = spike_h_ship * rng_sp.randf_range(0.75, 1.15) * lerp(1.0, 0.7, t_r)
-					spike.mesh = _make_spike_mesh(base_w, h_full, rng_sp)
+						var spike = MeshInstance3D.new()
+						spike.name = "Spike_%d" % si
+						var base_w = rng_sp.randf_range(0.28, 0.55) * maxf(r3d_b * 0.18, 0.28)
+						var h_full = spike_h_ship * rng_sp.randf_range(0.9, 1.3) * lerp(1.0, 0.8, t_r)
+						spike.mesh = _make_spike_mesh(base_w, h_full, rng_sp)
 
-					var spike_mat = StandardMaterial3D.new()
-					var rock_col = Color(0.42, 0.3, 0.18).lerp(Color(0.55, 0.22, 0.08), rng_sp.randf() * 0.6)
-					spike_mat.albedo_color = rock_col
-					spike_mat.roughness = 0.92
-					spike_mat.metallic = 0.0
-					spike_mat.emission_enabled = true
-					spike_mat.emission = Color(1.0, 0.35, 0.05)
-					spike_mat.emission_energy_multiplier = 0.0
-					spike_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-					spike_mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-					spike.material_override = spike_mat
-					spike.position = Vector3(off_x, local_y, off_z)
-					spike.rotation.y = rng_sp.randf_range(0.0, TAU)
-					spike.scale = Vector3(1.0, 0.0, 1.0)
-					spikes_root.add_child(spike)
+						var spike_mat = StandardMaterial3D.new()
+						# Roca parda/gris con variación — sin brillo de lava en el cuerpo
+						var rock_base = Color(0.36, 0.30, 0.24)
+						var rock_hot = Color(0.48, 0.28, 0.16)
+						var rock_col = rock_base.lerp(rock_hot, rng_sp.randf() * 0.55)
+						spike_mat.albedo_color = rock_col
+						spike_mat.roughness = 0.96
+						spike_mat.metallic = 0.0
+						spike_mat.emission_enabled = true
+						spike_mat.emission = Color(1.0, 0.42, 0.08)
+						spike_mat.emission_energy_multiplier = 0.0
+						spike_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+						spike_mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+						spike.material_override = spike_mat
+						# Arranca un poco hundida y "sube" del piso
+						spike.position = Vector3(off_x, local_y - 0.12, off_z)
+						spike.rotation.y = rng_sp.randf_range(0.0, TAU)
+						# Leve inclinación aleatoria — roca natural, sin romper el suelo
+						spike.rotation.x = rng_sp.randf_range(-0.08, 0.08)
+						spike.rotation.z = rng_sp.randf_range(-0.08, 0.08)
+						spike.scale = Vector3(1.0, 0.0, 1.0)
+						spikes_root.add_child(spike)
 
-					var delay = t_r * 0.18 + rng_sp.randf_range(0.0, 0.06)
-					var rise_t = 0.16 + rng_sp.randf_range(0.0, 0.06)
-					var hold_t = 0.55 + rng_sp.randf_range(0.0, 0.25)
-					var sink_t = 0.35 + rng_sp.randf_range(0.0, 0.15)
-					var tw_sp = spikes_root.create_tween()
-					tw_sp.tween_interval(delay)
-					tw_sp.tween_property(spike, "scale:y", 1.0, rise_t).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-					tw_sp.parallel().tween_property(spike, "position:y", local_y + 0.02, rise_t).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-					tw_sp.parallel().tween_property(spike_mat, "emission_energy_multiplier", 2.8, rise_t * 0.5)
-					tw_sp.parallel().tween_property(spike_mat, "emission_energy_multiplier", 0.6, 0.35)
-					tw_sp.tween_interval(hold_t)
-					tw_sp.tween_property(spike, "scale:y", 0.0, sink_t).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-					tw_sp.parallel().tween_property(spike, "position:y", local_y, sink_t)
-					tw_sp.parallel().tween_property(spike_mat, "emission_energy_multiplier", 0.0, sink_t)
+						var y_rest = local_y
+						var y_bump = local_y + 0.05
+						var delay = t_r * 0.12 + float(ri) * 0.018 + rng_sp.randf_range(0.0, 0.03)
+						var rise_t = 0.18 + rng_sp.randf_range(0.0, 0.06)
+						var hold_t = 1.00 + rng_sp.randf_range(0.0, 0.40)
+						var sink_t = 0.50 + rng_sp.randf_range(0.0, 0.15)
+						var tw_sp = spikes_root.create_tween()
+						tw_sp.tween_interval(delay)
+						tw_sp.tween_property(spike, "scale:y", 1.0, rise_t).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+						tw_sp.parallel().tween_property(spike, "position:y", y_bump, rise_t).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+						# Resplandor tenue solo al emerger, luego se apaga casi del todo
+						tw_sp.parallel().tween_property(spike_mat, "emission_energy_multiplier", 1.6, rise_t * 0.55)
+						tw_sp.parallel().tween_property(spike_mat, "emission_energy_multiplier", 0.15, 0.4)
+						tw_sp.parallel().tween_property(spike, "position:y", y_rest, 0.25)
+						tw_sp.tween_interval(hold_t)
+						tw_sp.tween_property(spike, "scale:y", 0.0, sink_t).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+						tw_sp.parallel().tween_property(spike, "position:y", local_y - 0.15, sink_t)
+						tw_sp.parallel().tween_property(spike_mat, "emission_energy_multiplier", 0.0, sink_t)
+						si += 1
 
 				var fire_pts = PackedVector3Array()
 				if has_terrain_b:
@@ -1294,10 +1246,13 @@ func _on_enemy_action(data: Dictionary):
 						ground_fire.emitting = true
 				)
 				tw_gf.tween_interval(1.1)
-				tw_gf.finished.connect(func(): if is_instance_valid(ground_fire): ground_fire.queue_free())
+				tw_gf.finished.connect(func():
+					if is_instance_valid(ground_fire):
+						ground_fire.queue_free()
+				)
 
 				var tw_cleanup = blast_3d.create_tween()
-				tw_cleanup.tween_interval(2.2)
+				tw_cleanup.tween_interval(3.0)
 				tw_cleanup.finished.connect(func():
 					if is_instance_valid(blast_3d): blast_3d.queue_free()
 				)
@@ -1334,6 +1289,7 @@ func _on_enemy_action(data: Dictionary):
 				)
 
 			active_areas["blast_" + enemy_id] = blast
+
 		elif action == "circle_charging":
 			var range_val = float(data.get("range", 300.0))
 			var charge_dur = float(data.get("duration", 2000.0)) / 1000.0
@@ -3605,6 +3561,102 @@ func _make_cone_edge_mesh_conforming(center_2d: Vector2, range_val_2d: float, an
 		st.set_normal(-Vector3.FORWARD); st.add_vertex(base[2])
 		st.set_normal(-Vector3.FORWARD); st.add_vertex(top[3])
 		st.set_normal(-Vector3.FORWARD); st.add_vertex(base[3])
+	return st.commit()
+
+# Roca con varias puntas emergiendo del piso (base y=0, puntas hacia +y)
+func _make_spike_mesh(base_w: float, height: float, rng: RandomNumberGenerator) -> ArrayMesh:
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var half = base_w * 0.5
+	var jitter = base_w * 0.28
+	var n_up = Vector3.UP
+	# Base irregular (bajo y ancho) — parece bloque de piedra saliendo del suelo
+	var base_pts: Array[Vector3] = []
+	var base_n = 7
+	for i in range(base_n):
+		var a = TAU * float(i) / float(base_n) + rng.randf_range(-0.12, 0.12)
+		var rr = half * rng.randf_range(0.78, 1.15)
+		base_pts.append(Vector3(cos(a) * rr, rng.randf_range(-0.04, 0.06), sin(a) * rr))
+	# Anillo medio (hombro de la roca)
+	var mid_pts: Array[Vector3] = []
+	var mid_y = height * rng.randf_range(0.28, 0.40)
+	var mid_r = half * rng.randf_range(0.42, 0.62)
+	for i in range(base_n):
+		var a = TAU * float(i) / float(base_n)
+		mid_pts.append(Vector3(
+			cos(a) * mid_r + rng.randf_range(-jitter * 0.4, jitter * 0.4),
+			mid_y + rng.randf_range(-height * 0.06, height * 0.08),
+			sin(a) * mid_r + rng.randf_range(-jitter * 0.4, jitter * 0.4)
+		))
+	# Tapa del hombro (cerrar el cuerpo de la roca)
+	var cap_c = Vector3(rng.randf_range(-jitter * 0.3, jitter * 0.3), mid_y + height * 0.06, rng.randf_range(-jitter * 0.3, jitter * 0.3))
+	# Caras base→hombro
+	for i in range(base_n):
+		var j = (i + 1) % base_n
+		var n = (base_pts[j] - base_pts[i]).cross(mid_pts[i] - base_pts[i]).normalized()
+		if n == Vector3.ZERO:
+			n = n_up
+		st.set_normal(n); st.add_vertex(base_pts[i])
+		st.set_normal(n); st.add_vertex(base_pts[j])
+		st.set_normal(n); st.add_vertex(mid_pts[i])
+		st.set_normal(n); st.add_vertex(base_pts[j])
+		st.set_normal(n); st.add_vertex(mid_pts[j])
+		st.set_normal(n); st.add_vertex(mid_pts[i])
+	# Tapa hombro→centro
+	for i in range(base_n):
+		var j = (i + 1) % base_n
+		var n = (mid_pts[j] - mid_pts[i]).cross(cap_c - mid_pts[i]).normalized()
+		if n == Vector3.ZERO:
+			n = n_up
+		st.set_normal(n); st.add_vertex(mid_pts[i])
+		st.set_normal(n); st.add_vertex(mid_pts[j])
+		st.set_normal(n); st.add_vertex(cap_c)
+	# Tapa inferior (hacia abajo, por si se ve desde ángulo bajo)
+	st.set_normal(-n_up); st.add_vertex(base_pts[0])
+	st.set_normal(-n_up); st.add_vertex(base_pts[3])
+	st.set_normal(-n_up); st.add_vertex(base_pts[1])
+	st.set_normal(-n_up); st.add_vertex(base_pts[0])
+	st.set_normal(-n_up); st.add_vertex(base_pts[5])
+	st.set_normal(-n_up); st.add_vertex(base_pts[3])
+	# Varias puntas sobre la roca (pinchos de distinta altura)
+	var tip_count = 3 + int(rng.randi() % 3) # 3–5 puntas
+	for t in range(tip_count):
+		var ta = TAU * float(t) / float(tip_count) + rng.randf_range(-0.35, 0.35)
+		var tip_r = mid_r * rng.randf_range(0.15, 0.72)
+		var tx = cos(ta) * tip_r + rng.randf_range(-jitter * 0.2, jitter * 0.2)
+		var tz = sin(ta) * tip_r + rng.randf_range(-jitter * 0.2, jitter * 0.2)
+		var th = height * rng.randf_range(0.55, 1.0)
+		if t == 0:
+			th = height # punta principal siempre completa
+			tx = rng.randf_range(-base_w * 0.08, base_w * 0.08)
+			tz = rng.randf_range(-base_w * 0.08, base_w * 0.08)
+		var tip = Vector3(tx, th, tz)
+		# Base de la punta en el hombro/cuerpo: anillo de 4 pts alrededor del pie
+		var pr = base_w * rng.randf_range(0.14, 0.24)
+		var ring: Array[Vector3] = []
+		for k in range(4):
+			var ka = TAU * float(k) / 4.0 + ta
+			ring.append(Vector3(
+				tx + cos(ka) * pr,
+				mid_y * rng.randf_range(0.7, 1.0),
+				tz + sin(ka) * pr
+			))
+		# Caras del anillo a la punta
+		for k in range(4):
+			var k2 = (k + 1) % 4
+			var n2 = (ring[k2] - ring[k]).cross(tip - ring[k]).normalized()
+			if n2 == Vector3.ZERO:
+				n2 = n_up
+			st.set_normal(n2); st.add_vertex(ring[k])
+			st.set_normal(n2); st.add_vertex(ring[k2])
+			st.set_normal(n2); st.add_vertex(tip)
+		# Cerrar base de la punta (tapón)
+		st.set_normal(-n_up); st.add_vertex(ring[0])
+		st.set_normal(-n_up); st.add_vertex(ring[2])
+		st.set_normal(-n_up); st.add_vertex(ring[1])
+		st.set_normal(-n_up); st.add_vertex(ring[0])
+		st.set_normal(-n_up); st.add_vertex(ring[3])
+		st.set_normal(-n_up); st.add_vertex(ring[2])
 	return st.commit()
 
 # Puntos dentro del sector conico (para EMISSION_SHAPE_POINTS); mesh_rot aplica igual que la cuña

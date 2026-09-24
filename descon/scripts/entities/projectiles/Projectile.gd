@@ -470,7 +470,7 @@ func _setup_visual_sprite():
 			if VFX_Fire_ball_type_B_scene:
 				_melee_fireballs_3d = []
 				_melee_blade_positions_3d = []
-				for i in 4:
+				for i in range(4):
 					var fb = VFXSystem.get_vfx_from_pool(VFX_Fire_ball_type_B_scene)
 					fb.name = "MeleeFB3D_" + str(get_instance_id()) + "_" + str(i)
 					fb.scale = Vector3(0.8, 0.8, 0.8)
@@ -745,7 +745,7 @@ func _setup_visual_sprite():
 			tip.material_override = tip_mat
 			world_root_3d.add_child(tip)
 
-			for i in 3:
+			for i in range(3):
 				var ring = MeshInstance3D.new()
 				var ring_mesh = CylinderMesh.new()
 				ring_mesh.top_radius = 0.06
@@ -923,7 +923,7 @@ func _setup_visual_sprite():
 			var sparks_node = Node3D.new()
 			sparks_node.name = "Sparks3D"
 			world_root_3d.add_child(sparks_node)
-			for i in 3:
+			for i in range(3):
 				var s = MeshInstance3D.new()
 				var ss = SphereMesh.new()
 				ss.radius = 0.03
@@ -1757,7 +1757,7 @@ func _physics_process(delta):
 				if "correction_z" in map_for_fb: correction_z = map_for_fb.correction_z
 			
 			var blade_positions_2d = [pos_izq, pos_der, pos_tras_izq, pos_tras_der]
-			for i in 4:
+			for i in range(4):
 				var blade_global_2d = global_position + blade_positions_2d[i]
 				var pos_3d = Vector3(
 					blade_global_2d.x * s_factor,

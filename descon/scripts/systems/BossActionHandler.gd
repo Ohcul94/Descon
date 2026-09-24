@@ -985,7 +985,7 @@ func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor
 	rock.scale = Vector3(1.15, 0.9, 1.0)
 	root.add_child(rock)
 
-	for i in 3:
+	for i in range(3):
 		var chunk = MeshInstance3D.new()
 		var cs = SphereMesh.new()
 		cs.radius = 0.14 + i * 0.04

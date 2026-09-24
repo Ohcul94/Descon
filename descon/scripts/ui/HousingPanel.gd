@@ -392,7 +392,12 @@ func _clean_internal_lights_in_ui(node):
 			_clean_internal_lights_in_ui(child)
 
 func _show_confirm_modal(title: String, msg: String, on_confirm: Callable):
-	var inv = get_tree().get_first_node_in_group("inventory_ui")
+	var inv = get_tree().get_first_node_in_group("main_inventory_ui")
+	if not is_instance_valid(inv):
+		for node in get_tree().get_nodes_in_group("inventory_ui"):
+			if node.has_method("_show_modal"):
+				inv = node
+				break
 	if inv and inv.has_method("_show_modal"):
 		inv._show_modal(title, msg, on_confirm)
 		return

@@ -58,6 +58,7 @@ var info_target: Control = null
 
 func _ready():
 	add_to_group("inventory_ui") # v244.70: Coordinación global de UI
+	add_to_group("main_inventory_ui") # Grupo específico para la instancia del inventario principal
 	mouse_filter = Control.MOUSE_FILTER_STOP # v305.65: Cambiado de IGNORE a STOP para bloqueo global
 	
 	var win = get_node_or_null("Window")

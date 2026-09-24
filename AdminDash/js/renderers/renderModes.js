@@ -2476,8 +2476,9 @@ window.renderTalentCreator = function() {
                 </div>
 
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
-                    <div style="width:50px; text-align:center;">
-                        <input type="text" value="${t.icon || '🌳'}" style="font-size:1.5rem; text-align:center; width:100%;" onchange="config.talentsConfig.talents[${idx}].icon = this.value; renderTalentCreator();">
+                    <div style="width:110px; text-align:center;">
+                        <div style="margin-bottom:4px; display:flex; justify-content:center;">${assetIconHtml(t.icon, { size: 36, fallback: '🌀', emojiSize: '28px', emptyHtml: '🌳' })}</div>
+                        <input type="text" value="${t.icon || '🌳'}" style="font-size:0.68rem; text-align:center; width:100%;" onchange="config.talentsConfig.talents[${idx}].icon = this.value; renderTalentCreator();">
                     </div>
                     <div style="flex:1;">
                         <div style="margin-bottom:6px;">
@@ -2741,15 +2742,15 @@ window.SKILL_ATTRS = {
 };
 
 window.WEAPON_ATTRS = {
-    base:            { label: 'Daño Base',        unit: 'pts',  icon: '💥' },
+    base:            { label: 'Daño Base',        unit: '%',   icon: '💥' },
     speedMod:        { label: 'Mod. Velocidad',   unit: 'x',    icon: '🚀' },
 };
 
 window.AMMO_ATTRS = {
-    cooldown:        { label: 'Cadencia',         unit: 'ms',   icon: '⏱️' },
+    cooldown:        { label: 'Enfriamiento (CD)', unit: '%',   icon: '⏱️' },
     bulletSpeed:     { label: 'Vel. Proyectil',   unit: 'px/s', icon: '🚀' },
     range:           { label: 'Alcance',          unit: 'px',   icon: '📏' },
-    castTimeMs:      { label: 'Casteo',           unit: 'ms',   icon: '⏳' },
+    castTimeMs:      { label: 'Vel. Casteo',      unit: '%',    icon: '⏳' },
 };
 
 function _findSkillById(skillId) {
@@ -3659,11 +3660,33 @@ window.renderTalentMapper = function(connectingMousePos = null, opts = null) {
             ctx.arc(screen.x, screen.y, radius - 4 * talentZoom, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Icono
-            ctx.font = `${iconSize}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+    // Icono: textura si el icon es ruta, emoji si no
+            if (typeof window._talentIconCache === 'undefined') window._talentIconCache = {};
+            const iconIsPath = t.icon && (t.icon.indexOf('res://') !== -1 || /assets\//.test(t.icon) || /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(t.icon));
+            if (iconIsPath) {
+                const iconUrl = (typeof resolveAssetWebUrl === 'function') ? resolveAssetWebUrl(t.icon) : t.icon;
+                let img = window._talentIconCache[iconUrl];
+                if (img === undefined) {
+                    img = new Image();
+                    img.onload = () => { /* se redibuja en el próximo frame del bucle */ };
+                    window._talentIconCache[iconUrl] = img;
+                    img.src = iconUrl;
+                }
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const sz = Math.min(radius * 1.1, iconSize * 1.1);
+                    ctx.drawImage(img, screen.x - sz / 2, screen.y - sz / 2, sz, sz);
+                } else {
+                    ctx.font = `${iconSize}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌀', screen.x, screen.y);
+                }
+            } else {
+                ctx.font = `${iconSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+            }
         }
 
         // ═══════════════════════════════════════════════════════
@@ -3731,10 +3754,31 @@ window.renderTalentMapper = function(connectingMousePos = null, opts = null) {
             ctx.globalAlpha = 1.0;
 
             // Icono
-            ctx.font = `${iconSize}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+            if (typeof window._talentIconCache === 'undefined') window._talentIconCache = {};
+            const iconIsPath = t.icon && (t.icon.indexOf('res://') !== -1 || /assets\//.test(t.icon) || /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(t.icon));
+            if (iconIsPath) {
+                const iconUrl = (typeof resolveAssetWebUrl === 'function') ? resolveAssetWebUrl(t.icon) : t.icon;
+                let img = window._talentIconCache[iconUrl];
+                if (img === undefined) {
+                    img = new Image();
+                    window._talentIconCache[iconUrl] = img;
+                    img.src = iconUrl;
+                }
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const sz = Math.min(radius * 1.1, iconSize * 1.1);
+                    ctx.drawImage(img, screen.x - sz / 2, screen.y - sz / 2, sz, sz);
+                } else {
+                    ctx.font = `${iconSize}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌀', screen.x, screen.y);
+                }
+            } else {
+                ctx.font = `${iconSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+            }
         }
 
         // ═══════════════════════════════════════════════════════
@@ -3848,10 +3892,31 @@ window.renderTalentMapper = function(connectingMousePos = null, opts = null) {
             ctx.globalAlpha = 1.0;
 
             // Icono
-            ctx.font = `${iconSize}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+            if (typeof window._talentIconCache === 'undefined') window._talentIconCache = {};
+            const iconIsPath = t.icon && (t.icon.indexOf('res://') !== -1 || /assets\//.test(t.icon) || /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(t.icon));
+            if (iconIsPath) {
+                const iconUrl = (typeof resolveAssetWebUrl === 'function') ? resolveAssetWebUrl(t.icon) : t.icon;
+                let img = window._talentIconCache[iconUrl];
+                if (img === undefined) {
+                    img = new Image();
+                    window._talentIconCache[iconUrl] = img;
+                    img.src = iconUrl;
+                }
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const sz = Math.min(radius * 1.15, iconSize * 1.15);
+                    ctx.drawImage(img, screen.x - sz / 2, screen.y - sz / 2, sz, sz);
+                } else {
+                    ctx.font = `${iconSize}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌀', screen.x, screen.y);
+                }
+            } else {
+                ctx.font = `${iconSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+            }
         }
 
         ctx.shadowBlur = 0;
@@ -4011,7 +4076,7 @@ window.renderTalentMapperSideList = function() {
 
             item.innerHTML = `
                 <div style="display:flex; gap:10px; align-items:center; flex: 1; min-width: 0;">
-                    <span style="font-size: 1.5rem; flex-shrink: 0; line-height: 1;">${t.icon || '🌳'}</span>
+                    <span style="font-size: 1.5rem; flex-shrink: 0; line-height: 1;">${assetIconHtml(t.icon, { size: 24, fallback: '🌀', emojiSize: '20px', emptyHtml: '🌳', style: 'width:24px;height:24px;object-fit:contain;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.25);' })}</span>
                     <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; justify-content: center;">
                         <div style="font-weight: bold; font-size: 0.9rem; color: var(--text); white-space: normal; overflow: visible; line-height: 1.25;">${t.name}</div>
                         <div style="font-size: 0.7rem; color: #bbb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; line-height: 1.3;">

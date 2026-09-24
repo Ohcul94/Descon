@@ -1462,6 +1462,8 @@ func set_debuff_timer(debuff_type: String, time_left: float, stacks: int = 1):
 var _debuff_cooldown: Dictionary = {}
 
 func _refresh_debuffs_from_status_effects():
+	if is_in_group("player"):
+		return
 	var changed = false
 	var now = Time.get_ticks_msec()
 	for se_key in DEBUFF_MAP:

@@ -31,9 +31,13 @@ function getTalentBonuses(skillTree, talentsConfig) {
     const talentsConfig2 = talentsConfig || {};
     const categories = talentsConfig2.categories || [];
     const tree = skillTree || {};
+    const allTalents = Array.isArray(talentsConfig2.talents) ? talentsConfig2.talents : [];
     categories.forEach(c => {
+        const count = allTalents.filter(t => t && t.category === c.id).length;
         if (!tree[c.id] || !Array.isArray(tree[c.id])) {
-            tree[c.id] = [0,0,0,0,0,0,0,0];
+            tree[c.id] = Array(Math.max(count, 1)).fill(0);
+        } else if (tree[c.id].length < count) {
+            while (tree[c.id].length < count) tree[c.id].push(0);
         }
     });
 
