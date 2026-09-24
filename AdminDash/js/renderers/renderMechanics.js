@@ -42,6 +42,8 @@ function renderMechanicsLib() {
         "tick_interval": "Intervalo de Tick (ms)",
         "damage_per_tick": "Daño por Tick (pts)",
         "slow_amount": "Ralentización (0 = sin slow)",
+        "slowDuration": "Duración Slow (ms)",
+        "slowIsPercentage": "Slow es Porcentual (%)",
         "radius": "Radio (px)",
         "projectileCount": "Cantidad de Gusanos (uds)",
         "spreadAngle": "Ángulo del Abanico (grados)",

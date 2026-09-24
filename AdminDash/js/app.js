@@ -1723,12 +1723,22 @@ function patchMechanicsLib() {
         if (!ml.fields.includes("isHoming")) ml.fields.push("isHoming");
         if (!ml.fields.includes("beamWidth")) ml.fields.push("beamWidth");
     }
+    if (config.mechanicsLib && config.mechanicsLib.ice_storm) {
+        if (!config.mechanicsLib.ice_storm.fields.includes("slowDuration")) {
+            const idx = config.mechanicsLib.ice_storm.fields.indexOf("slowIsPercentage");
+            if (idx !== -1) config.mechanicsLib.ice_storm.fields.splice(idx + 1, 0, "slowDuration");
+            else config.mechanicsLib.ice_storm.fields.push("slowDuration");
+        }
+    }
     if (config.enemyModels) {
         for (const eid in config.enemyModels) {
             const mechs = config.enemyModels[eid].mechanics || [];
             for (const m of mechs) {
                 if (m.type === 'mega_laser' && (m.beamWidth === undefined || m.beamWidth === null)) {
                     m.beamWidth = 40;
+                }
+                if (m.type === 'ice_storm' && (m.slowDuration === undefined || m.slowDuration === null)) {
+                    m.slowDuration = 2000;
                 }
             }
         }

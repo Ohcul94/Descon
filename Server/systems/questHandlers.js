@@ -84,6 +84,26 @@ function registerQuestHandlers(socket, io, state) {
                 await user.save();
             }
 
+            // Sincronizar progreso de misiones de recolección con el inventario actual
+            const questsConfigSync = state.SERVER_CONFIG?.questsConfig || [];
+            const inventorySync = user.gameData.inventory || [];
+            let collectSynced = false;
+            for (const aq of (user.gameData.quests?.active || [])) {
+                const def = questsConfigSync.find(q => String(q.id) === String(aq.id));
+                if (def && def.targetType === 'collect') {
+                    const itemQty = inventorySync.filter(item => String(item.id) === String(def.targetId)).length;
+                    const newProgress = Math.min(itemQty, def.targetAmount);
+                    if (aq.progress !== newProgress) {
+                        aq.progress = newProgress;
+                        collectSynced = true;
+                    }
+                }
+            }
+            if (collectSynced) {
+                user.markModified('gameData.quests');
+                await user.save();
+            }
+
             socket.emit('questsStateData', {
                 active: user.gameData.quests?.active || [],
                 completed: user.gameData.quests?.completed || [],

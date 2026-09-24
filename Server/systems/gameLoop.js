@@ -667,7 +667,7 @@ function startGameLoop(io, state, aiManager) {
             const activePoison = p.poisonEndTime ? Math.max(0, p.poisonEndTime - now) : 0;
             
             // v410.7: Expirar flags booleanas en el servidor cuando sus timers terminen
-            if (activeSlow <= 0 && p.isSlowed) {
+            if (activeSlow <= 0 && p.isSlowed && (!p.lastSlowTime || now - p.lastSlowTime > 400)) {
                 p.isSlowed = false;
                 p.slowPoints = 0;
                 p.slowEndTime = 0;

@@ -856,7 +856,11 @@ func _update_quests_ui():
 			qt.set_script(QuestsTabScript)
 			if qt.has_method("setup"): qt.setup(self)
 	
-	if is_open and qt and qt.has_method("update_ui"): qt.update_ui()
+	if is_open and qt:
+		# Refrescar estado de misiones (progreso de recolección sincroniza con inventario)
+		if NetworkManager:
+			NetworkManager.send_event("getQuestsState", {})
+		if qt.has_method("update_ui"): qt.update_ui()
 
 func _update_estadisticas_ui():
 	var et = get_node_or_null("Window/TabContainer/Estadisticas")

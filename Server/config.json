@@ -1594,6 +1594,11 @@
                     "amount": 40,
                     "chance": 1,
                     "itemId": "mat_esfera_defensa"
+                },
+                {
+                    "amount": 1,
+                    "chance": 0.5,
+                    "itemId": "mat_celi1"
                 }
             ],
             "mechanics": [
@@ -1731,7 +1736,13 @@
             "fireRate": 1000,
             "hp": 40,
             "icon": "res://assets/Enemigos/2D/Enemigo4/Enemy4Map2.png",
-            "lootDrops": [],
+            "lootDrops": [
+                {
+                    "amount": 1,
+                    "chance": 1,
+                    "itemId": "mat_celi1"
+                }
+            ],
             "mechanics": [
                 {
                     "activationHPs": [
@@ -1784,7 +1795,8 @@
             "rewardHubs": 350,
             "rewardOhcu": 35,
             "shield": 10,
-            "speed": 280
+            "speed": 280,
+            "chestDropChance": 0.2
         },
         "5": {
             "aggressive": false,
@@ -3062,6 +3074,8 @@
                     "lockTimeMs": 0,
                     "radius": 400,
                     "slow_amount": 100,
+                    "slowIsPercentage": false,
+                    "slowDuration": 2000,
                     "startDelay": 5000,
                     "tick_interval": 100,
                     "type": "ice_storm"
@@ -6227,6 +6241,8 @@
                     "pullSpeed": 200,
                     "radius": 250,
                     "slow_amount": 1,
+                    "slowIsPercentage": false,
+                    "slowDuration": 2000,
                     "startDelay": 0,
                     "stunDuration": 2000,
                     "tick_interval": 500,
@@ -9014,6 +9030,7 @@
                 "damage_per_tick",
                 "slow_amount",
                 "slowIsPercentage",
+                "slowDuration",
                 "startDelay"
             ],
             "icon": "❄️",
@@ -9800,6 +9817,327 @@
             "targetId": "101",
             "targetType": "kill",
             "type": "story"
+        },
+        {
+            "id": "quest_3",
+            "name": "Reconocimiento en Órbita",
+            "desc": "Explora el Mapa 2 y recoge datos tácticos de la zona para el Hangar.",
+            "type": "story",
+            "targetType": "explore",
+            "targetId": "2",
+            "targetAmount": 1,
+            "portalGate": "",
+            "reward": {
+                "exp": 100,
+                "hubs": 100,
+                "ohcu": 5,
+                "items": [],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_4",
+            "name": "Cacería Menor",
+            "desc": "Elimina 8 Enemigos 2 que patrullan las rutas del Mapa 2 y demuestra tu puntería.",
+            "type": "story",
+            "targetType": "kill",
+            "targetId": "2",
+            "targetAmount": 8,
+            "portalGate": "",
+            "reward": {
+                "exp": 120,
+                "hubs": 150,
+                "ohcu": 8,
+                "items": [],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_5",
+            "name": "Recolección de Celis",
+            "desc": "Junta 5 Celis Comunes. En el Mapa 2 los Enemigos 2 las sueltan con frecuencia (50%).",
+            "type": "story",
+            "targetType": "collect",
+            "targetId": "mat_celi1",
+            "targetAmount": 5,
+            "portalGate": "",
+            "reward": {
+                "exp": 150,
+                "hubs": 200,
+                "ohcu": 10,
+                "items": [
+                    {
+                        "id": "am_l1",
+                        "qty": 10
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_6",
+            "name": "Patrulla de Lanceros",
+            "desc": "Derrota a 6 Enemigos 3 en las zonas profundas del Mapa 2.",
+            "type": "story",
+            "targetType": "kill",
+            "targetId": "3",
+            "targetAmount": 6,
+            "portalGate": "",
+            "reward": {
+                "exp": 130,
+                "hubs": 160,
+                "ohcu": 8,
+                "items": [
+                    {
+                        "id": "am_m1",
+                        "qty": 5
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_7",
+            "name": "El Guardián Estelar",
+            "desc": "Enfrenta al boss Stellar Guardian en el Mapa 2. Solo los más audaces lo derriban.",
+            "type": "story",
+            "targetType": "kill",
+            "targetId": "104",
+            "targetAmount": 1,
+            "portalGate": "",
+            "reward": {
+                "exp": 300,
+                "hubs": 500,
+                "ohcu": 15,
+                "items": [
+                    {
+                        "id": "am_l1",
+                        "qty": 20
+                    },
+                    {
+                        "id": "am_h1",
+                        "qty": 10
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_8",
+            "name": "Umbral Carmesí",
+            "desc": "Explora el Mapa 3. El vacío allí es más hostil: mantén los escudos activos.",
+            "type": "story",
+            "targetType": "explore",
+            "targetId": "3",
+            "targetAmount": 1,
+            "portalGate": "",
+            "reward": {
+                "exp": 200,
+                "hubs": 300,
+                "ohcu": 12,
+                "items": [],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_9",
+            "name": "Hostiles del Mapa 3",
+            "desc": "Abate 10 Enemigos 4 en el Mapa 3 y abre camino hacia el corazón de la zona.",
+            "type": "story",
+            "targetType": "kill",
+            "targetId": "4",
+            "targetAmount": 10,
+            "portalGate": "",
+            "reward": {
+                "exp": 250,
+                "hubs": 400,
+                "ohcu": 15,
+                "items": [],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_10",
+            "name": "Acopio Profundo",
+            "desc": "Consigue 8 Celis Comunes. En el Mapa 3 caen con menos suerte (20%): la paciencia es clave.",
+            "type": "story",
+            "targetType": "collect",
+            "targetId": "mat_celi1",
+            "targetAmount": 8,
+            "portalGate": "",
+            "reward": {
+                "exp": 280,
+                "hubs": 450,
+                "ohcu": 18,
+                "items": [
+                    {
+                        "id": "am_h1",
+                        "qty": 15
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_11",
+            "name": "Élites del Vacío",
+            "desc": "Elimina 5 Enemigos 8. Son más resistentes: prepara munición y escudos.",
+            "type": "story",
+            "targetType": "kill",
+            "targetId": "8",
+            "targetAmount": 5,
+            "portalGate": "",
+            "reward": {
+                "exp": 350,
+                "hubs": 550,
+                "ohcu": 20,
+                "items": [
+                    {
+                        "id": "am_m1",
+                        "qty": 10
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_12",
+            "name": "El Ancient Titán",
+            "desc": "Derrota al Ancient Titán en el centro del Mapa 3. Su escudo regenerativo no perdona.",
+            "type": "story",
+            "targetType": "kill",
+            "targetId": "102",
+            "targetAmount": 1,
+            "portalGate": "",
+            "reward": {
+                "exp": 400,
+                "hubs": 700,
+                "ohcu": 25,
+                "items": [
+                    {
+                        "id": "am_l1",
+                        "qty": 30
+                    },
+                    {
+                        "id": "am_e1",
+                        "qty": 10
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_13",
+            "name": "Titán Carmesí",
+            "desc": "Desafía al Titán Carmesí, señor del Mapa 3. Su furia de hielo y meteoros pondrá a prueba tu tripulación.",
+            "type": "story",
+            "targetType": "kill",
+            "targetId": "105",
+            "targetAmount": 1,
+            "portalGate": "",
+            "reward": {
+                "exp": 500,
+                "hubs": 900,
+                "ohcu": 30,
+                "items": [
+                    {
+                        "id": "am_l1",
+                        "qty": 50
+                    },
+                    {
+                        "id": "am_m1",
+                        "qty": 20
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_14",
+            "name": "Ronda de Vigilancia",
+            "desc": "Cada día cuenta: derriba 12 Enemigos 2 en el Mapa 2 para mantener despejada la ruta.",
+            "type": "daily",
+            "targetType": "kill",
+            "targetId": "2",
+            "targetAmount": 12,
+            "portalGate": "",
+            "reward": {
+                "exp": 80,
+                "hubs": 120,
+                "ohcu": 6,
+                "items": [],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_15",
+            "name": "Suministros Rápidos",
+            "desc": "Junta 4 Celis Comunes hoy mismo. Farméalas donde más te convenga.",
+            "type": "daily",
+            "targetType": "collect",
+            "targetId": "mat_celi1",
+            "targetAmount": 4,
+            "portalGate": "",
+            "reward": {
+                "exp": 90,
+                "hubs": 130,
+                "ohcu": 7,
+                "items": [
+                    {
+                        "id": "am_l1",
+                        "qty": 5
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_16",
+            "name": "Acopio Semanal",
+            "desc": "Reúne 12 Celis Comunes a lo largo de la semana. El Mapa 2 es más generoso (50% de drop).",
+            "type": "weekly",
+            "targetType": "collect",
+            "targetId": "mat_celi1",
+            "targetAmount": 12,
+            "portalGate": "",
+            "reward": {
+                "exp": 300,
+                "hubs": 500,
+                "ohcu": 15,
+                "items": [
+                    {
+                        "id": "am_h1",
+                        "qty": 20
+                    }
+                ],
+                "unlocks": []
+            }
+        },
+        {
+            "id": "quest_17",
+            "name": "Caza de Titán",
+            "desc": "Derrota una vez más al Lord Titán en el Mapa 2. Su núcleo de energía es una recompensa valiosa.",
+            "type": "weekly",
+            "targetType": "kill",
+            "targetId": "101",
+            "targetAmount": 1,
+            "portalGate": "",
+            "reward": {
+                "exp": 350,
+                "hubs": 600,
+                "ohcu": 20,
+                "items": [
+                    {
+                        "id": "am_l1",
+                        "qty": 25
+                    },
+                    {
+                        "id": "am_m1",
+                        "qty": 15
+                    }
+                ],
+                "unlocks": []
+            }
         }
     ],
     "questsGlobalConfig": {

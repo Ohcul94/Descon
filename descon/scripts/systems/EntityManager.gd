@@ -37,90 +37,87 @@ const TEX_ESFERA_VERDE_1 = preload("res://assets/Esferas/EsferaVerde1.png")
 const CONE_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
 const CONE_SPARK_TEX = preload("res://VFX/textures/T_VFX_sparks42.jpg")
 
-# Círculo de llamas en carga de circle_cast (crece con progress en _process)
-func _make_circle_charge_fire(outer_r3d: float) -> CPUParticles3D:
-	var fire = CPUParticles3D.new()
-	fire.name = "ChargeFire"
-	fire.amount = 72
-	fire.lifetime = 0.5
-	fire.explosiveness = 0.2
-	fire.randomness = 0.7
-	fire.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
-	fire.set("emission_ring_radius", maxf(outer_r3d * 0.75, 0.1))
-	if "emission_ring_height" in fire:
-		fire.set("emission_ring_height", 0.12)
-	fire.direction = Vector3(0, 1, 0)
-	fire.spread = 18.0
-	fire.gravity = Vector3(0, 2.4, 0)
-	fire.initial_velocity_min = 1.2
-	fire.initial_velocity_max = 3.0
-	fire.scale_amount_min = 0.55
-	fire.scale_amount_max = 1.25
-	var g_curve = Curve.new()
-	g_curve.add_point(Vector2(0.0, 0.45))
-	g_curve.add_point(Vector2(0.3, 1.0))
-	g_curve.add_point(Vector2(1.0, 0.08))
-	fire.scale_amount_curve = g_curve
-	var g_grad = Gradient.new()
-	g_grad.set_color(0, Color(1.4, 0.95, 0.3, 0.95))
-	g_grad.add_point(0.35, Color(1.2, 0.5, 0.08, 0.8))
-	g_grad.set_color(1, Color(0.45, 0.08, 0.0, 0.0))
-	fire.color_ramp = g_grad
-	var g_mesh = QuadMesh.new()
-	g_mesh.size = Vector2(0.65, 0.9)
-	fire.mesh = g_mesh
-	var g_mat = StandardMaterial3D.new()
-	g_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	g_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	g_mat.vertex_color_use_as_albedo = true
-	g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	g_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	g_mat.albedo_texture = CONE_FIRE_TEX
-	g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	fire.material_override = g_mat
-	fire.emitting = false
-	fire.position.y = 0.1
-	fire.scale = Vector3(0.08, 1.0, 0.08)
-	return fire
-
-# Explosión: fuego que estalla desde el centro y cubre TODO el rango (range del AdminDash)
+# Explosión en 2 fases: 1) llamas se acumulan alrededor del centro/enemigo, 2) estallan hacia los costados hasta el rango
 func _make_circle_fire_burst(r3d: float, has_terrain: bool) -> Node3D:
 	var root = Node3D.new()
 	root.name = "CircleBurstRoot"
 	var y_base = 0.1 if not has_terrain else 0.06
 
-	# 1) Bombardeo radial desde el centro — velocidad calibrada para alcanzar r3d
+	# --- FASE 1: acumulación alrededor del enemigo/centro (rápida, compacta) ---
+	var gather = CPUParticles3D.new()
+	gather.name = "CircleGather"
+	gather.amount = 160
+	gather.lifetime = 0.55
+	gather.explosiveness = 0.08
+	gather.randomness = 0.7
+	gather.one_shot = true
+	gather.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	gather.emission_sphere_radius = maxf(r3d * 0.1, 0.05)
+	gather.direction = Vector3(0, 0.25, 0)
+	gather.spread = 88.0
+	gather.gravity = Vector3(0, 0.4, 0)
+	gather.initial_velocity_min = 0.3
+	gather.initial_velocity_max = 1.2
+	gather.scale_amount_min = 0.8
+	gather.scale_amount_max = 1.7
+	var ga_curve = Curve.new()
+	ga_curve.add_point(Vector2(0.0, 0.25))
+	ga_curve.add_point(Vector2(0.2, 1.0))
+	ga_curve.add_point(Vector2(0.75, 0.9))
+	ga_curve.add_point(Vector2(1.0, 0.15))
+	gather.scale_amount_curve = ga_curve
+	var ga_grad = Gradient.new()
+	ga_grad.set_color(0, Color(1.7, 1.15, 0.4, 1.0))
+	ga_grad.add_point(0.35, Color(1.4, 0.6, 0.1, 0.95))
+	ga_grad.set_color(1, Color(0.8, 0.2, 0.02, 0.4))
+	gather.color_ramp = ga_grad
+	var ga_mesh = QuadMesh.new()
+	ga_mesh.size = Vector2(1.1, 1.4)
+	gather.mesh = ga_mesh
+	var ga_mat = StandardMaterial3D.new()
+	ga_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ga_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	ga_mat.vertex_color_use_as_albedo = true
+	ga_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ga_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	ga_mat.albedo_texture = CONE_FIRE_TEX
+	ga_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	gather.material_override = ga_mat
+	gather.position.y = y_base
+	gather.emitting = false
+	root.add_child(gather)
+
+	# --- FASE 2: estallido radial hasta el borde del rango (tras la acumulación) ---
 	var burst = CPUParticles3D.new()
 	burst.name = "CircleFireBurst"
-	burst.amount = 140
+	burst.amount = 220
 	burst.lifetime = 0.95
 	burst.explosiveness = 1.0
-	burst.randomness = 0.5
+	burst.randomness = 0.45
 	burst.one_shot = true
 	burst.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	burst.emission_sphere_radius = maxf(r3d * 0.08, 0.04)
-	# ~r3d / lifetime ≈ 1.05 * r3d para llegar al borde; margen extra por spread/gravedad
-	burst.direction = Vector3(0, 0.35, 0)
-	burst.spread = 72.0
-	burst.gravity = Vector3(0, 1.0, 0)
-	burst.initial_velocity_min = r3d * 1.15
-	burst.initial_velocity_max = r3d * 1.7
-	burst.scale_amount_min = 0.7
-	burst.scale_amount_max = 1.5
+	burst.emission_sphere_radius = maxf(r3d * 0.12, 0.05)
+	burst.direction = Vector3(0, 0.18, 0)
+	burst.spread = 88.0
+	burst.gravity = Vector3(0, 0.15, 0)
+	burst.initial_velocity_min = r3d * 1.25
+	burst.initial_velocity_max = r3d * 1.9
+	burst.scale_amount_min = 0.9
+	burst.scale_amount_max = 1.9
 	var g_curve = Curve.new()
 	g_curve.add_point(Vector2(0.0, 0.55))
-	g_curve.add_point(Vector2(0.15, 1.0))
+	g_curve.add_point(Vector2(0.12, 1.0))
 	g_curve.add_point(Vector2(0.7, 0.85))
 	g_curve.add_point(Vector2(1.0, 0.0))
 	burst.scale_amount_curve = g_curve
 	var g_grad = Gradient.new()
-	g_grad.set_color(0, Color(1.6, 1.1, 0.35, 1.0))
-	g_grad.add_point(0.25, Color(1.3, 0.55, 0.08, 0.95))
-	g_grad.add_point(0.6, Color(0.9, 0.25, 0.03, 0.7))
+	g_grad.set_color(0, Color(1.7, 1.15, 0.4, 1.0))
+	g_grad.add_point(0.22, Color(1.4, 0.6, 0.1, 0.95))
+	g_grad.add_point(0.6, Color(0.95, 0.28, 0.04, 0.75))
 	g_grad.set_color(1, Color(0.35, 0.05, 0.0, 0.0))
 	burst.color_ramp = g_grad
 	var g_mesh = QuadMesh.new()
-	g_mesh.size = Vector2(0.85, 1.1)
+	g_mesh.size = Vector2(1.2, 1.55)
 	burst.mesh = g_mesh
 	var g_mat = StandardMaterial3D.new()
 	g_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -135,74 +132,29 @@ func _make_circle_fire_burst(r3d: float, has_terrain: bool) -> Node3D:
 	burst.emitting = false
 	root.add_child(burst)
 
-	# 2) Anillo de llamas en el LÍMITE del rango (garantiza cobertura hasta fireRange)
-	var edge = CPUParticles3D.new()
-	edge.name = "CircleEdgeFire"
-	edge.amount = 96
-	edge.lifetime = 0.8
-	edge.explosiveness = 0.85
-	edge.randomness = 0.6
-	edge.one_shot = true
-	edge.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
-	edge.set("emission_ring_radius", maxf(r3d * 0.96, 0.05))
-	if "emission_ring_height" in edge:
-		edge.set("emission_ring_height", 0.1)
-	edge.direction = Vector3(0, 1, 0)
-	edge.spread = 30.0
-	edge.gravity = Vector3(0, 2.0, 0)
-	edge.initial_velocity_min = 1.4
-	edge.initial_velocity_max = 3.2
-	edge.scale_amount_min = 0.55
-	edge.scale_amount_max = 1.2
-	var e_curve = Curve.new()
-	e_curve.add_point(Vector2(0.0, 0.4))
-	e_curve.add_point(Vector2(0.25, 1.0))
-	e_curve.add_point(Vector2(1.0, 0.05))
-	edge.scale_amount_curve = e_curve
-	var e_grad = Gradient.new()
-	e_grad.set_color(0, Color(1.5, 0.9, 0.25, 1.0))
-	e_grad.add_point(0.4, Color(1.2, 0.45, 0.06, 0.85))
-	e_grad.set_color(1, Color(0.4, 0.06, 0.0, 0.0))
-	edge.color_ramp = e_grad
-	var e_mesh = QuadMesh.new()
-	e_mesh.size = Vector2(0.7, 1.0)
-	edge.mesh = e_mesh
-	var e_mat = StandardMaterial3D.new()
-	e_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	e_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	e_mat.vertex_color_use_as_albedo = true
-	e_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	e_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	e_mat.albedo_texture = CONE_FIRE_TEX
-	e_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	edge.material_override = e_mat
-	edge.position.y = y_base
-	edge.emitting = false
-	root.add_child(edge)
-
-	# 3) Chispas/brasas que vuelan hasta el borde (más rápidas, cortas)
+	# --- Chispas/brasas desde el centro hacia el borde (más de lado que arriba) ---
 	var sparks = CPUParticles3D.new()
 	sparks.name = "CircleSparkBurst"
-	sparks.amount = 80
+	sparks.amount = 120
 	sparks.lifetime = 1.05
 	sparks.explosiveness = 1.0
 	sparks.one_shot = true
 	sparks.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	sparks.emission_sphere_radius = maxf(r3d * 0.1, 0.04)
-	sparks.direction = Vector3(0, 0.2, 0)
-	sparks.spread = 80.0
-	sparks.gravity = Vector3(0, -0.6, 0)
-	sparks.initial_velocity_min = r3d * 1.3
-	sparks.initial_velocity_max = r3d * 2.0
-	sparks.scale_amount_min = 0.2
-	sparks.scale_amount_max = 0.5
+	sparks.direction = Vector3(0, 0.15, 0)
+	sparks.spread = 88.0
+	sparks.gravity = Vector3(0, -0.35, 0)
+	sparks.initial_velocity_min = r3d * 1.4
+	sparks.initial_velocity_max = r3d * 2.15
+	sparks.scale_amount_min = 0.28
+	sparks.scale_amount_max = 0.6
 	var s_grad = Gradient.new()
-	s_grad.set_color(0, Color(2.4, 1.6, 0.55, 1.0))
-	s_grad.add_point(0.45, Color(1.4, 0.55, 0.1, 0.85))
+	s_grad.set_color(0, Color(2.5, 1.7, 0.6, 1.0))
+	s_grad.add_point(0.45, Color(1.5, 0.6, 0.12, 0.9))
 	s_grad.set_color(1, Color(0.5, 0.1, 0.0, 0.0))
 	sparks.color_ramp = s_grad
 	var s_mesh = QuadMesh.new()
-	s_mesh.size = Vector2(0.28, 0.28)
+	s_mesh.size = Vector2(0.36, 0.36)
 	sparks.mesh = s_mesh
 	var s_mat = StandardMaterial3D.new()
 	s_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -217,14 +169,22 @@ func _make_circle_fire_burst(r3d: float, has_terrain: bool) -> Node3D:
 	sparks.emitting = false
 	root.add_child(sparks)
 
-	# Detonar en el siguiente frame para que el árbol esté listo
-	var tw_b = root.create_tween()
-	tw_b.tween_interval(0.01)
-	tw_b.tween_callback(func():
-		for child in root.get_children():
-			if child is CPUParticles3D:
-				child.restart()
-				child.emitting = true
+	# Timeline: fase1 acumula cerca del enemigo → fase2 estalla hacia los costados
+	var tw = root.create_tween()
+	tw.tween_interval(0.01)
+	tw.tween_callback(func():
+		if is_instance_valid(gather):
+			gather.restart()
+			gather.emitting = true
+	)
+	tw.tween_interval(0.22)
+	tw.tween_callback(func():
+		if is_instance_valid(burst):
+			burst.restart()
+			burst.emitting = true
+		if is_instance_valid(sparks):
+			sparks.restart()
+			sparks.emitting = true
 	)
 	return root
 
@@ -465,7 +425,7 @@ func _process(delta):
 						else:
 							# Fallback original
 							circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
-						# Sin arcos giratorios: solo disco + núcleo de carga
+						# Sin ChargeFire (partículas en línea de carga): solo disco + núcleo
 						var fire_core = circle_3d.get_node_or_null("FireCore")
 						if is_instance_valid(fire_core):
 							var core_mat = fire_core.material_override
@@ -473,14 +433,6 @@ func _process(delta):
 								core_mat.albedo_color.a = clamp(progress * 1.5, 0.0, 0.5)
 								core_mat.emission_energy_multiplier = clamp(progress * 5.0, 0.0, 4.0)
 							fire_core.position.y = 0.15 + progress * 0.3
-						# Círculo de llamas que crece con el casteo
-						var charge_fire = circle_3d.get_node_or_null("ChargeFire")
-						if is_instance_valid(charge_fire):
-							var cf_scale = maxf(0.08, progress)
-							charge_fire.scale = Vector3(cf_scale, 1.0, cf_scale)
-							if charge_fire is CPUParticles3D:
-								charge_fire.emitting = progress > 0.05
-							charge_fire.visible = progress > 0.03
 					else:
 						area.global_position = en_vis
 						area.global_rotation = en.global_rotation - PI / 2
@@ -1573,7 +1525,6 @@ func _on_enemy_action(data: Dictionary):
 					core.material_override = core_mat
 					core.position.y = 0.15
 					circle_3d.add_child(core)
-					circle_3d.add_child(_make_circle_charge_fire(outer_r3d))
 					circle_3d.set_meta("outer_r3d", outer_r3d)
 					circle_3d.set_meta("inner_r3d", inner_r3d)
 					circle_node.set_meta("circle_3d", circle_3d)
@@ -1621,7 +1572,6 @@ func _on_enemy_action(data: Dictionary):
 					core.material_override = core_mat
 					core.position.y = 0.1
 					circle_3d.add_child(core)
-					circle_3d.add_child(_make_circle_charge_fire(outer_r3d))
 					circle_3d.set_meta("outer_r3d", outer_r3d)
 					circle_3d.set_meta("inner_r3d", inner_r3d)
 					circle_node.set_meta("circle_3d", circle_3d)
@@ -1717,8 +1667,9 @@ func _on_enemy_action(data: Dictionary):
 				var clean_all = func():
 					if is_instance_valid(circle_blast_3d):
 						circle_blast_3d.queue_free()
+				# Fase1 acumula +0.22s, fase2 estalla ~1.05s → limpiar ~1.6s
 				var tw_clean = circle_blast_3d.create_tween()
-				tw_clean.tween_interval(1.3)
+				tw_clean.tween_interval(1.6)
 				tw_clean.tween_callback(clean_all)
 
 			active_areas.erase("blast_" + enemy_id)
