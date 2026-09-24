@@ -2129,8 +2129,8 @@ func _explode():
 			tw_m.finished.connect(_bomb_ground_marker.queue_free)
 			_bomb_ground_marker = null
 
-		# 3D explosion VFX
-		if is_instance_valid(world_root_3d):
+		# 3D explosion VFX (solo para jugador; para enemigo, EntityMechanicsVFX maneja el bomb_explode autoritativo)
+		if owner_type != "enemy" and is_instance_valid(world_root_3d):
 			var vp = world_root_3d.get_parent()
 			if is_instance_valid(vp):
 				var radius_3d = radius * 0.02

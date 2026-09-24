@@ -12,6 +12,7 @@ var entity: CharacterBody2D = null
 const ColorBeamShader = preload("res://resources/shaders/color_beam.gdshader")
 const ColorAuraShader = preload("res://resources/shaders/color_aura.gdshader")
 const VoidAuraShader = preload("res://resources/shaders/void_aura.gdshader")
+const DomeForceFieldShader = preload("res://resources/shaders/dome_force_field.gdshader")
 const HealAuraShader = preload("res://resources/shaders/heal_aura.gdshader")
 const AuraPulseRingShader = preload("res://resources/shaders/aura_pulse_ring.gdshader")
 const VFX_HexTexture = preload("res://VFX/textures/T_Hex1_inv.jpg")
@@ -27,6 +28,155 @@ var is_orbital_active: bool = false
 
 func setup(entity_ref: CharacterBody2D) -> void:
 	entity = entity_ref
+
+# ==============================================================================
+# Domo de Supervivencia - helpers del campo de fuerza
+# ==============================================================================
+func _get_entity_manager() -> Node:
+	var world = get_tree().get_first_node_in_group("world_node")
+	if is_instance_valid(world):
+		var m = world.get_node_or_null("EntityManager")
+		if is_instance_valid(m):
+			return m
+	return null
+
+func _make_dome_shell_mat(alpha_scale_p: float, noise_scale_p: float, base_alpha_p: float) -> ShaderMaterial:
+	var mat = ShaderMaterial.new()
+	mat.shader = DomeForceFieldShader
+	mat.set_shader_parameter("deep_color", Color(0.5, 0.22, 0.02, 1.0))
+	mat.set_shader_parameter("base_color", Color(1.0, 0.68, 0.14, 1.0))
+	mat.set_shader_parameter("rim_color", Color(1.0, 0.95, 0.7, 1.0))
+	mat.set_shader_parameter("alpha_scale", alpha_scale_p)
+	mat.set_shader_parameter("noise_scale", noise_scale_p)
+	mat.set_shader_parameter("base_alpha", base_alpha_p)
+	mat.set_shader_parameter("intensity", 0.0)
+	return mat
+
+func _tween_shader_param(host: Node, mat: ShaderMaterial, param: String, from_v: float, to_v: float, delay: float, dur: float) -> void:
+	if not is_instance_valid(host) or not is_instance_valid(mat):
+		return
+	mat.set_shader_parameter(param, from_v)
+	var tw = host.create_tween()
+	if delay > 0.0:
+		tw.tween_interval(delay)
+	tw.tween_method(func(v): mat.set_shader_parameter(param, v), from_v, to_v, dur)
+
+func _play_dome_impact(dome_3d: Node3D, dir_world: Vector3, delay: float, dur: float) -> void:
+	if not is_instance_valid(dome_3d):
+		return
+	var shell_mats = dome_3d.get_meta("shell_mats", [])
+	for m in shell_mats:
+		if m is ShaderMaterial:
+			m.set_shader_parameter("impact_dir", dir_world)
+			_tween_shader_param(dome_3d, m, "impact", 0.0, 1.0, delay, dur)
+
+func _spawn_dome_impact_sparks(dome_3d: Node3D, r3d: float, dir_world: Vector3, correction_z: float, delay: float) -> void:
+	if not is_instance_valid(dome_3d) or r3d <= 0.01:
+		return
+	# Local: dome_3d aplica correction_z en Z → hay que quitarlo de la Z del mundo
+	var base = Vector3(dir_world.x, 0.0, dir_world.z / maxf(correction_z, 0.001))
+	if base.length() < 0.001:
+		base = Vector3(1.0, 0.0, 0.0)
+	base = base.normalized()
+	var root = Node3D.new()
+	root.name = "DomeImpactSparks"
+	dome_3d.add_child(root)
+	var s_grad = Gradient.new()
+	s_grad.set_color(0, Color(2.5, 1.8, 0.7, 1.0))
+	s_grad.add_point(0.5, Color(1.5, 0.7, 0.15, 0.9))
+	s_grad.set_color(1, Color(0.5, 0.1, 0.0, 0.0))
+	for i in 3:
+		var ang = deg_to_rad(-40.0 + 40.0 * i)
+		var d = Vector3(base.x * cos(ang) - base.z * sin(ang), 0.0, base.x * sin(ang) + base.z * cos(ang))
+		var p = CPUParticles3D.new()
+		p.one_shot = true
+		p.emitting = false
+		p.amount = 22
+		p.lifetime = 0.7
+		p.explosiveness = 1.0
+		p.position = d * r3d + Vector3(0.0, r3d * 0.15, 0.0)
+		p.direction = Vector3(d.x, 0.55, d.z)
+		p.spread = 40.0
+		p.gravity = Vector3(0.0, -7.0, 0.0)
+		p.initial_velocity_min = 3.5
+		p.initial_velocity_max = 8.0
+		p.scale_amount_min = 0.25
+		p.scale_amount_max = 0.55
+		p.color_ramp = s_grad
+		var q = QuadMesh.new()
+		q.size = Vector2(0.3, 0.3)
+		var m3 = StandardMaterial3D.new()
+		m3.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m3.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		m3.vertex_color_use_as_albedo = true
+		m3.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m3.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m3.albedo_texture = VFX_FlareTexture
+		m3.cull_mode = BaseMaterial3D.CULL_DISABLED
+		q.material = m3
+		p.mesh = q
+		root.add_child(p)
+	var tw = root.create_tween()
+	tw.tween_interval(delay)
+	tw.tween_callback(func():
+		if is_instance_valid(root):
+			for c in root.get_children():
+				if c is CPUParticles3D:
+					c.emitting = true
+	)
+	tw.tween_interval(2.2)
+	tw.tween_callback(func():
+		if is_instance_valid(root):
+			root.queue_free()
+	)
+
+func _fade_out_dome(dome_3d: Node3D, delay: float, dur: float) -> void:
+	if not is_instance_valid(dome_3d):
+		return
+	var shell_mats = dome_3d.get_meta("shell_mats", [])
+	for m in shell_mats:
+		if m is ShaderMaterial:
+			var cur = float(m.get_shader_parameter("intensity"))
+			_tween_shader_param(dome_3d, m, "intensity", cur, 0.0, delay, dur)
+	var g_mat = dome_3d.get_meta("ground_mat", null)
+	if g_mat is ShaderMaterial:
+		var cur_g = float(g_mat.get_shader_parameter("intensity"))
+		_tween_shader_param(dome_3d, g_mat, "intensity", cur_g, 0.0, delay, dur)
+	var light = dome_3d.get_meta("light", null)
+	if light is OmniLight3D and is_instance_valid(light):
+		var tw = light.create_tween()
+		tw.tween_interval(delay)
+		tw.tween_property(light, "light_energy", 0.0, dur)
+	var embers = dome_3d.get_meta("embers", null)
+	if embers is CPUParticles3D and is_instance_valid(embers):
+		embers.lifetime = 0.5
+		var tw_e = embers.create_tween()
+		tw_e.tween_interval(delay)
+		tw_e.tween_callback(func():
+			if is_instance_valid(embers):
+				embers.emitting = false
+		)
+	var sd_mat = dome_3d.get_meta("safe_disc_mat", null)
+	if sd_mat is StandardMaterial3D:
+		var tw_s = dome_3d.create_tween()
+		tw_s.tween_interval(delay)
+		var par = tw_s.set_parallel(true)
+		par.tween_property(sd_mat, "albedo_color:a", 0.0, dur)
+		par.tween_property(sd_mat, "emission_energy_multiplier", 0.0, dur)
+	# danger_disc (área de peligro) - desvanecer y encoger
+	var d_mat = dome_3d.get_meta("danger_disc_mat", null)
+	if d_mat is StandardMaterial3D:
+		var tw_d = dome_3d.create_tween()
+		tw_d.tween_interval(delay)
+		var par_d = tw_d.set_parallel(true)
+		par_d.tween_property(d_mat, "albedo_color:a", 0.0, dur)
+		par_d.tween_property(d_mat, "emission_energy_multiplier", 0.0, dur)
+	var danger_disc = dome_3d.get_meta("danger_disc", null)
+	if danger_disc is MeshInstance3D and danger_disc.mesh is CylinderMesh:
+		var tw_disc = dome_3d.create_tween()
+		tw_disc.tween_interval(delay)
+		tw_disc.tween_property(danger_disc.mesh, "top_radius", 0.01, dur).set_ease(Tween.EASE_IN)
+		tw_disc.parallel().tween_property(danger_disc.mesh, "bottom_radius", 0.01, dur).set_ease(Tween.EASE_IN)
 
 # ==============================================================================
 # 1. ENEMY ACTION (Acciones de Combate de Enemigos / Jefes)
@@ -45,12 +195,15 @@ func handle_enemy_action(data: Dictionary) -> void:
 			is_orbital_active = false
 			fire_orbital_strike()
 		"survival_dome_charging":
+			var boss_x_net = float(data.get("bossX", entity.global_position.x))
+			var boss_y_net = float(data.get("bossY", entity.global_position.y))
 			entity._active_survival_dome = {
 				"safe_pos": Vector2(float(data.get("safeX", 0.0)), float(data.get("safeY", 0.0))),
 				"safe_radius": float(data.get("safeRadius", 150.0)),
 				"fire_range": float(data.get("fireRange", 800.0)),
 				"duration": float(data.get("duration", 3000.0)) / 1000.0,
-				"time_elapsed": 0.0
+				"time_elapsed": 0.0,
+				"boss_pos": Vector2(boss_x_net, boss_y_net)
 			}
 			entity.queue_redraw()
 			if is_instance_valid(entity.world_root_3d):
@@ -58,11 +211,39 @@ func handle_enemy_action(data: Dictionary) -> void:
 				if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 					var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
 					var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
+					var has_terrain_d = is_instance_valid(map_node.get("terrain_node")) and map_node.get("terrain_node") != null
+					var mgr_d = _get_entity_manager()
+					var boss_2d = Vector2(boss_x_net, boss_y_net)
+					var safe_pos = entity._active_survival_dome.safe_pos
+					var safe_r3d = entity._active_survival_dome.safe_radius * s_factor
+					var fire_r3d = entity._active_survival_dome.fire_range * s_factor
+					# El domo se apoya en el suelo (y=0 o altura de terreno), no en la altura del boss
+					var boss_base_y = 0.0
+					var safe_base_y = 0.0
+					if has_terrain_d and is_instance_valid(mgr_d) and mgr_d.has_method("_sample_terrain_height"):
+						boss_base_y = mgr_d._sample_terrain_height(boss_2d, map_node)
+						safe_base_y = mgr_d._sample_terrain_height(safe_pos, map_node)
+					# Limpia un domo anterior (recasteo mientras aún se está desvaneciendo)
+					for old_dome in entity.world_root_3d.get_children():
+						if String(old_dome.name).begins_with("Dome3D_") or String(old_dome.name).begins_with("DangerDisc_"):
+							old_dome.queue_free()
+					var vp = map_node.sub_viewport
+					for old_dome in vp.get_children():
+						if String(old_dome.name).begins_with("Dome3D_") or String(old_dome.name).begins_with("DangerDisc_"):
+							old_dome.queue_free()
 					var dome_3d = Node3D.new()
 					dome_3d.name = "Dome3D_" + entity.entity_id
-					entity.world_root_3d.add_child(dome_3d)
-					var fire_r3d = entity._active_survival_dome.fire_range * s_factor
+					# Posición absoluta en el viewport del mapa (no sigue al boss)
+					dome_3d.position = Vector3(safe_pos.x * s_factor, safe_base_y, safe_pos.y * s_factor * correction_z)
+					# correction_z del mapa: la huella del domo se dibuja circular en 2D
+					dome_3d.scale = Vector3(1.0, 1.0, correction_z)
+					vp.add_child(dome_3d)
+					dome_3d.set_meta("center_world", dome_3d.position)
+					# Posición del boss al casteo (centro de la explosión)
+					var explosion_center = Vector3(boss_2d.x * s_factor, boss_base_y, boss_2d.y * s_factor * correction_z)
+					dome_3d.set_meta("explosion_center", explosion_center)
 					var danger_disc = MeshInstance3D.new()
+					danger_disc.name = "DangerDisc_" + entity.entity_id
 					var disc_mesh = CylinderMesh.new()
 					disc_mesh.top_radius = 0.01
 					disc_mesh.bottom_radius = 0.01
@@ -76,56 +257,81 @@ func handle_enemy_action(data: Dictionary) -> void:
 					d_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 					d_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 					danger_disc.material_override = d_mat
-					danger_disc.position.y = 0.01
-					dome_3d.add_child(danger_disc)
+					# danger_disc se coloca directamente en vp centrado exactamente en explosion_center
+					danger_disc.position = explosion_center + Vector3(0, 0.01, 0)
+					danger_disc.scale = Vector3(1.0, 1.0, correction_z)
+					vp.add_child(danger_disc)
 					dome_3d.set_meta("danger_disc", danger_disc)
+					dome_3d.set_meta("danger_disc_mat", d_mat)
 					dome_3d.set_meta("fire_r3d", fire_r3d)
-					var outer_ring = MeshInstance3D.new()
-					var ring_mesh = TorusMesh.new()
-					ring_mesh.inner_radius = fire_r3d - 0.02
-					ring_mesh.outer_radius = fire_r3d + 0.02
-					outer_ring.mesh = ring_mesh
-					var ring_mat = StandardMaterial3D.new()
-					ring_mat.albedo_color = Color(1.0, 0.1, 0.1, 0.5)
-					ring_mat.emission_enabled = true
-					ring_mat.emission = Color(1.0, 0.1, 0.1)
-					ring_mat.emission_energy_multiplier = 2.0
-					ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-					outer_ring.material_override = ring_mat
-					outer_ring.rotation.x = PI / 2
-					dome_3d.add_child(outer_ring)
-					var safe_pos = entity._active_survival_dome.safe_pos
-					var safe_r3d = entity._active_survival_dome.safe_radius * s_factor
-					var boss_2d = entity.global_position
-					var offset_x = (safe_pos.x - boss_2d.x) * s_factor
-					var offset_z = (safe_pos.y - boss_2d.y) * s_factor * correction_z
+					entity._active_survival_dome["danger_disc"] = danger_disc
+					# El domo ya está centrado en el safe zone; safe_node en origen local
 					var safe_node = Node3D.new()
 					safe_node.name = "SafeDome3D"
-					safe_node.position = Vector3(offset_x, 0.0, offset_z)
+					safe_node.position = Vector3(0, 0, 0)
 					dome_3d.add_child(safe_node)
+
+					# --- Campo de fuerza dorado: cáscara exterior + interior ---
+					var shell_mats: Array = []
 					var dome_hemi = MeshInstance3D.new()
+					dome_hemi.name = "DomeShellOuter"
 					var hemi_mesh = SphereMesh.new()
 					hemi_mesh.radius = safe_r3d
-					hemi_mesh.height = safe_r3d * 1.8
+					hemi_mesh.height = safe_r3d * 1.6
 					hemi_mesh.is_hemisphere = true
 					dome_hemi.mesh = hemi_mesh
-					var h_mat = StandardMaterial3D.new()
-					h_mat.albedo_color = Color(0.0, 1.0, 0.5, 0.15)
-					h_mat.emission_enabled = true
-					h_mat.emission = Color(0.0, 1.0, 0.5)
-					h_mat.emission_energy_multiplier = 2.0
-					h_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					h_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					dome_hemi.position.y = -hemi_mesh.get_aabb().position.y
+					var h_mat = _make_dome_shell_mat(1.0, 7.0, 0.22)
 					dome_hemi.material_override = h_mat
-					dome_hemi.position.y = 0.0
 					safe_node.add_child(dome_hemi)
+					shell_mats.append(h_mat)
+
+					var dome_inner = MeshInstance3D.new()
+					dome_inner.name = "DomeShellInner"
+					var inner_mesh = SphereMesh.new()
+					inner_mesh.radius = safe_r3d * 0.92
+					inner_mesh.height = safe_r3d * 1.47
+					inner_mesh.is_hemisphere = true
+					dome_inner.mesh = inner_mesh
+					dome_inner.position.y = -inner_mesh.get_aabb().position.y
+					var i_mat = _make_dome_shell_mat(0.55, 11.0, 0.14)
+					dome_inner.material_override = i_mat
+					safe_node.add_child(dome_inner)
+					shell_mats.append(i_mat)
+
+					# Disco de suelo con remolino dorado (mismo shader que el aura del vacío)
+					var ground_disc = _make_ground_disc(VoidAuraShader, safe_r3d, 0.02)
+					var g_mat: ShaderMaterial = ground_disc.material_override
+					g_mat.set_shader_parameter("core_color", Color(1.0, 0.9, 0.55, 1.0))
+					g_mat.set_shader_parameter("mid_color", Color(1.0, 0.6, 0.1, 1.0))
+					g_mat.set_shader_parameter("rim_color", Color(1.0, 0.85, 0.35, 1.0))
+					g_mat.set_shader_parameter("swirl_speed", 1.1)
+					g_mat.set_shader_parameter("intensity", 0.0)
+					safe_node.add_child(ground_disc)
+
+					# Brasas doradas ascendentes → sensación de volumen
+					var embers = CPUParticles3D.new()
+					embers.name = "DomeEmbers"
+					_configure_ring_particles(embers, safe_r3d, {
+						"amount": 45, "lifetime": 2.0, "preprocess": 1.0,
+						"vel_min": 0.4, "vel_max": 1.1, "spread": 16.0,
+						"ring_scale": 0.88, "ring_inner": 0.35,
+						"scale_min": 0.08, "scale_max": 0.2,
+						"quad_size": 0.34, "color": Color(1.0, 0.75, 0.25, 0.7),
+						"texture": VFX_FlareTexture
+					})
+					embers.position.y = 0.06
+					safe_node.add_child(embers)
+					embers.restart()
+					embers.emitting = true
+
 					var dome_light = OmniLight3D.new()
-					dome_light.light_color = Color(0.0, 1.0, 0.5)
-					dome_light.light_energy = 4.0
+					dome_light.light_color = Color(1.0, 0.78, 0.3)
+					dome_light.light_energy = 0.0
 					dome_light.omni_range = safe_r3d * 2.5
 					dome_light.position.y = safe_r3d * 0.5
 					safe_node.add_child(dome_light)
+
 					var safe_disc = MeshInstance3D.new()
 					var sd_mesh = CylinderMesh.new()
 					sd_mesh.top_radius = safe_r3d
@@ -133,9 +339,9 @@ func handle_enemy_action(data: Dictionary) -> void:
 					sd_mesh.height = 0.015
 					safe_disc.mesh = sd_mesh
 					var sd_mat = StandardMaterial3D.new()
-					sd_mat.albedo_color = Color(0.0, 0.8, 1.0, 0.25)
+					sd_mat.albedo_color = Color(1.0, 0.75, 0.2, 0.25)
 					sd_mat.emission_enabled = true
-					sd_mat.emission = Color(0.0, 0.8, 1.0)
+					sd_mat.emission = Color(1.0, 0.7, 0.15)
 					sd_mat.emission_energy_multiplier = 2.0
 					sd_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 					sd_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -143,6 +349,19 @@ func handle_enemy_action(data: Dictionary) -> void:
 					safe_disc.position.y = 0.016
 					safe_node.add_child(safe_disc)
 					safe_node.set_meta("safe_disc", safe_disc)
+
+					# Aparición del campo de fuerza
+					_tween_shader_param(dome_3d, h_mat, "intensity", 0.0, 1.0, 0.0, 0.45)
+					_tween_shader_param(dome_3d, i_mat, "intensity", 0.0, 0.62, 0.0, 0.45)
+					_tween_shader_param(dome_3d, g_mat, "intensity", 0.0, 0.85, 0.0, 0.45)
+					var tw_light = dome_light.create_tween()
+					tw_light.tween_property(dome_light, "light_energy", 4.0, 0.45)
+
+					dome_3d.set_meta("shell_mats", shell_mats)
+					dome_3d.set_meta("ground_mat", g_mat)
+					dome_3d.set_meta("light", dome_light)
+					dome_3d.set_meta("embers", embers)
+					dome_3d.set_meta("safe_disc_mat", sd_mat)
 					entity._active_survival_dome["dome_3d"] = dome_3d
 					entity._active_survival_dome["s_factor"] = s_factor
 					entity._active_survival_dome["correction_z"] = correction_z
@@ -150,36 +369,56 @@ func handle_enemy_action(data: Dictionary) -> void:
 					entity.tree_exiting.connect(func():
 						if is_instance_valid(dome_3d):
 							dome_3d.queue_free()
+						if is_instance_valid(danger_disc):
+							danger_disc.queue_free()
 					)
 		"survival_dome_fire":
 			var dome_3d_ref = entity._active_survival_dome.get("dome_3d")
+			var s_factor_f = float(entity._active_survival_dome.get("s_factor", 0.02))
+			var cz_f = float(entity._active_survival_dome.get("correction_z", 1.41421356))
+			var fire_r3d = float(entity._active_survival_dome.get("fire_r3d", float(entity._active_survival_dome.get("fire_range", 800.0)) * 0.02))
+			var safe_r3d_f = float(entity._active_survival_dome.get("safe_radius", 150.0)) * s_factor_f
+			
+			# Limpiar y desvanecer el disco de peligro si aún existe
+			var danger_disc_ref = entity._active_survival_dome.get("danger_disc")
+			if not is_instance_valid(danger_disc_ref) and is_instance_valid(dome_3d_ref) and dome_3d_ref.has_meta("danger_disc"):
+				danger_disc_ref = dome_3d_ref.get_meta("danger_disc")
+			if is_instance_valid(danger_disc_ref):
+				var tw_dd = danger_disc_ref.create_tween()
+				var dd_mat = danger_disc_ref.material_override
+				if is_instance_valid(dd_mat) and dd_mat is StandardMaterial3D:
+					tw_dd.tween_property(dd_mat, "albedo_color:a", 0.0, 0.2)
+				tw_dd.finished.connect(danger_disc_ref.queue_free)
+
 			if is_instance_valid(dome_3d_ref):
 				var map_node = get_tree().get_first_node_in_group("map")
-				if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+				var vp_ok = is_instance_valid(map_node) and map_node.get("sub_viewport") != null
+				var has_terrain_f = vp_ok and is_instance_valid(map_node.get("terrain_node")) and map_node.get("terrain_node") != null
+				var mgr_f = _get_entity_manager()
+				var h_explosion = 0.0
+				if has_terrain_f and is_instance_valid(mgr_f) and mgr_f.has_method("_sample_terrain_height"):
+					# Usar posición de la explosión (boss al casteo) para altura de terreno
+					var explosion_center_2d = Vector2(dome_3d_ref.get_meta("explosion_center").x / s_factor_f,
+													  dome_3d_ref.get_meta("explosion_center").z / (s_factor_f * cz_f))
+					h_explosion = mgr_f._sample_terrain_height(explosion_center_2d, map_node)
+				# Centro de la explosión = posición del boss al casteo (guardada en meta)
+				var explosion_center: Vector3 = dome_3d_ref.get_meta("explosion_center", Vector3.ZERO)
+				if explosion_center == Vector3.ZERO:
+					var bx = float(data.get("bossX", entity.global_position.x))
+					var by = float(data.get("bossY", entity.global_position.y))
+					explosion_center = Vector3(bx * s_factor_f, h_explosion, by * s_factor_f * cz_f)
+				explosion_center.y = h_explosion
+				var center_world: Vector3 = dome_3d_ref.get_meta("center_world", explosion_center)
+				var dir_impact = Vector3(center_world.x - explosion_center.x, 0.0, center_world.z - explosion_center.z)
+				var dist_hit = dir_impact.length()
+				if dist_hit < 0.001:
+					dir_impact = Vector3(1.0, 0.0, 0.0)
+				else:
+					dir_impact = dir_impact.normalized()
+				var t_hit = 0.22 + clampf(maxf(dist_hit - safe_r3d_f, 0.0) / maxf(fire_r3d * 1.6, 1.0), 0.05, 0.6)
+				if vp_ok:
 					var vp = map_node.sub_viewport
-					var fire_r3d = entity._active_survival_dome.get("fire_r3d", entity._active_survival_dome.fire_range * 0.02)
-					var boss_3d = entity.world_root_3d.position if is_instance_valid(entity.world_root_3d) else Vector3.ZERO
-					var flash = MeshInstance3D.new()
-					var flash_s = SphereMesh.new()
-					flash_s.radius = fire_r3d * 0.3
-					flash_s.height = fire_r3d * 0.6
-					flash.mesh = flash_s
-					var flash_mat = StandardMaterial3D.new()
-					flash_mat.albedo_color = Color(1.0, 0.5, 0.1, 0.9)
-					flash_mat.emission_enabled = true
-					flash_mat.emission = Color(1.0, 0.5, 0.1)
-					flash_mat.emission_energy_multiplier = 10.0
-					flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					flash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-					flash.material_override = flash_mat
-					flash.position = boss_3d
-					flash.position.y = 0.1
-					vp.add_child(flash)
-					var tw_f = flash.create_tween()
-					tw_f.tween_property(flash, "scale", Vector3(4.0, 4.0, 4.0), 0.35)
-					tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.35)
-					tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.35)
-					tw_f.finished.connect(flash.queue_free)
+					# NOTA: Se eliminó completamente la esfera gigante plateada (flash)
 					var damage_area = MeshInstance3D.new()
 					var area_mesh = CylinderMesh.new()
 					area_mesh.top_radius = fire_r3d
@@ -194,46 +433,55 @@ func handle_enemy_action(data: Dictionary) -> void:
 					area_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 					area_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 					damage_area.material_override = area_mat
-					damage_area.position = boss_3d
-					damage_area.position.y = 0.01
+					damage_area.position = explosion_center + Vector3(0, 0.01, 0)
+					damage_area.scale = Vector3(1.0, 1.0, cz_f)
 					vp.add_child(damage_area)
 					var tw_a = damage_area.create_tween().set_parallel(true)
 					tw_a.tween_property(area_mat, "albedo_color:a", 0.0, 0.5).set_ease(Tween.EASE_IN)
 					tw_a.tween_property(area_mat, "emission_energy_multiplier", 0.0, 0.5).set_ease(Tween.EASE_IN)
 					tw_a.finished.connect(damage_area.queue_free)
-					var shockwave = MeshInstance3D.new()
-					var sw_mesh = TorusMesh.new()
-					sw_mesh.inner_radius = fire_r3d * 0.95
-					sw_mesh.outer_radius = fire_r3d * 1.05
-					shockwave.mesh = sw_mesh
-					var sw_mat = StandardMaterial3D.new()
-					sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.9)
-					sw_mat.emission_enabled = true
-					sw_mat.emission = Color(1.0, 0.4, 0.05)
-					sw_mat.emission_energy_multiplier = 5.0
-					sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					sw_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-					shockwave.material_override = sw_mat
-					shockwave.position = boss_3d
-					shockwave.position.y = 0.02
-					shockwave.rotation.x = PI / 2
-					vp.add_child(shockwave)
-					var tw_sw = shockwave.create_tween().set_parallel(true)
-					tw_sw.tween_property(shockwave, "scale", Vector3(1.5, 1.5, 1.5), 0.4)
-					tw_sw.tween_property(sw_mat, "albedo_color:a", 0.0, 0.4)
-					tw_sw.tween_property(sw_mat, "emission_energy_multiplier", 0.0, 0.4)
-					tw_sw.finished.connect(shockwave.queue_free)
+
 					var exp_light = OmniLight3D.new()
 					exp_light.light_color = Color(1.0, 0.4, 0.05)
 					exp_light.light_energy = 15.0
 					exp_light.omni_range = fire_r3d * 2.0
-					exp_light.position = boss_3d
-					exp_light.position.y = 0.5
+					exp_light.position = explosion_center + Vector3(0, 0.5, 0)
 					vp.add_child(exp_light)
 					var tw_l = exp_light.create_tween()
 					tw_l.tween_property(exp_light, "light_energy", 0.0, 0.4)
 					tw_l.finished.connect(exp_light.queue_free)
-				dome_3d_ref.queue_free()
+
+					# Explosión circular con partículas que chocan contra el campo de fuerza
+					if is_instance_valid(mgr_f):
+						var blast_root = mgr_f._make_circle_fire_burst_shielded(fire_r3d, has_terrain_f)
+						blast_root.position = Vector3(explosion_center.x, h_explosion + 0.02, explosion_center.z)
+						blast_root.scale = Vector3(1.0, 1.0, cz_f)
+						vp.add_child(blast_root)
+						var tw_blast = blast_root.create_tween()
+						tw_blast.tween_interval(2.1)
+						tw_blast.tween_callback(func():
+							if is_instance_valid(blast_root):
+								blast_root.queue_free()
+						)
+						# Huella del domo: 3 esferas de colisión para que ninguna braza atraviese
+						var collider_root = mgr_f._create_dome_particle_colliders(vp, center_world, safe_r3d_f)
+						var tw_col = collider_root.create_tween()
+						tw_col.tween_interval(2.1)
+						tw_col.tween_callback(func():
+							if is_instance_valid(collider_root):
+								collider_root.queue_free()
+						)
+				# Onda de impacto + chispas sobre la cáscara (aunque no haya mapa activo)
+				_play_dome_impact(dome_3d_ref, dir_impact, t_hit, 0.9)
+				_spawn_dome_impact_sparks(dome_3d_ref, safe_r3d_f, dir_impact, cz_f, t_hit)
+				# Desvanecer domo y área tras la explosión (rápido, ~0.8s)
+				_fade_out_dome(dome_3d_ref, 0.5, 0.5)
+				var tw_free = dome_3d_ref.create_tween()
+				tw_free.tween_interval(1.2)
+				tw_free.tween_callback(func():
+					if is_instance_valid(dome_3d_ref):
+						dome_3d_ref.queue_free()
+				)
 			entity._active_survival_dome.clear()
 			entity.queue_redraw()
 			if entity.has_method("_trigger_hit_flash"):
@@ -291,7 +539,8 @@ func handle_enemy_action(data: Dictionary) -> void:
 						"id": entity.entity_id,
 						"lifetimeMs": float(data.get("travelTimeMs", 1000.0)),
 						"radius": float(data.get("radius", 150.0)),
-						"explosionRadius": float(data.get("radius", 150.0))
+						"explosionRadius": float(data.get("radius", 150.0)),
+						"damage": float(data.get("damage", 10.0))
 					}
 					cs._spawn_projectile(proj_data, "enemy")
 		"bomb_explode":
@@ -299,10 +548,8 @@ func handle_enemy_action(data: Dictionary) -> void:
 			var by = float(data.get("y", 0.0))
 			var radius = float(data.get("radius", 150.0))
 			var scale_factor = radius / 100.0
-			if is_instance_valid(VFXSystem):
-				VFXSystem.spawn_explosion(Vector2(bx, by), scale_factor)
 			var map_node = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(map_node) and map_node.get("sub_viewport") != null and is_instance_valid(entity.world_root_3d):
+			if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 				var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
 				var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
 				var vp = map_node.sub_viewport

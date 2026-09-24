@@ -155,6 +155,8 @@ var _selection_outline_material: StandardMaterial3D = null # Outline dorado para
 var _stealth_material: StandardMaterial3D = null
 var _status_material: StandardMaterial3D = null
 var _debuff_overlay_material: StandardMaterial3D = null
+var _current_applied_overlay: Material = null
+var _current_applied_next_pass: Material = null
 var poison_timer: float = 0.0
 var bleed_timer: float = 0.0
 var slow_timer: float = 0.0
@@ -678,15 +680,7 @@ func _process(delta):
 					if child.name != "PolymorphCube":
 						child.visible = true
 				
-				if is_affected:
-					if not _status_material:
-						_status_material = StandardMaterial3D.new()
-						_status_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					_status_material.albedo_color = Color(0.1, 0.5, 1.0, 0.6)
-					_apply_material_recursive(_3d_model, _status_material, false)
-					if not is_selected and not is_hovered and _flash_timer <= 0.01:
-						_apply_material_recursive(_3d_model, null, true)
-				elif _is_currently_invisible or _is_currently_camouflaged:
+				if _is_currently_invisible or _is_currently_camouflaged:
 					if not _stealth_material:
 						_stealth_material = StandardMaterial3D.new()
 						_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
@@ -742,27 +736,34 @@ func _process(delta):
 	_update_auras(delta)
 	
 	if not _active_survival_dome.is_empty():
-		_active_survival_dome.time_elapsed += delta
-		queue_redraw()
-		var dome_3d_ref = _active_survival_dome.get("dome_3d")
-		if is_instance_valid(dome_3d_ref):
-			var fire_r3d = _active_survival_dome.get("fire_r3d", 1.0)
-			var progress = clamp(_active_survival_dome.time_elapsed / _active_survival_dome.duration, 0.0, 1.0)
-			var current_r = fire_r3d * progress
-			var danger_disc = dome_3d_ref.get_meta("danger_disc") if dome_3d_ref.has_meta("danger_disc") else null
-			if is_instance_valid(danger_disc) and danger_disc.mesh is CylinderMesh:
-				danger_disc.mesh.top_radius = max(current_r, 0.01)
-				danger_disc.mesh.bottom_radius = max(current_r, 0.01)
-				danger_disc.position.y = 0.01
-			var safe_node = dome_3d_ref.get_node_or_null("SafeDome3D")
-			if is_instance_valid(safe_node):
-				var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.007) * 0.08
-				safe_node.scale = Vector3(pulse, 1.0, pulse)
-				var safe_disc = safe_node.get_meta("safe_disc") if safe_node.has_meta("safe_disc") else null
-				if is_instance_valid(safe_disc) and safe_disc.material_override:
-					var alpha = 0.2 + sin(Time.get_ticks_msec() * 0.005) * 0.12
-					safe_disc.material_override.albedo_color.a = alpha
-					safe_disc.material_override.emission_energy_multiplier = 1.5 + sin(Time.get_ticks_msec() * 0.005) * 1.0
+		if is_dead:
+			var old_d = _active_survival_dome.get("dome_3d")
+			if is_instance_valid(old_d): old_d.queue_free()
+			var old_dd = _active_survival_dome.get("danger_disc")
+			if is_instance_valid(old_dd): old_dd.queue_free()
+			_active_survival_dome.clear()
+		else:
+			_active_survival_dome.time_elapsed += delta
+			var dome_3d_ref = _active_survival_dome.get("dome_3d")
+			if is_instance_valid(dome_3d_ref):
+				var fire_r3d = _active_survival_dome.get("fire_r3d", 1.0)
+				var progress = clamp(_active_survival_dome.time_elapsed / _active_survival_dome.duration, 0.0, 1.0)
+				var current_r = fire_r3d * progress
+				var danger_disc = _active_survival_dome.get("danger_disc")
+				if not is_instance_valid(danger_disc) and dome_3d_ref.has_meta("danger_disc"):
+					danger_disc = dome_3d_ref.get_meta("danger_disc")
+				if is_instance_valid(danger_disc) and danger_disc.mesh is CylinderMesh:
+					danger_disc.mesh.top_radius = max(current_r, 0.01)
+					danger_disc.mesh.bottom_radius = max(current_r, 0.01)
+				var safe_node = dome_3d_ref.get_node_or_null("SafeDome3D")
+				if is_instance_valid(safe_node):
+					var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.007) * 0.08
+					safe_node.scale = Vector3(pulse, 1.0, pulse)
+					var safe_disc = safe_node.get_meta("safe_disc") if safe_node.has_meta("safe_disc") else null
+					if is_instance_valid(safe_disc) and safe_disc.material_override:
+						var alpha = 0.2 + sin(Time.get_ticks_msec() * 0.005) * 0.12
+						safe_disc.material_override.albedo_color.a = alpha
+						safe_disc.material_override.emission_energy_multiplier = 1.5 + sin(Time.get_ticks_msec() * 0.005) * 1.0
 
 	# OPTIMIZACIÓN MASIVA: Pausar/Intercalar SubViewport de entidades según visibilidad, rol y distancia
 	if _cached_viewport:
@@ -2763,6 +2764,8 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 	_prop_color_tier = -1
 	_prop_ignition = 0.0
 	_3d_anim_player = null
+	_current_applied_overlay = null
+	_current_applied_next_pass = null
 	
 	# Detectar si hay un lienzo 3D global en el mapa actual
 	var current_map = get_tree().get_first_node_in_group("map")
@@ -3394,8 +3397,10 @@ func _update_flash_visuals(p_intensity: float):
 	if is_instance_valid(_3d_model) and _hit_flash_material_3d:
 		if p_intensity > 0.01:
 			_hit_flash_material_3d.albedo_color.a = p_intensity * 0.4
+			var flash_next = _selection_outline_material if is_selected else (_hover_outline_material if is_hovered else null)
+			_hit_flash_material_3d.next_pass = flash_next
 			_apply_flash_recursive(_3d_model, _hit_flash_material_3d)
-		elif not is_hovered and not is_selected:
+		else:
 			_restore_default_overlay()
 
 func _apply_flash_recursive(p_node, p_mat):
@@ -3689,72 +3694,121 @@ func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
 		if is_instance_valid(_ui_wrapper): 
 			_ui_wrapper.visible = true
 			_ui_wrapper.modulate.a = 1.0
+func _ensure_selection_outline_material() -> void:
+	if not _selection_outline_material:
+		_selection_outline_material = StandardMaterial3D.new()
+		_selection_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+		_selection_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
+		_selection_outline_material.albedo_color = Color(1.0, 0.85, 0.0, 0.6)
+		_selection_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_selection_outline_material.grow = true
+		_selection_outline_material.grow_amount = 0.009
+		_selection_outline_material.render_priority = 11
+
+func _ensure_hover_outline_material() -> void:
+	if not _hover_outline_material:
+		_hover_outline_material = StandardMaterial3D.new()
+		_hover_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+		_hover_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
+		_hover_outline_material.albedo_color = Color(0.0, 1.0, 1.0, 0.40) 
+		_hover_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_hover_outline_material.grow = true
+		_hover_outline_material.grow_amount = 0.007
+		_hover_outline_material.render_priority = 10
+
+func _apply_overlay_if_needed(p_mat: Material) -> void:
+	var current_next = p_mat.next_pass if p_mat else null
+	if _current_applied_overlay != p_mat or _current_applied_next_pass != current_next:
+		_current_applied_overlay = p_mat
+		_current_applied_next_pass = current_next
+		_apply_material_recursive(_3d_model, p_mat, true)
+
 func _restore_default_overlay() -> void:
 	if not is_instance_valid(_3d_model): return
-	if is_selected and _selection_outline_material:
-		_apply_material_recursive(_3d_model, _selection_outline_material, true)
-		return
-	if is_hovered and _hover_outline_material:
-		_apply_material_recursive(_3d_model, _hover_outline_material, true)
-		return
+
+	# 1. Si hay un flash de daño activo (0.15s), prioridad para el flash
 	if _flash_timer > 0.01 and _hit_flash_material_3d:
-		_apply_material_recursive(_3d_model, _hit_flash_material_3d, true)
+		if is_selected:
+			_ensure_selection_outline_material()
+			_hit_flash_material_3d.next_pass = _selection_outline_material
+		elif is_hovered:
+			_ensure_hover_outline_material()
+			_hit_flash_material_3d.next_pass = _hover_outline_material
+		else:
+			_hit_flash_material_3d.next_pass = null
+		_apply_overlay_if_needed(_hit_flash_material_3d)
 		return
 
+	# 2. Material de contorno para selección o hover
+	var outline_mat: StandardMaterial3D = null
+	if is_selected:
+		_ensure_selection_outline_material()
+		outline_mat = _selection_outline_material
+	elif is_hovered:
+		_ensure_hover_outline_material()
+		outline_mat = _hover_outline_material
+
+	# 3. Detectar estados alterados activos de forma continua
+	var is_cc = status_effects.get("stunned", false) or status_effects.get("frozen", false) or status_effects.get("feared", false) or debuffs.has("stun") or debuffs.has("freeze") or debuffs.has("fear")
 	var is_poisoned = status_effects.get("poisoned", false) or debuffs.has("poison") or poison_timer > 0.0
 	var is_bleeding = status_effects.get("bleeding", false) or debuffs.has("bleed") or bleed_timer > 0.0
 	var is_slowed = status_effects.get("slowed", false) or debuffs.has("slow") or slow_timer > 0.0 or (has_method("get") and get("slow_points") != null and float(get("slow_points")) > 1.0)
-	
-	if is_poisoned or is_bleeding or is_slowed:
+
+	var has_state = is_cc or is_poisoned or is_bleeding or is_slowed
+
+	if has_state:
 		if not _debuff_overlay_material:
 			_debuff_overlay_material = StandardMaterial3D.new()
 			_debuff_overlay_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
 			_debuff_overlay_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			_debuff_overlay_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		if is_poisoned:
-			_debuff_overlay_material.albedo_color = Color(0.08, 0.40, 0.10, 0.75) # Verdecito
+			_debuff_overlay_material.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+			_debuff_overlay_material.cull_mode = BaseMaterial3D.CULL_BACK
+			_debuff_overlay_material.render_priority = 6
+			_debuff_overlay_material.emission_enabled = true
+
+		# Micro-pulsación orgánica suave (respiración del debuff)
+		var pulse = 0.88 + 0.12 * sin(Time.get_ticks_msec() * 0.007)
+
+		if is_cc:
+			var is_fear = status_effects.get("feared", false) or debuffs.has("fear")
+			if is_fear:
+				_debuff_overlay_material.albedo_color = Color(0.85, 0.18, 0.90, 0.46 * pulse)
+				_debuff_overlay_material.emission = Color(0.70, 0.10, 0.80)
+			else:
+				_debuff_overlay_material.albedo_color = Color(0.20, 0.70, 1.00, 0.48 * pulse)
+				_debuff_overlay_material.emission = Color(0.10, 0.50, 0.95)
+			_debuff_overlay_material.emission_energy_multiplier = 0.55 * pulse
+		elif is_poisoned:
+			# Verde tóxico continuo mientras el efecto esté activo
+			_debuff_overlay_material.albedo_color = Color(0.12, 0.88, 0.22, 0.46 * pulse)
+			_debuff_overlay_material.emission = Color(0.08, 0.78, 0.15)
+			_debuff_overlay_material.emission_energy_multiplier = 0.55 * pulse
 		elif is_bleeding:
-			_debuff_overlay_material.albedo_color = Color(0.40, 0.06, 0.06, 0.75) # Rojito
+			# Rojo sangre carmesí continuo mientras el efecto esté activo
+			_debuff_overlay_material.albedo_color = Color(0.95, 0.10, 0.10, 0.48 * pulse)
+			_debuff_overlay_material.emission = Color(0.82, 0.04, 0.04)
+			_debuff_overlay_material.emission_energy_multiplier = 0.55 * pulse
 		elif is_slowed:
-			_debuff_overlay_material.albedo_color = Color(0.06, 0.25, 0.45, 0.75) # Celestito
-		_apply_material_recursive(_3d_model, _debuff_overlay_material, true)
+			# Azul gélido continuo mientras el efecto esté activo
+			_debuff_overlay_material.albedo_color = Color(0.18, 0.68, 0.98, 0.44 * pulse)
+			_debuff_overlay_material.emission = Color(0.08, 0.45, 0.85)
+			_debuff_overlay_material.emission_energy_multiplier = 0.50 * pulse
+
+		_debuff_overlay_material.next_pass = outline_mat
+		_apply_overlay_if_needed(_debuff_overlay_material)
+	elif outline_mat != null:
+		outline_mat.next_pass = null
+		_apply_overlay_if_needed(outline_mat)
 	else:
-		_apply_material_recursive(_3d_model, null, true)
+		_apply_overlay_if_needed(null)
 
 func _update_selection_visuals():
 	if not is_instance_valid(_3d_model): return
-	
-	if is_selected:
-		if not _selection_outline_material:
-			_selection_outline_material = StandardMaterial3D.new()
-			_selection_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
-			_selection_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
-			_selection_outline_material.albedo_color = Color(1.0, 0.85, 0.0, 0.5)
-			_selection_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			_selection_outline_material.grow = true
-			_selection_outline_material.grow_amount = 0.009
-			_selection_outline_material.render_priority = 11
-		_apply_material_recursive(_3d_model, _selection_outline_material, true)
-	elif not is_hovered and _flash_timer <= 0.01:
-		_restore_default_overlay()
+	_restore_default_overlay()
 
-func _update_hover_visuals(active: bool):
+func _update_hover_visuals(_active: bool):
 	if not is_instance_valid(_3d_model): return
-	
-	if active:
-		if not _hover_outline_material:
-			_hover_outline_material = StandardMaterial3D.new()
-			_hover_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
-			_hover_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
-			# v302.6: Color más suave y armónico (Cian/Blanco con transparencia)
-			_hover_outline_material.albedo_color = Color(0.0, 1.0, 1.0, 0.35) 
-			_hover_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			_hover_outline_material.grow = true
-			_hover_outline_material.grow_amount = 0.007
-			_hover_outline_material.render_priority = 10
-		_apply_material_recursive(_3d_model, _hover_outline_material, true)
-	elif _flash_timer <= 0.01 and not is_selected:
-		_restore_default_overlay()
+	_restore_default_overlay()
 
 func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
 	if not is_instance_valid(p_node): return

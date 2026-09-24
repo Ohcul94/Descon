@@ -58,6 +58,8 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
         const randomDist = minOffset + Math.random() * (maxOffset - minOffset);
         state.safeX = this.enemy.x + Math.cos(randomAngle) * randomDist;
         state.safeY = this.enemy.y + Math.sin(randomAngle) * randomDist;
+        state.bossX = this.enemy.x;
+        state.bossY = this.enemy.y;
 
         // Notificar el inicio de la carga del domo
         io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
@@ -65,6 +67,8 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
             action: "survival_dome_charging",
             mId: mId,
             duration: castTime,
+            bossX: state.bossX,
+            bossY: state.bossY,
             safeX: state.safeX,
             safeY: state.safeY,
             safeRadius: state.safeRadius,
@@ -91,11 +95,16 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
                 state.postCastEndTime = now + postWait;
             }
 
+            const explosionX = state.bossX !== undefined ? state.bossX : this.enemy.x;
+            const explosionY = state.bossY !== undefined ? state.bossY : this.enemy.y;
+
             // Notificar detonación
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                 id: this.enemy.id,
                 action: "survival_dome_fire",
                 mId: mId,
+                bossX: explosionX,
+                bossY: explosionY,
                 safeX: state.safeX,
                 safeY: state.safeY,
                 safeRadius: state.safeRadius,
@@ -107,7 +116,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
             const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead);
             
             zonePlayers.forEach(p => {
-                const distToEnemy = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                const distToEnemy = Math.hypot(p.x - explosionX, p.y - explosionY);
                 if (distToEnemy <= state.fireRange) {
                     const distToSafe = Math.hypot(p.x - state.safeX, p.y - state.safeY);
                     if (distToSafe > state.safeRadius) {
@@ -134,6 +143,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
                                     p.bleedDps = bleedDps;
                                     p.bleedInterval = tickInt;
                                     p.lastBleedTick = Date.now();
+                                    io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
                                     io.to(p.socketId).emit('gameNotification', { 
                                         msg: `🩸 ¡Sufres de Sangrado! perdiendo ${bleedDps} HP cada ${tickInt}ms.`, 
                                         type: "warning" 
@@ -148,6 +158,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
                                     p.poisonDps = poisonDps;
                                     p.poisonInterval = tickInt;
                                     p.lastPoisonTick = Date.now();
+                                    io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
                                     io.to(p.socketId).emit('gameNotification', { 
                                         msg: `🤢 ¡Has sido envenenado! perdiendo ${poisonDps} HP cada ${tickInt}ms.`, 
                                         type: "warning" 

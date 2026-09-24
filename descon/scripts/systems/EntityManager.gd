@@ -192,6 +192,167 @@ func _make_circle_fire_burst(r3d: float, has_terrain: bool) -> Node3D:
 	)
 	return root
 
+# Crea un GPUParticles3D equivalente a un sistema de CPUParticles3D de la explosión
+# circular, con colisión de partículas activada (COLLISION_RIGID) para que rebote y
+# resbale sobre el campo de fuerza del Domo de Supervivencia en vez de atravesarlo.
+func _make_gpu_burst_particles(cfg: Dictionary) -> GPUParticles3D:
+	var p = GPUParticles3D.new()
+	p.name = str(cfg.get("name", "BurstParticles"))
+	p.amount = int(cfg.get("amount", 100))
+	p.lifetime = float(cfg.get("lifetime", 1.0))
+	p.one_shot = true
+	p.explosiveness = float(cfg.get("explosiveness", 1.0))
+	p.randomness = float(cfg.get("randomness", 0.4))
+	p.fixed_fps = 60
+	p.interpolate = true
+	p.local_coords = false
+	p.visibility_aabb = cfg.get("vis_aabb", AABB(Vector3(-12, -6, -12), Vector3(24, 12, 24)))
+	p.position.y = float(cfg.get("y", 0.0))
+
+	var pm = ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	pm.emission_sphere_radius = float(cfg.get("emission_radius", 0.1))
+	pm.direction = cfg.get("direction", Vector3.UP)
+	pm.spread = float(cfg.get("spread", 88.0))
+	pm.gravity = cfg.get("gravity", Vector3.ZERO)
+	pm.initial_velocity_min = float(cfg.get("vel_min", 1.0))
+	pm.initial_velocity_max = float(cfg.get("vel_max", 2.0))
+	pm.scale_min = float(cfg.get("scale_min", 1.0))
+	pm.scale_max = float(cfg.get("scale_max", 1.0))
+	if cfg.get("curve") is Curve:
+		pm.scale_curve = cfg.get("curve") as Curve
+	if cfg.get("gradient") is Gradient:
+		pm.color_ramp = cfg.get("gradient") as Gradient
+	# Colisión contra el domo (los GPUParticlesCollisionSphere3D se crean aparte)
+	pm.collision_mode = ParticleProcessMaterial.COLLISION_RIGID
+	pm.collision_bounce = float(cfg.get("bounce", 0.3))
+	pm.collision_friction = float(cfg.get("friction", 0.7))
+	p.process_material = pm
+
+	var quad = QuadMesh.new()
+	quad.size = cfg.get("quad", Vector2(1.2, 1.55))
+	var mat = StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	if cfg.get("texture") is Texture2D:
+		mat.albedo_texture = cfg.get("texture") as Texture2D
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	quad.material = mat
+	p.draw_pass_1 = quad
+	p.emitting = false
+	return p
+
+# Explosión circular protegida por el campo de fuerza del Domo de Supervivencia.
+# Réplica de _make_circle_fire_burst (mismas cantidades, velocidades, texturas,
+# gradientes y timeline) pero en GPU con colisión → las brasas chocan contra el domo.
+func _make_circle_fire_burst_shielded(r3d: float, has_terrain: bool) -> Node3D:
+	var root = Node3D.new()
+	root.name = "CircleBurstRoot"
+	var y_base = 0.1 if not has_terrain else 0.06
+
+	# Las colisiones solo ocurren dentro de visibility_aabb → cubrir todo el recorrido
+	var travel = r3d * 2.6 + 4.0
+	var vis = AABB(Vector3(-travel, -travel * 0.6, -travel), Vector3(travel * 2.0, travel * 1.6, travel * 2.0))
+
+	# --- FASE 1: acumulación alrededor del centro/enemigo (rápida, compacta) ---
+	var ga_curve = Curve.new()
+	ga_curve.add_point(Vector2(0.0, 0.25))
+	ga_curve.add_point(Vector2(0.2, 1.0))
+	ga_curve.add_point(Vector2(0.75, 0.9))
+	ga_curve.add_point(Vector2(1.0, 0.15))
+	var ga_grad = Gradient.new()
+	ga_grad.set_color(0, Color(1.7, 1.15, 0.4, 1.0))
+	ga_grad.add_point(0.35, Color(1.4, 0.6, 0.1, 0.95))
+	ga_grad.set_color(1, Color(0.8, 0.2, 0.02, 0.4))
+	var gather = _make_gpu_burst_particles({
+		"name": "CircleGather", "amount": 160, "lifetime": 0.55, "explosiveness": 0.08,
+		"randomness": 0.7, "emission_radius": maxf(r3d * 0.1, 0.05),
+		"direction": Vector3(0, 0.25, 0), "spread": 88.0, "gravity": Vector3(0, 0.4, 0),
+		"vel_min": 0.3, "vel_max": 1.2, "scale_min": 0.8, "scale_max": 1.7,
+		"curve": ga_curve, "gradient": ga_grad, "quad": Vector2(1.1, 1.4),
+		"texture": CONE_FIRE_TEX, "y": y_base, "vis_aabb": vis
+	})
+	root.add_child(gather)
+
+	# --- FASE 2: estallido radial hasta el borde del rango (tras la acumulación) ---
+	var g_curve = Curve.new()
+	g_curve.add_point(Vector2(0.0, 0.55))
+	g_curve.add_point(Vector2(0.12, 1.0))
+	g_curve.add_point(Vector2(0.7, 0.85))
+	g_curve.add_point(Vector2(1.0, 0.0))
+	var g_grad = Gradient.new()
+	g_grad.set_color(0, Color(1.7, 1.15, 0.4, 1.0))
+	g_grad.add_point(0.22, Color(1.4, 0.6, 0.1, 0.95))
+	g_grad.add_point(0.6, Color(0.95, 0.28, 0.04, 0.75))
+	g_grad.set_color(1, Color(0.35, 0.05, 0.0, 0.0))
+	var burst = _make_gpu_burst_particles({
+		"name": "CircleFireBurst", "amount": 220, "lifetime": 0.95, "explosiveness": 1.0,
+		"randomness": 0.45, "emission_radius": maxf(r3d * 0.12, 0.05),
+		"direction": Vector3(0, 0.18, 0), "spread": 88.0, "gravity": Vector3(0, 0.15, 0),
+		"vel_min": r3d * 1.25, "vel_max": r3d * 1.9,
+		"scale_min": 0.9, "scale_max": 1.9,
+		"curve": g_curve, "gradient": g_grad, "quad": Vector2(1.2, 1.55),
+		"texture": CONE_FIRE_TEX, "y": y_base, "vis_aabb": vis,
+		"bounce": 0.35, "friction": 0.65
+	})
+	root.add_child(burst)
+
+	# --- Chispas/brasas desde el centro hacia el borde (más de lado que arriba) ---
+	var s_grad = Gradient.new()
+	s_grad.set_color(0, Color(2.5, 1.7, 0.6, 1.0))
+	s_grad.add_point(0.45, Color(1.5, 0.6, 0.12, 0.9))
+	s_grad.set_color(1, Color(0.5, 0.1, 0.0, 0.0))
+	var sparks = _make_gpu_burst_particles({
+		"name": "CircleSparkBurst", "amount": 120, "lifetime": 1.05, "explosiveness": 1.0,
+		"emission_radius": maxf(r3d * 0.1, 0.04),
+		"direction": Vector3(0, 0.15, 0), "spread": 88.0, "gravity": Vector3(0, -0.35, 0),
+		"vel_min": r3d * 1.4, "vel_max": r3d * 2.15,
+		"scale_min": 0.28, "scale_max": 0.6,
+		"gradient": s_grad, "quad": Vector2(0.36, 0.36),
+		"texture": CONE_SPARK_TEX, "y": y_base, "vis_aabb": vis,
+		"bounce": 0.5, "friction": 0.5
+	})
+	root.add_child(sparks)
+
+	# Timeline: fase1 acumula cerca del enemigo → fase2 estalla hacia los costados
+	var tw = root.create_tween()
+	tw.tween_interval(0.01)
+	tw.tween_callback(func():
+		if is_instance_valid(gather):
+			gather.restart()
+			gather.emitting = true
+	)
+	tw.tween_interval(0.22)
+	tw.tween_callback(func():
+		if is_instance_valid(burst):
+			burst.restart()
+			burst.emitting = true
+		if is_instance_valid(sparks):
+			sparks.restart()
+			sparks.emitting = true
+	)
+	return root
+
+# Colisiones de partículas con la huella del Domo de Supervivencia.
+# El domo se dibuja estirado en Z (correction_z) para verse circular en 2D, así que se
+# usan 3 esferas encadenadas en Z: su unión cubre la elipse sin dejar pasar ninguna braza.
+func _create_dome_particle_colliders(parent: Node, center_world: Vector3, r3d: float) -> Node3D:
+	var root = Node3D.new()
+	root.name = "DomeParticleColliders"
+	if is_instance_valid(parent):
+		parent.add_child(root)
+	root.position = center_world
+	var radius = maxf(r3d, 0.15)
+	for z_off in [-0.5, 0.0, 0.5]:
+		var col = GPUParticlesCollisionSphere3D.new()
+		col.name = "DomeCollider_%d" % int(round((z_off + 0.5) * 2.0))
+		col.radius = radius
+		col.position = Vector3(0.0, 0.0, z_off * radius)
+		root.add_child(col)
+	return root
+
 func setup(world_ref):
 	world = world_ref
 	boss_action_handler = BossActionHandler.new()
@@ -3224,7 +3385,9 @@ func _spawn_alpha_regen_vfx(id, pos, _radius, _data):
 	var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 	
 	var vfx = VFXSystem.get_vfx_from_pool(VFX_SHIELD_GREEN_SCENE)
+	if not is_instance_valid(vfx): return
 	vfx.name = id
+	vfx.visible = true
 	vfx.position = Vector3(pos.x * s_factor, 1.5, pos.y * s_factor * correction_z)
 	
 	# Mitad de tamaño (0.325 es la mitad de la escala 0.65 que se usa en el jugador)
@@ -3235,6 +3398,7 @@ func _spawn_alpha_regen_vfx(id, pos, _radius, _data):
 	
 	var anim = vfx.get_node_or_null("AnimationPlayer")
 	if anim and anim.has_animation("start_animation"):
+		anim.stop()
 		anim.play("start_animation")
 
 func _spawn_heal_beacon_vfx(id, pos, _radius, _data = {}):

@@ -953,10 +953,22 @@ func _finish_aim_drag(sc, is_mobile: bool):
 		_aim_node.remove_meta("touch_origin_global")
 	
 	if sc.is_aiming:
-		if is_mobile or sc.config.get("cast_mode") == 1:
+		var has_drag = (sc.external_aim_vector != Vector2.ZERO)
+		var s_type = sc.current_skill.get("type", -1)
+		if is_mobile:
+			# Si arrastró intencionalmente O es habilidad INSTANT (buff personal/dash)
+			if has_drag or s_type == sc.SkillType.INSTANT:
+				sc.execute_skill()
+			else:
+				# Fue un TAP sobre una habilidad de área/direccional/point-click (Baliza, Resurrección, Blink)
+				# NO disparar a ciegas en los pies: dejamos is_aiming = true para que el jugador
+				# pueda tocar en la pantalla dónde quiere colocarla/lanzarla.
+				pass
+		elif sc.config.get("cast_mode") == 1:
 			sc.execute_skill()
 	
-	sc.external_aim_vector = Vector2.ZERO
+	if not sc.is_aiming:
+		sc.external_aim_vector = Vector2.ZERO
 	_aim_drag_active = false
 	_aim_touch_index = -1
 	_aim_origin_vp = Vector2.ZERO
@@ -971,23 +983,25 @@ func _update_aim_drag_from_vp(sc, vp_pos: Vector2):
 	var zoom_val = cam.zoom.x if cam else 1.0
 	var world_diff = diff_global / zoom_val
 	
-	var max_range = sc.current_skill.get("range", 500.0)
+	var raw_range = sc.current_skill.get("range")
+	var max_range = 500.0
+	if raw_range != null and (raw_range is int or raw_range is float or raw_range is String):
+		max_range = float(raw_range)
+	if max_range <= 0.0:
+		max_range = 500.0
 	var sensitivity = SettingsManager.mobile_aim_sensitivity if SettingsManager else 1.0
 	
-	# Umbral bajo: un micro-drag en táctil ya debe apuntar (antes 5px filtraba toques reales)
-	if diff_global.length() > 2.0:
+	# Umbral: un micro-drag en táctil (> 5px) ya debe apuntar
+	if diff_global.length() > 5.0:
 		var screen_dir = diff_global.normalized()
 		var map_node = get_tree().get_first_node_in_group("map")
 		var oriented_dir = screen_dir
 		if is_instance_valid(map_node) and map_node.has_method("get_camera_oriented_direction"):
 			oriented_dir = map_node.get_camera_oriented_direction(screen_dir)
 		
-		if max_range <= 0:
-			sc.external_aim_vector = oriented_dir * world_diff.length()
-		else:
-			var px_for_max = 80.0 / maxf(sensitivity, 0.01)
-			var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
-			sc.external_aim_vector = oriented_dir * mapped_range
+		var px_for_max = 80.0 / maxf(sensitivity, 0.01)
+		var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
+		sc.external_aim_vector = oriented_dir * mapped_range
 	else:
 		sc.external_aim_vector = Vector2.ZERO
 	

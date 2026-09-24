@@ -7752,7 +7752,7 @@
             "timeRestrictionsEnabled": false,
             "warpCost": 0,
             "width": 16000,
-            "visible": false
+            "visible": true
         },
         "5": {
             "ambience": [],
@@ -12244,7 +12244,14 @@
             "name": "BALIZA DE CURACION",
             "pulse_interval": 1500,
             "radius": 200,
-            "range": null,
+            "range": 500,
+            "aimType": 2,
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            },
             "requirements": [
                 {
                     "min": 1,
@@ -12632,7 +12639,7 @@
             "type": "Ataque"
         },
         "REGENERACIÓN ALFA": {
-            "amount": 2,
+            "amount": 1500,
             "canTargetOthers": false,
             "castTimeMs": 500,
             "cd": 3000,

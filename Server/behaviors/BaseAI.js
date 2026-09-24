@@ -1602,9 +1602,9 @@ module.exports = class BaseAI {
         }
             const bombCount = mech.bombCount || 3;
             const bombDelay = mech.bombDelayMs || 500;
-            const fuseTime = mech.fuseTimeMs ?? 1000;
+            const fuseTime = (mech.fuseTimeMs !== undefined && Number(mech.fuseTimeMs) >= 0) ? Number(mech.fuseTimeMs) : 1000;
             const bulletSpeed = mech.bulletSpeed || 600;
-            const bulletDamage = (mech.bulletDamage || 300) * (this.damageMult || 1);
+            const bulletDamage = Math.max(0, (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 300) * (this.damageMult || 1));
             const explosionRadius = mech.radius || 150;
             const cooldown = mech.cooldown || 5000;
 
@@ -1626,7 +1626,14 @@ module.exports = class BaseAI {
                     });
 
                     // Calcular daño a jugadores dentro del radio
-                    const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
+                    const lobbyZoneId = Number(this.state?.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+                    const zonePlayers = Object.values(players || {}).filter(p => 
+                        String(p.zone) === String(this.enemy.zone) && 
+                        Number(p.zone) !== lobbyZoneId &&
+                        !p.isDead && 
+                        !p.isInvisible && 
+                        !p.isInvulnerable
+                    );
                     zonePlayers.forEach(p => {
                         const d = Math.hypot(p.x - b.targetX, p.y - b.targetY);
                         if (d <= explosionRadius) {
@@ -1654,7 +1661,19 @@ module.exports = class BaseAI {
                                 }
                             }
 
-                            io.to(p.socketId).emit('environmentDamage', { damage: bulletDamage });
+                            // v415: Ralentización configurada de la bomba (slowAmount / slowDuration)
+                            if (mech.slowAmount > 0 && mech.slowDuration > 0 && !p.isInvulnerable) {
+                                const slowAmt = Number(mech.slowAmount);
+                                const slowDur = Number(mech.slowDuration);
+                                p.isSlowed = true;
+                                p.slowEndTime = Date.now() + slowDur;
+                                p.slowPoints = slowAmt;
+                                p.slowIsPercentage = true;
+                                p.lastSlowTime = Date.now();
+                                io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: true, duration: slowDur });
+                            }
+
+                            io.to(p.socketId).emit('environmentDamage', { damage: bulletDamage, source: 'bomb_explode' });
                             io.to(`zone_${p.zone}`).emit('playerStatSync', {
                                 id: p.socketId,
                                 hp: Math.ceil(p.hp),
@@ -1680,7 +1699,7 @@ module.exports = class BaseAI {
             }
 
             // 2. Iniciar y lanzar ráfagas
-            if (target && dist <= fireRange) {
+            if (target && !target.isDead && dist <= fireRange) {
                 if (!state.isFiringBurst && now > state.nextShotTime) {
                     state.isFiringBurst = true;
                     state.bombsFired = 0;
@@ -1715,6 +1734,7 @@ module.exports = class BaseAI {
                         travelTimeMs: travelTime,
                         fuseTimeMs: fuseTime,
                         radius: explosionRadius,
+                        damage: bulletDamage,
                         mId: mId + "_" + newBomb.id
                     });
 
@@ -2322,6 +2342,7 @@ module.exports = class BaseAI {
                         p.bleedDps = bleedDps;
                         p.bleedInterval = tickInt;
                         p.lastBleedTick = Date.now();
+                        io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
                         io.to(p.socketId).emit('gameNotification', {
                             msg: `🩸 ¡El gusano te muerde! Sangrando ${bleedDps} HP cada ${tickInt}ms.`,
                             type: "warning"
@@ -2336,6 +2357,7 @@ module.exports = class BaseAI {
                         p.poisonDps = poisonDps;
                         p.poisonInterval = tickInt;
                         p.lastPoisonTick = Date.now();
+                        io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
                         io.to(p.socketId).emit('gameNotification', {
                             msg: `🤢 ¡El gusano te envenena! perdiendo ${poisonDps} HP cada ${tickInt}ms.`,
                             type: "warning"
@@ -2516,6 +2538,7 @@ module.exports = class BaseAI {
                         p.bleedDps = bleedDps;
                         p.bleedInterval = tickInt;
                         p.lastBleedTick = Date.now();
+                        io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
                         io.to(p.socketId).emit('gameNotification', { msg: `🩸 ¡El viento cortante te desgarra! Sangrando ${bleedDps} HP cada ${tickInt}ms.`, type: "warning" });
                     }
                     else if (d.type === 'poison') {
@@ -2527,6 +2550,7 @@ module.exports = class BaseAI {
                         p.poisonDps = poisonDps;
                         p.poisonInterval = tickInt;
                         p.lastPoisonTick = Date.now();
+                        io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
                         io.to(p.socketId).emit('gameNotification', { msg: `🤢 ¡Partículas tóxicas en el viento! Perdiendo ${poisonDps} HP cada ${tickInt}ms.`, type: "warning" });
                     }
                     else if (d.type === 'stun') {
@@ -2805,11 +2829,13 @@ module.exports = class BaseAI {
                     if (mech.debuffsList && Array.isArray(mech.debuffsList)) {
                         mech.debuffsList.forEach(d => {
                             if (d.type === 'bleed') {
+                                const bleedDur = Number(d.duration) || 4000;
                                 p.isBleeding = true;
-                                p.bleedEndTime = Date.now() + (Number(d.duration) || 4000);
+                                p.bleedEndTime = Date.now() + bleedDur;
                                 p.bleedDps = Number(d.dps) || 30;
                                 p.bleedInterval = Number(d.tickInterval) || 1000;
                                 p.lastBleedTick = Date.now();
+                                io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
                             } else if (d.type === 'stun') {
                                 p.isStunned = true;
                                 p.stunEndTime = Date.now() + (Number(d.duration) || 1500);
@@ -2887,19 +2913,23 @@ module.exports = class BaseAI {
                 if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
                 mech.debuffsList.forEach(d => {
                     if (d.type === 'bleed') {
+                        const bleedDur = Number(d.duration) || 4000;
                         p.isBleeding = true;
-                        p.bleedEndTime = Date.now() + (Number(d.duration) || 4000);
+                        p.bleedEndTime = Date.now() + bleedDur;
                         p.bleedDps = Number(d.dps) || 30;
                         p.bleedInterval = Number(d.tickInterval) || 1000;
                         p.lastBleedTick = Date.now();
+                        io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
                         io.to(p.socketId).emit('gameNotification', { msg: `🩸 ¡Las grietas del suelo te desgarran! Sangrando ${p.bleedDps} HP cada ${p.bleedInterval}ms.`, type: "warning" });
                     }
                     else if (d.type === 'poison') {
+                        const poisonDur = Number(d.duration) || 4000;
                         p.isPoisoned = true;
-                        p.poisonEndTime = Date.now() + (Number(d.duration) || 4000);
+                        p.poisonEndTime = Date.now() + poisonDur;
                         p.poisonDps = Number(d.dps) || 20;
                         p.poisonInterval = Number(d.tickInterval) || 1000;
                         p.lastPoisonTick = Date.now();
+                        io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
                         io.to(p.socketId).emit('gameNotification', { msg: `🤢 ¡El subsuelo emite toxinas! Perdiendo ${p.poisonDps} HP cada ${p.poisonInterval}ms.`, type: "warning" });
                     }
                     else if (d.type === 'stun') {

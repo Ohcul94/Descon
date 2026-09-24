@@ -940,9 +940,20 @@ func _run_shader_warmup():
 
 
 func spawn_explosion(pos: Vector2, p_scale: float = 1.0): # Renombrado scale a p_scale
-	# Efecto visual de explosión por defecto
-	print("[VFX] Generando Explosión en ", pos, " (Escala: ", p_scale, ")")
-	_create_nova_effect(pos.x, pos.y, p_scale * 100.0)
+	# Efecto visual de explosión 3D de alta calidad
+	var current_map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(current_map) and is_instance_valid(current_map.get("sub_viewport")):
+		var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+		var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+		var space_expl_script = load("res://scripts/vfx/SpaceExplosion.gd")
+		if space_expl_script:
+			var expl = space_expl_script.new()
+			expl.scale = Vector3(p_scale, p_scale, p_scale)
+			var h = 0.1
+			if current_map.has_method("get_terrain_height_at_pos"):
+				h = current_map.get_terrain_height_at_pos(pos) + 0.1
+			expl.position = Vector3(pos.x * s_factor, h, pos.y * s_factor * correction_z)
+			current_map.sub_viewport.add_child(expl)
 
 # v3.1: Generador de efectos rápidos (Teletransporte, impactos, etc)
 func create_simple_vfx(pos: Vector2, type: String = "warp_exit", radius: float = 50.0):
@@ -1151,6 +1162,11 @@ func recycle_vfx_to_pool(vfx_node: Node):
 
 # Resetear el estado del nodo del pooler recursivamente (partículas y animaciones)
 func _reset_vfx_node(node: Node):
+	if node is CanvasItem:
+		node.visible = true
+	elif node is Node3D:
+		node.visible = true
+		
 	if node is GPUParticles3D or node is CPUParticles3D or node is GPUParticles2D or node is CPUParticles2D:
 		node.emitting = false
 		node.restart()

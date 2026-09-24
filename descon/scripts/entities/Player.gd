@@ -322,6 +322,7 @@ func _on_status_effects_sync(data: Dictionary):
 	if data.has("slow"):
 		slow_timer = float(data.slow) / 1000.0
 		set_debuff_timer("slow", slow_timer)
+		status_effects["slowed"] = slow_timer > 0.0
 		if slow_timer <= 0.0:
 			slow_points = 0.0
 			slow_is_percentage = false
@@ -329,6 +330,7 @@ func _on_status_effects_sync(data: Dictionary):
 	if data.has("stun"):
 		stun_timer = float(data.stun) / 1000.0
 		set_debuff_timer("stun", stun_timer)
+		status_effects["stunned"] = stun_timer > 0.0
 	if data.has("heal"):
 		heal_timer = float(data.heal) / 1000.0
 		heal_stacks = int(data.get("healStacks", 1))
@@ -336,9 +338,11 @@ func _on_status_effects_sync(data: Dictionary):
 	if data.has("bleed"):
 		bleed_timer = float(data.bleed) / 1000.0
 		set_debuff_timer("bleed", bleed_timer)
+		status_effects["bleeding"] = bleed_timer > 0.0
 	if data.has("poison"):
 		poison_timer = float(data.poison) / 1000.0
 		set_debuff_timer("poison", poison_timer)
+		status_effects["poisoned"] = poison_timer > 0.0
 	if data.has("poly"):
 		poly_timer = float(data.poly) / 1000.0
 		is_polymorphed = poly_timer > 0.0
@@ -557,6 +561,7 @@ func _physics_process(p_delta):
 			slow_points = 0.0
 			slow_is_percentage = false
 			set_debuff_timer("slow", 0.0)
+			status_effects["slowed"] = false
 			_emit_stats()
 	if heal_timer > 0.0:
 		heal_timer = max(0.0, heal_timer - p_delta)
@@ -567,10 +572,12 @@ func _physics_process(p_delta):
 		bleed_timer = max(0.0, bleed_timer - p_delta)
 		if bleed_timer <= 0.0:
 			set_debuff_timer("bleed", 0.0)
+			status_effects["bleeding"] = false
 	if poison_timer > 0.0:
 		poison_timer = max(0.0, poison_timer - p_delta)
 		if poison_timer <= 0.0:
 			set_debuff_timer("poison", 0.0)
+			status_effects["poisoned"] = false
 	if electron_speed_buff_timer > 0.0:
 		electron_speed_buff_timer = max(0.0, electron_speed_buff_timer - p_delta)
 		if electron_speed_buff_timer <= 0.0:
@@ -753,7 +760,11 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 					if s_name == null: s_name = ""
 					if s_name != "" and GameConstants.SKILLS_DATA.has(s_name):
 						var s_data = GameConstants.SKILLS_DATA[s_name]
-						r_val = s_data.get("range", 0)
+						var raw_r = s_data.get("range")
+						if raw_r != null and (raw_r is int or raw_r is float or raw_r is String):
+							r_val = float(raw_r)
+						else:
+							r_val = 500.0 if s_name in ["BALIZA DE CURACION", "RESURRECCIÓN"] else 0.0
 						filters = s_data.get("targetFilters", {})
 						
 						# v266.60: Auto-detección de tipo si no se especificó (o es -1)

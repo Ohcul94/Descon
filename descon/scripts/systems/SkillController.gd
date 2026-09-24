@@ -1,4 +1,5 @@
 extends Node2D
+class_name SkillController
 
 # SkillController.gd (v1.3 - Fixed Stuck Indicator)
 # Maneja el apuntado, indicadores y modos de disparo (Quick Cast / On Release / Cancelar)
@@ -114,7 +115,7 @@ func _unhandled_input(event):
 				var t = _find_target_at_pos(world_pos)
 				if is_instance_valid(t):
 					selected_target = t
-			elif s_type == SkillType.AREA:
+			elif s_type == SkillType.AREA or s_type == SkillType.DIRECTIONAL:
 				external_aim_vector = world_pos - global_position
 				var max_r = _safe_float(current_skill.get("range", 500.0), 500.0)
 				if max_r > 0 and external_aim_vector.length() > max_r:
@@ -321,7 +322,7 @@ func execute_skill():
 				# Áreas (Baliza, Resurrección): sin drag, colocar AL ALCANCE max en la dirección de la nave,
 				# no clavada en los pies del jugador (bug móvil: siempre caía en self).
 				payload.target = null
-				var place_dist = max_range if max_range > 0.0 else 80.0
+				var place_dist = max_range if max_range > 0.0 else 300.0
 				payload.pos = global_position + fwd * place_dist
 			elif s_type == SkillType.POINT_CLICK:
 				# Habilidades Point & Click (Vínculo Vital):
