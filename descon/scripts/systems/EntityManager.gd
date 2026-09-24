@@ -37,6 +37,197 @@ const TEX_ESFERA_VERDE_1 = preload("res://assets/Esferas/EsferaVerde1.png")
 const CONE_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
 const CONE_SPARK_TEX = preload("res://VFX/textures/T_VFX_sparks42.jpg")
 
+# Círculo de llamas en carga de circle_cast (crece con progress en _process)
+func _make_circle_charge_fire(outer_r3d: float) -> CPUParticles3D:
+	var fire = CPUParticles3D.new()
+	fire.name = "ChargeFire"
+	fire.amount = 72
+	fire.lifetime = 0.5
+	fire.explosiveness = 0.2
+	fire.randomness = 0.7
+	fire.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	fire.set("emission_ring_radius", maxf(outer_r3d * 0.75, 0.1))
+	if "emission_ring_height" in fire:
+		fire.set("emission_ring_height", 0.12)
+	fire.direction = Vector3(0, 1, 0)
+	fire.spread = 18.0
+	fire.gravity = Vector3(0, 2.4, 0)
+	fire.initial_velocity_min = 1.2
+	fire.initial_velocity_max = 3.0
+	fire.scale_amount_min = 0.55
+	fire.scale_amount_max = 1.25
+	var g_curve = Curve.new()
+	g_curve.add_point(Vector2(0.0, 0.45))
+	g_curve.add_point(Vector2(0.3, 1.0))
+	g_curve.add_point(Vector2(1.0, 0.08))
+	fire.scale_amount_curve = g_curve
+	var g_grad = Gradient.new()
+	g_grad.set_color(0, Color(1.4, 0.95, 0.3, 0.95))
+	g_grad.add_point(0.35, Color(1.2, 0.5, 0.08, 0.8))
+	g_grad.set_color(1, Color(0.45, 0.08, 0.0, 0.0))
+	fire.color_ramp = g_grad
+	var g_mesh = QuadMesh.new()
+	g_mesh.size = Vector2(0.65, 0.9)
+	fire.mesh = g_mesh
+	var g_mat = StandardMaterial3D.new()
+	g_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	g_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	g_mat.vertex_color_use_as_albedo = true
+	g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	g_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	g_mat.albedo_texture = CONE_FIRE_TEX
+	g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	fire.material_override = g_mat
+	fire.emitting = false
+	fire.position.y = 0.1
+	fire.scale = Vector3(0.08, 1.0, 0.08)
+	return fire
+
+# Explosión: fuego que estalla desde el centro y cubre TODO el rango (range del AdminDash)
+func _make_circle_fire_burst(r3d: float, has_terrain: bool) -> Node3D:
+	var root = Node3D.new()
+	root.name = "CircleBurstRoot"
+	var y_base = 0.1 if not has_terrain else 0.06
+
+	# 1) Bombardeo radial desde el centro — velocidad calibrada para alcanzar r3d
+	var burst = CPUParticles3D.new()
+	burst.name = "CircleFireBurst"
+	burst.amount = 140
+	burst.lifetime = 0.95
+	burst.explosiveness = 1.0
+	burst.randomness = 0.5
+	burst.one_shot = true
+	burst.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	burst.emission_sphere_radius = maxf(r3d * 0.08, 0.04)
+	# ~r3d / lifetime ≈ 1.05 * r3d para llegar al borde; margen extra por spread/gravedad
+	burst.direction = Vector3(0, 0.35, 0)
+	burst.spread = 72.0
+	burst.gravity = Vector3(0, 1.0, 0)
+	burst.initial_velocity_min = r3d * 1.15
+	burst.initial_velocity_max = r3d * 1.7
+	burst.scale_amount_min = 0.7
+	burst.scale_amount_max = 1.5
+	var g_curve = Curve.new()
+	g_curve.add_point(Vector2(0.0, 0.55))
+	g_curve.add_point(Vector2(0.15, 1.0))
+	g_curve.add_point(Vector2(0.7, 0.85))
+	g_curve.add_point(Vector2(1.0, 0.0))
+	burst.scale_amount_curve = g_curve
+	var g_grad = Gradient.new()
+	g_grad.set_color(0, Color(1.6, 1.1, 0.35, 1.0))
+	g_grad.add_point(0.25, Color(1.3, 0.55, 0.08, 0.95))
+	g_grad.add_point(0.6, Color(0.9, 0.25, 0.03, 0.7))
+	g_grad.set_color(1, Color(0.35, 0.05, 0.0, 0.0))
+	burst.color_ramp = g_grad
+	var g_mesh = QuadMesh.new()
+	g_mesh.size = Vector2(0.85, 1.1)
+	burst.mesh = g_mesh
+	var g_mat = StandardMaterial3D.new()
+	g_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	g_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	g_mat.vertex_color_use_as_albedo = true
+	g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	g_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	g_mat.albedo_texture = CONE_FIRE_TEX
+	g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	burst.material_override = g_mat
+	burst.position.y = y_base
+	burst.emitting = false
+	root.add_child(burst)
+
+	# 2) Anillo de llamas en el LÍMITE del rango (garantiza cobertura hasta fireRange)
+	var edge = CPUParticles3D.new()
+	edge.name = "CircleEdgeFire"
+	edge.amount = 96
+	edge.lifetime = 0.8
+	edge.explosiveness = 0.85
+	edge.randomness = 0.6
+	edge.one_shot = true
+	edge.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	edge.set("emission_ring_radius", maxf(r3d * 0.96, 0.05))
+	if "emission_ring_height" in edge:
+		edge.set("emission_ring_height", 0.1)
+	edge.direction = Vector3(0, 1, 0)
+	edge.spread = 30.0
+	edge.gravity = Vector3(0, 2.0, 0)
+	edge.initial_velocity_min = 1.4
+	edge.initial_velocity_max = 3.2
+	edge.scale_amount_min = 0.55
+	edge.scale_amount_max = 1.2
+	var e_curve = Curve.new()
+	e_curve.add_point(Vector2(0.0, 0.4))
+	e_curve.add_point(Vector2(0.25, 1.0))
+	e_curve.add_point(Vector2(1.0, 0.05))
+	edge.scale_amount_curve = e_curve
+	var e_grad = Gradient.new()
+	e_grad.set_color(0, Color(1.5, 0.9, 0.25, 1.0))
+	e_grad.add_point(0.4, Color(1.2, 0.45, 0.06, 0.85))
+	e_grad.set_color(1, Color(0.4, 0.06, 0.0, 0.0))
+	edge.color_ramp = e_grad
+	var e_mesh = QuadMesh.new()
+	e_mesh.size = Vector2(0.7, 1.0)
+	edge.mesh = e_mesh
+	var e_mat = StandardMaterial3D.new()
+	e_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	e_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	e_mat.vertex_color_use_as_albedo = true
+	e_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	e_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	e_mat.albedo_texture = CONE_FIRE_TEX
+	e_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	edge.material_override = e_mat
+	edge.position.y = y_base
+	edge.emitting = false
+	root.add_child(edge)
+
+	# 3) Chispas/brasas que vuelan hasta el borde (más rápidas, cortas)
+	var sparks = CPUParticles3D.new()
+	sparks.name = "CircleSparkBurst"
+	sparks.amount = 80
+	sparks.lifetime = 1.05
+	sparks.explosiveness = 1.0
+	sparks.one_shot = true
+	sparks.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	sparks.emission_sphere_radius = maxf(r3d * 0.1, 0.04)
+	sparks.direction = Vector3(0, 0.2, 0)
+	sparks.spread = 80.0
+	sparks.gravity = Vector3(0, -0.6, 0)
+	sparks.initial_velocity_min = r3d * 1.3
+	sparks.initial_velocity_max = r3d * 2.0
+	sparks.scale_amount_min = 0.2
+	sparks.scale_amount_max = 0.5
+	var s_grad = Gradient.new()
+	s_grad.set_color(0, Color(2.4, 1.6, 0.55, 1.0))
+	s_grad.add_point(0.45, Color(1.4, 0.55, 0.1, 0.85))
+	s_grad.set_color(1, Color(0.5, 0.1, 0.0, 0.0))
+	sparks.color_ramp = s_grad
+	var s_mesh = QuadMesh.new()
+	s_mesh.size = Vector2(0.28, 0.28)
+	sparks.mesh = s_mesh
+	var s_mat = StandardMaterial3D.new()
+	s_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	s_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	s_mat.vertex_color_use_as_albedo = true
+	s_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	s_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	s_mat.albedo_texture = CONE_SPARK_TEX
+	s_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	sparks.material_override = s_mat
+	sparks.position.y = y_base
+	sparks.emitting = false
+	root.add_child(sparks)
+
+	# Detonar en el siguiente frame para que el árbol esté listo
+	var tw_b = root.create_tween()
+	tw_b.tween_interval(0.01)
+	tw_b.tween_callback(func():
+		for child in root.get_children():
+			if child is CPUParticles3D:
+				child.restart()
+				child.emitting = true
+	)
+	return root
+
 func setup(world_ref):
 	world = world_ref
 	boss_action_handler = BossActionHandler.new()
@@ -271,27 +462,25 @@ func _process(delta):
 									circle_3d.position.y = h_cur - _attack_vfx_base_y()
 								else:
 									circle_3d.position.y = h_cur - _attack_vfx_base_y()
-							else:
-								# Fallback original
-								circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
-							for i in range(5):
-								var ring = circle_3d.get_node_or_null("FireRing_" + str(i))
-								if is_instance_valid(ring):
-									var ring_mat = ring.material_override
-									if ring_mat is StandardMaterial3D:
-										var t = float(i) / 4.0
-										var delay = t * 0.5
-										var ring_p = clamp(progress * 2.5 - delay, 0.0, 1.0)
-										ring_mat.albedo_color.a = ring_p * 0.35
-										ring_mat.emission_energy_multiplier = ring_p * 3.5
-										ring.rotation.y = progress * TAU * (1.0 + t * 0.5)
-							var fire_core = circle_3d.get_node_or_null("FireCore")
-							if is_instance_valid(fire_core):
-								var core_mat = fire_core.material_override
-								if core_mat is StandardMaterial3D:
-									core_mat.albedo_color.a = clamp(progress * 1.5, 0.0, 0.5)
-									core_mat.emission_energy_multiplier = clamp(progress * 5.0, 0.0, 4.0)
-								fire_core.position.y = 0.15 + progress * 0.3
+						else:
+							# Fallback original
+							circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
+						# Sin arcos giratorios: solo disco + núcleo de carga
+						var fire_core = circle_3d.get_node_or_null("FireCore")
+						if is_instance_valid(fire_core):
+							var core_mat = fire_core.material_override
+							if core_mat is StandardMaterial3D:
+								core_mat.albedo_color.a = clamp(progress * 1.5, 0.0, 0.5)
+								core_mat.emission_energy_multiplier = clamp(progress * 5.0, 0.0, 4.0)
+							fire_core.position.y = 0.15 + progress * 0.3
+						# Círculo de llamas que crece con el casteo
+						var charge_fire = circle_3d.get_node_or_null("ChargeFire")
+						if is_instance_valid(charge_fire):
+							var cf_scale = maxf(0.08, progress)
+							charge_fire.scale = Vector3(cf_scale, 1.0, cf_scale)
+							if charge_fire is CPUParticles3D:
+								charge_fire.emitting = progress > 0.05
+							charge_fire.visible = progress > 0.03
 					else:
 						area.global_position = en_vis
 						area.global_rotation = en.global_rotation - PI / 2
@@ -1367,30 +1556,7 @@ func _on_enemy_action(data: Dictionary):
 					g_mat.render_priority = 2
 					ground_disc.material_override = g_mat
 					circle_3d.add_child(ground_disc)
-					
-					var num_rings = 5
-					for i in num_rings:
-						var ring = MeshInstance3D.new()
-						ring.name = "FireRing_" + str(i)
-						var t_mesh = TorusMesh.new()
-						var t = float(i) / float(num_rings - 1)
-						var rr = lerp(inner_r3d, outer_r3d, t)
-						t_mesh.inner_radius = rr - 0.015
-						t_mesh.outer_radius = rr + 0.015
-						ring.mesh = t_mesh
-						var r_mat = StandardMaterial3D.new()
-						r_mat.albedo_color = Color(1.0, 0.3, 0.0, 0.0)
-						r_mat.emission_enabled = true
-						r_mat.emission = Color(1.0, 0.4, 0.0)
-						r_mat.emission_energy_multiplier = 0.0
-						r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-						r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-						ring.material_override = r_mat
-						ring.rotation.x = PI / 2
-						# Elevar anillo un pelín sobre el disco conformado (evita z-fighting en lomas)
-						ring.position.y = 0.02
-						circle_3d.add_child(ring)
-					
+
 					var core = MeshInstance3D.new()
 					core.name = "FireCore"
 					var core_s = SphereMesh.new()
@@ -1407,6 +1573,7 @@ func _on_enemy_action(data: Dictionary):
 					core.material_override = core_mat
 					core.position.y = 0.15
 					circle_3d.add_child(core)
+					circle_3d.add_child(_make_circle_charge_fire(outer_r3d))
 					circle_3d.set_meta("outer_r3d", outer_r3d)
 					circle_3d.set_meta("inner_r3d", inner_r3d)
 					circle_node.set_meta("circle_3d", circle_3d)
@@ -1438,26 +1605,6 @@ func _on_enemy_action(data: Dictionary):
 					g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 					ground_disc.material_override = g_mat
 					circle_3d.add_child(ground_disc)
-					var num_rings = 5
-					for i in num_rings:
-						var ring = MeshInstance3D.new()
-						ring.name = "FireRing_" + str(i)
-						var t_mesh = TorusMesh.new()
-						var t = float(i) / float(num_rings - 1)
-						var rr = lerp(inner_r3d, outer_r3d, t)
-						t_mesh.inner_radius = rr - 0.015
-						t_mesh.outer_radius = rr + 0.015
-						ring.mesh = t_mesh
-						var r_mat = StandardMaterial3D.new()
-						r_mat.albedo_color = Color(1.0, 0.3, 0.0, 0.0)
-						r_mat.emission_enabled = true
-						r_mat.emission = Color(1.0, 0.4, 0.0)
-						r_mat.emission_energy_multiplier = 0.0
-						r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-						r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-						ring.material_override = r_mat
-						ring.rotation.x = PI / 2
-						circle_3d.add_child(ring)
 					var core = MeshInstance3D.new()
 					core.name = "FireCore"
 					var core_s = SphereMesh.new()
@@ -1474,6 +1621,7 @@ func _on_enemy_action(data: Dictionary):
 					core.material_override = core_mat
 					core.position.y = 0.1
 					circle_3d.add_child(core)
+					circle_3d.add_child(_make_circle_charge_fire(outer_r3d))
 					circle_3d.set_meta("outer_r3d", outer_r3d)
 					circle_3d.set_meta("inner_r3d", inner_r3d)
 					circle_node.set_meta("circle_3d", circle_3d)
@@ -1520,34 +1668,11 @@ func _on_enemy_action(data: Dictionary):
 					circle_blast_3d.scale = Vector3(1.0, 1.0, correction_z)
 				vp.add_child(circle_blast_3d)
 
-				var flash = MeshInstance3D.new()
-				var flash_s = SphereMesh.new()
-				flash_s.radius = r3d * 0.3
-				flash_s.height = r3d * 0.6
-				flash.mesh = flash_s
-				var flash_mat = StandardMaterial3D.new()
-				flash_mat.albedo_color = Color(1.0, 0.6, 0.1, 0.9)
-				flash_mat.emission_enabled = true
-				flash_mat.emission = Color(1.0, 0.6, 0.1)
-				flash_mat.emission_energy_multiplier = 8.0
-				flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				flash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				flash.material_override = flash_mat
-				flash.position = Vector3(0, 1.5, 0)
-				circle_blast_3d.add_child(flash)
-				var tw_f = flash.create_tween()
-				tw_f.tween_property(flash, "scale", Vector3(3.5, 3.5, 3.5), 0.3)
-				tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.3)
-				tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.3)
-				tw_f.finished.connect(flash.queue_free)
-
 				var damage_area = MeshInstance3D.new()
 				if has_terrain_exp:
 					var disc_conforming = _make_circle_disc_conforming(Vector2(locked_x, locked_y), range_val, current_map)
 					damage_area.mesh = disc_conforming
-					damage_area.position = Vector3(0, -h_lock -0.15 + 0.12, 0) # compensar container ya en h_lock: mesh local baked con h relativo + eps
-					# Como disc_conforming ya está bakeado con altura relativa al centro (h - h_center), y el container está en h_center,
-					# posicionamos el mesh a 0,0,0 relativo y su Y ya trae el offset. Para evitar doble offset, usamos 0
+					# disc ya bakeado con altura relativa; container en h_lock → local 0,0,0
 					damage_area.position = Vector3(0, 0, 0)
 				else:
 					var area_mesh = CylinderMesh.new()
@@ -1573,42 +1698,28 @@ func _on_enemy_action(data: Dictionary):
 				tw_a.tween_property(area_mat, "emission_energy_multiplier", 0.0, 0.5).set_ease(Tween.EASE_IN)
 				tw_a.finished.connect(damage_area.queue_free)
 
-				var shockwave = MeshInstance3D.new()
-				var sw_mesh = TorusMesh.new()
-				sw_mesh.inner_radius = r3d * 0.95
-				sw_mesh.outer_radius = r3d * 1.05
-				shockwave.mesh = sw_mesh
-				var sw_mat = StandardMaterial3D.new()
-				sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.9)
-				sw_mat.emission_enabled = true
-				sw_mat.emission = Color(1.0, 0.4, 0.05)
-				sw_mat.emission_energy_multiplier = 5.0
-				sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				sw_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				shockwave.material_override = sw_mat
-				shockwave.position = Vector3(0, 0.02, 0)
-				shockwave.rotation.x = PI / 2
-				circle_blast_3d.add_child(shockwave)
-				var tw_sw = shockwave.create_tween().set_parallel(true)
-				tw_sw.tween_property(shockwave, "scale", Vector3(1.5, 1.5, 1.5), 0.4)
-				tw_sw.tween_property(sw_mat, "albedo_color:a", 0.0, 0.4)
-				tw_sw.tween_property(sw_mat, "emission_energy_multiplier", 0.0, 0.4)
-				tw_sw.finished.connect(shockwave.queue_free)
+				# Sin flash-sphere ni toro vertical (el "arco de arriba")
 
 				var exp_light = OmniLight3D.new()
 				exp_light.light_color = Color(1.0, 0.4, 0.05)
-				exp_light.light_energy = 15.0
+				exp_light.light_energy = 12.0
 				exp_light.omni_range = r3d * 2.0
-				exp_light.position = Vector3(0, 1.5, 0)
+				exp_light.position = Vector3(0, 1.2, 0)
 				circle_blast_3d.add_child(exp_light)
 				var tw_l = exp_light.create_tween()
-				tw_l.tween_property(exp_light, "light_energy", 0.0, 0.4)
-				
-				# Limpiar el contenedor completo al finalizar el VFX
+				tw_l.tween_property(exp_light, "light_energy", 0.0, 0.5)
+
+				# Partículas de fuego que cubren hasta el rango total (fireRange AdminDash)
+				var burst = _make_circle_fire_burst(r3d, has_terrain_exp)
+				circle_blast_3d.add_child(burst)
+
+				# Limpiar el contenedor completo cuando mueren las partículas (lifetime máx ~1.05s)
 				var clean_all = func():
 					if is_instance_valid(circle_blast_3d):
 						circle_blast_3d.queue_free()
-				tw_l.finished.connect(clean_all)
+				var tw_clean = circle_blast_3d.create_tween()
+				tw_clean.tween_interval(1.3)
+				tw_clean.tween_callback(clean_all)
 
 			active_areas.erase("blast_" + enemy_id)
 

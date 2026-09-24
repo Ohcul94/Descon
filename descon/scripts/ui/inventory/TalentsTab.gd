@@ -69,6 +69,8 @@ var node_types: Dictionary = {
 func setup(p_inv_main):
 	inv_main = p_inv_main
 	mouse_filter = Control.MOUSE_FILTER_PASS
+	# set_script() en runtime puede no habilitar _input solo; forzarlo
+	set_process_input(true)
 
 func update_ui():
 	if not inv_main:
@@ -1074,9 +1076,9 @@ func _on_tree_input(event: InputEvent):
 	if not tree_canvas or not is_visible_in_tree():
 		return
 
-	# ═══ Presión / botones: solo en el canvas (gui_input) ═══
+	# ═══ Presión / botones (gui_input del canvas — siempre activo) ═══
 	if event is InputEventMouseButton:
-		# Zoom (rueda) — accept_event evita scroll paralelo del TabContainer
+		# Zoom (rueda)
 		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			accept_event()
 			_zoom_at(event.position, 1.0)
@@ -1086,13 +1088,16 @@ func _on_tree_input(event: InputEvent):
 			_zoom_at(event.position, -1.0)
 			return
 
-		# Left: iniciar pan/click (el release y el motion se resuelven en _input)
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		# Left: iniciar pan / click en nodo
+		if event.button_index == MOUSE_BUTTON_LEFT:
 			accept_event()
-			pan_start = event.global_position
-			_press_node_id = _get_node_at_position(event.position)
-			_drag_moved = false
-			is_panning = true
+			if event.pressed:
+				pan_start = event.global_position
+				_press_node_id = _get_node_at_position(event.position)
+				_drag_moved = false
+				is_panning = true
+			else:
+				_end_pan(event.global_position, true)
 			return
 
 		# Right: quitar punto pendiente
@@ -1103,15 +1108,20 @@ func _on_tree_input(event: InputEvent):
 				_try_remove_pending(nid)
 			return
 
-		# Middle: zoom 1 + centrar árbol
+		# Middle: zoom 1 + centrar en el origen (0,0)
 		if event.button_index == MOUSE_BUTTON_MIDDLE and event.pressed:
 			accept_event()
 			zoom_level = 1.0
-			_center_camera_on_bounds()
+			_center_camera_on_origin()
 			return
 
-	# Hover solo cuando no arrastramos (posición local del canvas)
-	if event is InputEventMouseMotion and not is_panning:
+	# ═══ Motion: pan mientras se arrastra (gui_input) ═══
+	if event is InputEventMouseMotion:
+		if is_panning:
+			accept_event()
+			_apply_pan(event.global_position)
+			return
+		# Hover solo cuando no arrastramos
 		var new_h = _get_node_at_position(event.position)
 		if new_h != hovered_node_id:
 			hovered_node_id = new_h
@@ -1129,49 +1139,68 @@ func _on_tree_mouse_exit():
 	tree_canvas.queue_redraw()
 	_hide_tooltip()
 
+func _apply_pan(global_pos: Vector2):
+	var delta = global_pos - pan_start
+	if not _drag_moved and delta.length() >= 5.0:
+		_drag_moved = true
+	if not _drag_moved:
+		return
+	pan_offset += delta
+	pan_start = global_pos
+	if hovered_node_id != "" or (tooltip_panel and tooltip_panel.visible):
+		hovered_node_id = ""
+		_hide_tooltip()
+	_clamp_pan()
+	tree_canvas.queue_redraw()
+
+func _end_pan(global_pos: Vector2, on_canvas: bool):
+	if not is_panning:
+		return
+	# Click solo si no se arrastró y se soltó encima de un nodo en el canvas
+	var add_id = ""
+	if on_canvas and not _drag_moved:
+		if _press_node_id != "" and tree_canvas:
+			if tree_canvas.get_global_rect().has_point(global_pos):
+				add_id = _press_node_id
+	_press_node_id = ""
+	_drag_moved = false
+	is_panning = false
+	if add_id != "":
+		_try_add_pending(add_id)
+
 func _input(event):
-	# is_visible_in_tree: pestaña activa + inventario abierto
-	if not is_visible_in_tree() or not tree_canvas:
+	if not tree_canvas:
 		return
 
 	# ESC cierra el resumen (sin depender del foco del canvas)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		if summary_panel and summary_panel.visible:
+		if is_visible_in_tree() and summary_panel and summary_panel.visible:
 			_set_summary_panel_visible(false)
 			get_viewport().set_input_as_handled()
 			return
 
 	if not is_panning:
 		return
+	if not is_visible_in_tree():
+		is_panning = false
+		_press_node_id = ""
+		_drag_moved = false
+		return
 
-	# Pan/click se resuelven aquí: sigue funcionando si el mouse sale del canvas
-	# y evita pelear con scroll/handlers hermanos (el clásico "parpadeo").
+	# Backup: pan/release cuando el mouse sale del canvas
+	# (si está encima, gui_input ya lo maneja — no duplicar)
+	var over := false
+	if event is InputEventMouse:
+		over = tree_canvas.get_global_rect().has_point(event.global_position)
+
 	if event is InputEventMouseMotion:
-		var g = event.global_position
-		var delta = g - pan_start
-		if not _drag_moved and delta.length() >= 5.0:
-			_drag_moved = true
-		if _drag_moved:
-			pan_offset += delta
-			pan_start = g
-			if hovered_node_id != "" or (tooltip_panel and tooltip_panel.visible):
-				hovered_node_id = ""
-				_hide_tooltip()
-			_clamp_pan()
-			tree_canvas.queue_redraw()
+		if not over:
+			_apply_pan(event.global_position)
 			get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		# Release fuera del canvas o tras drag → no cuentan como click en nodo
-		if _drag_moved or not tree_canvas.get_global_rect().has_point(event.global_position):
-			_press_node_id = ""
-		var add_id = _press_node_id
-		_press_node_id = ""
-		_drag_moved = false
-		is_panning = false
-		if add_id != "":
-			_try_add_pending(add_id)
+		_end_pan(event.global_position, over)
 		get_viewport().set_input_as_handled()
 
 func _notification(what: int):
@@ -1493,7 +1522,14 @@ func _on_tree_canvas_resized():
 		tree_canvas.queue_redraw()
 		return
 	_camera_ready = true
-	_center_camera_on_bounds()
+	_center_camera_on_origin()
+
+func _center_camera_on_origin():
+	# El punto (0,0) del árbol queda en el centro del canvas
+	if not tree_canvas or tree_canvas.size.x <= 0:
+		return
+	pan_offset = tree_canvas.size * 0.5
+	tree_canvas.queue_redraw()
 
 func _center_camera_on_bounds():
 	if not tree_canvas or tree_canvas.size.x <= 0:
