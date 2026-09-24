@@ -3100,15 +3100,15 @@ func _ensure_flash_material():
 		if is_instance_valid(sprite): sprite.material = null
 
 var _flash_timer: float = 0.0
-func _trigger_hit_flash():
+func _trigger_hit_flash(tint: Color = Color.WHITE):
 	if get_node_or_null("/root/SettingsManager"):
 		if not SettingsManager.hit_flash_enabled: return
 	_flash_timer = 0.15
 	_ensure_flash_material()
 	if _hit_flash_material:
-		_hit_flash_material.set_shader_parameter("flash_color", Color.WHITE)
+		_hit_flash_material.set_shader_parameter("flash_color", tint)
 	if is_instance_valid(_hit_flash_material_3d):
-		_hit_flash_material_3d.albedo_color = Color(1.0, 1.0, 1.0, 0.0)
+		_hit_flash_material_3d.albedo_color = Color(tint.r, tint.g, tint.b, 0.0)
 	_update_flash_visuals(1.0)
 
 func _trigger_heal_flash():

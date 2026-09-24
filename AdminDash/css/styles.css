@@ -228,8 +228,43 @@ h2 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
     overflow: visible !important;
     transform: none !important;
 }
+.talent-list-item .talent-effect-summary {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    max-width: 100%;
+}
 .talent-list-item:hover {
     transform: none !important;
+}
+
+/* Panel lateral del mapper: no se mueve en hover (si no, los clicks fallan) */
+#view-talent-mapper .card,
+#talent-mapper-unplaced-list .card,
+#talent-node-editor-card {
+    transform: none !important;
+    transition: none !important;
+}
+#view-talent-mapper .card:hover,
+#talent-mapper-unplaced-list .card:hover,
+#talent-node-editor-card:hover {
+    transform: none !important;
+}
+
+.talent-branch-header {
+    cursor: pointer;
+    user-select: none;
+    pointer-events: auto !important;
+}
+.talent-branch-header:active {
+    filter: brightness(1.25);
+}
+
+.talent-list-action {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 2;
 }
 
 .card-tag {

@@ -219,24 +219,24 @@ func _on_environment_damaged(data: Dictionary):
 	var dmg = float(data.get("damage", 0.0))
 	if dmg > 0:
 		# Detenemos la falsa regeneración local avisando a Godot que estamos en combate
-		last_combat_time = Time.get_ticks_msec() 
-		
+		last_combat_time = Time.get_ticks_msec()
+
 		var isLifeSteal = data.get("isLifeSteal", false)
 		if isLifeSteal:
 			# Robo de vida: bypass del escudo, daño directo a HP
 			current_hp -= dmg
 			if current_hp < 0: current_hp = 0
 		else:
-			# Aplicamos el daño visualmente para que las barras bajen al instante 
+			# Aplicamos el daño visualmente para que las barras bajen al instante
 			# (Evita el salto brusco cuando llega el vSync del servidor)
 			if current_shield >= dmg:
 				current_shield -= dmg
 			else:
 				current_hp -= (dmg - current_shield)
 				current_shield = 0
-			
+
 			if current_hp < 0: current_hp = 0
-		
+
 		var isShieldDrain = data.get("isShield", false)
 		if isLifeSteal:
 			# Robo de vida (life_steal): numero verde con signo negativo
@@ -250,7 +250,13 @@ func _on_environment_damaged(data: Dictionary):
 			# Daño normal
 			_spawn_damage_text(str(int(dmg)), Color.RED)
 			apply_shake(2.0)
-		
+			# Hit-flash visible: naranja si es del cono, blanco en genérico
+			var src = str(data.get("source", ""))
+			if src == "cone_cast":
+				_trigger_hit_flash(Color(1.0, 0.45, 0.1))
+			else:
+				_trigger_hit_flash()
+
 		if current_hp <= 0:
 			die()
 

@@ -1749,6 +1749,7 @@ module.exports = class BaseAI {
                     id: this.enemy.id,
                     action: "cone_charging",
                     type: "cone_cast",
+                    mId: mId,
                     duration: actualDuration,
                     range: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange,
                     coneAngle: mech.coneAngle || 60,
@@ -1774,9 +1775,12 @@ module.exports = class BaseAI {
                     id: this.enemy.id,
                     action: "cone_fire",
                     type: "cone_cast",
+                    mId: mId,
                     angle: faceAngle,
                     range: radius,
-                    coneAngle: mech.coneAngle || 60
+                    coneAngle: mech.coneAngle || 60,
+                    damage: dmg,
+                    stunDuration: stunDur
                 });
 
                 // Calcular jugadores golpeados
@@ -1822,7 +1826,7 @@ module.exports = class BaseAI {
                             }
 
                             // Sincronizar stats del jugador golpeado
-                            io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                            io.to(p.socketId).emit('environmentDamage', { damage: dmg, source: 'cone_cast', stunDuration: stunDur });
                             io.to(`zone_${p.zone}`).emit('playerStatSync', {
                                 id: p.socketId,
                                 hp: Math.ceil(p.hp),

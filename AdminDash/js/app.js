@@ -184,6 +184,7 @@ function showTab(tabId) {
         setTimeout(() => {
             if (typeof syncTalentCanvasSize === 'function') syncTalentCanvasSize();
             if (typeof renderTalentMapper === 'function') renderTalentMapper();
+            if (typeof renderTalentMapperSideList === 'function') renderTalentMapperSideList();
         }, 60);
     }
 
@@ -4277,7 +4278,7 @@ function initTalentMapper() {
             const world = screenToWorld(mx, my);
             config.talentsConfig.nodes[dragNodeId].x = Math.round(world.x);
             config.talentsConfig.nodes[dragNodeId].y = Math.round(world.y);
-            renderTalentMapper();
+            renderTalentMapper(null, { canvasOnly: true });
         } else if (isPanningTalents) {
             const dx = e.clientX - panStart.x;
             const dy = e.clientY - panStart.y;
@@ -4285,9 +4286,9 @@ function initTalentMapper() {
             talentPanOffset.y += dy;
             panStart = { x: e.clientX, y: e.clientY };
             clampPanOffset();
-            renderTalentMapper();
+            renderTalentMapper(null, { canvasOnly: true });
         } else if (connectStartNodeId) {
-            renderTalentMapper(mousePos);
+            renderTalentMapper(mousePos, { canvasOnly: true });
         } else {
             // Hover detection para tooltip
             const hoveredNode = getNodeAtPosition(mx, my);
@@ -4300,7 +4301,7 @@ function initTalentMapper() {
                     canvas.style.cursor = 'grab';
                     hideTalentTooltip();
                 }
-                renderTalentMapper();
+                renderTalentMapper(null, { canvasOnly: true });
             } else if (hoveredNode) {
                 showTalentTooltip(hoveredNode, mx, my);
             }
@@ -4316,6 +4317,7 @@ function initTalentMapper() {
             isDraggingTalentNode = false;
             dragNodeId = null;
             canvas.style.cursor = 'grab';
+            renderTalentMapper(); // estructura cambió (pos nodos)
         } else if (isPanningTalents) {
             isPanningTalents = false;
             canvas.style.cursor = 'grab';
@@ -4358,7 +4360,7 @@ function initTalentMapper() {
         
         clampPanOffset();
         updateZoomDisplay();
-        renderTalentMapper();
+        renderTalentMapper(null, { canvasOnly: true });
     }, { passive: false });
 
     // Ocultar tooltip y detener paneo al salir del canvas
@@ -4401,7 +4403,8 @@ function initTalentMapper() {
                 const nodes = config.talentsConfig.nodes || {};
                 const hasAnimatedNodes = Object.values(nodes).some(n => n.nodeType === 'notable' || n.nodeType === 'keystone');
                 if (hasAnimatedNodes || selectedTalentNodeId || talentMapperHoveredNode || connectStartNodeId) {
-                    renderTalentMapper();
+                    // Solo canvas: NO repintar la lista lateral (rompería los clics)
+                    renderTalentMapper(null, { canvasOnly: true });
                 }
             }
         }
@@ -4424,6 +4427,7 @@ function showTalentNodeEditor(nodeId) {
     const currentType = nodeData?.nodeType || 'small';
 
     card.style.display = 'block';
+    try { card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
     
     // Generar campos de edición rápida del nodo mapeado
     content.innerHTML = `
@@ -4455,6 +4459,7 @@ function showTalentNodeEditor(nodeId) {
         </div>
     `;
 }
+window.showTalentNodeEditor = showTalentNodeEditor;
 
 window.updateTalentNodeType = function(nodeId, newType) {
     if (!config.talentsConfig.nodes || !config.talentsConfig.nodes[nodeId]) return;

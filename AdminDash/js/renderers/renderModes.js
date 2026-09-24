@@ -2684,6 +2684,8 @@ window.TALENT_EFFECTS_CATALOG = {
     ammo_bonus_pct:      { label: 'Munición Extra',           icon: '💣', cat: 'combate',   defaultValue: 0.01 },
     // ── DEFENSA ──
     hp_pct:              { label: 'Vida Máxima',              icon: '🛡️', cat: 'defensa',   defaultValue: 0.01 },
+    sh_pct:              { label: 'Escudo Máximo',            icon: '🛡️', cat: 'defensa',   defaultValue: 0.01 },
+    armor_pct:           { label: 'Armadura',                 icon: '🔩', cat: 'defensa',   defaultValue: 0.01 },
     hp_regen:            { label: 'Regen. Vida',              icon: '🔧', cat: 'defensa',   defaultValue: 0.01 },
     shield_regen:        { label: 'Regen. Escudo',            icon: '🔋', cat: 'defensa',   defaultValue: 0.01 },
     stability:           { label: 'Estabilidad',              icon: '🛸', cat: 'defensa',   defaultValue: 0.01 },
@@ -2748,6 +2750,83 @@ window.AMMO_ATTRS = {
     bulletSpeed:     { label: 'Vel. Proyectil',   unit: 'px/s', icon: '🚀' },
     range:           { label: 'Alcance',          unit: 'px',   icon: '📏' },
     castTimeMs:      { label: 'Casteo',           unit: 'ms',   icon: '⏳' },
+};
+
+function _findSkillById(skillId) {
+    const cfg = (typeof config !== 'undefined' ? config : (window.config || {})) || {};
+    const data = cfg.skillsData || null;
+    if (!data || !skillId) return null;
+    if (data[skillId]) {
+        const s = data[skillId];
+        return { name: s.name || skillId, raw: s };
+    }
+    for (const k in data) {
+        const s = data[k];
+        if (s && s.id === skillId) return { name: s.name || k, raw: s };
+    }
+    return null;
+}
+
+// Descripción en español de los efectos de un talento (para panel lateral / UI)
+window.describeTalentEffects = function(talent) {
+    if (!talent || !talent.effects) return [];
+    const entries = Object.entries(talent.effects);
+    if (!entries.length) return [];
+    const maxLvl = talent.maxLevel || 5;
+    const catalog = window.TALENT_EFFECTS_CATALOG || {};
+    const fmt = (typeof formatCleanStat === 'function')
+        ? formatCleanStat
+        : (v, isFlat, showPlus) => {
+            const n = parseFloat(v) || 0;
+            const sign = (n > 0 && showPlus) ? '+' : '';
+            return isFlat ? sign + n : sign + (n * 100) + '%';
+        };
+
+    return entries.map(([key, rawVal]) => {
+        const numVal = parseFloat(rawVal) || 0;
+        const meta = (talent.effectsMeta && talent.effectsMeta[key]) ? talent.effectsMeta[key] : null;
+        const isFlat = !!(meta && meta.flat) || String(key).endsWith('_flat');
+        let label = key;
+        let icon = '✨';
+        const cat = catalog[key];
+
+        if (cat) {
+            label = cat.label;
+            icon = cat.icon;
+        } else if (typeof _parseDynamicKey === 'function') {
+            const parsed = _parseDynamicKey(key);
+            if (parsed) {
+                if (parsed.type === 'skill') {
+                    const sk = _findSkillById(parsed.id);
+                    const attrMeta = window.SKILL_ATTRS ? window.SKILL_ATTRS[parsed.attr] : null;
+                    label = `${sk ? sk.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                    icon = attrMeta ? (attrMeta.icon || '🌀') : '🌀';
+                } else if (parsed.type === 'weapon') {
+                    const weps = (typeof config !== 'undefined' && config.shopItems && config.shopItems.weapons) ? config.shopItems.weapons : [];
+                    const w = weps.find(x => x.id === parsed.id);
+                    const attrMeta = window.WEAPON_ATTRS ? window.WEAPON_ATTRS[parsed.attr] : null;
+                    label = `${w ? w.name : parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                    icon = attrMeta ? (attrMeta.icon || '🔫') : '🔫';
+                } else if (parsed.type === 'ammo') {
+                    const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
+                    const ammoName = parsed.id ? (parsed.id.charAt(0).toUpperCase() + parsed.id.slice(1)) : '';
+                    label = `Munición ${ammoName} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                    icon = attrMeta ? (attrMeta.icon || '💣') : '💣';
+                }
+            }
+        }
+
+        const perLvl = fmt(numVal, isFlat, true);
+        const maxTotal = fmt(numVal * maxLvl, isFlat, true);
+        return {
+            key,
+            icon,
+            label,
+            perLvl,
+            maxTotal,
+            html: `${icon} ${perLvl}/niv ${label} <span style="color:#8899aa;">(máx ${maxTotal})</span>`
+        };
+    });
 };
 
 function _effectCatColor(cat) {
@@ -3314,7 +3393,7 @@ window.deleteTalentEffect = function(talentIdx, key) {
     renderTalentCreator();
 };
 
-window.renderTalentMapper = function(connectingMousePos = null) {
+window.renderTalentMapper = function(connectingMousePos = null, opts = null) {
     const canvas = document.getElementById('talent-mapper-canvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -3322,6 +3401,8 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     // Inicializar canvas y listeners del mapper si aún no están listos
     if (!canvas._talentMapperInitialized && typeof initTalentMapper === 'function') {
         initTalentMapper();
+        // Aun en init, rellenar el panel lateral
+        try { renderTalentMapperSideList(); } catch (e) { console.error(e); }
         return;
     }
 
@@ -3790,143 +3871,230 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     }
 
     // Actualizar estadísticas de ramas
-    updateBranchStats();
+    try { if (typeof updateBranchStats === 'function') updateBranchStats(); } catch (e) { console.warn('updateBranchStats', e); }
 
-    // Renderizar listado de talentos en el panel lateral (agrupados por rama, expandible/colapsable)
-    const unplacedList = document.getElementById('talent-mapper-unplaced-list');
-    if (unplacedList) {
-        unplacedList.innerHTML = '';
-        const cats = (typeof getCategories === 'function') ? getCategories() : [];
-        const allTalents = talents.filter(t => {
-            if (searchTerm && !t.name.toLowerCase().includes(searchTerm) && !t.id.toLowerCase().includes(searchTerm)) return false;
-            return true;
-        });
-
-        if (!window._mapperCollapsedCats) window._mapperCollapsedCats = new Set();
-
-        // Recolectar ramas en orden
-        const catIds = [...new Set([...cats.map(c => c.id), ...allTalents.map(t => t.category)])];
-
-        catIds.forEach(catId => {
-            const catObj = cats.find(c => c.id === catId) || { id: catId, name: catId.toUpperCase(), color: '#00d2ff', emoji: '📁' };
-            const catColor = catObj.color || '#00d2ff';
-            const catEmoji = catObj.emoji || '📁';
-            const catName = catObj.name || catId;
-
-            const branchTalents = allTalents.filter(t => t.category === catId);
-            if (branchTalents.length === 0) return;
-
-            // Ordenar: primero los ya mapeados, luego no mapeados, ambos por tamaño (keystone > notable > small)
-            const sortedBranch = (typeof window.sortTalentsMappedAndSize === 'function')
-                ? window.sortTalentsMappedAndSize(branchTalents, nodes)
-                : branchTalents;
-
-            const mappedCount = sortedBranch.filter(t => !!nodes[t.id]).length;
-            const isCollapsed = window._mapperCollapsedCats.has(catId);
-
-            // Encabezado de rama (clic = expandir / colapsar)
-            const groupHeader = document.createElement('div');
-            groupHeader.style.cssText = `padding: 9px 12px; margin-top: 6px; margin-bottom: 2px; border-radius: 6px; background: ${catColor}15; border: 1px solid ${catColor}35; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; min-height: 36px; flex-shrink: 0; transition: opacity 0.15s;`;
-            groupHeader.innerHTML = `
-                <span style="font-weight: bold; color: ${catColor}; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; min-width: 0;">
-                    <span style="font-size: 0.7rem; opacity: 0.85; flex-shrink: 0;">${isCollapsed ? '▶' : '▼'}</span>
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${catEmoji} ${catName.toUpperCase()}</span>
-                </span>
-                <span style="font-size: 0.7rem; color: #aaa; flex-shrink: 0; margin-left: 8px;">${mappedCount}/${sortedBranch.length}</span>
-            `;
-            groupHeader.onmouseenter = () => { groupHeader.style.opacity = '0.8'; };
-            groupHeader.onmouseleave = () => { groupHeader.style.opacity = '1'; };
-            groupHeader.onclick = () => {
-                if (window._mapperCollapsedCats.has(catId)) window._mapperCollapsedCats.delete(catId);
-                else window._mapperCollapsedCats.add(catId);
-                renderTalentMapper();
-            };
-            unplacedList.appendChild(groupHeader);
-
-            if (isCollapsed) return;
-
-            sortedBranch.forEach(t => {
-                const isPlaced = !!nodes[t.id];
-                const nd = nodes[t.id] || {};
-                const nodeType = nd.nodeType || t.nodeType || 'small';
-                const typeLabel = nodeType === 'keystone' ? '🔴 Clave' : (nodeType === 'notable' ? '🟡 Notable' : '🟢 Pequeño');
-
-                const item = document.createElement('div');
-                item.className = 'card talent-list-item';
-                item.dataset.talentId = t.id;
-                item.style.cssText = `
-                    padding: 10px 12px !important;
-                    margin: 0 !important;
-                    min-height: 56px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 8px;
-                    border: ${isPlaced ? `1px solid ${catColor}40` : '1px dashed rgba(255,255,255,0.15)'};
-                    background: ${isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)'};
-                    border-radius: 8px;
-                    cursor: ${isPlaced ? 'pointer' : 'grab'};
-                    overflow: visible !important;
-                    flex-shrink: 0;
-                    line-height: 1.35;
-                    transform: none !important;
-                `;
-
-                if (!isPlaced) {
-                    item.draggable = true;
-                    item.ondragstart = (ev) => {
-                        ev.dataTransfer.setData('text/plain', t.id);
-                        ev.dataTransfer.effectAllowed = 'copy';
-                    };
-                    item.ondblclick = () => placeTalentOnMap(t.id);
-                } else {
-                    item.onclick = () => {
-                        selectedTalentNodeId = t.id;
-                        if (typeof showTalentNodeEditor === 'function') showTalentNodeEditor(t.id);
-                        if (nodes[t.id] && canvas) {
-                            const { w, h } = (typeof syncTalentCanvasSize === 'function') ? syncTalentCanvasSize() : { w: 800, h: 600 };
-                            talentPanOffset.x = w / 2 - nodes[t.id].x * talentZoom;
-                            talentPanOffset.y = h / 2 - nodes[t.id].y * talentZoom;
-                            clampPanOffset();
-                        }
-                        renderTalentMapper();
-                    };
-                }
-
-                item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.08)'; item.style.borderColor = catColor; };
-                item.onmouseleave = () => { item.style.background = isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)'; item.style.borderColor = isPlaced ? `${catColor}40` : 'rgba(255,255,255,0.15)'; };
-
-                const actionBtn = isPlaced
-                    ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.7rem; margin: 0; border-color: ${catColor}60; color: ${catColor}; flex-shrink: 0; line-height: 1;" onclick="event.stopPropagation(); selectedTalentNodeId='${t.id}'; if(typeof showTalentNodeEditor==='function') showTalentNodeEditor('${t.id}'); renderTalentMapper();">🔍 Ver</button>`
-                    : `<button class="btn btn-primary" style="padding: 6px 10px; font-size: 0.7rem; margin: 0; flex-shrink: 0; line-height: 1;" onclick="event.stopPropagation(); placeTalentOnMap('${t.id}')">+ Colocar</button>`;
-
-                const statusTag = isPlaced
-                    ? `<span style="font-size: 0.68rem; color: #10b981; font-weight: bold; white-space: nowrap;">📍 Mapeado</span>`
-                    : `<span style="font-size: 0.68rem; color: #ef4444; font-weight: bold; white-space: nowrap;">⚠️ Sin Mapear</span>`;
-
-                item.innerHTML = `
-                    <div style="display:flex; gap:10px; align-items:center; flex: 1; min-width: 0;">
-                        <span style="font-size: 1.5rem; flex-shrink: 0; line-height: 1;">${t.icon || '🌳'}</span>
-                        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; justify-content: center;">
-                            <div style="font-weight: bold; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;">${t.name}</div>
-                            <div style="font-size: 0.7rem; color: #bbb; display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; min-width: 0; line-height: 1.3;">
-                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${typeLabel}</span>
-                                <span style="opacity: 0.5; flex-shrink: 0;">•</span>
-                                ${statusTag}
-                            </div>
-                        </div>
-                    </div>
-                    ${actionBtn}
-                `;
-                unplacedList.appendChild(item);
-            });
-        });
-
-        if (unplacedList.children.length === 0) {
-            unplacedList.innerHTML = '<div style="color:var(--text-dim); text-align:center; padding:2rem; font-size:0.85rem;">No se encontraron talentos.</div>';
-        }
+    // Panel lateral SOLO si no es un repintado de canvas (anim/hover/pan).
+    // Si no, el loop de anim destruye los botones cada frame y los clics no llegan.
+    const canvasOnly = !!(opts && opts.canvasOnly);
+    if (!canvasOnly) {
+        try { renderTalentMapperSideList(); } catch (e) { console.error('renderTalentMapperSideList', e); }
     }
 };
+
+window.renderTalentMapperSideList = function() {
+    const unplacedList = document.getElementById('talent-mapper-unplaced-list');
+    if (!unplacedList) return;
+
+    const nodes = (config.talentsConfig && config.talentsConfig.nodes) || {};
+    const talents = (config.talentsConfig && config.talentsConfig.talents) || [];
+    const searchTerm = (typeof talentMapperSearchTerm !== 'undefined' && talentMapperSearchTerm) || window.talentMapperSearchTerm || '';
+
+    unplacedList.innerHTML = '';
+    const cats = (typeof getCategories === 'function') ? getCategories() : [];
+    const allTalents = talents.filter(t => {
+        if (searchTerm && !t.name.toLowerCase().includes(searchTerm) && !t.id.toLowerCase().includes(searchTerm)) return false;
+        return true;
+    });
+
+    if (!window._mapperCollapsedCats) window._mapperCollapsedCats = new Set();
+
+    // Recolectar ramas en orden
+    const catIds = [...new Set([...cats.map(c => c.id), ...allTalents.map(t => t.category)])];
+
+    catIds.forEach(catId => {
+        const catObj = cats.find(c => c.id === catId) || { id: catId, name: catId.toUpperCase(), color: '#00d2ff', emoji: '📁' };
+        const catColor = catObj.color || '#00d2ff';
+        const catEmoji = catObj.emoji || '📁';
+        const catName = catObj.name || catId;
+
+        const branchTalents = allTalents.filter(t => t.category === catId);
+        if (branchTalents.length === 0) return;
+
+        // Ordenar: primero los ya mapeados, luego no mapeados, ambos por tamaño (keystone > notable > small)
+        const sortedBranch = (typeof window.sortTalentsMappedAndSize === 'function')
+            ? window.sortTalentsMappedAndSize(branchTalents, nodes)
+            : branchTalents;
+
+        const mappedCount = sortedBranch.filter(t => !!nodes[t.id]).length;
+        const isCollapsed = window._mapperCollapsedCats.has(catId);
+
+        // Encabezado de rama (clic = expandir / colapsar) — inline onclick estilo crafting (probado)
+        const groupHeader = document.createElement('div');
+        groupHeader.className = 'talent-branch-header';
+        groupHeader.dataset.catId = catId;
+        groupHeader.setAttribute('role', 'button');
+        groupHeader.setAttribute('tabindex', '0');
+        groupHeader.title = isCollapsed ? 'Click para expandir' : 'Click para colapsar';
+        groupHeader.style.cssText = `padding: 10px 12px; margin-top: 6px; margin-bottom: 2px; border-radius: 6px; background: ${catColor}18; border: 1px solid ${catColor}45; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; min-height: 40px; flex-shrink: 0; pointer-events: auto; position: relative; z-index: 3;`;
+        groupHeader.innerHTML = `
+            <span style="font-weight: bold; color: ${catColor}; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; min-width: 0;">
+                <span style="font-size: 0.75rem; opacity: 0.95; flex-shrink: 0; width: 12px; text-align: center;">${isCollapsed ? '▶' : '▼'}</span>
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${catEmoji} ${catName.toUpperCase()}</span>
+            </span>
+            <span style="font-size: 0.7rem; color: #ccc; flex-shrink: 0; margin-left: 8px; font-weight: bold;">${mappedCount}/${sortedBranch.length}</span>
+        `;
+        const toggleBranch = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = catId;
+            if (window._mapperCollapsedCats.has(id)) window._mapperCollapsedCats.delete(id);
+            else window._mapperCollapsedCats.add(id);
+            // Repintar solo la lista (no depende del canvas)
+            try { renderTalentMapperSideList(); } catch (e) { console.error(e); }
+        };
+        groupHeader.onclick = toggleBranch;
+        groupHeader.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') toggleBranch(e); };
+        unplacedList.appendChild(groupHeader);
+
+        if (isCollapsed) return;
+
+        sortedBranch.forEach(t => {
+            const isPlaced = !!nodes[t.id];
+            const nd = nodes[t.id] || {};
+            const nodeType = nd.nodeType || t.nodeType || 'small';
+            const typeLabel = nodeType === 'keystone' ? '🔴 Clave' : (nodeType === 'notable' ? '🟡 Notable' : '🟢 Pequeño');
+
+            const item = document.createElement('div');
+            item.className = 'card talent-list-item';
+            item.dataset.talentId = t.id;
+            item.style.cssText = `
+                padding: 10px 12px !important;
+                margin: 0 !important;
+                min-height: 56px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                border: ${isPlaced ? `1px solid ${catColor}40` : '1px dashed rgba(255,255,255,0.15)'};
+                background: ${isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)'};
+                border-radius: 8px;
+                cursor: ${isPlaced ? 'pointer' : 'grab'};
+                overflow: visible !important;
+                flex-shrink: 0;
+                line-height: 1.35;
+                transform: none !important;
+                pointer-events: auto;
+                position: relative;
+            `;
+
+            if (!isPlaced) {
+                item.draggable = true;
+                item.ondragstart = (ev) => {
+                    ev.dataTransfer.setData('text/plain', t.id);
+                    ev.dataTransfer.effectAllowed = 'copy';
+                };
+                item.ondblclick = () => placeTalentOnMap(t.id);
+            } else {
+                item.onclick = (ev) => {
+                    if (ev && ev.target && ev.target.closest && ev.target.closest('.talent-list-action')) return;
+                    focusTalentNodeInMap(t.id);
+                };
+            }
+
+            item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.08)'; item.style.borderColor = catColor; };
+            item.onmouseleave = () => { item.style.background = isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)'; item.style.borderColor = isPlaced ? `${catColor}40` : 'rgba(255,255,255,0.15)'; };
+
+            const actionBtn = isPlaced
+                ? `<button type="button" class="btn btn-secondary talent-list-action" data-action="focus" data-id="${t.id}" title="Centrar el mapa en este nodo y abrir su edición" style="padding: 6px 10px; font-size: 0.7rem; margin: 0; border-color: ${catColor}70; color: ${catColor}; flex-shrink: 0; line-height: 1; min-height: 28px; display: inline-flex; align-items: center;">📍 Centrar</button>`
+                : `<button type="button" class="btn btn-primary talent-list-action" data-action="place" data-id="${t.id}" title="Colocar este talento en el mapa" style="padding: 6px 10px; font-size: 0.7rem; margin: 0; flex-shrink: 0; line-height: 1; min-height: 28px; display: inline-flex; align-items: center;">+ Colocar</button>`;
+
+            const statusTag = isPlaced
+                ? `<span style="font-size: 0.68rem; color: #10b981; font-weight: bold; white-space: nowrap;">📍 Mapeado</span>`
+                : `<span style="font-size: 0.68rem; color: #ef4444; font-weight: bold; white-space: nowrap;">⚠️ Sin Mapear</span>`;
+
+            const effectLines = (typeof window.describeTalentEffects === 'function')
+                ? window.describeTalentEffects(t)
+                : [];
+            const effectsHtml = effectLines.length
+                ? `<div class="talent-effect-summary" style="margin-top: 3px; padding-top: 3px; border-top: 1px dashed rgba(255,255,255,0.08); font-size: 0.68rem; color: #10b981; line-height: 1.4; white-space: normal; overflow: visible; word-break: break-word;">${effectLines.map(l => `<div style="white-space: normal; overflow: visible; word-break: break-word;">${l.html}</div>`).join('')}</div>`
+                : '';
+
+            item.innerHTML = `
+                <div style="display:flex; gap:10px; align-items:center; flex: 1; min-width: 0;">
+                    <span style="font-size: 1.5rem; flex-shrink: 0; line-height: 1;">${t.icon || '🌳'}</span>
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; justify-content: center;">
+                        <div style="font-weight: bold; font-size: 0.9rem; color: var(--text); white-space: normal; overflow: visible; line-height: 1.25;">${t.name}</div>
+                        <div style="font-size: 0.7rem; color: #bbb; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; line-height: 1.3;">
+                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${typeLabel}</span>
+                            <span style="opacity: 0.5; flex-shrink: 0;">•</span>
+                            <span style="opacity: 0.75; white-space: nowrap;">Máx. ${t.maxLevel || 5} niv.</span>
+                            <span style="opacity: 0.5; flex-shrink: 0;">•</span>
+                            ${statusTag}
+                        </div>
+                        ${effectsHtml}
+                    </div>
+                </div>
+                ${actionBtn}
+            `;
+            unplacedList.appendChild(item);
+        });
+    });
+
+    if (unplacedList.children.length === 0) {
+        unplacedList.innerHTML = '<div style="color:var(--text-dim); text-align:center; padding:2rem; font-size:0.85rem;">No se encontraron talentos.</div>';
+    }
+};
+
+// Delegación de clicks en el panel lateral (sobrevive a re-renders)
+(function bindTalentSideList() {
+    const attach = () => {
+        const list = document.getElementById('talent-mapper-unplaced-list');
+        if (!list || list._talentSideBound) return;
+        list._talentSideBound = true;
+        list.addEventListener('click', (ev) => {
+            const btn = ev.target && ev.target.closest ? ev.target.closest('.talent-list-action') : null;
+            if (!btn) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = btn.getAttribute('data-id');
+            const action = btn.getAttribute('data-action');
+            if (!id) return;
+            if (action === 'focus') focusTalentNodeInMap(id);
+            else if (action === 'place') placeTalentOnMap(id);
+        });
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+    else attach();
+})();
+
+// Centra el mapa en un nodo, lo selecciona y abre el editor
+window.focusTalentNodeInMap = function(nodeId) {
+    if (!nodeId) return;
+    const nodes = (config.talentsConfig && config.talentsConfig.nodes) || {};
+    const talents = (config.talentsConfig && config.talentsConfig.talents) || [];
+    const talent = talents.find(t => t.id === nodeId);
+    if (!talent || !nodes[nodeId]) return;
+
+    window.selectedTalentNodeId = nodeId;
+    selectedTalentNodeId = nodeId;
+
+    const canvas = document.getElementById('talent-mapper-canvas');
+    if (canvas && nodes[nodeId]) {
+        const { w, h } = (typeof syncTalentCanvasSize === 'function') ? syncTalentCanvasSize() : { w: 800, h: 600 };
+        const z = (typeof window.talentZoom !== 'undefined') ? window.talentZoom : 1;
+        talentPanOffset.x = w / 2 - nodes[nodeId].x * z;
+        talentPanOffset.y = h / 2 - nodes[nodeId].y * z;
+        if (typeof clampPanOffset === 'function') clampPanOffset();
+    }
+
+    if (typeof showTalentNodeEditor === 'function') showTalentNodeEditor(nodeId);
+    if (typeof renderTalentMapper === 'function') renderTalentMapper();
+    try { renderTalentMapperSideList(); } catch (e) { console.error(e); }
+
+    // Feedback visual: scroll del nodo en la lista
+    const el = unplacedListRowById(nodeId);
+    if (el) {
+        try { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { el.scrollIntoView(); }
+        el.style.outline = '2px solid #06b6d4';
+        setTimeout(() => { el.style.outline = 'none'; }, 900);
+    }
+};
+
+function unplacedListRowById(id) {
+    const list = document.getElementById('talent-mapper-unplaced-list');
+    if (!list) return null;
+    return list.querySelector('[data-talent-id="' + String(id).replace(/"/g, '') + '"]');
+}
 
 // ─── TOGLE ACTIVAR ───
 window.toggleTimeRestrictions = function(mapId, enabled) {
