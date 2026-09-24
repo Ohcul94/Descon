@@ -1179,7 +1179,8 @@ module.exports = class BaseAI {
             state.lastTickTime = 0;
             
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAura', {
-                id: this.enemy.id, mId: mId, type: mech.type, radius: mech.radius || 200, duration: mech.duration || 5000, active: true
+                id: this.enemy.id, mId: mId, type: mech.type, radius: mech.radius || 200, duration: mech.duration || 5000,
+                intervalMs: mech.intervalMs || 1000, active: true
             });
         } else if (state.isActive && now >= state.endTime) {
             state.isActive = false;
@@ -1203,6 +1204,9 @@ module.exports = class BaseAI {
                 if (now - state.lastTickTime >= interval) {
                     state.lastTickTime = now;
                     this._applyAuraEffect(mech, grid, players, io);
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAuraTick', {
+                        id: this.enemy.id, mId: mId, type: mech.type, radius: mech.radius || 200
+                    });
                 }
             }
         }
@@ -1238,7 +1242,7 @@ module.exports = class BaseAI {
                             }
                         }
                         
-                        io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                        io.to(p.socketId).emit('environmentDamage', { damage: dmg, source: 'aura_damage' });
                         io.to(`zone_${p.zone}`).emit('playerStatSync', { id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield) });
                     }
                 }

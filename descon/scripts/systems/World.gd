@@ -517,6 +517,10 @@ func _process(delta):
 		if local_player.is_dead:
 			if death_modal and not death_modal.is_open:
 				death_modal.open_modal()
+			# v_fix_inv_drop: Cerrar el inventario al morir para evitar que muestre
+			# ítems viejos mientras el servidor procesa el drop de muerte (async).
+			if is_instance_valid(ui_inventory) and ui_inventory.is_open:
+				ui_inventory.toggle()
 		else:
 			if death_modal and death_modal.is_open:
 				death_modal.close_modal()

@@ -2132,6 +2132,8 @@ func _on_enemy_healed(data: Dictionary):
 	if is_instance_valid(en):
 		if en.has_method("update_stats"):
 			en.update_stats(data)
+		if float(data.get("amount", 0.0)) > 0.0 and en.has_method("_trigger_heal_flash"):
+			en._trigger_heal_flash()
 
 func _on_hook_pulled(data: Dictionary):
 	var attacker_id = str(data.get("attackerId", ""))

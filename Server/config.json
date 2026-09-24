@@ -7626,7 +7626,8 @@
             ],
             "terrainImage": "assets/maps/terrain_zone_3.png",
             "warpCost": 0,
-            "width": 16000
+            "width": 16000,
+            "pvpMode": "partial_drop"
         },
         "4": {
             "allowedHours": [
@@ -7880,7 +7881,7 @@
             "terrainImage": "assets/maps/terrain_zone_5.png",
             "warpCost": 0,
             "width": 9600,
-            "visible": false
+            "visible": true
         },
         "6": {
             "allowedHours": [],
@@ -12577,252 +12578,553 @@
         ],
         "connections": [
             {
-                "from": "talent_1789670530374",
-                "to": "eng_1"
+                "from": "atk_root",
+                "to": "atk_m1"
             },
             {
-                "from": "talent_1789670520551",
-                "to": "com_1"
+                "from": "atk_m1",
+                "to": "atk_m1_s1"
             },
             {
-                "from": "talent_1789670530374",
-                "to": "eng_2"
+                "from": "atk_m1",
+                "to": "atk_m1_s2"
             },
             {
-                "from": "sci_1",
-                "to": "talent_1789670570933"
+                "from": "atk_root",
+                "to": "atk_m2"
             },
             {
-                "from": "talent_1789670520551",
-                "to": "com_7"
+                "from": "atk_m2",
+                "to": "atk_m2_s1"
+            },
+            {
+                "from": "atk_m2",
+                "to": "atk_m2_s2"
+            },
+            {
+                "from": "def_root",
+                "to": "def_m1"
+            },
+            {
+                "from": "def_m1",
+                "to": "def_m1_s1"
+            },
+            {
+                "from": "def_m1",
+                "to": "def_m1_s2"
+            },
+            {
+                "from": "def_root",
+                "to": "def_m2"
+            },
+            {
+                "from": "def_m2",
+                "to": "def_m2_s1"
+            },
+            {
+                "from": "def_m2",
+                "to": "def_m2_s2"
+            },
+            {
+                "from": "heal_root",
+                "to": "heal_m1"
+            },
+            {
+                "from": "heal_m1",
+                "to": "heal_m1_s1"
+            },
+            {
+                "from": "heal_m1",
+                "to": "heal_m1_s2"
+            },
+            {
+                "from": "heal_root",
+                "to": "heal_m2"
+            },
+            {
+                "from": "heal_m2",
+                "to": "heal_m2_s1"
+            },
+            {
+                "from": "heal_m2",
+                "to": "heal_m2_s2"
+            },
+            {
+                "from": "uti_root",
+                "to": "uti_m1"
+            },
+            {
+                "from": "uti_m1",
+                "to": "uti_m1_s1"
+            },
+            {
+                "from": "uti_m1",
+                "to": "uti_m1_s2"
+            },
+            {
+                "from": "uti_root",
+                "to": "uti_m2"
+            },
+            {
+                "from": "uti_m2",
+                "to": "uti_m2_s1"
+            },
+            {
+                "from": "uti_m2",
+                "to": "uti_m2_s2"
             }
         ],
         "nodes": {
-            "com_1": {
-                "nodeType": "notable",
-                "x": -54,
-                "y": 186
-            },
-            "com_7": {
-                "nodeType": "notable",
-                "x": 61,
-                "y": 189
-            },
-            "eng_1": {
-                "nodeType": "notable",
-                "x": -190,
-                "y": 60
-            },
-            "eng_2": {
-                "nodeType": "notable",
-                "x": -186,
-                "y": -58
-            },
-            "sci_1": {
-                "nodeType": "notable",
-                "x": 187,
-                "y": -56
-            },
-            "talent_1789670520551": {
-                "nodeType": "keystone",
-                "x": 1,
-                "y": 81
-            },
-            "talent_1789670530374": {
-                "nodeType": "keystone",
-                "x": -81,
-                "y": 0
-            },
-            "talent_1789670540532": {
+            "atk_root": {
                 "nodeType": "keystone",
                 "x": 0,
-                "y": -81
+                "y": 170
             },
-            "talent_1789670570933": {
+            "atk_m1": {
+                "nodeType": "notable",
+                "x": 97,
+                "y": 303
+            },
+            "atk_m1_s1": {
+                "nodeType": "small",
+                "x": 222,
+                "y": 354
+            },
+            "atk_m1_s2": {
+                "nodeType": "small",
+                "x": 106,
+                "y": 438
+            },
+            "atk_m2": {
+                "nodeType": "notable",
+                "x": -97,
+                "y": 303
+            },
+            "atk_m2_s1": {
+                "nodeType": "small",
+                "x": -106,
+                "y": 438
+            },
+            "atk_m2_s2": {
+                "nodeType": "small",
+                "x": -222,
+                "y": 354
+            },
+            "def_root": {
                 "nodeType": "keystone",
-                "x": 81,
+                "x": -170,
                 "y": 0
+            },
+            "def_m1": {
+                "nodeType": "notable",
+                "x": -303,
+                "y": 97
+            },
+            "def_m1_s1": {
+                "nodeType": "small",
+                "x": -354,
+                "y": 222
+            },
+            "def_m1_s2": {
+                "nodeType": "small",
+                "x": -438,
+                "y": 106
+            },
+            "def_m2": {
+                "nodeType": "notable",
+                "x": -303,
+                "y": -97
+            },
+            "def_m2_s1": {
+                "nodeType": "small",
+                "x": -438,
+                "y": -106
+            },
+            "def_m2_s2": {
+                "nodeType": "small",
+                "x": -354,
+                "y": -222
+            },
+            "heal_root": {
+                "nodeType": "keystone",
+                "x": 0,
+                "y": -170
+            },
+            "heal_m1": {
+                "nodeType": "notable",
+                "x": -97,
+                "y": -303
+            },
+            "heal_m1_s1": {
+                "nodeType": "small",
+                "x": -222,
+                "y": -354
+            },
+            "heal_m1_s2": {
+                "nodeType": "small",
+                "x": -106,
+                "y": -438
+            },
+            "heal_m2": {
+                "nodeType": "notable",
+                "x": 97,
+                "y": -303
+            },
+            "heal_m2_s1": {
+                "nodeType": "small",
+                "x": 106,
+                "y": -438
+            },
+            "heal_m2_s2": {
+                "nodeType": "small",
+                "x": 222,
+                "y": -354
+            },
+            "uti_root": {
+                "nodeType": "keystone",
+                "x": 170,
+                "y": 0
+            },
+            "uti_m1": {
+                "nodeType": "notable",
+                "x": 303,
+                "y": -97
+            },
+            "uti_m1_s1": {
+                "nodeType": "small",
+                "x": 354,
+                "y": -222
+            },
+            "uti_m1_s2": {
+                "nodeType": "small",
+                "x": 438,
+                "y": -106
+            },
+            "uti_m2": {
+                "nodeType": "notable",
+                "x": 303,
+                "y": 97
+            },
+            "uti_m2_s1": {
+                "nodeType": "small",
+                "x": 438,
+                "y": 106
+            },
+            "uti_m2_s2": {
+                "nodeType": "small",
+                "x": 354,
+                "y": 222
             }
         },
         "talents": [
             {
-                "category": "fender",
-                "desc": "+10% HP por nivel",
+                "id": "atk_root",
+                "name": "ATAQUE",
+                "desc": "Nodo maestro de combate. +4% Daño Total por nivel.",
+                "icon": "⚔️",
+                "maxLevel": 3,
                 "effects": {
-                    "hp_pct": 0.1
+                    "dmg_pct": 0.04
                 },
-                "icon": "🛡️",
-                "id": "eng_1",
-                "maxLevel": 2,
-                "name": "REFUERZO DE CASCO"
+                "category": "attack"
             },
             {
-                "category": "fender",
-                "desc": "+10% Escudo por nivel",
-                "effects": {
-                    "sh_pct": 0.1
-                },
-                "icon": "🔵",
-                "id": "eng_2",
-                "maxLevel": 2,
-                "name": "ESCUDO DINÁMICO"
-            },
-            {
-                "category": "fender",
-                "desc": "+5% HP Reparación",
-                "effects": {
-                    "hp_regen": 0.05
-                },
-                "icon": "🔧",
-                "id": "eng_3",
-                "maxLevel": 2,
-                "name": "REGEN EMERGENGIA"
-            },
-            {
-                "category": "fender",
-                "desc": "+5% Shield Regen",
-                "effects": {
-                    "shield_regen": 0.05
-                },
-                "icon": "🔋",
-                "id": "eng_4",
+                "id": "atk_m1",
+                "name": "CANALIZADOR LÁSER",
+                "desc": "+3% Daño Láser por nivel. Potencia los haces de energía.",
+                "icon": "🔫",
                 "maxLevel": 5,
-                "name": "CAPACITOR OHCU"
-            },
-            {
-                "category": "attack",
-                "desc": "+3% Daño Láser",
                 "effects": {
                     "laser_dmg_pct": 0.03
                 },
-                "icon": "🔫",
-                "id": "com_1",
-                "maxLevel": 2,
-                "name": "LÁSER SOBRECARGA"
+                "category": "attack"
             },
             {
-                "category": "attack",
-                "desc": "+3% Ignorar Escudo",
+                "id": "atk_m1_s1",
+                "name": "PERFORACIÓN TÉRMICA",
+                "desc": "+3% de ignorar escudo por nivel.",
+                "icon": "⚡",
+                "maxLevel": 5,
                 "effects": {
                     "ignore_shield_pct": 0.03
                 },
-                "icon": "⚡",
-                "id": "com_6",
-                "maxLevel": 5,
-                "name": "PERFORACIÓN TÉRM"
+                "category": "attack"
             },
             {
-                "category": "attack",
-                "desc": "-2% CD de Disparo",
+                "id": "atk_m1_s2",
+                "name": "CADENCIA MILITAR",
+                "desc": "+2% Cadencia de fuego por nivel.",
+                "icon": "⚔️",
+                "maxLevel": 5,
                 "effects": {
                     "fire_rate_pct": 0.02
                 },
-                "icon": "⚔️",
-                "id": "com_7",
-                "maxLevel": 2,
-                "name": "CADENCIA MILITAR"
+                "category": "attack"
             },
             {
-                "category": "utility",
-                "desc": "+1.5% Velocidad Base",
+                "id": "atk_m2",
+                "name": "ARSENAL PESADO",
+                "desc": "+4% Munición extra por nivel. Más proyectiles en combate.",
+                "icon": "💣",
+                "maxLevel": 5,
                 "effects": {
-                    "speed_pct": 0.015
+                    "ammo_bonus_pct": 0.04
                 },
+                "category": "attack"
+            },
+            {
+                "id": "atk_m2_s1",
+                "name": "IMPULSO LÁSER",
+                "desc": "+5% Alcance de munición láser por nivel.",
+                "icon": "🎯",
+                "maxLevel": 5,
+                "effects": {
+                    "ammo:laser:range": 0.05
+                },
+                "category": "attack"
+            },
+            {
+                "id": "atk_m2_s2",
+                "name": "MILOS MISIL",
+                "desc": "+5% Velocidad de proyectil de misil por nivel.",
                 "icon": "🚀",
-                "id": "sci_1",
-                "maxLevel": 2,
-                "name": "MOTORES FUSIÓN"
-            },
-            {
-                "category": "utility",
-                "desc": "+5% OHCU de Kills",
-                "effects": {
-                    "ohcu_kill_bonus": 0.05
-                },
-                "icon": "💎",
-                "id": "sci_3",
                 "maxLevel": 5,
-                "name": "MINERÍA OHCU"
-            },
-            {
-                "category": "utility",
-                "desc": "-2% Descuento Tienda",
                 "effects": {
-                    "shop_discount": 0.02
+                    "ammo:missile:bulletSpeed": 0.05
                 },
-                "icon": "🏪",
-                "id": "sci_4",
-                "maxLevel": 5,
-                "name": "MERCADO GALÁXIA"
+                "category": "attack"
             },
             {
-                "category": "utility",
-                "desc": "-3% CD Habilidades",
+                "id": "def_root",
+                "name": "DEFENSA",
+                "desc": "Nodo maestro de supervivencia. +5% Vida y +5% Escudo por nivel.",
+                "icon": "🛡️",
+                "maxLevel": 3,
                 "effects": {
-                    "cooldown_reduction": 0.03
+                    "hp_pct": 0.05,
+                    "sh_pct": 0.05
                 },
-                "icon": "❄️",
-                "id": "sci_5",
-                "maxLevel": 5,
-                "name": "ENFRIAMIENTO RÁP"
+                "category": "fender"
             },
             {
-                "category": "utility",
-                "desc": "+1% Bonus en Grupo",
+                "id": "def_m1",
+                "name": "NÚCLEO DE CASCO",
+                "desc": "+3% Vida máxima por nivel. Refuerza la estructura interna.",
+                "icon": "💠",
+                "maxLevel": 5,
                 "effects": {
-                    "group_bonus": 0.01
+                    "hp_pct": 0.03
                 },
-                "icon": "👥",
-                "id": "sci_6",
-                "maxLevel": 5,
-                "name": "SINCRONÍA TACT"
+                "category": "fender"
             },
             {
-                "category": "utility",
-                "desc": "+10% Distancia Dash",
+                "id": "def_m1_s1",
+                "name": "REGEN DE COMBATE",
+                "desc": "+4% Regeneración de vida por nivel.",
+                "icon": "🔧",
+                "maxLevel": 5,
+                "effects": {
+                    "hp_regen": 0.04
+                },
+                "category": "fender"
+            },
+            {
+                "id": "def_m1_s2",
+                "name": "PLACAS NANOBOT",
+                "desc": "+2% Armadura total por nivel.",
+                "icon": "⚙️",
+                "maxLevel": 5,
+                "effects": {
+                    "armor_pct": 0.02
+                },
+                "category": "fender"
+            },
+            {
+                "id": "def_m2",
+                "name": "BARRERA DE PLASMA",
+                "desc": "+4% Escudo máximo por nivel. Campo de contención mejorado.",
+                "icon": "🔵",
+                "maxLevel": 5,
+                "effects": {
+                    "sh_pct": 0.04
+                },
+                "category": "fender"
+            },
+            {
+                "id": "def_m2_s1",
+                "name": "CAPACITOR DINÁMICO",
+                "desc": "+5% Regeneración de escudo por nivel.",
+                "icon": "🔋",
+                "maxLevel": 5,
+                "effects": {
+                    "shield_regen": 0.05
+                },
+                "category": "fender"
+            },
+            {
+                "id": "def_m2_s2",
+                "name": "BARRERA REFORZADA",
+                "desc": "-5% Enfriamiento de Barrera de Viento por nivel.",
+                "icon": "🌪️",
+                "maxLevel": 5,
+                "effects": {
+                    "skill:SK-DEF-05:cd": -0.05
+                },
+                "category": "fender"
+            },
+            {
+                "id": "heal_root",
+                "name": "CURACIÓN",
+                "desc": "Nodo maestro de restauración. +6% Curación por nivel.",
+                "icon": "🔮",
+                "maxLevel": 3,
+                "effects": {
+                    "heal_pct": 0.06
+                },
+                "category": "healing"
+            },
+            {
+                "id": "heal_m1",
+                "name": "CANALIZADORES",
+                "desc": "+3% Curación por nivel. Optimiza los pulsos de reparación.",
+                "icon": "💚",
+                "maxLevel": 5,
+                "effects": {
+                    "heal_pct": 0.03
+                },
+                "category": "healing"
+            },
+            {
+                "id": "heal_m1_s1",
+                "name": "DRONES MÉDICOS",
+                "desc": "+5% Poder de Auto-Reparación por nivel.",
+                "icon": "🤖",
+                "maxLevel": 5,
+                "effects": {
+                    "skill:SK-HEAL-01:amount": 0.05
+                },
+                "category": "healing"
+            },
+            {
+                "id": "heal_m1_s2",
+                "name": "BALIZA MEJORADA",
+                "desc": "+5% Sanación de Baliza de Curación por nivel.",
+                "icon": "🏮",
+                "maxLevel": 5,
+                "effects": {
+                    "skill:SK-HEAL-02:heal_amount": 0.05
+                },
+                "category": "healing"
+            },
+            {
+                "id": "heal_m2",
+                "name": "REGENERACIÓN ALFA",
+                "desc": "+3% Regeneración de vida por nivel. Metabolismo de combate.",
+                "icon": "🌿",
+                "maxLevel": 5,
+                "effects": {
+                    "hp_regen": 0.03
+                },
+                "category": "healing"
+            },
+            {
+                "id": "heal_m2_s1",
+                "name": "NANO-REGENERACIÓN",
+                "desc": "-5% Enfriamiento de NANO-REGENERACIÓN por nivel.",
+                "icon": "🦠",
+                "maxLevel": 5,
+                "effects": {
+                    "skill:SK-HEAL-02:cd": -0.05
+                },
+                "category": "healing"
+            },
+            {
+                "id": "heal_m2_s2",
+                "name": "VÍNCULO VITAL",
+                "desc": "+5% Poder de Vínculo Vital por nivel.",
+                "icon": "❤️‍🔥",
+                "maxLevel": 5,
+                "effects": {
+                    "skill:SK-HEAL-04:amount": 0.05
+                },
+                "category": "healing"
+            },
+            {
+                "id": "uti_root",
+                "name": "UTILIDAD",
+                "desc": "Nodo maestro de eficiencia. -4% Enfriamiento global por nivel.",
+                "icon": "🔬",
+                "maxLevel": 3,
+                "effects": {
+                    "cooldown_reduction": 0.04
+                },
+                "category": "utility"
+            },
+            {
+                "id": "uti_m1",
+                "name": "PROPULSIÓN AVANZADA",
+                "desc": "+2% Velocidad base por nivel. Motores de fusión calibrados.",
+                "icon": "🚀",
+                "maxLevel": 5,
+                "effects": {
+                    "speed_pct": 0.02
+                },
+                "category": "utility"
+            },
+            {
+                "id": "uti_m1_s1",
+                "name": "SALTO HIPERESPACIAL",
+                "desc": "+10% Distancia de Dash por nivel.",
+                "icon": "🌀",
+                "maxLevel": 5,
                 "effects": {
                     "dash_distance": 0.1
                 },
-                "icon": "🌀",
-                "id": "sci_8",
+                "category": "utility"
+            },
+            {
+                "id": "uti_m1_s2",
+                "name": "TURBO-IMPULSO",
+                "desc": "-5% Enfriamiento de Turbo-Impulso por nivel.",
+                "icon": "💨",
                 "maxLevel": 5,
-                "name": "SALTO HIPERESP"
+                "effects": {
+                    "skill:SK-UTIL-01:cd": -0.05
+                },
+                "category": "utility"
             },
             {
-                "category": "attack",
-                "desc": "Nodo Principal de Ataque",
-                "effects": {},
-                "icon": "🌳",
-                "id": "talent_1789670520551",
-                "maxLevel": 1,
-                "name": "ATAQUE"
+                "id": "uti_m2",
+                "name": "SISTEMAS TÁCTICOS",
+                "desc": "+8% Rango de radar por nivel. Sensores de largo alcance.",
+                "icon": "📡",
+                "maxLevel": 5,
+                "effects": {
+                    "minimap_range": 0.08
+                },
+                "category": "utility"
             },
             {
-                "category": "fender",
-                "desc": "Nodo Principal de Defensa",
-                "effects": {},
-                "icon": "🌳",
-                "id": "talent_1789670530374",
-                "maxLevel": 1,
-                "name": "DEFENSA"
+                "id": "uti_m2_s1",
+                "name": "ESCÁNER ORBITAL",
+                "desc": "+3% Eficiencia de energía por nivel.",
+                "icon": "⚛️",
+                "maxLevel": 5,
+                "effects": {
+                    "energy_efficiency": 0.03
+                },
+                "category": "utility"
             },
             {
-                "category": "healing",
-                "desc": "Nodo Principal de Curacion",
-                "effects": {},
-                "icon": "🌳",
-                "id": "talent_1789670540532",
-                "maxLevel": 1,
-                "name": "CURACION"
-            },
-            {
-                "category": "utility",
-                "desc": "Nodo Principal de Utilidad",
-                "effects": {},
-                "icon": "🌳",
-                "id": "talent_1789670570933",
-                "maxLevel": 1,
-                "name": "UTILIDAD"
+                "id": "uti_m2_s2",
+                "name": "MERCADO GALÁCTICO",
+                "desc": "-2% Descuento en tiendas por nivel (mejores precios).",
+                "icon": "🏪",
+                "maxLevel": 5,
+                "effects": {
+                    "shop_discount": 0.02
+                },
+                "category": "utility"
             }
         ]
     },

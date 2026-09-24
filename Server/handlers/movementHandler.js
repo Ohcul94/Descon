@@ -1,5 +1,5 @@
 const Logger = require('../utils/logger');
-const { checkCombatLock } = require('../systems/inventoryHandlers');
+const { checkCombatLock, sendInventoryData } = require('../systems/inventoryHandlers');
 
 const { normalizeZone } = require('../utils/zoneUtils');
 
@@ -459,6 +459,15 @@ function registerMovementHandlers(socket, io, state) {
             spheres: p.spheres || []
         };
         socket.to(`zone_${p.zone}`).emit('newPlayer', respawnPayload);
+
+        // v_fix_inv_drop: Forzar reenvío del inventario real desde la DB al reaparecer.
+        // Garantiza que el cliente recibe el inventario actualizado (posiblemente vacío
+        // tras un drop de muerte) sin depender del timing de checkAndProcessDeathDrop.
+        if (socket.dbUser) {
+            setTimeout(() => {
+                sendInventoryData(socket, socket.dbUser);
+            }, 300);
+        }
     });
 }
 

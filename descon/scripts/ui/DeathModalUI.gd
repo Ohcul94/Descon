@@ -221,6 +221,11 @@ func _on_revive_lobby_pressed():
 	_revive_at_lobby()
 
 func _revive_at_lobby():
+	# v_fix_inv_drop: Pequeño delay antes del respawn para darle tiempo al servidor
+	# de completar el checkAndProcessDeathDrop (await user.save()) antes de recibir
+	# el evento playerRespawn. Combinado con el re-sync de inventario en el respawn,
+	# esto garantiza que el cliente recibe el inventario vacío correcto.
+	await get_tree().create_timer(0.5).timeout
 	if is_instance_valid(local_player):
 		local_player.current_zone = 1
 		local_player.respawn()

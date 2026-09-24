@@ -11,9 +11,13 @@ var entity: CharacterBody2D = null
 
 const ColorBeamShader = preload("res://resources/shaders/color_beam.gdshader")
 const ColorAuraShader = preload("res://resources/shaders/color_aura.gdshader")
+const VoidAuraShader = preload("res://resources/shaders/void_aura.gdshader")
+const HealAuraShader = preload("res://resources/shaders/heal_aura.gdshader")
+const AuraPulseRingShader = preload("res://resources/shaders/aura_pulse_ring.gdshader")
 const VFX_HexTexture = preload("res://VFX/textures/T_Hex1_inv.jpg")
 const VFX_SmokeTexture = preload("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
 const VFX_FlareTexture = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+const VFX_SparkleTexture = preload("res://VFX/textures/T_VFX_SparklesF21.jpg")
 const VFX_WaterNormalTexture = preload("res://VFX/textures/T_GW_WaterNormal_01_b.PNG")
 const TEX_REFLECT_AURA = preload("res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png")
 const TEX_REFLECT_IMPACT = preload("res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png")
@@ -732,7 +736,7 @@ func _cleanup_choque_marker() -> void:
 		entity.remove_meta("choque_marker_3d")
 
 # ==============================================================================
-# 2. ENEMY AURA (Auras 3D de Estado / Buffs)
+# 2. ENEMY AURA (Auras 3D de Estado / Buffs) — rediseño por tipo
 # ==============================================================================
 func handle_enemy_aura(data: Dictionary) -> void:
 	if not is_instance_valid(entity) or entity.is_queued_for_deletion(): return
@@ -741,22 +745,221 @@ func handle_enemy_aura(data: Dictionary) -> void:
 	var mId = data.get("mId", "")
 	if data.get("active", false):
 		if entity.active_auras.has(mId): return
-		
+
 		var radius = data.get("radius", 200)
-		entity.active_auras[mId] = {"type": data.get("type", ""), "radius": radius, "start_time_3d": Time.get_ticks_msec() / 1000.0}
-		
+		var aura_type = str(data.get("type", ""))
+		entity.active_auras[mId] = {
+			"type": aura_type,
+			"radius": radius,
+			"interval_ms": float(data.get("intervalMs", 1000)),
+			"start_time_3d": Time.get_ticks_msec() / 1000.0
+		}
+
 		var current_map = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(current_map) and is_instance_valid(current_map.get("sub_viewport")):
 			var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 			var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 			var radius_3d = radius * s_factor
-			
-			var tex_hex = VFX_HexTexture
-			var tex_smoke = VFX_SmokeTexture
-			var tex_flare = VFX_FlareTexture
-			
-			var shader = Shader.new()
-			shader.code = """shader_type spatial;
+
+			var aura_3d = Node3D.new()
+			aura_3d.name = "Aura3D_" + mId
+			current_map.sub_viewport.add_child(aura_3d)
+			aura_3d.position.x = entity.global_position.x * s_factor
+			aura_3d.position.z = entity.global_position.y * s_factor * correction_z
+			aura_3d.position.y = 0.01
+			aura_3d.scale = Vector3(0.01, 0.01, 0.01)
+
+			var particles = CPUParticles3D.new()
+			particles.name = "AuraParticles_" + mId
+			current_map.sub_viewport.add_child(particles)
+			particles.position.x = entity.global_position.x * s_factor
+			particles.position.z = entity.global_position.y * s_factor * correction_z
+			particles.position.y = 0.05
+			particles.scale = Vector3(0.01, 0.01, 0.01)
+
+			var disc_mat: ShaderMaterial = null
+			var column_mat: ShaderMaterial = null
+			var rim_mat: StandardMaterial3D = null
+
+			match aura_type:
+				"aura_heal":
+					var built_h = _build_heal_aura(aura_3d, particles, radius_3d)
+					disc_mat = built_h["disc_mat"]
+					column_mat = built_h["column_mat"]
+					rim_mat = built_h["rim_mat"]
+				"aura_speed":
+					var built_s = _build_speed_aura(aura_3d, particles, radius_3d)
+					disc_mat = built_s["disc_mat"]
+					column_mat = built_s["column_mat"]
+					rim_mat = built_s["rim_mat"]
+				_:
+					var built_v = _build_void_aura(aura_3d, particles, radius_3d)
+					disc_mat = built_v["disc_mat"]
+					column_mat = built_v["column_mat"]
+					rim_mat = built_v["rim_mat"]
+
+			var disc_target = 1.0
+			if aura_type == "aura_damage":
+				disc_target = 1.0
+			elif aura_type == "aura_heal":
+				disc_target = 0.9
+			else:
+				disc_target = 0.85
+
+			var column_target_alpha = 0.5 if aura_type != "aura_heal" else 0.42
+
+			if is_instance_valid(disc_mat):
+				disc_mat.set_shader_parameter("intensity", 0.0)
+			if is_instance_valid(column_mat):
+				var start_c = column_mat.get_shader_parameter("albedo_color")
+				start_c.a = 0.0
+				column_mat.set_shader_parameter("albedo_color", start_c)
+			if is_instance_valid(rim_mat):
+				rim_mat.albedo_color.a = 0.0
+				rim_mat.emission_energy_multiplier = 0.0
+
+			var tw_in = create_tween().set_parallel(true)
+			tw_in.tween_property(aura_3d, "scale", Vector3(1.0, 1.0, 1.0), 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw_in.tween_property(particles, "scale", Vector3(1.0, 1.0, 1.0), 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			if is_instance_valid(disc_mat):
+				tw_in.tween_method(func(v): disc_mat.set_shader_parameter("intensity", v), 0.0, disc_target, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			if is_instance_valid(column_mat):
+				var target_c = column_mat.get_shader_parameter("albedo_color")
+				var end_c = target_c
+				end_c.a = column_target_alpha
+				tw_in.tween_method(func(c): column_mat.set_shader_parameter("albedo_color", c), target_c, end_c, 0.4)
+			if is_instance_valid(rim_mat):
+				var rim_end = Color(rim_mat.albedo_color.r, rim_mat.albedo_color.g, rim_mat.albedo_color.b, 0.55)
+				tw_in.tween_property(rim_mat, "albedo_color", rim_end, 0.4)
+				tw_in.tween_property(rim_mat, "emission_energy_multiplier", 2.2, 0.4)
+
+			entity.active_auras[mId]["node_3d"] = aura_3d
+			entity.active_auras[mId]["particles_3d"] = particles
+			entity.active_auras[mId]["disc_mat"] = disc_mat
+			entity.active_auras[mId]["column_mat"] = column_mat
+			entity.active_auras[mId]["rim_mat"] = rim_mat
+			entity.active_auras[mId]["disc_target"] = disc_target
+			entity.active_auras[mId]["s_factor"] = s_factor
+			entity.active_auras[mId]["correction_z"] = correction_z
+			entity.active_auras[mId]["radius_3d"] = radius_3d
+	else:
+		if entity.active_auras.has(mId):
+			var a_data = entity.active_auras[mId]
+			entity.active_auras.erase(mId)
+
+			if a_data.has("node_3d") and is_instance_valid(a_data.node_3d):
+				var tw_out = create_tween().set_parallel(true)
+
+				var d_mat = a_data.get("disc_mat")
+				if is_instance_valid(d_mat):
+					var cur_i = d_mat.get_shader_parameter("intensity")
+					tw_out.tween_method(func(v): d_mat.set_shader_parameter("intensity", v), cur_i, 0.0, 0.4)
+
+				var c_mat = a_data.get("column_mat")
+				if is_instance_valid(c_mat):
+					var cur_c = c_mat.get_shader_parameter("albedo_color")
+					var end_c = cur_c
+					end_c.a = 0.0
+					tw_out.tween_method(func(c): c_mat.set_shader_parameter("albedo_color", c), cur_c, end_c, 0.4)
+
+				var r_mat = a_data.get("rim_mat")
+				if is_instance_valid(r_mat):
+					var rim_end = Color(r_mat.albedo_color.r, r_mat.albedo_color.g, r_mat.albedo_color.b, 0.0)
+					tw_out.tween_property(r_mat, "albedo_color", rim_end, 0.4)
+					tw_out.tween_property(r_mat, "emission_energy_multiplier", 0.0, 0.4)
+
+				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
+					tw_out.tween_property(a_data.particles_3d, "scale", Vector3.ZERO, 0.4)
+
+				var tw_cleanup = create_tween()
+				tw_cleanup.tween_interval(0.45)
+				tw_cleanup.tween_callback(a_data.node_3d.queue_free)
+				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
+					tw_cleanup.tween_callback(a_data.particles_3d.queue_free)
+			else:
+				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
+					a_data.particles_3d.queue_free()
+
+func handle_enemy_aura_tick(data: Dictionary) -> void:
+	if not is_instance_valid(entity) or entity.is_queued_for_deletion(): return
+	if str(data.get("id", "")) != entity.entity_id: return
+	var mId = data.get("mId", "")
+	if not entity.active_auras.has(mId): return
+	_spawn_aura_tick_pulse(entity.active_auras[mId])
+
+func _spawn_aura_tick_pulse(a_data: Dictionary) -> void:
+	if not a_data.has("node_3d") or not is_instance_valid(a_data.node_3d): return
+	var aura_type = str(a_data.get("type", ""))
+	var radius_3d = float(a_data.get("radius_3d", 1.0))
+
+	var disc_mat = a_data.get("disc_mat")
+	if is_instance_valid(disc_mat):
+		var tw_flash = create_tween()
+		tw_flash.tween_method(func(v): disc_mat.set_shader_parameter("pulse", v), 1.0, 0.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	var ring = MeshInstance3D.new()
+	var ring_mesh = PlaneMesh.new()
+	var ring_size = radius_3d * 2.35
+	ring_mesh.size = Vector2(ring_size, ring_size)
+	ring.mesh = ring_mesh
+	ring.position.y = 0.035
+
+	var ring_mat = ShaderMaterial.new()
+	ring_mat.shader = AuraPulseRingShader
+	var ring_color = Color(0.75, 0.2, 1.0, 1.0)
+	var ring_intensity = 1.5
+	var ring_duration = 0.5
+	if aura_type == "aura_heal":
+		ring_color = Color(0.4, 1.0, 0.55, 1.0)
+		ring_intensity = 1.3
+		ring_duration = 0.65
+	elif aura_type == "aura_speed":
+		ring_color = Color(1.0, 0.85, 0.3, 1.0)
+		ring_intensity = 1.2
+	ring_mat.set_shader_parameter("ring_color", ring_color)
+	ring_mat.set_shader_parameter("progress", 0.0)
+	ring_mat.set_shader_parameter("intensity", ring_intensity)
+	ring_mat.set_shader_parameter("thickness", 0.1)
+	ring.material_override = ring_mat
+	a_data.node_3d.add_child(ring)
+
+	var tw = create_tween()
+	tw.tween_method(func(p): ring_mat.set_shader_parameter("progress", p), 0.0, 1.0, ring_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(ring.queue_free)
+
+	if aura_type == "aura_heal":
+		var ring2 = MeshInstance3D.new()
+		var ring2_mesh = PlaneMesh.new()
+		ring2_mesh.size = Vector2(ring_size * 0.7, ring_size * 0.7)
+		ring2.mesh = ring2_mesh
+		ring2.position.y = 0.04
+		var ring2_mat = ShaderMaterial.new()
+		ring2_mat.shader = AuraPulseRingShader
+		ring2_mat.set_shader_parameter("ring_color", Color(1.0, 0.95, 0.7, 1.0))
+		ring2_mat.set_shader_parameter("progress", 0.0)
+		ring2_mat.set_shader_parameter("intensity", 1.1)
+		ring2_mat.set_shader_parameter("thickness", 0.14)
+		ring2.material_override = ring2_mat
+		a_data.node_3d.add_child(ring2)
+		var tw2 = create_tween()
+		tw2.tween_interval(0.12)
+		tw2.tween_method(func(p): ring2_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw2.tween_callback(ring2.queue_free)
+
+# --- Builders de auras -------------------------------------------------------
+
+func _make_column_mesh(radius_3d: float, top_scale: float, bottom_scale: float) -> CylinderMesh:
+	var mesh = CylinderMesh.new()
+	mesh.top_radius = radius_3d * top_scale
+	mesh.bottom_radius = radius_3d * bottom_scale
+	mesh.height = maxf(radius_3d * 2.4, 1.5)
+	mesh.cap_top = false
+	mesh.cap_bottom = false
+	return mesh
+
+func _make_scroll_shader_material(tex: Texture2D, scroll: Vector2, uv_scale: Vector2, fade_exp: float, col: Color) -> ShaderMaterial:
+	var shader = Shader.new()
+	shader.code = """shader_type spatial;
 render_mode blend_add, depth_draw_opaque, cull_disabled, unshaded;
 
 uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_enable;
@@ -773,182 +976,230 @@ void fragment() {
 	ALBEDO = albedo_color.rgb * tex.rgb;
 	ALPHA = albedo_color.a * tex.a * vertical_fade;
 }"""
-			
-			var aura_3d = Node3D.new()
-			aura_3d.name = "Aura3D_" + mId
-			current_map.sub_viewport.add_child(aura_3d)
-			
-			aura_3d.position.x = entity.global_position.x * s_factor
-			aura_3d.position.z = entity.global_position.y * s_factor * correction_z
-			aura_3d.position.y = 0.01
-			aura_3d.scale = Vector3(0.01, 0.01, 0.01)
-			
-			var aura_color = Color(1.0, 0.05, 0.1, 0.75)
-			if data.get("type") == "aura_heal": aura_color = Color(0.05, 1.0, 0.35, 0.75)
-			elif data.get("type") == "aura_speed": aura_color = Color(1.0, 0.75, 0.0, 0.75)
-			
-			var cyl_outer = MeshInstance3D.new()
-			var mesh_outer = CylinderMesh.new()
-			mesh_outer.top_radius = radius_3d * 0.75
-			mesh_outer.bottom_radius = radius_3d * 1.15
-			mesh_outer.height = radius_3d * 2.6
-			mesh_outer.cap_top = false
-			mesh_outer.cap_bottom = false
-			cyl_outer.mesh = mesh_outer
-			
-			var mat_outer = ShaderMaterial.new()
-			mat_outer.shader = shader
-			mat_outer.set_shader_parameter("albedo_texture", tex_hex)
-			mat_outer.set_shader_parameter("scroll_speed", Vector2(0.0, -0.2))
-			mat_outer.set_shader_parameter("uv_scale", Vector2(4.0, 2.0))
-			mat_outer.set_shader_parameter("fade_exponent", 1.8)
-			cyl_outer.material_override = mat_outer
-			cyl_outer.position.y = mesh_outer.height / 2.0
-			aura_3d.add_child(cyl_outer)
-			
-			var cyl_inner = MeshInstance3D.new()
-			var mesh_inner = CylinderMesh.new()
-			mesh_inner.top_radius = radius_3d * 0.65
-			mesh_inner.bottom_radius = radius_3d * 1.0
-			mesh_inner.height = radius_3d * 2.6
-			mesh_inner.cap_top = false
-			mesh_inner.cap_bottom = false
-			cyl_inner.mesh = mesh_inner
-			
-			var mat_inner = ShaderMaterial.new()
-			mat_inner.shader = shader
-			mat_inner.set_shader_parameter("albedo_texture", tex_smoke)
-			mat_inner.set_shader_parameter("scroll_speed", Vector2(0.0, -0.45))
-			mat_inner.set_shader_parameter("uv_scale", Vector2(2.5, 1.5))
-			mat_inner.set_shader_parameter("fade_exponent", 2.2)
-			cyl_inner.material_override = mat_inner
-			cyl_inner.position.y = mesh_inner.height / 2.0
-			aura_3d.add_child(cyl_inner)
-			
-			var particles = CPUParticles3D.new()
-			particles.name = "AuraParticles_" + mId
-			current_map.sub_viewport.add_child(particles)
-			
-			particles.position.x = entity.global_position.x * s_factor
-			particles.position.z = entity.global_position.y * s_factor * correction_z
-			particles.position.y = 0.05
-			particles.scale = Vector3(0.01, 0.01, 0.01)
-			
-			particles.amount = 70
-			particles.lifetime = 1.6
-			particles.preprocess = 0.8
-			particles.randomness = 0.4
-			particles.direction = Vector3.UP
-			particles.gravity = Vector3.ZERO
-			particles.initial_velocity_min = 1.0
-			particles.initial_velocity_max = 2.2
-			particles.spread = 10.0
-			
-			particles.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
-			particles.emission_ring_axis = Vector3.UP
-			particles.emission_ring_radius = radius_3d * 0.9
-			particles.emission_ring_inner_radius = radius_3d * 0.4
-			particles.emission_ring_height = 0.1
-			particles.scale_amount_min = 0.08
-			particles.scale_amount_max = 0.22
-			
-			var s_curve = Curve.new()
-			s_curve.add_point(Vector2(0, 0.1))
-			s_curve.add_point(Vector2(0.2, 1.0))
-			s_curve.add_point(Vector2(0.8, 0.6))
-			s_curve.add_point(Vector2(1.0, 0.0))
-			particles.scale_amount_curve = s_curve
-			
-			var grad = Gradient.new()
-			var part_c = aura_color
-			part_c.a = 0.8
-			var trans_c = aura_color
-			trans_c.a = 0.0
-			grad.set_color(0, Color(part_c.r, part_c.g, part_c.b, 0.0))
-			grad.add_point(0.2, part_c)
-			grad.add_point(0.8, Color(part_c.r * 1.5, part_c.g * 1.2, part_c.b, 0.6))
-			grad.set_color(1, trans_c)
-			particles.color_ramp = grad
-			
-			var p_mesh = QuadMesh.new()
-			p_mesh.size = Vector2(0.4, 0.4)
-			particles.mesh = p_mesh
-			
-			var p_mat = StandardMaterial3D.new()
-			p_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			p_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-			p_mat.vertex_color_use_as_albedo = true
-			p_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			p_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-			if tex_flare:
-				p_mat.albedo_texture = tex_flare
-			particles.material_override = p_mat
-			
-			var target_color_outer = aura_color
-			target_color_outer.a = 0.5
-			var target_color_inner = Color(aura_color.r * 0.8, aura_color.g * 0.8, aura_color.b, 0.45)
-			
-			var start_color_outer = target_color_outer
-			start_color_outer.a = 0.0
-			var start_color_inner = target_color_inner
-			start_color_inner.a = 0.0
-			
-			mat_outer.set_shader_parameter("albedo_color", start_color_outer)
-			mat_inner.set_shader_parameter("albedo_color", start_color_inner)
-			
-			var tw_in = create_tween().set_parallel(true)
-			tw_in.tween_property(aura_3d, "scale", Vector3(1.0, 1.0, 1.0), 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			tw_in.tween_property(particles, "scale", Vector3(1.0, 1.0, 1.0), 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			tw_in.tween_method(func(c): mat_outer.set_shader_parameter("albedo_color", c), start_color_outer, target_color_outer, 0.4)
-			tw_in.tween_method(func(c): mat_inner.set_shader_parameter("albedo_color", c), start_color_inner, target_color_inner, 0.4)
-			
-			entity.active_auras[mId]["node_3d"] = aura_3d
-			entity.active_auras[mId]["particles_3d"] = particles
-			entity.active_auras[mId]["mat_outer"] = mat_outer
-			entity.active_auras[mId]["mat_inner"] = mat_inner
-			entity.active_auras[mId]["s_factor"] = s_factor
-			entity.active_auras[mId]["correction_z"] = correction_z
-			entity.active_auras[mId]["radius_3d"] = radius_3d
-	
-	else:
-		if entity.active_auras.has(mId):
-			var a_data = entity.active_auras[mId]
-			entity.active_auras.erase(mId)
-			
-			if a_data.has("node_3d") and is_instance_valid(a_data.node_3d):
-				var m_outer = a_data.get("mat_outer")
-				var m_inner = a_data.get("mat_inner")
-				
-				var tw_out = create_tween().set_parallel(true)
-				if is_instance_valid(m_outer):
-					var current_c_outer = m_outer.get_shader_parameter("albedo_color")
-					var target_c_outer = current_c_outer
-					target_c_outer.a = 0.0
-					tw_out.tween_method(func(c): m_outer.set_shader_parameter("albedo_color", c), current_c_outer, target_c_outer, 0.4)
-				if is_instance_valid(m_inner):
-					var current_c_inner = m_inner.get_shader_parameter("albedo_color")
-					var target_c_inner = current_c_inner
-					target_c_inner.a = 0.0
-					tw_out.tween_method(func(c): m_inner.set_shader_parameter("albedo_color", c), current_c_inner, target_c_inner, 0.4)
-				
-				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
-					tw_out.tween_property(a_data.particles_3d, "scale", Vector3.ZERO, 0.4)
-				
-				var tw_cleanup = create_tween()
-				tw_cleanup.tween_interval(0.45)
-				tw_cleanup.tween_callback(a_data.node_3d.queue_free)
-				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
-					tw_cleanup.tween_callback(a_data.particles_3d.queue_free)
-			else:
-				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
-					a_data.particles_3d.queue_free()
+	var mat = ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("albedo_texture", tex)
+	mat.set_shader_parameter("scroll_speed", scroll)
+	mat.set_shader_parameter("uv_scale", uv_scale)
+	mat.set_shader_parameter("fade_exponent", fade_exp)
+	mat.set_shader_parameter("albedo_color", col)
+	return mat
+
+func _make_ground_disc(shader: Shader, radius_3d: float, y: float = 0.02) -> MeshInstance3D:
+	var disc = MeshInstance3D.new()
+	var mesh = PlaneMesh.new()
+	var size = radius_3d * 2.1
+	mesh.size = Vector2(size, size)
+	disc.mesh = mesh
+	disc.position.y = y
+	var mat = ShaderMaterial.new()
+	mat.shader = shader
+	disc.material_override = mat
+	return disc
+
+func _configure_ring_particles(particles: CPUParticles3D, radius_3d: float, cfg: Dictionary) -> void:
+	particles.amount = int(cfg.get("amount", 70))
+	particles.lifetime = float(cfg.get("lifetime", 1.6))
+	particles.preprocess = float(cfg.get("preprocess", 0.8))
+	particles.randomness = float(cfg.get("randomness", 0.4))
+	particles.direction = Vector3.UP
+	particles.gravity = Vector3.ZERO
+	particles.initial_velocity_min = float(cfg.get("vel_min", 1.0))
+	particles.initial_velocity_max = float(cfg.get("vel_max", 2.2))
+	particles.spread = float(cfg.get("spread", 10.0))
+
+	particles.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	particles.emission_ring_axis = Vector3.UP
+	particles.emission_ring_radius = radius_3d * float(cfg.get("ring_scale", 0.9))
+	particles.emission_ring_inner_radius = radius_3d * float(cfg.get("ring_inner", 0.4))
+	particles.emission_ring_height = 0.1
+	particles.scale_amount_min = float(cfg.get("scale_min", 0.08))
+	particles.scale_amount_max = float(cfg.get("scale_max", 0.22))
+
+	var s_curve = Curve.new()
+	s_curve.add_point(Vector2(0, 0.1))
+	s_curve.add_point(Vector2(0.2, 1.0))
+	s_curve.add_point(Vector2(0.8, 0.6))
+	s_curve.add_point(Vector2(1.0, 0.0))
+	particles.scale_amount_curve = s_curve
+
+	var base: Color = cfg.get("color", Color.WHITE)
+	var trans = base
+	trans.a = 0.0
+	var mid = base
+	mid.a = 0.85
+	var peak = Color(clampf(base.r * 1.4, 0, 1), clampf(base.g * 1.2, 0, 1), clampf(base.b * 1.2, 0, 1), 0.7)
+	var grad = Gradient.new()
+	grad.set_color(0, Color(base.r, base.g, base.b, 0.0))
+	grad.add_point(0.2, mid)
+	grad.add_point(0.75, peak)
+	grad.set_color(1, trans)
+	particles.color_ramp = grad
+
+	var p_mesh = QuadMesh.new()
+	var p_size = float(cfg.get("quad_size", 0.4))
+	p_mesh.size = Vector2(p_size, p_size)
+	particles.mesh = p_mesh
+
+	var p_mat = StandardMaterial3D.new()
+	p_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	p_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	p_mat.vertex_color_use_as_albedo = true
+	p_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	p_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	var tex: Texture2D = cfg.get("texture", VFX_FlareTexture)
+	if tex:
+		p_mat.albedo_texture = tex
+	particles.material_override = p_mat
+
+func _build_void_aura(aura_3d: Node3D, particles: CPUParticles3D, radius_3d: float) -> Dictionary:
+	# Disco de suelo: remolino de vacío que succiona
+	var disc = _make_ground_disc(VoidAuraShader, radius_3d, 0.02)
+	var disc_mat: ShaderMaterial = disc.material_override
+	disc_mat.set_shader_parameter("core_color", Color(0.04, 0.015, 0.07, 1.0))
+	disc_mat.set_shader_parameter("mid_color", Color(0.48, 0.12, 0.64, 1.0))
+	disc_mat.set_shader_parameter("rim_color", Color(0.88, 0.25, 1.0, 1.0))
+	disc_mat.set_shader_parameter("swirl_speed", 1.35)
+	disc_mat.set_shader_parameter("intensity", 0.0)
+	aura_3d.add_child(disc)
+
+	# Columna de humo oscuro violeta
+	var column = MeshInstance3D.new()
+	var mesh = _make_column_mesh(radius_3d, 0.7, 1.1)
+	column.mesh = mesh
+	var column_mat = _make_scroll_shader_material(
+		VFX_SmokeTexture,
+		Vector2(0.0, -0.35),
+		Vector2(2.5, 1.6),
+		2.1,
+		Color(0.55, 0.1, 0.75, 0.0)
+	)
+	column.material_override = column_mat
+	column.position.y = mesh.height / 2.0
+	aura_3d.add_child(column)
+
+	# Aro perimetral magenta — ELIMINADO (generaba un arco vertical feo)
+	var rim_mat: StandardMaterial3D = null
+
+	# Partículas: brasas oscuras con borde magenta que ascienden y se enrarecen
+	_configure_ring_particles(particles, radius_3d, {
+		"amount": 55,
+		"lifetime": 1.8,
+		"preprocess": 0.9,
+		"vel_min": 0.6,
+		"vel_max": 1.6,
+		"spread": 14.0,
+		"ring_scale": 0.92,
+		"ring_inner": 0.55,
+		"scale_min": 0.1,
+		"scale_max": 0.28,
+		"quad_size": 0.45,
+		"color": Color(0.55, 0.12, 0.85, 0.75),
+		"texture": VFX_FlareTexture
+	})
+
+	return {"disc_mat": disc_mat, "column_mat": column_mat, "rim_mat": rim_mat}
+
+func _build_heal_aura(aura_3d: Node3D, particles: CPUParticles3D, radius_3d: float) -> Dictionary:
+	# Disco de suelo: círculo ritual de sanación
+	var disc = _make_ground_disc(HealAuraShader, radius_3d, 0.02)
+	var disc_mat: ShaderMaterial = disc.material_override
+	disc_mat.set_shader_parameter("core_color", Color(1.0, 0.97, 0.8, 1.0))
+	disc_mat.set_shader_parameter("mid_color", Color(0.36, 1.0, 0.54, 1.0))
+	disc_mat.set_shader_parameter("rim_color", Color(1.0, 0.84, 0.31, 1.0))
+	disc_mat.set_shader_parameter("intensity", 0.0)
+	aura_3d.add_child(disc)
+
+	# Columna de luz cálida suave
+	var column = MeshInstance3D.new()
+	var mesh = _make_column_mesh(radius_3d, 0.62, 1.0)
+	column.mesh = mesh
+	var column_mat = _make_scroll_shader_material(
+		VFX_SmokeTexture,
+		Vector2(0.0, -0.18),
+		Vector2(2.0, 1.3),
+		2.4,
+		Color(0.55, 1.0, 0.65, 0.0)
+	)
+	column.material_override = column_mat
+	column.position.y = mesh.height / 2.0
+	aura_3d.add_child(column)
+
+	# Aro perimetral dorado-verde — ELIMINADO (generaba un arco vertical feo)
+	var rim_mat: StandardMaterial3D = null
+
+	# Partículas: sparkles cálidos que flotan hacia arriba
+	_configure_ring_particles(particles, radius_3d, {
+		"amount": 75,
+		"lifetime": 2.0,
+		"preprocess": 1.0,
+		"vel_min": 0.5,
+		"vel_max": 1.3,
+		"spread": 8.0,
+		"ring_scale": 0.85,
+		"ring_inner": 0.15,
+		"scale_min": 0.07,
+		"scale_max": 0.18,
+		"quad_size": 0.32,
+		"color": Color(0.5, 1.0, 0.6, 0.85),
+		"texture": VFX_SparkleTexture
+	})
+
+	return {"disc_mat": disc_mat, "column_mat": column_mat, "rim_mat": rim_mat}
+
+func _build_speed_aura(aura_3d: Node3D, particles: CPUParticles3D, radius_3d: float) -> Dictionary:
+	# Disco ámbar con rotación rápida (pulso leve del sistema nuevo)
+	var disc = _make_ground_disc(HealAuraShader, radius_3d, 0.02)
+	var disc_mat: ShaderMaterial = disc.material_override
+	disc_mat.set_shader_parameter("core_color", Color(1.0, 0.95, 0.7, 1.0))
+	disc_mat.set_shader_parameter("mid_color", Color(1.0, 0.7, 0.2, 1.0))
+	disc_mat.set_shader_parameter("rim_color", Color(1.0, 0.5, 0.1, 1.0))
+	disc_mat.set_shader_parameter("noise_scale", 6.0)
+	disc_mat.set_shader_parameter("intensity", 0.0)
+	aura_3d.add_child(disc)
+
+	# Columna de viento dorado
+	var column = MeshInstance3D.new()
+	var mesh = _make_column_mesh(radius_3d, 0.72, 1.05)
+	column.mesh = mesh
+	var column_mat = _make_scroll_shader_material(
+		VFX_SmokeTexture,
+		Vector2(0.0, -0.55),
+		Vector2(3.0, 1.8),
+		1.9,
+		Color(1.0, 0.8, 0.3, 0.0)
+	)
+	column.material_override = column_mat
+	column.position.y = mesh.height / 2.0
+	aura_3d.add_child(column)
+
+	# Aro perimetral ámbar — ELIMINADO (generaba un arco vertical feo)
+	var rim_mat: StandardMaterial3D = null
+
+	_configure_ring_particles(particles, radius_3d, {
+		"amount": 65,
+		"lifetime": 1.4,
+		"preprocess": 0.7,
+		"vel_min": 1.4,
+		"vel_max": 2.8,
+		"spread": 16.0,
+		"ring_scale": 0.7,
+		"ring_inner": 0.1,
+		"scale_min": 0.07,
+		"scale_max": 0.16,
+		"quad_size": 0.3,
+		"color": Color(1.0, 0.8, 0.3, 0.8),
+		"texture": VFX_FlareTexture
+	})
+
+	return {"disc_mat": disc_mat, "column_mat": column_mat, "rim_mat": rim_mat}
 
 func update_auras(delta: float) -> void:
 	if not is_instance_valid(entity): return
 	var now = Time.get_ticks_msec() / 1000.0
 	for mId in entity.active_auras:
 		var a_data = entity.active_auras[mId]
-		
+
 		if a_data.has("node") and is_instance_valid(a_data.node):
 			var pulse = 1.0 + sin(now * 4.0) * 0.05
 			var s = a_data.get("target_scale", 1.0) * pulse
@@ -956,18 +1207,19 @@ func update_auras(delta: float) -> void:
 			a_data.node.rotate(delta * 0.5)
 			if a_data.get("type") == "wall_dome":
 				entity.queue_redraw()
-		
+
 		if a_data.has("node_3d") and is_instance_valid(a_data.node_3d):
 			var s_factor = a_data.get("s_factor", 0.02)
 			var correction_z = a_data.get("correction_z", 1.41421356)
 			a_data.node_3d.position.x = entity.global_position.x * s_factor
 			a_data.node_3d.position.z = entity.global_position.y * s_factor * correction_z
-		
+
 		if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
 			var s_factor = a_data.get("s_factor", 0.02)
 			var correction_z = a_data.get("correction_z", 1.41421356)
 			a_data.particles_3d.position.x = entity.global_position.x * s_factor
 			a_data.particles_3d.position.z = entity.global_position.y * s_factor * correction_z
+
 
 # ==============================================================================
 # 3. COLOR AURA (Pilares y Puzzle de Colores)

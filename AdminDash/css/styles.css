@@ -223,6 +223,15 @@ h2 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
 
 .card:hover { border-color: rgba(6, 182, 212, 0.3); transform: translateY(-4px); }
 
+/* Filas del panel lateral de talentos: sin recorte ni salto en hover */
+.talent-list-item {
+    overflow: visible !important;
+    transform: none !important;
+}
+.talent-list-item:hover {
+    transform: none !important;
+}
+
 .card-tag {
     position: absolute;
     top: 1rem;

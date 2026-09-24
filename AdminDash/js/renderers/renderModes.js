@@ -3792,7 +3792,7 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     // Actualizar estadísticas de ramas
     updateBranchStats();
 
-    // Renderizar listado de talentos en el panel lateral (agrupados por rama, mapeados primero, ordenados por tamaño)
+    // Renderizar listado de talentos en el panel lateral (agrupados por rama, expandible/colapsable)
     const unplacedList = document.getElementById('talent-mapper-unplaced-list');
     if (unplacedList) {
         unplacedList.innerHTML = '';
@@ -3801,6 +3801,8 @@ window.renderTalentMapper = function(connectingMousePos = null) {
             if (searchTerm && !t.name.toLowerCase().includes(searchTerm) && !t.id.toLowerCase().includes(searchTerm)) return false;
             return true;
         });
+
+        if (!window._mapperCollapsedCats) window._mapperCollapsedCats = new Set();
 
         // Recolectar ramas en orden
         const catIds = [...new Set([...cats.map(c => c.id), ...allTalents.map(t => t.category)])];
@@ -3820,15 +3822,28 @@ window.renderTalentMapper = function(connectingMousePos = null) {
                 : branchTalents;
 
             const mappedCount = sortedBranch.filter(t => !!nodes[t.id]).length;
+            const isCollapsed = window._mapperCollapsedCats.has(catId);
 
-            // Encabezado de rama
+            // Encabezado de rama (clic = expandir / colapsar)
             const groupHeader = document.createElement('div');
-            groupHeader.style.cssText = `padding: 6px 10px; margin-top: 10px; margin-bottom: 4px; border-radius: 6px; background: ${catColor}15; border: 1px solid ${catColor}35; display: flex; justify-content: space-between; align-items: center;`;
+            groupHeader.style.cssText = `padding: 9px 12px; margin-top: 6px; margin-bottom: 2px; border-radius: 6px; background: ${catColor}15; border: 1px solid ${catColor}35; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; min-height: 36px; flex-shrink: 0; transition: opacity 0.15s;`;
             groupHeader.innerHTML = `
-                <span style="font-weight: bold; color: ${catColor}; font-size: 0.78rem;">${catEmoji} ${catName.toUpperCase()}</span>
-                <span style="font-size: 0.68rem; color: #aaa;">${mappedCount}/${sortedBranch.length} mapeados</span>
+                <span style="font-weight: bold; color: ${catColor}; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; min-width: 0;">
+                    <span style="font-size: 0.7rem; opacity: 0.85; flex-shrink: 0;">${isCollapsed ? '▶' : '▼'}</span>
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${catEmoji} ${catName.toUpperCase()}</span>
+                </span>
+                <span style="font-size: 0.7rem; color: #aaa; flex-shrink: 0; margin-left: 8px;">${mappedCount}/${sortedBranch.length}</span>
             `;
+            groupHeader.onmouseenter = () => { groupHeader.style.opacity = '0.8'; };
+            groupHeader.onmouseleave = () => { groupHeader.style.opacity = '1'; };
+            groupHeader.onclick = () => {
+                if (window._mapperCollapsedCats.has(catId)) window._mapperCollapsedCats.delete(catId);
+                else window._mapperCollapsedCats.add(catId);
+                renderTalentMapper();
+            };
             unplacedList.appendChild(groupHeader);
+
+            if (isCollapsed) return;
 
             sortedBranch.forEach(t => {
                 const isPlaced = !!nodes[t.id];
@@ -3837,17 +3852,25 @@ window.renderTalentMapper = function(connectingMousePos = null) {
                 const typeLabel = nodeType === 'keystone' ? '🔴 Clave' : (nodeType === 'notable' ? '🟡 Notable' : '🟢 Pequeño');
 
                 const item = document.createElement('div');
-                item.className = 'card';
+                item.className = 'card talent-list-item';
                 item.dataset.talentId = t.id;
-                item.style.padding = '8px 10px';
-                item.style.margin = '0';
-                item.style.display = 'flex';
-                item.style.alignItems = 'center';
-                item.style.justifyContent = 'space-between';
-                item.style.border = isPlaced ? `1px solid ${catColor}40` : '1px dashed rgba(255,255,255,0.15)';
-                item.style.background = isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)';
-                item.style.borderRadius = '6px';
-                item.style.cursor = isPlaced ? 'pointer' : 'grab';
+                item.style.cssText = `
+                    padding: 10px 12px !important;
+                    margin: 0 !important;
+                    min-height: 56px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    border: ${isPlaced ? `1px solid ${catColor}40` : '1px dashed rgba(255,255,255,0.15)'};
+                    background: ${isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)'};
+                    border-radius: 8px;
+                    cursor: ${isPlaced ? 'pointer' : 'grab'};
+                    overflow: visible !important;
+                    flex-shrink: 0;
+                    line-height: 1.35;
+                    transform: none !important;
+                `;
 
                 if (!isPlaced) {
                     item.draggable = true;
@@ -3874,21 +3897,21 @@ window.renderTalentMapper = function(connectingMousePos = null) {
                 item.onmouseleave = () => { item.style.background = isPlaced ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)'; item.style.borderColor = isPlaced ? `${catColor}40` : 'rgba(255,255,255,0.15)'; };
 
                 const actionBtn = isPlaced
-                    ? `<button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.68rem; margin: 0; border-color: ${catColor}60; color: ${catColor};" onclick="event.stopPropagation(); selectedTalentNodeId='${t.id}'; if(typeof showTalentNodeEditor==='function') showTalentNodeEditor('${t.id}'); renderTalentMapper();">🔍 Ver</button>`
-                    : `<button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.68rem; margin: 0;" onclick="event.stopPropagation(); placeTalentOnMap('${t.id}')">+ Colocar</button>`;
+                    ? `<button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.7rem; margin: 0; border-color: ${catColor}60; color: ${catColor}; flex-shrink: 0; line-height: 1;" onclick="event.stopPropagation(); selectedTalentNodeId='${t.id}'; if(typeof showTalentNodeEditor==='function') showTalentNodeEditor('${t.id}'); renderTalentMapper();">🔍 Ver</button>`
+                    : `<button class="btn btn-primary" style="padding: 6px 10px; font-size: 0.7rem; margin: 0; flex-shrink: 0; line-height: 1;" onclick="event.stopPropagation(); placeTalentOnMap('${t.id}')">+ Colocar</button>`;
 
                 const statusTag = isPlaced
-                    ? `<span style="font-size: 0.65rem; color: #10b981; font-weight: bold;">📍 Mapeado</span>`
-                    : `<span style="font-size: 0.65rem; color: #ef4444; font-weight: bold;">⚠️ Sin Mapear</span>`;
+                    ? `<span style="font-size: 0.68rem; color: #10b981; font-weight: bold; white-space: nowrap;">📍 Mapeado</span>`
+                    : `<span style="font-size: 0.68rem; color: #ef4444; font-weight: bold; white-space: nowrap;">⚠️ Sin Mapear</span>`;
 
                 item.innerHTML = `
-                    <div style="display:flex; gap:8px; align-items:center; flex: 1; min-width: 0;">
-                        <span style="font-size: 1.4rem; flex-shrink: 0;">${t.icon || '🌳'}</span>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: bold; font-size: 0.82rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.name}</div>
-                            <div style="font-size: 0.68rem; color: #aaa; display: flex; gap: 6px; align-items: center;">
-                                <span>${typeLabel}</span>
-                                <span>•</span>
+                    <div style="display:flex; gap:10px; align-items:center; flex: 1; min-width: 0;">
+                        <span style="font-size: 1.5rem; flex-shrink: 0; line-height: 1;">${t.icon || '🌳'}</span>
+                        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; justify-content: center;">
+                            <div style="font-weight: bold; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;">${t.name}</div>
+                            <div style="font-size: 0.7rem; color: #bbb; display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; min-width: 0; line-height: 1.3;">
+                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${typeLabel}</span>
+                                <span style="opacity: 0.5; flex-shrink: 0;">•</span>
                                 ${statusTag}
                             </div>
                         </div>

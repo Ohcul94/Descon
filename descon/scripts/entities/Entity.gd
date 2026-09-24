@@ -308,6 +308,8 @@ func _ready():
 	# v268.800: Sincronía visual de AURAS
 	if NetworkManager.has_signal("enemy_aura"):
 		NetworkManager.enemy_aura.connect(_on_enemy_aura)
+	if NetworkManager.has_signal("enemy_aura_tick"):
+		NetworkManager.enemy_aura_tick.connect(_on_enemy_aura_tick)
 
 var active_auras: Dictionary = {} # v268.800: { mId: Sprite2D }
 var _active_survival_dome: Dictionary = {} # v268.825: Datos de la mecanica Survival Dome activa
@@ -1536,6 +1538,8 @@ func _resurrect(data: Dictionary):
 		var aura_data = active_auras[mId]
 		if aura_data.has("node_3d") and is_instance_valid(aura_data.node_3d):
 			aura_data.node_3d.queue_free()
+		if aura_data.has("particles_3d") and is_instance_valid(aura_data.particles_3d):
+			aura_data.particles_3d.queue_free()
 	active_auras.clear()
 
 	# 3. Restaurar visibilidad y estado de todos los componentes
@@ -1836,6 +1840,8 @@ func die():
 		var aura_data = active_auras[mId]
 		if aura_data.has("node_3d") and is_instance_valid(aura_data.node_3d):
 			aura_data.node_3d.queue_free()
+		if aura_data.has("particles_3d") and is_instance_valid(aura_data.particles_3d):
+			aura_data.particles_3d.queue_free()
 	active_auras.clear()
 	
 	# Limpiar marcador de Choque Devastador en muerte
@@ -1885,6 +1891,10 @@ func _fire_orbital_strike():
 
 func _on_enemy_aura(data):
 	if _mechanics_vfx: _mechanics_vfx.handle_enemy_aura(data)
+
+func _on_enemy_aura_tick(data):
+	if str(data.get("id", "")) != entity_id: return
+	if _mechanics_vfx: _mechanics_vfx.handle_enemy_aura_tick(data)
 
 func _update_auras(delta):
 	if _mechanics_vfx: _mechanics_vfx.update_auras(delta)
@@ -3093,9 +3103,23 @@ var _flash_timer: float = 0.0
 func _trigger_hit_flash():
 	if get_node_or_null("/root/SettingsManager"):
 		if not SettingsManager.hit_flash_enabled: return
-		_flash_timer = 0.15
+	_flash_timer = 0.15
 	_ensure_flash_material()
+	if _hit_flash_material:
+		_hit_flash_material.set_shader_parameter("flash_color", Color.WHITE)
+	if is_instance_valid(_hit_flash_material_3d):
+		_hit_flash_material_3d.albedo_color = Color(1.0, 1.0, 1.0, 0.0)
 	_update_flash_visuals(1.0)
+
+func _trigger_heal_flash():
+	_ensure_flash_material()
+	var heal_tint = Color(0.35, 1.0, 0.5, 1.0)
+	if _hit_flash_material:
+		_hit_flash_material.set_shader_parameter("flash_color", heal_tint)
+	if is_instance_valid(_hit_flash_material_3d):
+		_hit_flash_material_3d.albedo_color = Color(heal_tint.r, heal_tint.g, heal_tint.b, 0.0)
+	_flash_timer = 0.28
+	_update_flash_visuals(0.85)
 
 func _update_hit_flash(delta):
 	if _flash_timer > 0:
