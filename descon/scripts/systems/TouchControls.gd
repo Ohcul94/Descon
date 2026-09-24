@@ -217,23 +217,15 @@ func _update_joystick_visibility():
 	if not virtual_joystick:
 		await get_tree().process_frame
 	if virtual_joystick:
+		var main_hud = get_parent()
+		var editing = main_hud and main_hud.get("is_editing_layout")
 		var enabled = SettingsManager.mobile_mode if SettingsManager else false
-		virtual_joystick.visible = enabled
+		# El joystick no participa del editor de layout (es flotante, sigue el tap)
+		virtual_joystick.visible = enabled and not editing
 		virtual_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if enabled:
-			if NetworkManager and NetworkManager.current_user_data.has("hudPositions"):
-				var data = NetworkManager.current_user_data["hudPositions"]
-				if data.has("VirtualJoystick"):
-					var pos_data = data["VirtualJoystick"]
-					var screen_size = get_viewport_rect().size
-					var rx = float(pos_data.get("x", 0.0))
-					var ry = float(pos_data.get("y", 0.0))
-					var final_pos = Vector2(rx * screen_size.x, ry * screen_size.y) if rx <= 2.0 else Vector2(rx, ry)
-					virtual_joystick.global_position = final_pos
-				else:
-					virtual_joystick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 20)
-		else:
-			virtual_joystick.visible = false
+		if enabled and not editing:
+			virtual_joystick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 20)
+		elif not enabled:
 			virtual_joystick.global_position = Vector2(-2000, -2000)
 
 func sync_platform_mode():

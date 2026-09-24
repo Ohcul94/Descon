@@ -250,7 +250,6 @@ function closeBattlePassRewardEditor() {
 }
 
 const HUD_ELEMENTS_CONFIG = {
-    "CenterStats":           { name: "🧬 STATS (CenterStats)", x: 1063,  y: 21,  w: 250, h: 140 },
     "ChatUI":                { name: "💬 CHAT (ChatUI)", x: 12,    y: 545, w: 320, h: 200 },
     "RadarWindow":           { name: "🛰️ RADAR (RadarWindow)", x: 1066,  y: 564, w: 220, h: 220 },
     "SkillsContainer":       { name: "🔥 SKILLS (SkillsContainer)", x: 101,   y: 684, w: 575, h: 65 },

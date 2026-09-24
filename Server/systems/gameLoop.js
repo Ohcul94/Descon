@@ -1210,12 +1210,16 @@ function startGameLoop(io, state, aiManager) {
                             p.isSilenced = true; p.lastSilenceTime = now;
                             if (!p.isBlinded) { p.isBlinded = true; io.to(p.socketId).emit('blindState', { active: true }); }
                             p.lastBlindTime = now;
-                        } else if (area.type === 'ICE' && !is_ally) {
-                            const prevSlow = p.isSlowed;
-                            p.isSlowed = true; p.lastSlowTime = now;
-                            p.slowPoints = (area.slowAmount || 0.5) * 100;
-                            p.slowIsPercentage = true;
-                            if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints, isPercentage: true, duration: p.slowEndTime ? Math.max(p.slowEndTime - now, 0) : 0 });
+                        } else if (area.type === 'ICE' && p.socketId !== area.ownerId) {
+                            const iceFilters = area.targetFilters || { allies: false, enemies: true, players: true };
+                            const applyIce = is_ally ? !!iceFilters.allies : (!!iceFilters.enemies || !!iceFilters.players);
+                            if (applyIce) {
+                                const prevSlow = p.isSlowed;
+                                p.isSlowed = true; p.lastSlowTime = now;
+                                p.slowPoints = (area.slowAmount || 0.5) * 100;
+                                p.slowIsPercentage = true;
+                                if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints, isPercentage: true, duration: p.slowEndTime ? Math.max(p.slowEndTime - now, 0) : 0 });
+                            }
                         } else if (area.type === 'HEAL_ZONE') {
                             let isValidTarget = false;
                             const filters = area.filters || { allies: true, enemies: false, bosses: false, players: true };
@@ -1380,9 +1384,14 @@ function startGameLoop(io, state, aiManager) {
                             e.isSilenced = true;
                             e.lastSilenceTime = now;
                         } else if (area.type === 'ICE') {
-                            e.isSlowed = true;
-                            e.lastSlowTime = now;
-                            e.slowMultiplier = area.slowAmount || 0.5;
+                            const iceFiltersE = area.targetFilters || { enemies: true, bosses: true };
+                            const isBossIce = !!e.isBoss || e.type === 4 || e.type === 10 || e.type === 11 || (typeof e.type === 'number' && e.type >= 100);
+                            const applyIceE = isBossIce ? !!iceFiltersE.bosses : !!iceFiltersE.enemies;
+                            if (applyIceE) {
+                                e.isSlowed = true;
+                                e.lastSlowTime = now;
+                                e.slowMultiplier = area.slowAmount || 0.5;
+                            }
                         } else if (area.type === 'WIND_BARRIER') {
                             const filters = area.targetFilters || { allies: false, enemies: true, bosses: false, players: false };
                             const isBoss = !!e.isBoss;

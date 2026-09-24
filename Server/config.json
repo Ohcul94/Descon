@@ -9594,12 +9594,6 @@
                 "x": 844,
                 "y": 386
             },
-            "CenterStats": {
-                "alpha": 1,
-                "scale": 0.5,
-                "x": 1018,
-                "y": 16
-            },
             "ChatUI": {
                 "alpha": 1,
                 "scale": 0.5,
@@ -10481,7 +10475,7 @@
             "rotZ": 0,
             "shield": 40,
             "slots": {
-                "e": 3,
+                "e": 4,
                 "s": 1,
                 "w": 1,
                 "x": 0
@@ -12409,7 +12403,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": true,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Ataque",
             "requirements": [
@@ -12445,7 +12440,7 @@
             "range": 0,
             "requirements": [
                 {
-                    "min": 100,
+                    "min": 1,
                     "type": "level"
                 }
             ],
@@ -12586,17 +12581,19 @@
                 "bosses": true,
                 "clan": false,
                 "enemies": true,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "taunt_duration": 4000,
             "type": "Ataque"
         },
         "REFLECT-OMEGA": {
             "amount": 500,
-            "canTargetOthers": false,
+            "canTargetOthers": true,
             "castTimeMs": 0,
             "cd": 12000,
             "desc": "Crea un campo de resonancia que refleja daño hostil.",
+            "duration": 3000,
             "icon": "res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png",
             "id": "SK-ATK-01",
             "range": 500,
@@ -12629,7 +12626,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Ataque"
         },

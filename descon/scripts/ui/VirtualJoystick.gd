@@ -39,6 +39,13 @@ func _draw():
 func _input(event):
 	if not is_mobile_enabled: return
 	
+	# No participar del editor de layout
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and hud.get("is_editing_layout"):
+		if is_dragging:
+			_reset_joystick()
+		return
+	
 	# v1.8.1: Bloqueo de seguridad para Login
 	if not NetworkManager or not NetworkManager.is_logged_in: return
 	
@@ -101,12 +108,7 @@ func _reset_joystick():
 	active_touch_index = -1
 	stick_pos = Vector2.ZERO
 	joystick_updated.emit(Vector2.ZERO)
-	
-	# Solo ocultar si no estamos editando el layout
-	var hud = get_tree().get_first_node_in_group("hud")
-	if not (hud and hud.get("is_editing_layout")):
-		visible = false
-	
+	visible = false
 	queue_redraw()
 
 func _process(_delta):
@@ -115,19 +117,11 @@ func _process(_delta):
 	if sm:
 		is_mobile_enabled = sm.mobile_mode
 	
-	var hud = get_tree().get_first_node_in_group("hud")
-	var is_edit = hud and hud.get("is_editing_layout")
-	
-	if is_edit:
-		if not visible: visible = true
-		mouse_filter = Control.MOUSE_FILTER_STOP
-	else:
-		# En juego normal, NUNCA bloqueamos el mouse para no estorbar a los botones
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Si no hay drag, el joystick es invisible (Flotante)
-		if not is_dragging:
-			visible = false
-			
+	# Joystick flotante: fuera del editor de layout. Solo visible mientras se arrastra.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if not is_dragging:
+		visible = false
+		
 	queue_redraw()
 
 func _is_point_over_ui(pos: Vector2) -> bool:

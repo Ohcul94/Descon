@@ -8,6 +8,8 @@ var remote_players = {}
 var enemies = {}
 var enemy_pool = []
 var active_areas = {} # Cache de zonas de efecto (Humo, etc)
+var frost_last_pos = {} # Ultimo punto del camino de escarcha por caster {ownerId: {p: Vector2, t: int}}
+var _frost_flake_tex: Texture2D = null # Copo de nieve procedural, generado una sola vez
 var loot_drops = {} # Cache de botines activos en el mapa
 var active_laser_tracking = {} # Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
 var active_wind_walls = {} # Paredes de viento en fase de carga {wall_id: Node2D}
@@ -32,6 +34,8 @@ const FOLLOW_ORB_3D_SCRIPT = preload("res://scripts/entities/projectiles/FollowO
 # Texturas precargadas estáticamente
 const TEX_CURACION_TRANSP = preload("res://assets/Efectos de Skills/Curacion(Transp).png")
 const SMOKE_TEXTURE = preload("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
+const FROST_GLOW_TEX = preload("res://VFX/textures/T_VFX_Glo31.png")
+const FROST_STREAK_TEX = preload("res://VFX/textures/T_VFX_sparks112.jpg")
 const TEX_ESFERA_AZUL_1 = preload("res://assets/Esferas/EsferaAzul1.png")
 const TEX_ESFERA_VERDE_1 = preload("res://assets/Esferas/EsferaVerde1.png")
 const CONE_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
@@ -2437,7 +2441,7 @@ func _on_spawn_area(data: Dictionary):
 	if type == "SMOKE":
 		_spawn_smoke_cloud(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "ICE":
-		_spawn_ice_trail(id, Vector2(data.x, data.y), data.radius)
+		_spawn_ice_trail(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "VORTEX_HAZARD":
 		_spawn_vortex_vfx(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "HEAL_ZONE":
@@ -2716,71 +2720,436 @@ func _spawn_vortex_vfx(id, pos, radius, data):
 	container.add_child(poly)
 	container.add_child(line)
 
-func _spawn_ice_trail(id, pos, _radius):
-	if active_areas.has(id): return
-	
-	var container = Node2D.new()
-	container.name = id
-	if is_instance_valid(world) and is_instance_valid(world.entities_node):
-		world.entities_node.add_child(container)
-	active_areas[id] = container
-	
-	var proj_pos = _get_projected_position(pos)
-	container.global_position = proj_pos
-	container.set_meta("logical_position", pos)
-	container.set_meta("type", "ice")
-	
-	var particles = CPUParticles2D.new()
-	particles.emitting = true
-	particles.amount = 20
-	particles.lifetime = 1.5
-	particles.one_shot = false
-	particles.explosiveness = 0.0
-	particles.z_index = 5
-	
-	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	particles.emission_sphere_radius = 18.0
-	
-	particles.direction = Vector2(0, -1)
-	particles.spread = 180.0
-	particles.initial_velocity_min = 8.0
-	particles.initial_velocity_max = 25.0
-	particles.gravity = Vector2.ZERO
-	particles.damping_min = 5.0
-	particles.damping_max = 10.0
-	
-	particles.scale_amount_min = 2.0
-	particles.scale_amount_max = 5.0
-	
-	var gradient = Gradient.new()
-	gradient.set_color(0, Color(0.8, 0.95, 1.0, 0.8))
-	gradient.add_point(0.5, Color(0.4, 0.75, 1.0, 0.6))
-	gradient.set_color(1, Color(0.3, 0.6, 1.0, 0.0))
-	particles.color_ramp = gradient
-	
-	particles.angle_min = 0.0
-	particles.angle_max = 360.0
-	particles.angular_velocity_min = -90.0
-	particles.angular_velocity_max = 90.0
-	
-	particles.position = Vector2.ZERO
-	container.add_child(particles)
-	
-	var glow = Sprite2D.new()
-	var glow_tex = TEX_ESFERA_AZUL_1
-	if glow_tex:
-		glow.texture = glow_tex
-		var glow_mat = CanvasItemMaterial.new()
-		glow_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-		glow.material = glow_mat
-		glow.modulate = Color(0.5, 0.8, 1.0, 0.35)
-		glow.scale = Vector2(0.15, 0.15)
-		glow.z_index = 4
-		glow.position = Vector2.ZERO
-		container.add_child(glow)
-		
-		var tw = create_tween()
-		tw.tween_property(glow, "modulate:a", 0.35, 0.3).set_trans(Tween.TRANS_SINE)
+func _frost_speed_palette(speed: float) -> Dictionary:
+	# El camino siempre es de hielo: la velocidad solo regula intensidad/propulsion.
+	# A futuro se agrega un `scheme` (ej: "fire") y se tine desde aca sin tocar el VFX.
+	var mist := Color(0.55, 0.82, 1.0)
+	var core := Color(0.9, 0.97, 1.0)
+	var ground := Color(0.5, 0.78, 1.0)
+	var glint := Color(0.85, 0.96, 1.0)
+	if speed > 450.0:
+		return {
+			"mist": mist,
+			"core": core,
+			"ground": ground,
+			"glint": glint,
+			"propulsion": true,
+			"mist_vel": 55.0,
+			"glint_amount": 16,
+			"special": true
+		}
+	elif speed > 400.0:
+		return {
+			"mist": mist,
+			"core": core,
+			"ground": ground,
+			"glint": glint,
+			"propulsion": true,
+			"mist_vel": 45.0,
+			"glint_amount": 10,
+			"special": false
+		}
+	elif speed > 350.0:
+		return {
+			"mist": mist,
+			"core": core,
+			"ground": ground,
+			"glint": glint,
+			"propulsion": true,
+			"mist_vel": 35.0,
+			"glint_amount": 8,
+			"special": false
+		}
+	elif speed > 300.0:
+		return {
+			"mist": mist,
+			"core": core,
+			"ground": ground,
+			"glint": glint,
+			"propulsion": false,
+			"mist_vel": 12.0,
+			"glint_amount": 7,
+			"special": false
+		}
+	else:
+		return {
+			"mist": mist,
+			"core": core,
+			"ground": ground,
+			"glint": glint,
+			"propulsion": false,
+			"mist_vel": 10.0,
+			"glint_amount": 6,
+			"special": false
+		}
+
+func _ice_std_mat(albedo: Color, tex: Texture2D, additive: bool, unshaded: bool) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	if additive:
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	else:
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	if unshaded:
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	if tex != null:
+		m.albedo_texture = tex
+	m.albedo_color = albedo
+	m.vertex_color_use_as_albedo = true
+	return m
+
+# Copo de nieve procedural (alfa real, forma circular de 6 puntas).
+# Evita el cuadrado negro de la textura opaca en blend MIX y se genera solo 1 vez.
+func _frost_flake_texture() -> Texture2D:
+	if _frost_flake_tex != null:
+		return _frost_flake_tex
+	var n := 64
+	var img := Image.create_empty(n, n, false, Image.FORMAT_RGBA8)
+	var cc := float(n - 1) * 0.5
+	var arm_step := TAU / 6.0
+	var arm_w := arm_step * 0.24
+	for py in range(n):
+		for px in range(n):
+			var dx := (float(px) - cc) / cc
+			var dy := (float(py) - cc) / cc
+			var rr := sqrt(dx * dx + dy * dy)
+			var a := 0.0
+			if rr < 1.0:
+				var disc := pow(clampf(1.0 - rr * 1.7, 0.0, 1.0), 1.6)
+				var arm := 0.0
+				var arm_d := absf(fmod(atan2(dy, dx), arm_step))
+				if arm_d < arm_w:
+					arm = pow(1.0 - arm_d / arm_w, 2.0) * pow(clampf(1.0 - rr, 0.0, 1.0), 0.65)
+				var hub := 0.0
+				if rr < 0.22:
+					hub = 1.0 - rr / 0.22
+				a = maxf(maxf(disc, arm), hub * 0.95)
+			img.set_pixel(px, py, Color(1.0, 1.0, 1.0, clampf(a, 0.0, 1.0)))
+	img.generate_mipmaps()
+	_frost_flake_tex = ImageTexture.create_from_image(img)
+	return _frost_flake_tex
+
+func _fade_ice_mats(node: Node, v: float) -> void:
+	if not is_instance_valid(node):
+		return
+	if not node.has_meta("mats"):
+		return
+	for pair in node.get_meta("mats"):
+		var m: StandardMaterial3D = pair[0]
+		if is_instance_valid(m):
+			var c := m.albedo_color
+			c.a = float(pair[1]) * v
+			m.albedo_color = c
+
+func _spawn_ice_trail(id, pos, radius, data = {}):
+	if active_areas.has(id):
+		return
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map) or not current_map.get("sub_viewport"):
+		return
+	var sub_vp = current_map.sub_viewport
+	var s_factor: float = current_map.scale_factor if "scale_factor" in current_map else 0.02
+	var correction_z: float = current_map.correction_z if "correction_z" in current_map else 1.41421356
+
+	var r := clampf(float(radius), 24.0, 180.0)
+	var speed := float(data.get("speed", 0.0))
+	var pal: Dictionary = _frost_speed_palette(speed)
+
+	# Encadenar con el tramo anterior del mismo caster para un camino continuo
+	var caster_id := str(data.get("ownerId", ""))
+	var cur := Vector2(float(data.get("x", pos.x)), float(data.get("y", pos.y)))
+	var has_prev := false
+	var prev := cur
+	var now_ms := Time.get_ticks_msec()
+	if frost_last_pos.has(caster_id):
+		var rec: Dictionary = frost_last_pos[caster_id]
+		var age := now_ms - int(rec.get("t", 0))
+		var old: Vector2 = rec.get("p", cur)
+		var gap := old.distance_to(cur)
+		if age < 1500 and gap > 2.0 and gap < r * 3.0:
+			prev = old
+			has_prev = true
+	frost_last_pos[caster_id] = { "p": cur, "t": now_ms }
+	_prune_frost_chains(now_ms)
+
+	var mist_col: Color = pal["mist"]
+	var core_col: Color = pal["core"]
+	var ground_col: Color = pal["ground"]
+	var glint_col: Color = pal["glint"]
+	var propulsion := bool(pal["propulsion"])
+	var mist_vel := float(pal["mist_vel"])
+	var glint_amount := int(pal["glint_amount"])
+	var special := bool(pal["special"])
+
+	# Tramo en coordenadas de mundo, orientado segun el recorrido
+	var a := prev if has_prev else cur
+	var b := cur
+	var mid2 := (a + b) * 0.5
+	var dlog := b - a
+	if dlog.length() < r * 0.3:
+		var dx0 := float(data.get("dirX", 1.0))
+		var dy0 := float(data.get("dirY", 0.0))
+		var dd := Vector2(dx0, dy0)
+		if dd.length_squared() < 0.01:
+			dd = Vector2.RIGHT
+		dd = dd.normalized()
+		a = cur - dd * r * 0.3
+		b = cur + dd * r * 0.3
+		mid2 = cur
+		dlog = b - a
+	var half_w := r * s_factor * 0.55
+	var wdir := Vector3(dlog.x * s_factor, 0.0, dlog.y * s_factor * correction_z)
+	var wlen := maxf(wdir.length(), 0.2)
+	wdir = wdir / wlen
+	var half_len := wlen * 0.5 + half_w * 0.7
+
+	var root := Node3D.new()
+	root.name = id
+	sub_vp.add_child(root)
+	active_areas[id] = root
+	root.position = Vector3(mid2.x * s_factor, 0.03, mid2.y * s_factor * correction_z)
+	root.rotation.y = atan2(wdir.x, wdir.z)
+	root.set_meta("type", "ice")
+	var fade_mats: Array = []
+	root.set_meta("mats", fade_mats)
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(id)
+
+	# Suelo de escarcha
+	var disc := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 1.0
+	cyl.bottom_radius = 1.0
+	cyl.height = 0.03
+	cyl.radial_segments = 24
+	disc.mesh = cyl
+	disc.scale = Vector3(half_w * 1.15, 1.0, half_len * 1.15)
+	var disc_mat := _ice_std_mat(Color(ground_col.r, ground_col.g, ground_col.b, 0.5), SMOKE_TEXTURE, false, true)
+	disc.material_override = disc_mat
+	fade_mats.append([disc_mat, 0.5])
+	root.add_child(disc)
+
+	# Nucleo brillante al centro
+	var core_disc := MeshInstance3D.new()
+	var cyl2 := CylinderMesh.new()
+	cyl2.top_radius = 1.0
+	cyl2.bottom_radius = 1.0
+	cyl2.height = 0.035
+	cyl2.radial_segments = 24
+	core_disc.mesh = cyl2
+	core_disc.scale = Vector3(half_w * 0.55, 1.0, half_len * 0.55)
+	core_disc.position.y = 0.006
+	var core_a := 0.65 if special else 0.45
+	var core_mat := _ice_std_mat(Color(core_col.r, core_col.g, core_col.b, core_a), SMOKE_TEXTURE, true, true)
+	core_disc.material_override = core_mat
+	fade_mats.append([core_mat, core_a])
+	root.add_child(core_disc)
+
+	# Banco de niebla fria: el volumen del camino
+	var fog := GPUParticles3D.new()
+	fog.amount = 10
+	fog.lifetime = 2.4
+	fog.preprocess = 1.6
+	fog.randomness = 0.7
+	fog.local_coords = true
+	fog.position = Vector3(0, 0.55, 0)
+	var fmesh := QuadMesh.new()
+	fmesh.size = Vector2(2.0, 1.3)
+	var fmat := _ice_std_mat(Color(1, 1, 1, 1), SMOKE_TEXTURE, false, false)
+	fmat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	fmesh.material = fmat
+	fog.draw_pass_1 = fmesh
+	var fpm := ParticleProcessMaterial.new()
+	fpm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	fpm.emission_box_extents = Vector3(half_w * 0.7, 0.3, half_len * 0.7)
+	fpm.direction = Vector3(0, 1, 0)
+	fpm.spread = 25.0
+	fpm.initial_velocity_min = 0.15
+	fpm.initial_velocity_max = 0.45
+	fpm.gravity = Vector3.ZERO
+	fpm.damping_min = 0.4
+	fpm.damping_max = 0.9
+	fpm.scale_min = 1.4
+	fpm.scale_max = 2.4
+	fpm.angle_min = -180.0
+	fpm.angle_max = 180.0
+	fpm.angular_velocity_min = -12.0
+	fpm.angular_velocity_max = 12.0
+	var fcurve := Curve.new()
+	fcurve.add_point(Vector2(0.0, 0.6))
+	fcurve.add_point(Vector2(0.3, 1.0))
+	fcurve.add_point(Vector2(1.0, 1.3))
+	var fctex := CurveTexture.new()
+	fctex.curve = fcurve
+	fpm.scale_curve = fctex
+	var fgrad := Gradient.new()
+	fgrad.set_color(0, Color(mist_col.r, mist_col.g, mist_col.b, 0.0))
+	fgrad.add_point(0.25, Color(mist_col.r, mist_col.g, mist_col.b, 0.5))
+	fgrad.add_point(0.7, Color(mist_col.r, mist_col.g, mist_col.b, 0.32))
+	fgrad.set_color(1, Color(mist_col.r, mist_col.g, mist_col.b, 0.0))
+	fpm.color_ramp = GradientTexture1D.new()
+	fpm.color_ramp.gradient = fgrad
+	fog.process_material = fpm
+	root.add_child(fog)
+	fog.emitting = true
+	fade_mats.append([fmat, 1.0])
+
+	# Nevada sobre el camino
+	var snow := GPUParticles3D.new()
+	snow.amount = 20
+	snow.lifetime = 1.5
+	snow.preprocess = 0.8
+	snow.randomness = 0.8
+	snow.local_coords = true
+	snow.position = Vector3(0, 1.4, 0)
+	var smesh := QuadMesh.new()
+	smesh.size = Vector2(0.2, 0.2)
+	var smat := _ice_std_mat(Color(1, 1, 1, 1), _frost_flake_texture(), false, true)
+	smat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	smesh.material = smat
+	snow.draw_pass_1 = smesh
+	var spm := ParticleProcessMaterial.new()
+	spm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	spm.emission_box_extents = Vector3(half_w, 0.4, half_len)
+	spm.direction = Vector3(0, -1, 0)
+	spm.spread = 14.0
+	spm.initial_velocity_min = 0.8
+	spm.initial_velocity_max = 1.5
+	spm.gravity = Vector3(0, -0.6, 0)
+	spm.damping_min = 0.2
+	spm.damping_max = 0.6
+	spm.scale_min = 0.7
+	spm.scale_max = 1.4
+	spm.angle_min = -180.0
+	spm.angle_max = 180.0
+	spm.angular_velocity_min = -70.0
+	spm.angular_velocity_max = 70.0
+	var sgrad := Gradient.new()
+	sgrad.set_color(0, Color(core_col.r, core_col.g, core_col.b, 0.0))
+	sgrad.add_point(0.2, Color(core_col.r, core_col.g, core_col.b, 0.95))
+	sgrad.set_color(1, Color(mist_col.r, mist_col.g, mist_col.b, 0.0))
+	spm.color_ramp = GradientTexture1D.new()
+	spm.color_ramp.gradient = sgrad
+	snow.process_material = spm
+	root.add_child(snow)
+	snow.emitting = true
+	fade_mats.append([smat, 1.0])
+
+	# Destellos frios
+	var glint := GPUParticles3D.new()
+	glint.amount = glint_amount
+	glint.lifetime = 1.2
+	glint.preprocess = 0.4
+	glint.randomness = 0.9
+	glint.local_coords = true
+	glint.position = Vector3(0, 0.6, 0)
+	var glmesh := QuadMesh.new()
+	glmesh.size = Vector2(0.28, 0.28)
+	var glmat := _ice_std_mat(Color(1, 1, 1, 1), FROST_GLOW_TEX, true, true)
+	glmat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	glmesh.material = glmat
+	glint.draw_pass_1 = glmesh
+	var glpm := ParticleProcessMaterial.new()
+	glpm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	glpm.emission_box_extents = Vector3(half_w * 0.8, 0.5, half_len * 0.8)
+	glpm.direction = Vector3(0, 1, 0)
+	glpm.spread = 180.0
+	glpm.initial_velocity_min = 0.3
+	glpm.initial_velocity_max = 0.9
+	glpm.gravity = Vector3.ZERO
+	glpm.damping_min = 0.5
+	glpm.damping_max = 1.0
+	glpm.scale_min = 0.6
+	glpm.scale_max = 1.3
+	var glgrad := Gradient.new()
+	glgrad.set_color(0, Color(1.0, 1.0, 1.0, 0.0))
+	glgrad.add_point(0.25, Color(glint_col.r, glint_col.g, glint_col.b, 0.9))
+	glgrad.set_color(1, Color(glint_col.r, glint_col.g, glint_col.b, 0.0))
+	glpm.color_ramp = GradientTexture1D.new()
+	glpm.color_ramp.gradient = glgrad
+	glint.process_material = glpm
+	root.add_child(glint)
+	glint.emitting = true
+	fade_mats.append([glmat, 1.0])
+
+	# Estelas de propulsion hacia atras (tiers naranja/rojo/dorado)
+	if propulsion:
+		var streak := GPUParticles3D.new()
+		streak.amount = 14 if special else 10
+		streak.lifetime = 0.7
+		streak.randomness = 0.6
+		streak.local_coords = true
+		streak.position = Vector3(0, 0.5, -half_len * 0.8)
+		var stmesh := QuadMesh.new()
+		stmesh.size = Vector2(0.35, 0.35)
+		var stmat := _ice_std_mat(Color(1, 1, 1, 1), FROST_STREAK_TEX, true, true)
+		stmat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		stmesh.material = stmat
+		streak.draw_pass_1 = stmesh
+		var stpm := ParticleProcessMaterial.new()
+		stpm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		stpm.emission_sphere_radius = 0.4
+		stpm.direction = Vector3(0, 0.3, -1.0)
+		stpm.spread = 16.0
+		stpm.initial_velocity_min = mist_vel * s_factor
+		stpm.initial_velocity_max = mist_vel * s_factor * 2.2
+		stpm.gravity = Vector3.ZERO
+		stpm.damping_min = 1.0
+		stpm.damping_max = 2.0
+		stpm.scale_min = 0.8
+		stpm.scale_max = 1.6
+		var stgrad := Gradient.new()
+		stgrad.set_color(0, Color(core_col.r, core_col.g, core_col.b, 1.0))
+		stgrad.add_point(0.5, Color(mist_col.r, mist_col.g, mist_col.b, 0.8))
+		stgrad.set_color(1, Color(mist_col.r, mist_col.g, mist_col.b, 0.0))
+		stpm.color_ramp = GradientTexture1D.new()
+		stpm.color_ramp.gradient = stgrad
+		streak.process_material = stpm
+		root.add_child(streak)
+		streak.emitting = true
+		fade_mats.append([stmat, 1.0])
+
+	# Estacas de hielo con volumen
+	for ci in range(rng.randi_range(2, 3)):
+		var spike := MeshInstance3D.new()
+		var cone := CylinderMesh.new()
+		cone.top_radius = 0.03
+		cone.bottom_radius = 0.16
+		cone.height = 1.0
+		cone.radial_segments = 6
+		spike.mesh = cone
+		var sh := rng.randf_range(0.5, 1.1)
+		spike.scale = Vector3.ZERO
+		spike.position = Vector3(rng.randf_range(-half_w, half_w) * 0.7, 0.45 * sh, rng.randf_range(-half_len, half_len) * 0.7)
+		spike.rotation = Vector3(rng.randf_range(-0.15, 0.15), rng.randf_range(0.0, TAU), rng.randf_range(-0.15, 0.15))
+		var spike_mat := _ice_std_mat(Color(core_col.r, core_col.g, core_col.b, 0.92), null, false, true)
+		spike.material_override = spike_mat
+		fade_mats.append([spike_mat, 0.92])
+		root.add_child(spike)
+		var twc := root.create_tween()
+		twc.tween_interval(0.05 + ci * 0.08)
+		twc.tween_property(spike, "scale", Vector3(1.0, sh, 1.0), 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	# Pulso especial del tier dorado
+	if special:
+		var twg := root.create_tween().set_loops()
+		twg.tween_property(root, "scale", Vector3.ONE * 1.05, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		twg.tween_property(root, "scale", Vector3.ONE, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# Entrada: la escarcha brota del piso
+	root.scale = Vector3.ONE * 0.55
+	var tw_in := root.create_tween()
+	tw_in.tween_property(root, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _prune_frost_chains(now_ms: int) -> void:
+	var stale: Array = []
+	for k in frost_last_pos.keys():
+		var rec: Dictionary = frost_last_pos[k]
+		if now_ms - int(rec.get("t", 0)) > 4000:
+			stale.append(k)
+	for k in stale:
+		frost_last_pos.erase(k)
 
 func _on_remove_area(data: Dictionary):
 	var id = data.get("id", "")
@@ -2796,6 +3165,13 @@ func _on_remove_area(data: Dictionary):
 					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(area))
 				else:
 					area.queue_free()
+			elif area is Node3D and str(area.get_meta("type", "")) == "ice":
+				for child in area.get_children():
+					if child is GPUParticles3D:
+						child.emitting = false
+				var twm = area.create_tween()
+				twm.tween_method(func(v: float): _fade_ice_mats(area, v), 1.0, 0.0, 1.0)
+				twm.tween_callback(area.queue_free)
 			elif area is Node3D:
 				var particles = area.get_node_or_null("SmokeCloud") as GPUParticles3D
 				if is_instance_valid(particles):
@@ -2816,10 +3192,20 @@ func _on_remove_area(data: Dictionary):
 							area.queue_free()
 						)
 			else:
-				var tw = area.create_tween().set_parallel(true)
-				tw.tween_property(area, "scale", Vector2(0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-				tw.tween_property(area, "modulate:a", 0.0, 0.15)
-				tw.chain().tween_callback(area.queue_free)
+				if area is Node2D and str(area.get_meta("type", "")) == "ice":
+					for child in area.get_children():
+						if child is CPUParticles2D:
+							child.emitting = false
+					var tw_ice = area.create_tween().set_parallel(true)
+					var melt_d := 0.5 + randf() * 0.35
+					tw_ice.tween_property(area, "modulate:a", 0.0, melt_d).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+					tw_ice.tween_property(area, "scale", Vector2(0.94, 0.94), melt_d).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+					tw_ice.chain().tween_callback(area.queue_free)
+				else:
+					var tw = area.create_tween().set_parallel(true)
+					tw.tween_property(area, "scale", Vector2(0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+					tw.tween_property(area, "modulate:a", 0.0, 0.15)
+					tw.chain().tween_callback(area.queue_free)
 
 func _recycle_children_recursive(node: Node):
 	for child in node.get_children():

@@ -110,8 +110,8 @@ func _ready():
 		skills_hud._ready()
 	if control_bar and control_bar.has_method("_ready"):
 		control_bar._ready()
-	if center_stats and center_stats.has_method("_ready"):
-		center_stats._ready()
+	if center_stats:
+		center_stats.visible = false
 	
 	# v210.190: Inyectar HUD Notifier (Paridad con Web)
 	_setup_notifier()
@@ -163,7 +163,9 @@ func _ready():
 		NetworkManager.altar_defense_success.connect(_on_altar_defense_success)
 
 	# v305.95: Aplicar Marcos Sci-Fi (Diseño Aerospace Tactical Glass AAA)
-	_apply_sci_fi_frame(center_stats, false, "panel", Color(0.0, 0.82, 0.96, 0.85), "Estadisticas")
+	# CenterStats eliminado del HUD (datos en pestaña Estadísticas del inventario)
+	if center_stats:
+		center_stats.visible = false
 	_apply_sci_fi_frame(radar_window, false, "radar", Color(0.0, 0.82, 0.96, 0.85)) # Minimapa con marco táctico de radar
 	
 	# v306.10: Aplicar a Panel de Equipo con marco visible
@@ -207,11 +209,8 @@ func _inject_components():
 		control_bar.set_script(load("res://scripts/systems/TouchControls.gd"))
 		print("[MainHUD] Script TouchControls.gd inyectado en $ControlBar")
 		
-	# 3. Componente de Estadísticas
-	if center_stats and center_stats.get_script() != load("res://scripts/systems/StatsHUD.gd"):
-		center_stats.set_script(load("res://scripts/systems/StatsHUD.gd"))
-		print("[MainHUD] Script StatsHUD.gd inyectado en $CenterStats")
-
+	# 3. Estadísticas eliminadas del HUD (ya no existe el panel CenterStats)
+	
 func _on_game_notification(data: Dictionary):
 	var msg = data.get("msg", "")
 	var type = data.get("type", "info")
@@ -614,7 +613,6 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	var _default_wins = ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		_default_wins.append("CamEdit")
-		_default_wins.append("VirtualJoystick")
 		
 	if not config.is_empty():
 		_hud_visibility_initialized = true
@@ -802,10 +800,9 @@ func _on_icon_pressed(id: String):
 func _persist_hud_visibility():
 	if is_editing_layout:
 		return # No persistir estado ficticio del editor (todas forzadas visibles)
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
+	var wins = ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("CamEdit")
-		wins.append("VirtualJoystick")
 	var config = {}
 	for win_id in wins:
 		var n = _get_hud_node(win_id)
@@ -1043,7 +1040,6 @@ func toggle_esc_menu():
 
 func _get_default_positions() -> Dictionary:
 	var default_layout = {
-		"CenterStats":     { "x": 1063,  "y": 21,    "scale": 0.5, "alpha": 1.0 },
 		"ChatUI":          { "x": 12,    "y": 545,   "scale": 0.5, "alpha": 1.0 },
 		"RadarWindow":     { "x": 1066,  "y": 564,   "scale": 0.5, "alpha": 1.0 },
 		"SkillsContainer": { "x": 101,   "y": 684,   "scale": 0.5, "alpha": 1.0 },
@@ -1087,16 +1083,6 @@ func _restore_default_layout():
 	}
 	_apply_hud_data(default_layout, default_config)
 	
-	var joy = _get_hud_node("VirtualJoystick")
-	if joy:
-		var joy_enabled = SettingsManager.mobile_mode if SettingsManager else false
-		joy.visible = joy_enabled
-		joy.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if joy_enabled:
-			joy.global_position = Vector2(20, 680)
-		else:
-			joy.global_position = Vector2(-2000, -2000)
-	
 	var editor_ui = get_node_or_null("EditLayoutUI")
 	if editor_ui:
 		var pp = editor_ui.find_child("PropertyPanel", true, false)
@@ -1110,7 +1096,7 @@ func _restore_default_layout():
 	
 	if is_editing_layout:
 		await get_tree().process_frame
-		for win_id in ["Skills", "CenterStats", "RadarWindow", "ChatUI"]:
+		for win_id in ["Skills", "RadarWindow", "ChatUI"]:
 			var win = _get_hud_node(win_id)
 			if win:
 				var gp = win.global_position
@@ -1373,6 +1359,8 @@ func toggle_hud_editing(slot_index: int = -1):
 		_editing_slot_index = slot_index
 		_capture_visibility_before_editing()
 		_backup_layout()
+		if center_stats:
+			center_stats.visible = false
 		
 		if _editing_slot_index >= 0 and _editing_slot_index < _hud_layouts.size():
 			var slot = _hud_layouts[_editing_slot_index]
@@ -1616,10 +1604,9 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
+	var wins = ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("CamEdit")
-		wins.append("VirtualJoystick")
 		
 	for win_id in wins:
 		var win = _get_hud_node(win_id)
@@ -1652,7 +1639,7 @@ func _make_node_draggable(node: Control, _hud_id: String):
 			overlay.name = "DragOverlay_" + _hud_id
 			overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 			
-			var is_circular = _hud_id in ["PortalBtnContainer", "VirtualJoystick"]
+			var is_circular = _hud_id in ["PortalBtnContainer"]
 			
 			# Fondo translúcido (solo si no es circular)
 			var bg = ColorRect.new()
@@ -1690,12 +1677,10 @@ func _make_node_draggable(node: Control, _hud_id: String):
 				lbl.name = "OverlayLabel"
 				var clean_name = _hud_id
 				if clean_name == "ChatUI": clean_name = "CHAT"
-				elif clean_name == "CenterStats": clean_name = "ESTADÍSTICAS"
 				elif clean_name == "PartyHUD": clean_name = "EQUIPO"
 				elif clean_name == "ControlBar": clean_name = "CONTROLES"
 				elif clean_name == "StatusEffects": clean_name = "ESTADOS ACTÍVOS"
 				elif clean_name == "TargetFrame": clean_name = "MARCO OBJETIVO"
-				elif clean_name == "VirtualJoystick": clean_name = "JOYSTICK"
 				elif clean_name == "PortalBtnContainer": clean_name = "BOTÓN ACCIÓN"
 				elif clean_name == "CamEdit" or clean_name == "CamTouchPadContainer": clean_name = "CAM 3D"
 				elif clean_name == "CombatMeter": clean_name = "MÉTRICAS DE COMBATE"
@@ -1736,10 +1721,9 @@ func _sync_all_drag_overlays():
 			if child is Control and child.name != "DragOverlay":
 				_sync_overlay_for_node(child, child.name)
 				
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
+	var wins = ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("CamEdit")
-		wins.append("VirtualJoystick")
 		
 	for win_id in wins:
 		var win = _get_hud_node(win_id)
@@ -1906,7 +1890,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 			}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]:
+	for win_id in ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wpos = get_normalized_pos.call(win, 1280.0, 800.0)
@@ -1964,7 +1948,7 @@ func _backup_layout():
 					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 				}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]:
+	for win_id in ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wdata = {}
@@ -1991,10 +1975,9 @@ func _restore_layout_backup():
 
 func _capture_visibility_before_editing():
 	_visibility_before_editing.clear()
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
+	var wins = ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("CamEdit")
-		wins.append("VirtualJoystick")
 		
 	for win_id in wins:
 		var win = _get_hud_node(win_id)
@@ -2023,14 +2006,11 @@ func _restore_visibility_after_editing():
 				win.visible = _visibility_before_editing[win_id]
 				_update_icon_state(win_id, win.visible)
 				
-	# En móvil, asegurar comportamiento correcto de joystick y touchpad
+	# En móvil, asegurar comportamiento correcto del touchpad (el joystick es flotante, no del editor)
 	if SettingsManager and SettingsManager.mobile_mode:
 		var cam_pad = get_node_or_null("CamTouchPadContainer")
 		if cam_pad:
 			cam_pad.visible = (int(SettingsManager.mobile_camera_edit_enabled) == 1)
-		var joy = _get_hud_node("VirtualJoystick")
-		if joy:
-			joy.visible = false
 			
 	_visibility_before_editing.clear()
 	_persist_hud_visibility()

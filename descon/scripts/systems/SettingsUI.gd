@@ -511,6 +511,9 @@ func _setup_ui():
 	res_option.item_selected.connect(func(idx):
 		if get_node_or_null("/root/SettingsManager"):
 			var selected_text = res_option.get_item_text(idx)
+			if SettingsManager.window_mode != 0:
+				SettingsManager.window_mode = 0
+				win_mode_option.selected = 0
 			SettingsManager.apply_resolution(selected_text)
 			SettingsManager.save_settings()
 	)

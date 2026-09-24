@@ -49,7 +49,7 @@ var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
 var show_stars: bool = false            # Activar estrellas en el cielo (desactivado por defecto)
 var minimap_rotate: bool = false        # Minimapa rotatorio (gira con la nave)
 var window_mode: int = 0                 # 0: Ventana, 1: Pantalla Completa, 2: Ventana sin Bordes
-var screen_resolution: String = "1280x800"
+var screen_resolution: String = "1280x720"
 var render_scale_3d: float = 1.0          # Escala interna 3D (0.3 a 1.0)
 
 # Mapeo de clicks configurables (PC)
@@ -183,10 +183,10 @@ func reset_to_factory():
 	show_player_stats = true
 	show_enemy_stats = true
 	window_mode = 0
-	screen_resolution = "1280x800"
+	screen_resolution = "1280x720"
 	render_scale_3d = 1.0
 	apply_window_mode(0)
-	apply_resolution("1280x800")
+	apply_resolution("1280x720")
 	apply_fps_limit(60)
 	
 	font_size_player_name = 13
@@ -297,7 +297,9 @@ func load_settings():
 		show_stars = config_file.get_value("graphics", "show_stars", false)
 		minimap_rotate = config_file.get_value("graphics", "minimap_rotate", false)
 		window_mode = config_file.get_value("graphics", "window_mode", 0)
-		screen_resolution = config_file.get_value("graphics", "screen_resolution", "1280x800")
+		screen_resolution = config_file.get_value("graphics", "screen_resolution", "1280x720")
+		if screen_resolution == "1280x800":
+			screen_resolution = "1280x720"
 		render_scale_3d = config_file.get_value("graphics", "render_scale_3d", 1.0)
 		music_volume = config_file.get_value("audio", "music_volume", 60.0)
 		music_muted = config_file.get_value("audio", "music_muted", false)
@@ -404,18 +406,23 @@ func apply_window_mode(mode: int):
 	window_mode = mode
 	var os = OS.get_name()
 	if os == "Android" or os == "iOS":
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 		return
 
 	match mode:
 		0: # Ventana
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			apply_resolution(screen_resolution)
 		1: # Pantalla Completa
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
-		2: # Ventana sin Bordes
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		2: # Ventana sin Bordes (Borderless Fullscreen)
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+			var screen_res = DisplayServer.screen_get_size()
+			DisplayServer.window_set_position(Vector2i.ZERO)
+			DisplayServer.window_set_size(screen_res)
 	print("[SETTINGS] Modo de ventana aplicado: ", mode)
 
 func apply_resolution(res_str: String):
@@ -423,17 +430,34 @@ func apply_resolution(res_str: String):
 	var os = OS.get_name()
 	if os == "Android" or os == "iOS":
 		return
+	
+	var screen_res = DisplayServer.screen_get_size()
+	var w = 1280
+	var h = 720
+	
 	if res_str == "Auto" or res_str == "Nativa" or res_str == "Auto / Nativa" or res_str == "":
-		return
-	var parts = res_str.split("x")
-	if parts.size() == 2:
-		var w = int(parts[0])
-		var h = int(parts[1])
-		if w > 0 and h > 0:
-			DisplayServer.window_set_size(Vector2i(w, h))
-			var screen_res = DisplayServer.screen_get_size()
-			DisplayServer.window_set_position(Vector2i((screen_res.x - w) / 2, (screen_res.y - h) / 2))
-			print("[SETTINGS] Resolución de ventana aplicada: ", res_str)
+		# Resolución automática de ventana: 85% de la pantalla del usuario (centrada)
+		w = int(screen_res.x * 0.85)
+		h = int(screen_res.y * 0.85)
+	else:
+		var parts = res_str.split("x")
+		if parts.size() == 2:
+			w = int(parts[0])
+			h = int(parts[1])
+
+	# Asegurar que no sea más grande que la pantalla física
+	if w > screen_res.x: w = screen_res.x
+	if h > screen_res.y: h = screen_res.y
+
+	if w > 0 and h > 0:
+		# Si la ventana estaba en pantalla completa o maximizada, forzar ventana normal primero
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+		DisplayServer.window_set_size(Vector2i(w, h))
+		var pos_x = maxi(0, (screen_res.x - w) / 2)
+		var pos_y = maxi(0, (screen_res.y - h) / 2)
+		DisplayServer.window_set_position(Vector2i(pos_x, pos_y))
+		print("[SETTINGS] Resolución de ventana aplicada: ", w, "x", h, " en posición: ", pos_x, ",", pos_y)
 
 func _apply_key_to_inputmap(action: String, val):
 	if not InputMap.has_action(action): InputMap.add_action(action)

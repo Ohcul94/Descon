@@ -19,6 +19,10 @@ const VFX_HexTexture = preload("res://VFX/textures/T_Hex1_inv.jpg")
 const VFX_SmokeTexture = preload("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
 const VFX_FlareTexture = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
 const VFX_WaterNormalTexture = preload("res://VFX/textures/T_GW_WaterNormal_01_b.PNG")
+# Propulsión 3D: precargados para no construir resources en runtime (FPS)
+const PropProcMaterial = preload("res://assets/VFX/Propulsion/propulsion_material.tres")
+const PropMeshMaterial = preload("res://assets/VFX/Propulsion/propulsion_mesh_material.tres")
+const PropSparkProcMaterial = preload("res://assets/VFX/Propulsion/propulsion_spark_material.tres")
 
 signal debuffs_updated
 
@@ -59,13 +63,24 @@ const TEX_REFLECT_IMPACT = preload("res://assets/Efectos de Skills/Reflect (Rojo
 # Caché estática de recursos para propulsión 3D optimizada
 static var _prop_proc_material: ParticleProcessMaterial = null
 static var _prop_material: StandardMaterial3D = null
-static var _prop_mesh: QuadMesh = null
+# Rampas de color por tier de velocidad (0 celeste → 4 dorada especial)
+static var _prop_tier_ramps: Array = []
+
+# Velocidad (px/s) hasta la que la propulsión va de 0 → intensidad plena.
+# Por encima queda uniforme. Al frenar se recorre la misma rampa al revés.
+const PROPULSION_RAMP_SPEED := 60.0
 
 # Entity.gd (v150.21 - Non-Triangular Xeno Engine & Raw Variant Support)
 # Eliminación Absoluta de Triángulos en Enemigos. Siluetas Geométricas Puras.
 
 var entity_id: String = ""
 var _3d_propulsion: GPUParticles3D = null
+var _prop_ignition: float = 0.0 # 0→1: encendido suave de la llama (alfa, sin recortar partículas)
+var _prop_mesh_mat: StandardMaterial3D = null # Material propio por entidad (alpha animable)
+var _prop_proc_mat: ParticleProcessMaterial = null # Process material propio (color_ramp por velocidad)
+var _prop_color_tier: int = -1 # Tier de color actual (-1 = sin aplicar aún)
+var _prop_sparks: GPUParticles3D = null # Chispas premium solo en tier dorado (451+)
+var _prop_spark_mat: StandardMaterial3D = null # Alfa de las chispas
 var db_id: String = "" # v243.80: Identidad persistente (MongoDB ID)
 var username: String = "Unknown"
 var entity_type: int = 1
@@ -424,6 +439,8 @@ func _process(delta):
 				sprite.visible = false
 			if is_instance_valid(_3d_propulsion) and _3d_propulsion.emitting:
 				_3d_propulsion.emitting = false
+			if is_instance_valid(_prop_sparks) and _prop_sparks.emitting:
+				_prop_sparks.emitting = false
 			set_meta("_was_screen_visible", false)
 			return # CORTOCIRCUITO COMPLETO: Salva 100% de cálculos en cada frame
 		else:
@@ -805,11 +822,39 @@ func _process(delta):
 			_3d_model.rotation.x = abs(_bank_current) * 0.12
 			_3d_model.rotation.z = -_bank_current * 0.4
 		
-		# Control de emisión de propulsión 3D basada en velocidad
+		# Propulsión 3D: encendido tipo soplete/calefactor
+		# - Densidad de partículas SIEMPRE plena (continua, sin discontinuidad tipo Roblox)
+		# - El "encendido" (alfa) depende de la velocidad REAL de movimiento
+		# - El COLOR depende solo del speed de STATS (no de slows ni desaceleración)
 		if is_instance_valid(_3d_propulsion):
-			var is_moving = velocity.length() > 15.0 and not is_dead
-			if _3d_propulsion.emitting != is_moving:
-				_3d_propulsion.emitting = is_moving
+			var spd = velocity.length()
+			var intensity = 0.0 if is_dead else clamp(spd / PROPULSION_RAMP_SPEED, 0.0, 1.0)
+			intensity = smoothstep(0.0, 1.0, intensity)
+			_prop_ignition = lerp(_prop_ignition, intensity, 1.0 - exp(-9.0 * delta))
+			# Color SIEMPRE por stats de velocidad (estable al acelerar/desacelerar/slow)
+			if not is_dead and is_instance_valid(_prop_proc_mat):
+				var tier = _propulsion_color_tier(_get_propulsion_stats_speed())
+				if tier != _prop_color_tier:
+					_prop_color_tier = tier
+					_prop_proc_mat.color_ramp = _get_prop_tier_ramp(tier)
+			# Alfa de la llama + pulso premium dorado (solo tier 4; sin inflar el azul → no se pone blanco)
+			if is_instance_valid(_prop_mesh_mat):
+				var a = _prop_ignition
+				if _prop_color_tier == 4 and not is_dead:
+					var t := Time.get_ticks_msec() * 0.001
+					var pulse := 1.0 + sin(t * 7.0) * 0.10 + sin(t * 13.0) * 0.05
+					_prop_mesh_mat.albedo_color = Color(pulse, pulse * 0.9, pulse * 0.75, a)
+				else:
+					_prop_mesh_mat.albedo_color = Color(1.0, 1.0, 1.0, a)
+			_3d_propulsion.scale = Vector3.ONE
+			_3d_propulsion.amount_ratio = 1.0
+			_3d_propulsion.emitting = _prop_ignition > 0.02
+			# Chispas premium: SOLO activas en el tier dorado y con llama encendida
+			if is_instance_valid(_prop_sparks):
+				var spark_a := _prop_ignition if (_prop_color_tier == 4 and not is_dead) else 0.0
+				if is_instance_valid(_prop_spark_mat):
+					_prop_spark_mat.albedo_color.a = spark_a
+				_prop_sparks.emitting = spark_a > 0.05
 		
 		# 4. ACTUALIZAR ÓRBITA DE ESFERAS (Sincronización suave + Inventario)
 		# El avance de ángulo y el posicionamiento se hacen en el bloque v235.69
@@ -1825,6 +1870,13 @@ func die():
 	
 	if is_instance_valid(_3d_propulsion):
 		_3d_propulsion.emitting = false
+	if is_instance_valid(_prop_sparks):
+		_prop_sparks.emitting = false
+	_prop_ignition = 0.0
+	if is_instance_valid(_prop_mesh_mat):
+		_prop_mesh_mat.albedo_color.a = 0.0
+	if is_instance_valid(_prop_spark_mat):
+		_prop_spark_mat.albedo_color.a = 0.0
 	
 	# Limpieza explícita de esferas 3D en muerte para evitar que queden flotando y agrandadas
 	for s in _3d_spheres:
@@ -2110,6 +2162,12 @@ func _setup_enemy_visuals():
 		world_root_3d = null
 	_3d_model = null
 	_3d_propulsion = null
+	_prop_mesh_mat = null
+	_prop_proc_mat = null
+	_prop_sparks = null
+	_prop_spark_mat = null
+	_prop_color_tier = -1
+	_prop_ignition = 0.0
 	
 	for c in get_children():
 		if "Viewport" in c.name or c is Sprite2D or c is Polygon2D or c.name == "Ship3DRender" or c.name == "WaterOrbVisual" or (c is Line2D and c.name == "WaterOrbRing"):
@@ -2603,6 +2661,11 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				tw.tween_interval(3.0)
 				tw.tween_callback(parts.queue_free)
 				
+		"FROST-TRAIL", "FROST_ACTIVATE":
+			var _now_frost := Time.get_ticks_msec() / 1000.0
+			if _now_frost - float(get_meta("frost_vfx_last", -10.0)) > 0.6:
+				set_meta("frost_vfx_last", _now_frost)
+				_play_frost_activate_vfx()
 		"INVULNERABILIDAD":
 			invulnerable_timer = _get_skill_duration("INVULNERABILIDAD", {}, 2.0) # Activar visual 3D amarilla
 			print("[SKILL] Activando visual de INVULNERABILIDAD para: ", username)
@@ -2622,6 +2685,68 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			tw.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.15)
 
 
+func _frost_ring(base_radius: float, width: float, dur: float, scale_to: float) -> void:
+	var ring := Line2D.new()
+	var pts := PackedVector2Array()
+	for i in range(49):
+		var ang := TAU * float(i) / 48.0
+		var wob := 1.0 + 0.05 * sin(ang * 5.0)
+		pts.append(Vector2(cos(ang), sin(ang)) * base_radius * wob)
+	ring.points = pts
+	ring.width = width
+	ring.default_color = Color(0.78, 0.94, 1.0, 0.95)
+	ring.antialiased = true
+	var m := CanvasItemMaterial.new()
+	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	ring.material = m
+	ring.z_index = 6
+	add_child(ring)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(ring, "scale", Vector2(scale_to, scale_to), dur).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(ring, "modulate:a", 0.0, dur).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(ring.queue_free)
+
+func _play_frost_activate_vfx() -> void:
+	_frost_ring(30.0, 3.5, 0.5, 3.2)
+	_frost_ring(17.0, 2.2, 0.42, 2.4)
+	if is_instance_valid(_3d_model):
+		var parts := CPUParticles3D.new()
+		parts.one_shot = true
+		parts.amount = 30
+		parts.lifetime = 0.6
+		parts.explosiveness = 0.8
+		var mesh := QuadMesh.new()
+		mesh.size = Vector2(0.22, 0.22)
+		var mat := StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		mat.vertex_color_use_as_albedo = true
+		mat.albedo_texture = DashSparkTexture
+		mesh.material = mat
+		parts.mesh = mesh
+		parts.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		parts.emission_sphere_radius = 0.7
+		parts.direction = Vector3.UP
+		parts.spread = 70.0
+		parts.initial_velocity_min = 2.0
+		parts.initial_velocity_max = 4.5
+		parts.gravity = Vector3(0, -1.5, 0)
+		parts.scale_amount_min = 0.6
+		parts.scale_amount_max = 1.3
+		var grad := Gradient.new()
+		grad.set_color(0, Color(0.95, 0.99, 1.0, 1.0))
+		grad.add_point(0.4, Color(0.5, 0.82, 1.0, 0.85))
+		grad.set_color(1, Color(0.2, 0.5, 1.0, 0.0))
+		parts.color_ramp = grad
+		parts.position = Vector3(0, 0.2, 0)
+		_3d_model.add_child(parts)
+		parts.emitting = true
+		var twp := create_tween()
+		twp.tween_interval(parts.lifetime + 0.4)
+		twp.tween_callback(parts.queue_free)
+
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
 func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: float = 0.0, auto_anim: String = ""):
 	# print("[3D] Inicializando renderizado para: ", glb_path)
@@ -2631,6 +2756,12 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 		world_root_3d.queue_free()
 		world_root_3d = null
 	_3d_propulsion = null
+	_prop_mesh_mat = null
+	_prop_proc_mat = null
+	_prop_sparks = null
+	_prop_spark_mat = null
+	_prop_color_tier = -1
+	_prop_ignition = 0.0
 	_3d_anim_player = null
 	
 	# Detectar si hay un lienzo 3D global en el mapa actual
@@ -2847,24 +2978,31 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 
 func _setup_propulsion_particles(parent: Node3D):
 	_3d_propulsion = null
+	_prop_proc_mat = null
+	_prop_sparks = null
+	_prop_spark_mat = null
+	_prop_color_tier = -1
 	
-	var proc_path = "res://assets/VFX/Propulsion/propulsion_material.tres"
-	var mesh_path = "res://assets/VFX/Propulsion/propulsion_mesh_material.tres"
-	
-	if not ResourceLoader.exists(proc_path) or not ResourceLoader.exists(mesh_path):
-		return
-		
-	# 1. Cargar materiales y mallas estáticas de forma segura (Lazy Initialization)
+	# 1. Materiales precargados en const (sin load en runtime → sin hitch de FPS)
 	if not _prop_proc_material:
-		_prop_proc_material = load(proc_path)
-
+		_prop_proc_material = PropProcMaterial
 	if not _prop_material:
-		_prop_material = load(mesh_path)
+		_prop_material = PropMeshMaterial
 
-	if not _prop_mesh:
-		_prop_mesh = QuadMesh.new()
-		_prop_mesh.material = _prop_material
-		_prop_mesh.size = Vector2(0.35, 0.35) # Tamaño ideal para la llama difusa
+	# Material propio por entidad → poder fundir el alfa sin tocar a las demás naves
+	_prop_mesh_mat = (_prop_material as StandardMaterial3D).duplicate() as StandardMaterial3D
+	_prop_mesh_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_prop_mesh_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_prop_mesh_mat.albedo_color = Color(1, 1, 1, 0.0)
+
+	# Process material propio → color_ramp según stats de velocidad
+	_prop_proc_mat = (_prop_proc_material as ParticleProcessMaterial).duplicate() as ParticleProcessMaterial
+	_prop_color_tier = _propulsion_color_tier(_get_propulsion_stats_speed())
+	_prop_proc_mat.color_ramp = _get_prop_tier_ramp(_prop_color_tier)
+
+	var prop_mesh = QuadMesh.new()
+	prop_mesh.material = _prop_mesh_mat
+	prop_mesh.size = Vector2(0.12, 0.12) # Ancho fino actual (no se toca)
 
 	# 2. Determinar la posición según el modelo de nave
 	# Colgado de control_node, la nave apunta a +X, por lo que el escape siempre es -X.
@@ -2884,13 +3022,15 @@ func _setup_propulsion_particles(parent: Node3D):
 	# 3. Instanciar el emisor local de partículas de propulsión
 	var particles = GPUParticles3D.new()
 	particles.name = "ThrusterParticles"
-	particles.amount = 60 # Mayor densidad para suavizado de llama de plasma continuo
-	particles.lifetime = 0.05 # Más corto y compacto para evitar estela larga
+	particles.amount = 96 # Muchas partículas pequeñas → chorro compacto y suave
+	particles.lifetime = 0.05 # Largo de antes (colores = rampa normalizada)
 	particles.preprocess = 0.05
-	particles.local_coords = false # Rastro estático al moverse
+	particles.local_coords = true # Llama anclada a la tobera (se mueve rígida con la nave)
+	particles.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3, 3, 3))
+	particles.amount_ratio = 1.0 # Densidad siempre plena (el encendido es por alfa)
 	
-	particles.process_material = _prop_proc_material
-	particles.draw_pass_1 = _prop_mesh
+	particles.process_material = _prop_proc_mat
+	particles.draw_pass_1 = prop_mesh
 	
 	# Añadir al parent
 	parent.add_child(particles)
@@ -2898,7 +3038,125 @@ func _setup_propulsion_particles(parent: Node3D):
 	
 	# Posición del escape detrás del modelo de la nave
 	particles.position = offset
-	particles.emitting = false # Inicia apagado hasta que se mueva
+	particles.emitting = false # Se enciende con fundido de alfa al ganar velocidad
+	_prop_ignition = 0.0
+
+	# 4. Chispas premium (tier dorado 451+): rayitos dorados hacia ATRÁS (-X), pocos e irregulares
+	_prop_spark_mat = (_prop_material as StandardMaterial3D).duplicate() as StandardMaterial3D
+	_prop_spark_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_prop_spark_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_prop_spark_mat.albedo_color = Color(1, 1, 1, 0.0)
+	var spark_mesh := QuadMesh.new()
+	spark_mesh.size = Vector2(0.14, 0.028) # Rayito alargado, no punto redondo
+	spark_mesh.material = _prop_spark_mat
+	var sparks := GPUParticles3D.new()
+	sparks.name = "ThrusterSparks"
+	sparks.amount = 10 # Pocos → más lectura de rayito, menos costo
+	sparks.lifetime = 0.12
+	sparks.preprocess = 0.12
+	sparks.randomness = 1.0
+	sparks.local_coords = true
+	sparks.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3, 3, 3))
+	sparks.amount_ratio = 1.0
+	sparks.process_material = PropSparkProcMaterial # Precargado, compartido, barato
+	sparks.draw_pass_1 = spark_mesh
+	sparks.position = offset
+	sparks.emitting = false
+	parent.add_child(sparks)
+	_prop_sparks = sparks
+
+# Tramos de color de propulsión según STATS de velocidad (px/s), NO velocity actual:
+# 0-300 celeste fino | 301-350 azul fuerte | 351-400 naranja | 401-450 rojo | 451+ dorada especial
+# Los slows/desaceleración no cambian el tier: solo el speed de stats (equip, buffs, nave).
+func _propulsion_color_tier(stats_speed: float) -> int:
+	if stats_speed <= 300.0:
+		return 0
+	if stats_speed <= 350.0:
+		return 1
+	if stats_speed <= 400.0:
+		return 2
+	if stats_speed <= 450.0:
+		return 3
+	return 4
+
+# Speed de ficha del personaje/nave (no incluye slows de movimiento).
+func _get_propulsion_stats_speed() -> float:
+	if "speed" in self:
+		return float(get("speed"))
+	# Enemigos / NPCs: speed de config
+	var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
+	if enemy_cfg.has("speed"):
+		return float(enemy_cfg.speed)
+	# Fallback: speed base del modelo de nave
+	if GameConstants.SHIP_MODELS:
+		for s in GameConstants.SHIP_MODELS:
+			if int(s.get("id", -1)) == int(current_ship_id):
+				return float(s.get("speed", 300.0))
+	return 300.0
+
+static func _make_prop_ramp(offsets: PackedFloat32Array, colors: PackedColorArray) -> GradientTexture1D:
+	var g := Gradient.new()
+	g.offsets = offsets
+	g.colors = colors
+	var tex := GradientTexture1D.new()
+	tex.gradient = g
+	return tex
+
+static func _get_prop_tier_ramp(tier: int) -> GradientTexture1D:
+	if _prop_tier_ramps.is_empty():
+		# Tier 0 — Celeste (más verde→cian, claramente celeste)
+		_prop_tier_ramps.append(_make_prop_ramp(
+			PackedFloat32Array([0, 0.15, 0.5, 1]),
+			PackedColorArray([
+				Color(0.4, 2.8, 3.6, 1.0),
+				Color(0.1, 1.6, 2.4, 0.9),
+				Color(0.02, 0.5, 1.0, 0.5),
+				Color(0, 0, 0, 0),
+			])
+		))
+		# Tier 1 — Azul puro y saturado (301-350)
+		_prop_tier_ramps.append(_make_prop_ramp(
+			PackedFloat32Array([0, 0.15, 0.5, 1]),
+			PackedColorArray([
+				Color(0.15, 0.55, 5.8, 1.0),
+				Color(0.05, 0.2, 4.6, 0.95),
+				Color(0.01, 0.05, 2.2, 0.55),
+				Color(0, 0, 0, 0),
+			])
+		))
+		# Tier 2 — Naranja tirando a amarillo (351-400)
+		_prop_tier_ramps.append(_make_prop_ramp(
+			PackedFloat32Array([0, 0.15, 0.5, 1]),
+			PackedColorArray([
+				Color(5.2, 3.4, 0.35, 1.0),
+				Color(4.2, 1.9, 0.1, 0.95),
+				Color(2.0, 0.6, 0.03, 0.55),
+				Color(0, 0, 0, 0),
+			])
+		))
+		# Tier 3 — Rojo fuerte e intenso (401-450)
+		_prop_tier_ramps.append(_make_prop_ramp(
+			PackedFloat32Array([0, 0.15, 0.5, 1]),
+			PackedColorArray([
+				Color(5.6, 0.45, 0.3, 1.0),
+				Color(4.6, 0.12, 0.1, 0.95),
+				Color(2.2, 0.03, 0.03, 0.5),
+				Color(0, 0, 0, 0),
+			])
+		))
+		# Tier 4 — Dorada PREMIUM (451+): oro puro (poco azul para no blanquear con HDR aditivo)
+		_prop_tier_ramps.append(_make_prop_ramp(
+			PackedFloat32Array([0, 0.1, 0.28, 0.55, 1]),
+			PackedColorArray([
+				Color(5.6, 4.0, 0.7, 1.0),
+				Color(5.2, 3.1, 0.35, 1.0),
+				Color(4.4, 2.3, 0.15, 0.92),
+				Color(2.6, 1.3, 0.06, 0.55),
+				Color(0, 0, 0, 0),
+			])
+		))
+	tier = clampi(tier, 0, _prop_tier_ramps.size() - 1)
+	return _prop_tier_ramps[tier]
 
 func _update_reflect_aura(_delta: float):
 	# v260.20: Aura 2D desactivada en favor del sistema de Escudo de Energía 3D
@@ -3868,6 +4126,12 @@ func _spawn_wreckage_marker():
 					world_root_3d = null
 				_3d_model = null
 				_3d_propulsion = null
+				_prop_mesh_mat = null
+				_prop_proc_mat = null
+				_prop_sparks = null
+				_prop_spark_mat = null
+				_prop_color_tier = -1
+				_prop_ignition = 0.0
 				accessory_pivot_3d = null
 		)
 

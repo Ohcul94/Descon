@@ -1272,17 +1272,7 @@ func set_camera_2d_mode(_active: bool):
 	use_orthogonal = false
 
 func _get_base_height_and_factor() -> Dictionary:
-	var viewport_height = 800.0
-	if is_inside_tree() and get_viewport():
-		var v_size = get_viewport().get_visible_rect().size
-		if v_size.y > 100.0:
-			viewport_height = float(v_size.y)
-		elif has_node("/root/SettingsManager"):
-			var sm = get_node("/root/SettingsManager")
-			if "screen_resolution" in sm and typeof(sm.screen_resolution) == TYPE_STRING:
-				var parts = sm.screen_resolution.split("x")
-				if parts.size() > 1 and parts[1].is_valid_int():
-					viewport_height = float(parts[1])
+	var viewport_height = 1080.0
 	var target_visible_height = viewport_height * scale_factor
 	var fov_val = camera_3d.fov if is_instance_valid(camera_3d) else 55.0
 	var fov_rad = deg_to_rad(fov_val / 2.0)
@@ -1553,6 +1543,22 @@ func _process(_delta):
 				randf_range(-shake_3d, shake_3d)
 			)
 
+	# --- CONTROL COMPETITIVO DE CÁMARA (Estilo LoL / Wild Rift) ---
+	# Bloquea el campo de visión horizontal al estándar 16:9 idéntico para todos.
+	# Ninguna pantalla (celular 20:9, monitor ultrawide 21:9 o pantalla completa)
+	# puede ver más mapa hacia los costados que un jugador estándar de PC.
+	if is_instance_valid(camera_3d):
+		camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
+		var cur_vsize = get_viewport().get_visible_rect().size
+		var cur_aspect = cur_vsize.x / maxf(1.0, cur_vsize.y)
+		const REF_ASPECT = 16.0 / 9.0 # Estándar competitivo (1.777778)
+		const BASE_FOV = 55.0
+		if cur_aspect > REF_ASPECT:
+			var tan_half_h = tan(deg_to_rad(BASE_FOV / 2.0)) * REF_ASPECT
+			camera_3d.fov = 2.0 * rad_to_deg(atan(tan_half_h / cur_aspect))
+		else:
+			camera_3d.fov = BASE_FOV
+
 	# --- CÁMARA LIBRE (ORBIT/FREE MODE) ---
 	if free_cam_active and is_instance_valid(camera_3d):
 		# WASD para paneo en free mode (no orbit)
@@ -1584,8 +1590,6 @@ func _process(_delta):
 			target_pos = player_node.global_position
 				
 		if is_instance_valid(camera_3d):
-			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
-			camera_3d.fov = 55.0
 			self.set_meta("correction_z", correction_z)
 			
 			if use_hybrid_camera:
@@ -1637,10 +1641,11 @@ func _process(_delta):
 				camera_3d.position += shake_offset
 			else:
 				# --- CÁMARA CLÁSICA (Aérea Fija Original 25°) ---
-				var viewport_height = float(get_viewport().get_visible_rect().size.y)
-				if viewport_height <= 0:
-					viewport_height = 1080.0
-				var target_visible_height = viewport_height * scale_factor
+				# Altura de diseño base constante (1080p).
+				# Mantiene la distancia de la cámara y tamaño relativo de las naves idénticos
+				# tanto en ventana como en pantalla completa (estilo LoL).
+				var base_design_height = 1080.0
+				var target_visible_height = base_design_height * scale_factor
 				var base_height_val = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
 				var dynamic_height_from_ship = base_height_val * fixed_cam_zoom
 				

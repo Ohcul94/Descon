@@ -36,7 +36,7 @@ static var SPHERE_MODEL_PATHS = [
 	"res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla.glb"
 ]
 
-# Íconos 2D de armas, escudos y motores
+# Íconos 2D de armas, escudos, motores, esferas, municiones y habilidades
 static var EQUIPMENT_ICON_PATHS = [
 	"res://assets/Armas/Arma1/Arma1.png",
 	"res://assets/Armas/Arma2/Arma2.png",
@@ -56,14 +56,96 @@ static var EQUIPMENT_ICON_PATHS = [
 	"res://assets/Esferas/EsferaAzul1.png",
 	"res://assets/Esferas/EsferaRoja1.png",
 	"res://assets/Esferas/EsferaVerde1.png",
-	"res://assets/Esferas/EsferaAmarilla1.png"
+	"res://assets/Esferas/EsferaAmarilla1.png",
+
+	# Íconos de Municiones
+	"res://assets/Municiones/Iconos/laser/Laser.png",
+	"res://assets/Municiones/Iconos/missile/Missile.png",
+	"res://assets/Municiones/Iconos/mine/Mine.png",
+	"res://assets/Municiones/Iconos/melee/Melee.png",
+	"res://assets/Municiones/Iconos/heal/Heal.png",
+	"res://assets/Municiones/Iconos/siphon/Siphon.png",
+	"res://assets/Municiones/Iconos/emp/Emp.png",
+	"res://assets/Municiones/Iconos/electron/Electron.png",
+	"res://assets/Municiones/Laser1.png",
+	"res://assets/Municiones/Laser2.png",
+	"res://assets/Municiones/Laser3.png",
+	"res://assets/Municiones/Misil1.png",
+	"res://assets/Municiones/Misil2.png",
+	"res://assets/Municiones/Misil3.png",
+	"res://assets/Municiones/Mina1.png",
+	"res://assets/Municiones/Mina2.png",
+	"res://assets/Municiones/Mina3.png",
+	"res://assets/Municiones/Lasers/Laser1/Laser1.png",
+	"res://assets/Municiones/Lasers/Laser2/Laser2.png",
+	"res://assets/Municiones/Lasers/Laser2/Laser2-1.png",
+	"res://assets/Municiones/Misiles/Misil1/Misil1.png",
+	"res://assets/Municiones/Misiles/Misil2/Misil2.png",
+	"res://assets/Municiones/Misiles/Misil2/Misil2-1.png",
+	"res://assets/Municiones/Misiles/Misil3/Misil3.png",
+	"res://assets/Municiones/Misiles/Misil3/Misil3-1.png",
+	"res://assets/Municiones/Minas/Mina1/Mina1.png",
+	"res://assets/Municiones/Minas/Mina2/Mina2.png",
+	"res://assets/Municiones/Minas/Mina2/Mina2-1.png",
+	"res://assets/Municiones/Minas/Mina3/Mina3.png",
+	"res://assets/Municiones/Minas/Mina3/Mina3-1.png",
+	"res://assets/Municiones/Siphon/Siphon1/Siphon1.png",
+
+	# Íconos de Habilidades
+	"res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png",
+	"res://assets/Skills/Iconos/Ataque/Miedo/Miedo.png",
+	"res://assets/Skills/Iconos/Ataque/Provocacion/Provocacion.png",
+	"res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
+	"res://assets/Skills/Iconos/Cura/Baliza Curativa/Baliza Curativa.png",
+	"res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png",
+	"res://assets/Skills/Iconos/Cura/Vinculo Vital/Vinculo Vital.png",
+	"res://assets/Skills/Iconos/Defensa/Barrera de Viento/Barrera de Viento.png",
+	"res://assets/Skills/Iconos/Defensa/Bomba de Humo/Bomba de Humo.png",
+	"res://assets/Skills/Iconos/Defensa/Camino de Hielo/Camino de Hielo.png",
+	"res://assets/Skills/Iconos/Defensa/Escudo Celular/Escudo Celular.png",
+	"res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
+	"res://assets/Skills/Iconos/Utilidad/Invisibilidad/Invisibilidad.png",
+	"res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png",
+	"res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
+	"res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png",
+	"res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png",
+	"res://assets/Skills/Iconos/Utilidad/Turbo Impulso/Turbo Impulso.png",
+
+	# Texturas de Efectos Visuales de Skills
+	"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png",
+	"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png",
+	"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura.png",
+	"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect.png",
+	"res://assets/Efectos de Skills/Curacion(Transp).png",
+	"res://assets/Efectos de Skills/Curacion.png",
+	"res://assets/Efectos de Skills/Escudo(Transp).png",
+	"res://assets/Efectos de Skills/Escudo.png",
+	"res://assets/Efectos de Skills/Velocidad(Transp).png",
+	"res://assets/Efectos de Skills/Velocidad.png",
+	"res://assets/Skills/Marco Contenedor.png"
 ]
 
-# Scripts de esferas y habilidades
+# Scripts de esferas y habilidades precargadas
 static var SPHERE_SCRIPT_PATHS = [
+	"res://scripts/resources/skills/Skill_AlphaRegen.gd",
+	"res://scripts/resources/skills/Skill_Blink.gd",
+	"res://scripts/resources/skills/Skill_FearSphere.gd",
+	"res://scripts/resources/skills/Skill_FrostTrail.gd",
 	"res://scripts/resources/skills/Skill_HealBeacon.gd",
+	"res://scripts/resources/skills/Skill_HyperDash.gd",
+	"res://scripts/resources/skills/Skill_Invulnerability.gd",
+	"res://scripts/resources/skills/Skill_PlasmaBlast.gd",
+	"res://scripts/resources/skills/Skill_Provocacion.gd",
 	"res://scripts/resources/skills/Skill_Reflect.gd",
-	"res://scripts/resources/skills/Skill_FearSphere.gd"
+	"res://scripts/resources/skills/Skill_RegenPath.gd",
+	"res://scripts/resources/skills/Skill_RepairKit.gd",
+	"res://scripts/resources/skills/Skill_Resurreccion.gd",
+	"res://scripts/resources/skills/Skill_ShieldCell.gd",
+	"res://scripts/resources/skills/Skill_SmokeBomb.gd",
+	"res://scripts/resources/skills/Skill_Stealth.gd",
+	"res://scripts/resources/skills/Skill_TurboImpulse.gd",
+	"res://scripts/resources/skills/Skill_VitalLink.gd",
+	"res://scripts/resources/skills/Skill_WindBarrier.gd"
 ]
 
 # Precargar todos los recursos en memoria
@@ -84,13 +166,13 @@ static func preload_all() -> void:
 			var res = load(path)
 			if res: _models[path] = res
 
-	# 3. Precargar íconos de equipamiento 2D
+	# 3. Precargar íconos de equipamiento, habilidades, municiones y VFX 2D
 	for path in EQUIPMENT_ICON_PATHS:
 		if ResourceLoader.exists(path) and not _textures.has(path):
 			var res = load(path)
 			if res: _textures[path] = res
 
-	# 4. Precargar scripts de esferas
+	# 4. Precargar scripts de esferas y habilidades
 	for path in SPHERE_SCRIPT_PATHS:
 		if ResourceLoader.exists(path) and not _scripts.has(path):
 			var res = load(path)

@@ -224,6 +224,9 @@ function initWebHUDDesigner() {
         if (!config.pilotConfig.defaultLayout["CombatMeter"]) {
             config.pilotConfig.defaultLayout["CombatMeter"] = { "x": 940, "y": 180, "scale": 0.5, "alpha": 1.0 };
         }
+        // Limpiar widgets obsoletos del layout de fábrica
+        delete config.pilotConfig.defaultLayout["CenterStats"];
+        delete config.pilotConfig.defaultLayout["VirtualJoystick"];
     }
 
     const layout = config.pilotConfig.defaultLayout;

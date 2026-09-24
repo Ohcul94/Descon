@@ -38,6 +38,21 @@ var static_textures_to_cache = [
   "res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png",
   "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
   "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png",
+  "res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png",
+  "res://assets/Skills/Iconos/Utilidad/Turbo Impulso/Turbo Impulso.png",
+
+  # Texturas de Efectos Visuales de Habilidades y Reflect
+  "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png",
+  "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png",
+  "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura.png",
+  "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect.png",
+  "res://assets/Efectos de Skills/Curacion(Transp).png",
+  "res://assets/Efectos de Skills/Curacion.png",
+  "res://assets/Efectos de Skills/Escudo(Transp).png",
+  "res://assets/Efectos de Skills/Escudo.png",
+  "res://assets/Efectos de Skills/Velocidad(Transp).png",
+  "res://assets/Efectos de Skills/Velocidad.png",
+
   "res://assets/Talentos/ContenedorGrande.png",
   "res://assets/UI/hand_interact.jpg",
   "res://assets/UI/Chat/Chat(Transp).png",
@@ -65,6 +80,25 @@ var static_textures_to_cache = [
   "res://assets/Motores/Motor1/Motor1.png",
   "res://assets/Motores/Motor2/Motor2.png",
   "res://assets/Motores/Motor3/Motor3.png",
+
+  # Íconos y texturas de Municiones
+  "res://assets/Municiones/Iconos/laser/Laser.png",
+  "res://assets/Municiones/Iconos/missile/Missile.png",
+  "res://assets/Municiones/Iconos/mine/Mine.png",
+  "res://assets/Municiones/Iconos/melee/Melee.png",
+  "res://assets/Municiones/Iconos/heal/Heal.png",
+  "res://assets/Municiones/Iconos/siphon/Siphon.png",
+  "res://assets/Municiones/Iconos/emp/Emp.png",
+  "res://assets/Municiones/Iconos/electron/Electron.png",
+  "res://assets/Municiones/Laser1.png",
+  "res://assets/Municiones/Laser2.png",
+  "res://assets/Municiones/Laser3.png",
+  "res://assets/Municiones/Misil1.png",
+  "res://assets/Municiones/Misil2.png",
+  "res://assets/Municiones/Misil3.png",
+  "res://assets/Municiones/Mina1.png",
+  "res://assets/Municiones/Mina2.png",
+  "res://assets/Municiones/Mina3.png",
   "res://assets/Municiones/Lasers/Laser1/Laser1.png",
   "res://assets/Municiones/Lasers/Laser2/Laser2-1.png",
   "res://assets/Municiones/Lasers/Laser2/Laser2.png",
@@ -78,10 +112,9 @@ var static_textures_to_cache = [
   "res://assets/Municiones/Misiles/Misil2/Misil2.png",
   "res://assets/Municiones/Misiles/Misil3/Misil3-1.png",
   "res://assets/Municiones/Misiles/Misil3/Misil3.png",
+  "res://assets/Municiones/Siphon/Siphon1/Siphon1.png",
 
-  # Combat-VFX textures loaded on-demand via load() in EntityManager/BaseMap.
-  # Without prewarming, first spawn in the exported build reads them straight
-  # from the .pck → FPS spike (in the editor the editor's ResourceCache hides it).
+  # Combat-VFX textures
   "res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg",
   "res://VFX/textures/T_VFX_smoke_1.PNG",
   "res://VFX/textures/T_VFX_sparks42.jpg",
@@ -91,12 +124,17 @@ var static_textures_to_cache = [
   "res://VFX/textures/T_VFX_Flare_15.PNG",
   "res://VFX/textures/T_VFX_Glo31.png",
   "res://VFX/textures/T_VFX_sparks112.jpg",
+  "res://VFX/textures/T_Hex1_inv.jpg",
+  "res://VFX/textures/T_VFX_Smoke_4_alpha.PNG",
+  "res://VFX/textures/T_VFX_SparklesF21.jpg",
+  "res://VFX/textures/T_GW_WaterNormal_01_b.PNG",
 
   "res://assets/Personajes/3D/Nave11/Nave11.glb",
   "res://assets/Personajes/3D/Nave12/Nave12.glb",
   "res://assets/Esferas/3D/EsferaAzul/EsferaAzul.glb",
   "res://assets/Esferas/3D/EsferaRoja/EsferaRoja.glb",
   "res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla.glb",
+  "res://assets/Esferas/3D/EsferaVerde/EsferaVerde.glb",
   "res://VFX/scenes/VFX_Cube_projectile.tscn",
   "res://VFX/scenes/VFX_Hadouken.tscn",
   "res://VFX/scenes/VFX_Hit_hadouken.tscn",
@@ -673,7 +711,10 @@ func _run_shader_warmup():
 
 	await get_tree().process_frame
 
-	# 3. Unificar cola de recursos para la carga en segundo plano multihilo (v313.8)
+	# 3. Precargar caché centralizado de inventario, equipamiento, habilidades y municiones (v1.0)
+	InventoryCache.preload_all()
+
+	# Unificar cola de recursos para la carga en segundo plano multihilo (v313.8)
 	var queue = []
 	for p in static_textures_to_cache:
 		if not queue.has(p): queue.append(p)
@@ -722,7 +763,12 @@ func _run_shader_warmup():
 		"res://VFX/scenes/vfx_std_fire_ball.tscn",
 		"res://scenes/entities/Enemy.tscn",
 		"res://scenes/entities/Ship.tscn",
-		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
+		"res://scenes/ui/PartyMemberRow.tscn",
+		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
+		"res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb",
+		"res://assets/Altares/3D/Altar1/Altar1.glb",
+		"res://assets/Pilares/3D/Pilar1/Pilar1.glb",
+		"res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
 	]
 	
 	# v500.5: Agregar todos los modelos estáticos (enemigos, naves, jefes) a las escenas para instanciar en warmup
@@ -821,6 +867,14 @@ func _run_shader_warmup():
 			beacon_inst.position = Vector3(999.0, 999.0, 999.0)
 			_cache_materials_recursive(beacon_inst)
 			instantiated_nodes.append(beacon_inst)
+
+	# Precalentar shaders y partículas de Habilidades (Reflect, Auras, Shaders de Habilidades)
+	var skills_warmup = _create_skills_and_auras_warmup_node()
+	if skills_warmup:
+		tn.add_child(skills_warmup)
+		skills_warmup.position = Vector3(999.0, 999.0, 999.0)
+		_cache_materials_recursive(skills_warmup)
+		instantiated_nodes.append(skills_warmup)
 
 	# Precalentar shaders y partículas del meteorito y zona de fuego para evitar caídas de FPS
 	var meteor_warmup = _create_meteor_warmup_node()
@@ -1103,7 +1157,13 @@ func _reset_vfx_node(node: Node):
 		node.emitting = true
 	elif node is AnimationPlayer:
 		node.stop()
-		node.play()
+		var anim_to_play = node.current_animation
+		if anim_to_play == "":
+			anim_to_play = node.assigned_animation
+		if anim_to_play == "":
+			anim_to_play = node.autoplay
+		if anim_to_play != "" and node.has_animation(anim_to_play):
+			node.play(anim_to_play)
 		
 	for child in node.get_children():
 		_reset_vfx_node(child)
@@ -1447,4 +1507,60 @@ func _create_mega_laser_warmup_node() -> Node3D:
 
 	return root
 
+func _create_skills_and_auras_warmup_node() -> Node3D:
+	var root = Node3D.new()
+	root.name = "SkillsAndAurasWarmup"
 
+	# 1. Precarga y compilación de Shaders de Habilidades y Entorno
+	var shader_paths = [
+		"res://resources/shaders/color_beam.gdshader",
+		"res://resources/shaders/color_aura.gdshader",
+		"res://resources/shaders/void_aura.gdshader",
+		"res://resources/shaders/heal_aura.gdshader",
+		"res://resources/shaders/aura_pulse_ring.gdshader",
+		"res://resources/shaders/energy_shield.gdshader",
+		"res://resources/shaders/hit_flash.gdshader",
+		"res://resources/shaders/occluder_dither.gdshader",
+		"res://resources/shaders/smoke_cloud.gdshader",
+		"res://resources/shaders/fog_of_war.gdshader",
+		"res://resources/shaders/fog_volumetric.gdshader",
+		"res://resources/shaders/ground_relief.gdshader",
+		"res://resources/shaders/border_nebula.gdshader",
+		"res://resources/shaders/starfield.gdshader",
+		"res://resources/shaders/dome_starfield.gdshader",
+		"res://shaders/vfx/fire_explosion.gdshader"
+	]
+
+	for s_path in shader_paths:
+		if ResourceLoader.exists(s_path):
+			var s_res = load(s_path)
+			if s_res is Shader:
+				var m_inst = MeshInstance3D.new()
+				m_inst.mesh = SphereMesh.new()
+				var mat = ShaderMaterial.new()
+				mat.shader = s_res
+				m_inst.material_override = mat
+				root.add_child(m_inst)
+
+	# 2. Precarga e instanciación de Sprites de Habilidades (Reflect, Curación, Escudo, Velocidad, etc.)
+	var vfx_textures = [
+		"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png",
+		"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png",
+		"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura.png",
+		"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect.png",
+		"res://assets/Efectos de Skills/Curacion(Transp).png",
+		"res://assets/Efectos de Skills/Curacion.png",
+		"res://assets/Efectos de Skills/Escudo(Transp).png",
+		"res://assets/Efectos de Skills/Escudo.png",
+		"res://assets/Efectos de Skills/Velocidad(Transp).png",
+		"res://assets/Efectos de Skills/Velocidad.png"
+	]
+
+	for t_path in vfx_textures:
+		if ResourceLoader.exists(t_path):
+			var spr = Sprite3D.new()
+			spr.texture = load(t_path)
+			spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			root.add_child(spr)
+
+	return root

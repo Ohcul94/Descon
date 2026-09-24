@@ -80,15 +80,15 @@ func load_ammo_slots_local():
 func set_ammo_slot(slot_idx: int, ammo_type: String):
 	print("[PLAYER] set_ammo_slot convocado. SlotIdx: ", slot_idx, " AmmoType: ", ammo_type, " slots_actuales: ", ammo_slots)
 	if slot_idx >= 0 and slot_idx < ammo_slots.size():
-		# v690.1: Cada munición solo puede estar en UN slot. Si ya está en otro, se quita de ahí.
+		# v900.0: Reflejar visualmente el intercambio de slots
 		for i in range(ammo_slots.size()):
 			if i != slot_idx and ammo_slots[i] == ammo_type:
 				ammo_slots[i] = "laser"
 				print("[PLAYER] Munición ", ammo_type, " ya estaba en slot ", i, ". Se movió al slot ", slot_idx, ".")
-				break
 		ammo_slots[slot_idx] = ammo_type
-		print("[PLAYER] Guardando slots localmente.")
+		# Guardar preferencia del usuario
 		save_ammo_slots_local()
+		_emit_stats()
 	else:
 		print("[PLAYER] Error: slot_idx fuera de rango.")
 
@@ -208,6 +208,7 @@ func _validate_ammo_slot_requirements():
 			})
 	if removed:
 		save_ammo_slots_local()
+		_emit_stats()
 		var hud = get_tree().get_first_node_in_group("hud")
 		if is_instance_valid(hud) and hud.has_method("update_skill_slots"):
 			hud.update_skill_slots()
@@ -277,6 +278,7 @@ func _on_slow_state(data: Dictionary):
 			set_debuff_timer("slow", 0.0)
 			if data.get("isSleep", false):
 				_stop_sleep_aura()
+		_emit_stats()
 
 var _sleep_aura: Node2D = null
 var _sleep_grace: float = 0.0
@@ -320,6 +322,10 @@ func _on_status_effects_sync(data: Dictionary):
 	if data.has("slow"):
 		slow_timer = float(data.slow) / 1000.0
 		set_debuff_timer("slow", slow_timer)
+		if slow_timer <= 0.0:
+			slow_points = 0.0
+			slow_is_percentage = false
+		_emit_stats()
 	if data.has("stun"):
 		stun_timer = float(data.stun) / 1000.0
 		set_debuff_timer("stun", stun_timer)
@@ -402,6 +408,7 @@ func _on_stun_state(data: Dictionary):
 		set_debuff_timer("fear", 0)
 		set_debuff_timer("stun", 0)
 		_stop_sleep_zzz()
+	_emit_stats()
 
 var _sleep_zzz: Node2D = null
 
@@ -441,12 +448,14 @@ func apply_freeze_slow(data: Dictionary):
 	# Calcular cuánto restamos (Basado en la velocidad actual para que el % sea real)
 	var total_to_reduce = (speed * pct) + fixed
 	_freeze_slow_val = total_to_reduce
-	
+	_emit_stats()
+
 	await get_tree().create_timer(duration).timeout
-	
+
 	# Recuperar velocidad suavemente
 	var tw = create_tween()
 	tw.tween_property(self, "_freeze_slow_val", 0.0, 1.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_callback(_emit_stats)
 
 func _setup_skill_controller():
 	if SKILL_CONTROLLER_SCRIPT:
@@ -548,6 +557,7 @@ func _physics_process(p_delta):
 			slow_points = 0.0
 			slow_is_percentage = false
 			set_debuff_timer("slow", 0.0)
+			_emit_stats()
 	if heal_timer > 0.0:
 		heal_timer = max(0.0, heal_timer - p_delta)
 		if heal_timer <= 0.0:
@@ -747,13 +757,26 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 						filters = s_data.get("targetFilters", {})
 						
 						# v266.60: Auto-detección de tipo si no se especificó (o es -1)
+						# aimType de AdminDash (-1=auto, 0=dir, 1=punto, 2=area, 3=instant) tiene prioridad
+						if s_type == -1 and s_data.has("aimType"):
+							var aim_override = int(s_data.get("aimType", -1))
+							if aim_override >= 0:
+								s_type = aim_override
 						if s_type == -1:
 							s_type = 3 # Instant por defecto
-							if s_name == "ESFERA DE TERROR": s_type = 0 # Siempre apuntable (Directional)
-							elif s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1 # PointClick
-							elif s_name == "RESURRECCIÓN" or s_name == "BALIZA DE CURACION" or s_name == "REGENERACIÓN ALFA": s_type = 2 # Area
-							elif s_name == "PROVOCACION": s_type = 3 # Instant (self-cast charge)
-							elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL": s_type = 0 # Directional
+							if s_name == "ESFERA DE TERROR" or s_name == "BARRERA DE VIENTO":
+								s_type = 0 # Apuntable (Directional)
+							elif s_name in ["RESURRECCIÓN", "BALIZA DE CURACION", "REGENERACIÓN ALFA", "BLINK"]:
+								s_type = 2 # Area
+							elif s_name in ["PROVOCACION", "SMOKE-BOMB", "STEALTH", "FROST-TRAIL", "INVULNERABILIDAD", "HYPER-DASH", "TURBO-IMPULSO"]:
+								s_type = 3 # Instant
+							elif s_name in ["REFLECT-OMEGA", "ESCUDO CELULAR", "AUTO-REPARACIÓN", "NANO-REGENERACIÓN", "VÍNCULO VITAL"] or s_data.get("canTargetOthers", false):
+								if s_data.get("canTargetOthers", false):
+									s_type = 1 # PointClick (apuntado a objetivo como Escudo Celular)
+								else:
+									s_type = 3 # Instant (auto-uso en uno mismo)
+							elif s_data.get("range", 0) > 0:
+								s_type = 0 # Directional
 		elif s_type == -1:
 			s_type = 0 # Laser/Missile/Mine son Directional
 			var t_idx = selected_ammo.get(skill_id, 0)
@@ -1311,8 +1334,9 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 		current_ammo = ammo[p_type][t_idx]
 	
 	if current_ammo <= 0: return
-		
+
 	ammo[p_type][t_idx] -= 1
+	_emit_stats()
 	# v900.0: sonido de munición (ammo sound + fallback)
 	if AudioManager and AudioManager.has_method("play_sfx_path"):
 		var ammo_sfx_path = ""
@@ -1436,11 +1460,11 @@ func _do_sphere_skill_immediate(id: int, p_data: Dictionary):
 		skill_range = s_data.get("range", 0.0)
 		
 	if is_targeted and target_id == null:
-		# v301.7: Bloquear lanzamiento al vacío para habilidades dirigidas (Cura, Escudo, etc)
-		# s_data.get("range") > 0 suele indicar que no es instantánea sobre el player
-		if s_data.get("range", 0) > 0 or s_data.get("canTargetOthers", false):
-			# print("[SKILL] Cancelado: Se requiere un objetivo válido.")
+		if skill.skill_name == "VÍNCULO VITAL":
 			return
+		else:
+			final_target = self
+			target_id = entity_id
 		
 	# v4.8: Validación de rango en cliente
 	if is_targeted and target_id != entity_id and skill_range > 0:

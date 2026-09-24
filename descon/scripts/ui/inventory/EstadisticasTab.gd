@@ -5,18 +5,34 @@ extends Control
 
 var inv_main = null
 
+# Actualización parcial (sin reconstruir todo el menú)
+var _built = false
+var _structure_sig = ""
+var _status_tick = 0.0
+var _content_v = null
+var _ammo_box = null
+var _status_box = null
+var _lbl_hp = null
+var _lbl_shield = null
+var _lbl_speed = null
+var _lbl_dmg = null
+var _lbl_vision = null
+var _lbl_hp_regen = null
+var _lbl_sh_regen = null
+var _lbl_level = null
+var _exp_bg = null
+var _exp_fg = null
+var _exp_lbl = null
+
 func setup(p_inv_main):
 	inv_main = p_inv_main
+	set_process(true)
 
 func update_ui():
 	if not inv_main: return
-	# Limpiar
-	for n in get_children():
-		remove_child(n)
-		n.queue_free()
-
 	var player = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(player):
+		_invalidate()
 		var err = Label.new()
 		err.text = "ESPERANDO CONEXIÓN CON EL PILOTO..."
 		err.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -25,7 +41,156 @@ func update_ui():
 		add_child(err)
 		return
 
+	var sig = _structure_signature(player)
+	if not _built or sig != _structure_sig:
+		_rebuild_full(player, sig)
+	else:
+		_refresh_values(player)
+
+func _force_rebuild():
+	_built = false
+	update_ui()
+
+func _process(delta):
+	if not visible or not _built:
+		return
+	_status_tick += delta
+	if _status_tick >= 1.0:
+		_status_tick = 0.0
+		var player = get_tree().get_first_node_in_group("player")
+		if not is_instance_valid(player):
+			return
+		# Solo secciones con timers vivos (evita parpadeo de munición)
+		if is_instance_valid(_status_box):
+			_clear_children(_status_box)
+			_add_status_effects(_status_box, player)
+		if is_instance_valid(_lbl_speed):
+			var ship_base = _get_ship_base(player)
+			var equip_mods = _get_equipment_modifiers(player)
+			var sphere_mods = _get_sphere_modifiers(player)
+			var talent_bonuses = _get_talent_bonuses(player)
+			var final_stats = _calculate_final(player, ship_base, equip_mods, sphere_mods, talent_bonuses)
+			_lbl_speed.text = _fmt_final(final_stats.speed, 0.0)
+
+func _invalidate():
+	_built = false
+	_structure_sig = ""
+	_content_v = null
+	_ammo_box = null
+	_status_box = null
+	_lbl_hp = null
+	_lbl_shield = null
+	_lbl_speed = null
+	_lbl_dmg = null
+	_lbl_vision = null
+	_lbl_hp_regen = null
+	_lbl_sh_regen = null
+	_lbl_level = null
+	_exp_bg = null
+	_exp_fg = null
+	_exp_lbl = null
+	for n in get_children():
+		remove_child(n)
+		n.queue_free()
+
+func _structure_signature(player) -> String:
+	var parts = [str(player.current_ship_id), str(player.equipped)]
+	var sm = player.get_node_or_null("SpheresManager")
+	if is_instance_valid(sm):
+		for sd in sm.spheres_data:
+			var sph = sd.get("sphere")
+			if typeof(sph) == TYPE_DICTIONARY:
+				parts.append(str(sph.get("id", "")))
+	var ts = get_tree().get_first_node_in_group("talent_system")
+	if is_instance_valid(ts):
+		parts.append(str(ts.get_bonuses()))
+		parts.append(str(ts.get_talent_unlocks()))
+		parts.append(str(ts.get_dynamic_bonuses()))
+	return "|".join(parts)
+
+func _rebuild_full(player, sig: String):
+	var last_scroll_v = -1
+	var prev_scroll = _find_scroll_container()
+	if prev_scroll:
+		last_scroll_v = prev_scroll.scroll_vertical
+
+	_invalidate()
 	_build_ui(player)
+	_structure_sig = sig
+	_built = true
+
+	if last_scroll_v >= 0:
+		var scroll = _find_scroll_container()
+		if scroll:
+			scroll.scroll_vertical = last_scroll_v
+			scroll.set_deferred("scroll_vertical", last_scroll_v)
+
+func _refresh_values(player):
+	if not _built or not is_instance_valid(_content_v):
+		_built = false
+		update_ui()
+		return
+
+	var ship_base = _get_ship_base(player)
+	var equip_mods = _get_equipment_modifiers(player)
+	var sphere_mods = _get_sphere_modifiers(player)
+	var talent_bonuses = _get_talent_bonuses(player)
+	var final_stats = _calculate_final(player, ship_base, equip_mods, sphere_mods, talent_bonuses)
+
+	if is_instance_valid(_lbl_hp):
+		_lbl_hp.text = _fmt_final(final_stats.hp, player.current_hp)
+	if is_instance_valid(_lbl_shield):
+		_lbl_shield.text = _fmt_final(final_stats.shield, player.current_shield)
+	if is_instance_valid(_lbl_speed):
+		_lbl_speed.text = _fmt_final(final_stats.speed, 0.0)
+	if is_instance_valid(_lbl_dmg):
+		_lbl_dmg.text = _fmt_final(final_stats.damage, 0.0)
+	if is_instance_valid(_lbl_vision):
+		_lbl_vision.text = _format_number(final_stats.vision)
+	if is_instance_valid(_lbl_hp_regen):
+		_lbl_hp_regen.text = _format_number(player.hp_regen)
+	if is_instance_valid(_lbl_sh_regen):
+		_lbl_sh_regen.text = _format_number(player.sh_regen)
+	if is_instance_valid(_lbl_level):
+		_lbl_level.text = str(player.level)
+	_update_exp_refs(player)
+
+	if is_instance_valid(_ammo_box):
+		_clear_children(_ammo_box)
+		_add_ammo_section(_ammo_box, player)
+	if is_instance_valid(_status_box):
+		_clear_children(_status_box)
+		_add_status_effects(_status_box, player)
+
+func _update_exp_refs(player):
+	if not is_instance_valid(_exp_lbl):
+		return
+	var next_exp = floor(1000.0 * pow(max(1, player.level), 1.5))
+	var pct = clamp((player.current_exp / next_exp) * 100.0, 0.0, 100.0) if next_exp > 0 else 0.0
+	_exp_lbl.text = str(int(pct)) + "% (" + _format_number(player.current_exp) + " / " + _format_number(next_exp) + ")"
+	if is_instance_valid(_exp_fg) and is_instance_valid(_exp_bg):
+		_exp_fg.size = Vector2(_exp_bg.size.x * pct / 100.0, 8) if _exp_bg.size.x > 0 else Vector2(0, 8)
+
+func _clear_children(c):
+	if not is_instance_valid(c):
+		return
+	for n in c.get_children():
+		c.remove_child(n)
+		n.queue_free()
+
+func _fmt_final(final_val: float, current_val: float) -> String:
+	if current_val > 0.0:
+		return _format_number(current_val) + " / " + _format_number(final_val)
+	return _format_number(final_val)
+
+func _find_scroll_container() -> ScrollContainer:
+	var master = get_node_or_null("StatsMasterVBox")
+	if not master:
+		return null
+	for n in master.get_children():
+		if n is ScrollContainer:
+			return n
+	return null
 
 func _build_ui(player):
 	clip_contents = true
@@ -54,7 +219,7 @@ func _build_ui(player):
 	var refresh_btn = Button.new()
 	refresh_btn.text = "🔄 REFRESCAR"
 	refresh_btn.custom_minimum_size = Vector2(100, 28)
-	refresh_btn.pressed.connect(func(): update_ui())
+	refresh_btn.pressed.connect(func(): _force_rebuild())
 	header.add_child(refresh_btn)
 
 	# Scroll principal
@@ -70,6 +235,7 @@ func _build_ui(player):
 	content_v.add_theme_constant_override("separation", 8)
 	content_v.mouse_filter = Control.MOUSE_FILTER_PASS
 	scroll.add_child(content_v)
+	_content_v = content_v
 
 	# Recopilar datos
 	var ship_base = _get_ship_base(player)
@@ -81,23 +247,23 @@ func _build_ui(player):
 	# ═══ SECCIÓN 1: STATS FINALES (PRIMERO - Lo más importante) ═══
 	_add_section_header(content_v, "📈 STATS FINALES CALCULADOS", Color(0.0, 1.0, 0.5))
 
-	_add_final_stat_row(content_v, "❤️ Vida Máxima", final_stats.hp, player.current_hp, Color(0.2, 1.0, 0.3))
-	_add_final_stat_row(content_v, "🛡️ Escudo Máximo", final_stats.shield, player.current_shield, Color(0.3, 0.7, 1.0))
-	_add_final_stat_row(content_v, "🚀 Velocidad Final", final_stats.speed, 0.0, Color(1.0, 0.9, 0.2))
-	_add_final_stat_row(content_v, "💥 Daño", final_stats.damage, 0.0, Color(1.0, 0.3, 0.2))
-	_add_stat_row(content_v, "👁️ Rango de Visión", final_stats.vision, Color(0.6, 0.6, 0.8))
+	_lbl_hp = _add_final_stat_row(content_v, "❤️ Vida Máxima", final_stats.hp, player.current_hp, Color(0.2, 1.0, 0.3))
+	_lbl_shield = _add_final_stat_row(content_v, "🛡️ Escudo Máximo", final_stats.shield, player.current_shield, Color(0.3, 0.7, 1.0))
+	_lbl_speed = _add_final_stat_row(content_v, "🚀 Velocidad Final", final_stats.speed, 0.0, Color(1.0, 0.9, 0.2))
+	_lbl_dmg = _add_final_stat_row(content_v, "💥 Daño", final_stats.damage, 0.0, Color(1.0, 0.3, 0.2))
+	_lbl_vision = _add_stat_row(content_v, "👁️ Rango de Visión", final_stats.vision, Color(0.6, 0.6, 0.8))
 
 	_add_separator(content_v)
 	_add_sub_header(content_v, "🔧 Regeneración", Color(0.4, 0.8, 0.6))
-	_add_stat_row(content_v, "Regen. de Vida", player.hp_regen, Color(0.2, 1.0, 0.3))
-	_add_stat_row(content_v, "Regen. de Escudo", player.sh_regen, Color(0.3, 0.7, 1.0))
+	_lbl_hp_regen = _add_stat_row(content_v, "Regen. de Vida", player.hp_regen, Color(0.2, 1.0, 0.3))
+	_lbl_sh_regen = _add_stat_row(content_v, "Regen. de Escudo", player.sh_regen, Color(0.3, 0.7, 1.0))
 
 	# ═══ SECCIÓN 2: NAVE ACTUAL ═══
 	_add_section_header(content_v, "🚀 NAVE ACTUAL", Color(0, 0.82, 1))
 	var ship_name = _get_ship_name(player.current_ship_id)
 	_add_info_row(content_v, "Modelo", ship_name, Color.WHITE)
 	_add_info_row(content_v, "ID", str(player.current_ship_id), Color.GRAY)
-	_add_info_row(content_v, "Nivel", str(player.level), Color(0.3, 1.0, 0.5))
+	_lbl_level = _add_info_row(content_v, "Nivel", str(player.level), Color(0.3, 1.0, 0.5))
 	_add_exp_bar(content_v, player)
 
 	# ═══ SECCIÓN 3: STATS BASE DE NAVE ═══
@@ -253,11 +419,17 @@ func _build_ui(player):
 
 	# ═══ SECCIÓN 7: MUNICIÓN ═══
 	_add_section_header(content_v, "💣 MUNICIÓN ACTUAL", Color(1.0, 0.6, 0.2))
-	_add_ammo_section(content_v, player)
+	_ammo_box = VBoxContainer.new()
+	_ammo_box.add_theme_constant_override("separation", 2)
+	content_v.add_child(_ammo_box)
+	_add_ammo_section(_ammo_box, player)
 
 	# ═══ SECCIÓN 8: ESTADOS ACTIVOS ═══
 	_add_section_header(content_v, "🔮 ESTADOS ACTIVOS", Color(0.8, 0.3, 0.5))
-	_add_status_effects(content_v, player)
+	_status_box = VBoxContainer.new()
+	_status_box.add_theme_constant_override("separation", 2)
+	content_v.add_child(_status_box)
+	_add_status_effects(_status_box, player)
 
 
 # ═══════════════════════════════════════════════════════
@@ -465,6 +637,14 @@ func _calculate_final(player, ship_base: Dictionary, equip_mods: Dictionary, sph
 		var bonus_pct = (player.electron_speed_buff_pct * player.electron_speed_buff_stacks) / 100.0
 		result.speed = round(result.speed * (1.0 + bonus_pct))
 
+	# Ralentizaciones activas (slow del servidor + freeze ambiental) — misma fórmula que Player._apply_movement
+	var slow_val = (result.speed * (player.slow_points / 100.0)) if player.slow_is_percentage else player.slow_points
+	var freeze_val = 0.0
+	var fv = player.get("_freeze_slow_val")
+	if fv != null:
+		freeze_val = float(fv)
+	result.speed = round(max(10.0, result.speed - slow_val - freeze_val))
+
 	return result
 
 
@@ -493,7 +673,7 @@ func _add_sub_header(parent, text: String, color: Color):
 	lbl.offset_left = 12.0
 	parent.add_child(lbl)
 
-func _add_info_row(parent, label: String, value: String, color: Color):
+func _add_info_row(parent, label: String, value: String, color: Color) -> Label:
 	var h = HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	h.offset_left = 8.0
@@ -513,8 +693,9 @@ func _add_info_row(parent, label: String, value: String, color: Color):
 	v.modulate = color
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(v)
+	return v
 
-func _add_stat_row(parent, label: String, value: float, color: Color):
+func _add_stat_row(parent, label: String, value: float, color: Color) -> Label:
 	var h = HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	h.offset_left = 8.0
@@ -533,6 +714,7 @@ func _add_stat_row(parent, label: String, value: float, color: Color):
 	v.modulate = color
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(v)
+	return v
 
 func _add_stat_mod_row(parent, key: String, val: float):
 	if abs(val) < 0.0001: return
@@ -633,7 +815,7 @@ func _add_talent_bonus_row(parent, display_name: String, val: float, is_flat: bo
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(v)
 
-func _add_final_stat_row(parent, label: String, final_val: float, current_val: float, color: Color):
+func _add_final_stat_row(parent, label: String, final_val: float, current_val: float, color: Color) -> Label:
 	var h = HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	h.offset_left = 8.0
@@ -647,14 +829,12 @@ func _add_final_stat_row(parent, label: String, final_val: float, current_val: f
 	h.add_child(l)
 
 	var v = Label.new()
-	if current_val > 0.0:
-		v.text = _format_number(current_val) + " / " + _format_number(final_val)
-	else:
-		v.text = _format_number(final_val)
+	v.text = _fmt_final(final_val, current_val)
 	v.add_theme_font_size_override("font_size", 11)
 	v.modulate = color
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(v)
+	return v
 
 func _add_exp_bar(parent, player):
 	var h = HBoxContainer.new()
@@ -692,6 +872,10 @@ func _add_exp_bar(parent, player):
 	pct_lbl.add_theme_font_size_override("font_size", 9)
 	pct_lbl.modulate = Color(0.5, 0.6, 0.7)
 	bar_v.add_child(pct_lbl)
+
+	_exp_bg = bar_bg
+	_exp_fg = bar_fg
+	_exp_lbl = pct_lbl
 
 func _add_ammo_section(parent, player):
 	var ammo = player.ammo

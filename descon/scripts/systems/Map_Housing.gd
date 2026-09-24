@@ -767,7 +767,3 @@ func _toggle_hud_elements_for_housing(p_show: bool):
 	var skills = hud.get_node_or_null("Skills")
 	if is_instance_valid(skills):
 		skills.visible = p_show
-		
-	var stats = hud.get_node_or_null("CenterStats")
-	if is_instance_valid(stats):
-		stats.visible = p_show
