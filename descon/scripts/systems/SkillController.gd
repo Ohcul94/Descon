@@ -301,19 +301,12 @@ func execute_skill():
 	
 	if is_mobile:
 		# --- MODO CELULAR: Arrastre o Tap ---
-		if external_aim_vector != Vector2.ZERO:
+		if external_aim_vector != Vector2.ZERO and (s_type == SkillType.DIRECTIONAL or s_type == SkillType.AREA):
 			payload.angle = external_aim_vector.angle()
 			payload.pos = global_position + external_aim_vector
 			payload.target = selected_target
-			
-			# Fallback: si es PointClick y el arrastre no enganchó target exacto, pero hay uno activo en el HUD
-			if payload.target == null and s_type == SkillType.POINT_CLICK:
-				if is_instance_valid(active_hud_target) and _is_target_valid_for_skill(active_hud_target):
-					payload.target = active_hud_target
-				elif s_name == "VÍNCULO VITAL":
-					payload.target = _find_closest_ally_in_range(max_range)
 		else:
-			# Tap simple en botón (sin drag de apuntado)
+			# Tap simple en botón o habilidad PointClick/Instant
 			var fwd = Vector2.RIGHT.rotated(get_parent().rotation)
 			payload.angle = get_parent().rotation
 			payload.pos = global_position + fwd * min(max_range, 100.0)
@@ -325,14 +318,15 @@ func execute_skill():
 				var place_dist = max_range if max_range > 0.0 else 300.0
 				payload.pos = global_position + fwd * place_dist
 			elif s_type == SkillType.POINT_CLICK:
-				# Habilidades Point & Click (Vínculo Vital):
+				# Habilidades Point & Click (Reflect, Escudo Celular, Vínculo Vital):
 				if is_instance_valid(selected_target) and _is_target_valid_for_skill(selected_target):
 					payload.target = selected_target
 				elif is_instance_valid(active_hud_target) and _is_target_valid_for_skill(active_hud_target):
 					payload.target = active_hud_target
 				elif s_name == "VÍNCULO VITAL":
 					payload.target = _find_closest_ally_in_range(max_range)
-				elif filters.get("allies", false) and not filters.get("enemies", false):
+				else:
+					# Como Escudo Celular y Reflect: si no hay target aliado seleccionado, auto-lanzar a self
 					payload.target = get_parent()
 			elif filters.get("allies", false) and not filters.get("enemies", false):
 				# Habilidades puras de soporte/auto-cura (Auto-reparación, Escudo celular)
@@ -679,7 +673,8 @@ func _draw():
 				t_pos = to_local(selected_target.global_position)
 			draw_arc(t_pos, 40.0, 0, TAU, 32, Color.YELLOW, 3.0)
 		else:
-			if use_perspective:
-				draw_circle(_proj.call(aim_vec), 15.0, Color(1, 1, 1, 0.2))
-			else:
-				draw_circle(aim_vec, 15.0, Color(1, 1, 1, 0.2))
+			if not is_mobile:
+				if use_perspective:
+					draw_circle(_proj.call(aim_vec), 15.0, Color(1, 1, 1, 0.2))
+				else:
+					draw_circle(aim_vec, 15.0, Color(1, 1, 1, 0.2))

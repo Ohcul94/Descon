@@ -44,6 +44,7 @@ const DRAW_INTERVAL: float = 0.05 # 20 FPS
 
 # Dirty flag: evita redibujar cuando el jugador no se movio
 var _vision_dirty: bool = true
+var _initial_draw_frames: int = 20 # v925.0: Garantiza inicialización FBO en móviles
 var _last_player_pos: Vector2 = Vector2(-9999.0, -9999.0)
 const MOVE_THRESHOLD: float = 12.0 # unidades 2D minimas para marcar dirty
 
@@ -217,6 +218,9 @@ func _setup_post_process_quad():
 	shader_mat.set_shader_parameter("vision_texture", vision_viewport.get_texture())
 	shader_mat.set_shader_parameter("history_texture", history_viewport.get_texture())
 	shader_mat.set_shader_parameter("noise_texture", TEXTURE_NOISE_21D)
+	# v925.0: Invertir eje Y para texturas de SubViewport en móviles (GLES3/Compatibility tiene Y invertida respecto a D3D12 en PC)
+	var is_mobile_platform = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+	shader_mat.set_shader_parameter("flip_y", is_mobile_platform)
 	# v920.0 NIEBLA ATMOSFÉRICA TIPO AUTOPISTA (Nubes, jirones, partículas en suspensión y degradés orgánicos)
 	shader_mat.set_shader_parameter("fog_opacity", 0.96)
 	shader_mat.set_shader_parameter("shroud_opacity", 0.44)
@@ -378,6 +382,7 @@ func _process(_delta):
 			_history_cleared = false
 			_restoration_pending = false
 			_vision_dirty = true
+			_initial_draw_frames = 20
 			request_fog_data()
 		var new_map_size = Vector2(parent_map.world_size, parent_map.map_height)
 		var new_map_offset = Vector2(parent_map.map_min_x, parent_map.map_min_y) if "map_min_x" in parent_map else Vector2.ZERO
@@ -395,7 +400,14 @@ func _process(_delta):
 			if is_instance_valid(shader_mat):
 				shader_mat.set_shader_parameter("map_offset_3d", map_offset_3d)
 				shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
+		if is_instance_valid(shader_mat):
+			var is_mob = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+			shader_mat.set_shader_parameter("flip_y", is_mob)
 	
+	if _initial_draw_frames > 0:
+		_initial_draw_frames -= 1
+		_vision_dirty = true
+
 	# --- DIRTY FLAG: detectar movimiento del jugador ---
 	var player = get_tree().get_first_node_in_group("player")
 	if is_instance_valid(player):

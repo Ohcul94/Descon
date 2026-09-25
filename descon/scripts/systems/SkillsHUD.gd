@@ -932,7 +932,12 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 		callback.call()
 		
 		if is_mobile:
-			_set_aim_indicators_visible(node, true, vp_pos)
+			var s_type = sc.current_skill.get("type", -1) if is_instance_valid(sc) else -1
+			# Solo mostrar indicador de joystick/drag táctil en el botón si la habilidad es DIRECCIONAL (0) o ÁREA (2)
+			if s_type == 0 or s_type == 2:
+				_set_aim_indicators_visible(node, true, vp_pos)
+			else:
+				_set_aim_indicators_visible(node, false)
 		
 		get_viewport().set_input_as_handled()
 		return
@@ -953,22 +958,11 @@ func _finish_aim_drag(sc, is_mobile: bool):
 		_aim_node.remove_meta("touch_origin_global")
 	
 	if sc.is_aiming:
-		var has_drag = (sc.external_aim_vector != Vector2.ZERO)
-		var s_type = sc.current_skill.get("type", -1)
-		if is_mobile:
-			# Si arrastró intencionalmente O es habilidad INSTANT (buff personal/dash)
-			if has_drag or s_type == sc.SkillType.INSTANT:
-				sc.execute_skill()
-			else:
-				# Fue un TAP sobre una habilidad de área/direccional/point-click (Baliza, Resurrección, Blink)
-				# NO disparar a ciegas en los pies: dejamos is_aiming = true para que el jugador
-				# pueda tocar en la pantalla dónde quiere colocarla/lanzarla.
-				pass
-		elif sc.config.get("cast_mode") == 1:
+		# En móvil y en modo ON_RELEASE: al soltar el dedo se dispara al instante
+		if is_mobile or sc.config.get("cast_mode") == 1:
 			sc.execute_skill()
 	
-	if not sc.is_aiming:
-		sc.external_aim_vector = Vector2.ZERO
+	sc.external_aim_vector = Vector2.ZERO
 	_aim_drag_active = false
 	_aim_touch_index = -1
 	_aim_origin_vp = Vector2.ZERO
@@ -976,6 +970,12 @@ func _finish_aim_drag(sc, is_mobile: bool):
 
 func _update_aim_drag_from_vp(sc, vp_pos: Vector2):
 	if not is_instance_valid(_aim_node): return
+	
+	var s_type = sc.current_skill.get("type", -1)
+	# Habilidades INSTANT o POINT_CLICK (como Reflect o Escudo Celular) no usan arrastre direccional
+	if s_type != 0 and s_type != 2:
+		sc.external_aim_vector = Vector2.ZERO
+		return
 	
 	var diff_global = vp_pos - _aim_origin_vp
 	

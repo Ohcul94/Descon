@@ -758,13 +758,15 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 				if sph:
 					s_name = sph.get("skill_name")
 					if s_name == null: s_name = ""
-					if s_name != "" and GameConstants.SKILLS_DATA.has(s_name):
-						var s_data = GameConstants.SKILLS_DATA[s_name]
+					if s_name.to_upper().strip_edges() == "REFLECT":
+						s_name = "REFLECT-OMEGA"
+					if s_name != "" and (GameConstants.SKILLS_DATA.has(s_name) or GameConstants.SKILLS_DATA.has("REFLECT-OMEGA")):
+						var s_data = GameConstants.SKILLS_DATA.get(s_name, GameConstants.SKILLS_DATA.get("REFLECT-OMEGA", {}))
 						var raw_r = s_data.get("range")
 						if raw_r != null and (raw_r is int or raw_r is float or raw_r is String):
 							r_val = float(raw_r)
 						else:
-							r_val = 500.0 if s_name in ["BALIZA DE CURACION", "RESURRECCIÓN"] else 0.0
+							r_val = 500.0 if s_name in ["BALIZA DE CURACION", "RESURRECCIÓN", "REFLECT-OMEGA", "ESCUDO CELULAR"] else 0.0
 						filters = s_data.get("targetFilters", {})
 						
 						# v266.60: Auto-detección de tipo si no se especificó (o es -1)
@@ -775,13 +777,13 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 								s_type = aim_override
 						if s_type == -1:
 							s_type = 3 # Instant por defecto
-							if s_name == "ESFERA DE TERROR" or s_name == "BARRERA DE VIENTO":
+							if s_name in ["ESFERA DE TERROR", "BARRERA DE VIENTO"]:
 								s_type = 0 # Apuntable (Directional)
 							elif s_name in ["RESURRECCIÓN", "BALIZA DE CURACION", "REGENERACIÓN ALFA", "BLINK"]:
 								s_type = 2 # Area
 							elif s_name in ["PROVOCACION", "SMOKE-BOMB", "STEALTH", "FROST-TRAIL", "INVULNERABILIDAD", "HYPER-DASH", "TURBO-IMPULSO"]:
 								s_type = 3 # Instant
-							elif s_name in ["REFLECT-OMEGA", "ESCUDO CELULAR", "AUTO-REPARACIÓN", "NANO-REGENERACIÓN", "VÍNCULO VITAL"] or s_data.get("canTargetOthers", false):
+							elif s_name in ["REFLECT-OMEGA", "REFLECT", "ESCUDO CELULAR", "AUTO-REPARACIÓN", "NANO-REGENERACIÓN", "VÍNCULO VITAL"] or s_data.get("canTargetOthers", false):
 								if s_data.get("canTargetOthers", false):
 									s_type = 1 # PointClick (apuntado a objetivo como Escudo Celular)
 								else:
@@ -1959,6 +1961,7 @@ func _find_skill_by_name(n: String):
 		"ESCUDO CELULAR": "res://scripts/resources/skills/Skill_ShieldCell.gd",
 		"AUTO-REPARACIÓN": "res://scripts/resources/skills/Skill_RepairKit.gd",
 		"REFLECT-OMEGA": "res://scripts/resources/skills/Skill_Reflect.gd",
+		"REFLECT": "res://scripts/resources/skills/Skill_Reflect.gd",
 		"NANO-REGENERACIÓN": "res://scripts/resources/skills/Skill_RegenPath.gd",
 		"HYPER-DASH": "res://scripts/resources/skills/Skill_HyperDash.gd",
 		"INVULNERABILIDAD": "res://scripts/resources/skills/Skill_Invulnerability.gd",

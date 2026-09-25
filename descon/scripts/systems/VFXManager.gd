@@ -37,7 +37,6 @@ var static_textures_to_cache = [
   "res://assets/Skills/Iconos/Utilidad/Invisibilidad/Invisibilidad.png",
   "res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png",
   "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
-  "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png",
   "res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png",
   "res://assets/Skills/Iconos/Utilidad/Turbo Impulso/Turbo Impulso.png",
 
@@ -45,7 +44,6 @@ var static_textures_to_cache = [
   "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png",
   "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png",
   "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura.png",
-  "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect.png",
   "res://assets/Efectos de Skills/Curacion(Transp).png",
   "res://assets/Efectos de Skills/Curacion.png",
   "res://assets/Efectos de Skills/Escudo(Transp).png",
@@ -90,15 +88,6 @@ var static_textures_to_cache = [
   "res://assets/Municiones/Iconos/siphon/Siphon.png",
   "res://assets/Municiones/Iconos/emp/Emp.png",
   "res://assets/Municiones/Iconos/electron/Electron.png",
-  "res://assets/Municiones/Laser1.png",
-  "res://assets/Municiones/Laser2.png",
-  "res://assets/Municiones/Laser3.png",
-  "res://assets/Municiones/Misil1.png",
-  "res://assets/Municiones/Misil2.png",
-  "res://assets/Municiones/Misil3.png",
-  "res://assets/Municiones/Mina1.png",
-  "res://assets/Municiones/Mina2.png",
-  "res://assets/Municiones/Mina3.png",
   "res://assets/Municiones/Lasers/Laser1/Laser1.png",
   "res://assets/Municiones/Lasers/Laser2/Laser2-1.png",
   "res://assets/Municiones/Lasers/Laser2/Laser2.png",
@@ -204,7 +193,6 @@ var static_models_to_cache = [
 	"res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb",
 	"res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb",
 	"res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb",
-	"res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb",
 	
 	"res://assets/Pilares/3D/Pilar1/Pilar1.glb",
 	
@@ -217,7 +205,7 @@ var static_models_to_cache = [
 	"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
 	"res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb",
 	"res://assets/Altares/3D/Altar1/Altar1.glb",
-	"res://assets/Paredes/Pared1/Pared1.glb",
+	"res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb",
 	"res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb",
 	"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb",
 	"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb",
@@ -1215,25 +1203,51 @@ func _cache_materials_recursive(node: Node):
 	for child in node.get_children():
 		_cache_materials_recursive(child)
 
-# v905.0: Precalentar el pool de efectos 3D directamente dentro del SubViewport activo del mapa.
-# Esto compila los shaders y crea buffers en la GPU antes de que el jugador o enemigos disparen, eliminando el stutter del primer tiro.
+# v925.0: Precalentar el pool COMPLETO de efectos 3D directamente dentro del SubViewport activo del mapa.
+# Incluye las 38 escenas de VFX, auras, escudos, habilidades curativas y proyectiles para móviles y PC.
 func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 	if not is_instance_valid(sub_vp):
 		return
 		
 	var prewarm_scenes = [
-		"res://VFX/scenes/VFX_Laser_projectile.tscn",
-		"res://VFX/scenes/VFX_Laser_Hit.tscn",
-		"res://VFX/scenes/VFX_Fire_strike.tscn",
-		"res://VFX/scenes/VFX_Fire_ball_type_B.tscn",
-		"res://VFX/scenes/VFX_Siphon_projectile.tscn",
-		"res://VFX/scenes/VFX_Siphon_Hit.tscn",
+		"res://VFX/scenes/VFX_Anticipation_fire_1.tscn",
+		"res://VFX/scenes/VFX_Anticipation_fire_3.tscn",
+		"res://VFX/scenes/VFX_Anticipation_hadouken.tscn",
+		"res://VFX/scenes/VFX_Anticipation_wave_1.tscn",
+		"res://VFX/scenes/VFX_Anticipation_wave_digital.tscn",
 		"res://VFX/scenes/VFX_Cube_projectile.tscn",
+		"res://VFX/scenes/VFX_Darkness_projectile.tscn",
+		"res://VFX/scenes/VFX_Electric_strike.tscn",
+		"res://VFX/scenes/VFX_Fire_ball_standar.tscn",
+		"res://VFX/scenes/VFX_Fire_ball_type_B.tscn",
+		"res://VFX/scenes/VFX_Fire_strike.tscn",
 		"res://VFX/scenes/VFX_Hadouken.tscn",
+		"res://VFX/scenes/VFX_Hit_Hex_Sphere.tscn",
+		"res://VFX/scenes/VFX_Hit_blue_wild.tscn",
 		"res://VFX/scenes/VFX_Hit_cyber.tscn",
+		"res://VFX/scenes/VFX_Hit_dark.tscn",
+		"res://VFX/scenes/VFX_Hit_electric.tscn",
+		"res://VFX/scenes/VFX_Hit_fire_1.tscn",
+		"res://VFX/scenes/VFX_Hit_fire_2.tscn",
+		"res://VFX/scenes/VFX_Hit_fire_3.tscn",
 		"res://VFX/scenes/VFX_Hit_hadouken.tscn",
+		"res://VFX/scenes/VFX_Hit_sphere_bbasic.tscn",
+		"res://VFX/scenes/VFX_Hit_sphere_demon.tscn",
+		"res://VFX/scenes/VFX_Hit_sphere_green.tscn",
+		"res://VFX/scenes/VFX_Laser_Anticipation.tscn",
+		"res://VFX/scenes/VFX_Laser_Hit.tscn",
+		"res://VFX/scenes/VFX_Laser_projectile.tscn",
+		"res://VFX/scenes/VFX_Shield_blue_basic.tscn",
+		"res://VFX/scenes/VFX_Shield_blue_w_pyramid.tscn",
+		"res://VFX/scenes/VFX_Shield_blue_wild.tscn",
+		"res://VFX/scenes/VFX_Shield_demon.tscn",
 		"res://VFX/scenes/VFX_Shield_green.tscn",
-		"res://VFX/scenes/VFX_Laser_Anticipation.tscn"
+		"res://VFX/scenes/VFX_Shield_green_plane.tscn",
+		"res://VFX/scenes/VFX_Shield_hex.tscn",
+		"res://VFX/scenes/VFX_Shield_yellow.tscn",
+		"res://VFX/scenes/VFX_Siphon_Hit.tscn",
+		"res://VFX/scenes/VFX_Siphon_projectile.tscn",
+		"res://VFX/scenes/vfx_std_fire_ball.tscn"
 	]
 	
 	for path in prewarm_scenes:
@@ -1261,6 +1275,15 @@ func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 					sub_vp.remove_child(inst)
 				_vfx_pools[path].append(inst)
 
+	# Precalentar habilidades, auras y shaders de combate en el SubViewport activo
+	var s_warm = _create_skills_and_auras_warmup_node()
+	if s_warm:
+		s_warm.position = Vector3(0.0, -9999.0, 0.0)
+		sub_vp.add_child(s_warm)
+		_cache_materials_recursive(s_warm)
+		sub_vp.remove_child(s_warm)
+		s_warm.queue_free()
+
 	# Precalentar también meteorito y fuego en el SubViewport activo
 	var m_warm = _create_meteor_warmup_node()
 	if m_warm:
@@ -1279,7 +1302,7 @@ func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 		sub_vp.remove_child(l_warm)
 		l_warm.queue_free()
 
-	print("[VFXManager] Pool precalentado en SubViewport con éxito.")
+	print("[VFXManager] Pool precalentado en SubViewport con éxito (38 escenas VFX + auras).")
 
 func _create_meteor_warmup_node() -> Node3D:
 	var root = Node3D.new()
@@ -1563,7 +1586,6 @@ func _create_skills_and_auras_warmup_node() -> Node3D:
 		"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png",
 		"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png",
 		"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura.png",
-		"res://assets/Efectos de Skills/Reflect (Rojo)/Reflect.png",
 		"res://assets/Efectos de Skills/Curacion(Transp).png",
 		"res://assets/Efectos de Skills/Curacion.png",
 		"res://assets/Efectos de Skills/Escudo(Transp).png",

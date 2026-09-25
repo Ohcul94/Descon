@@ -66,17 +66,26 @@ void fragment() {
 		vec3 ndc_d = vec3(SCREEN_UV * 2.0 - 1.0, raw_depth * 2.0 - 1.0);
 		vec4 vp_d  = INV_PROJECTION_MATRIX * vec4(ndc_d, 1.0);
 		vp_d /= vp_d.w;
-		frag_world = (INV_VIEW_MATRIX * vp_d).xyz;
-		has_geom   = true;
-	} else if (ray_dir.y < -0.0001) {
-		// Fallback exacto al suelo Y=0 para cielo, abismo o vacío sin geometría
-		float t_ground = -cam_y / ray_dir.y;
-		if (t_ground > 0.0) {
-			frag_world = ray_origin + ray_dir * t_ground;
+		vec3 cand = (INV_VIEW_MATRIX * vp_d).xyz;
+		// En el juego 2.5D la geometría real se encuentra entre Y = -10.0 y Y = 60.0.
+		// Si en móviles OpenGL ES3 la depth texture no está soportada o arroja valores fuera de rango,
+		// se utiliza el fallback analítico exacto al plano de suelo Y=0.
+		if (cand.y >= -10.0 && cand.y <= 60.0) {
+			frag_world = cand;
+			has_geom   = true;
 		}
-	} else {
-		// Rayo hacia el horizonte o plano lejano
-		frag_world = ray_origin + ray_dir * 120.0;
+	}
+	if (!has_geom) {
+		if (ray_dir.y < -0.0001) {
+			// Fallback universal al suelo Y=0 (para cielo, vacío o móviles GLES3 sin depth copia)
+			float t_ground = -cam_y / ray_dir.y;
+			if (t_ground > 0.0) {
+				frag_world = ray_origin + ray_dir * t_ground;
+			}
+		} else {
+			// Rayo hacia el horizonte o plano lejano
+			frag_world = ray_origin + ray_dir * 120.0;
+		}
 	}
 
 	vec3 final_color = screen_color;

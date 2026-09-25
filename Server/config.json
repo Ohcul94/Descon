@@ -2983,7 +2983,7 @@
             "visionRange": 2500
         },
         "105": {
-            "assetPath": "res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5.glb",
+            "assetPath": "res://assets/Enemigos/3D/Bosses/Boss9/3D/Boss9.glb",
             "bulletDamage": 10000,
             "bulletSpeed": 1100,
             "chaseIdleTimeout": 30000,
@@ -3041,7 +3041,7 @@
             "fireRate": 900,
             "hp": 3000,
             "hpRegenPercent": 25,
-            "icon": "res://assets/Enemigos/2D/Bosses/Boss5/Boss5.png",
+            "icon": "res://assets/Enemigos/3D/Bosses/Boss9/2D/Boss9 Frente.png",
             "isBoss": true,
             "leashRange": 3000,
             "lootDrops": [
@@ -12213,7 +12213,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Curación",
             "requirements": [
@@ -12248,9 +12249,11 @@
             "aimType": 2,
             "targetFilters": {
                 "allies": true,
-                "enemies": false,
                 "bosses": false,
-                "players": true
+                "clan": false,
+                "enemies": false,
+                "players": true,
+                "blockProjectiles": false
             },
             "requirements": [
                 {
@@ -12279,13 +12282,6 @@
             "soundMaxDist": 1400,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50,
-            "targetFilters": {
-                "allies": true,
-                "bosses": false,
-                "clan": false,
-                "enemies": false,
-                "players": true
-            },
             "type": "Curación"
         },
         "BARRERA DE VIENTO": {
@@ -12352,6 +12348,7 @@
             "type": "Utilidad"
         },
         "ESCUDO CELULAR": {
+            "aimType": 1,
             "amount": 20,
             "canTargetOthers": true,
             "castTimeMs": 500,
@@ -12559,7 +12556,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Curación"
         },
@@ -12595,6 +12593,7 @@
             "type": "Ataque"
         },
         "REFLECT-OMEGA": {
+            "aimType": 1,
             "amount": 500,
             "canTargetOthers": true,
             "castTimeMs": 0,
@@ -12673,7 +12672,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "type": "Curación"
         },
@@ -12887,7 +12887,8 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "blockProjectiles": false
             },
             "tickInterval": 1000,
             "type": "Curación"
