@@ -830,6 +830,15 @@ func _on_enemy_cast_started(data: Dictionary):
 	if not is_instance_valid(enemy):
 		return
 	_create_enemy_cast_visual(enemy, mId, castMs, data.get("type", ""))
+	# v2025: Setear is_casting meta para animación de ataque durante casteo
+	enemy.set_meta("is_casting", true)
+	var t = Timer.new()
+	t.one_shot = true
+	t.wait_time = castMs / 1000.0
+	t.timeout.connect(_clear_enemy_casting_meta.bind(eid))
+	if is_instance_valid(world):
+		world.add_child(t)
+	t.start()
 
 func _on_enemy_cast_ended(data: Dictionary):
 	var eid = str(data.get("id", ""))
@@ -947,9 +956,14 @@ func _get_enemy_from_pool() -> Node:
 			return en
 			
 	var en = ENEMY_SCENE.instantiate()
+	en.visible = false
 	enemy_pool.append(en)
 	if is_instance_valid(world) and is_instance_valid(world.entities_node):
 		world.entities_node.add_child(en)
+	if is_instance_valid(en.get("_ui_wrapper")):
+		en._ui_wrapper.visible = false
+	if is_instance_valid(en.get("name_tag")):
+		en.name_tag.visible = false
 	return en
 
 func _on_laser_indicator_exited(enemy_id: String):
@@ -2422,6 +2436,8 @@ func _on_enemy_updated(data):
 		if enemy_zone != -1:
 			eref.set_meta("zone", enemy_zone)
 		eref.update_stats(data)
+		if is_new and eref.has_method("_update_3d_root_sync"):
+			eref._update_3d_root_sync()
 		if not eref.is_burrowed:
 			eref.visible = true; eref.show()
 	else:
@@ -3562,6 +3578,20 @@ func _on_enemy_fired(d):
 		if not mtype.is_empty():
 			var inst = d.get("mechanic", null)
 			AudioManager.play_mechanic_sound(mtype, inst if inst is Dictionary else null, pos)
+# v2025: Setear is_firing meta para animación de ataque
+		var enemy_id = str(d.get("enemyId", d.get("id", "")))
+		if enemy_id != "" and is_instance_valid(world) and world.enemies.has(enemy_id):
+			var enemy = world.enemies[enemy_id]
+			if is_instance_valid(enemy):
+				enemy.set_meta("is_firing", true)
+				# Limpiar tras 600ms (duración típica animación ataque)
+				var t = Timer.new()
+				t.one_shot = true
+				t.wait_time = 0.6
+				t.timeout.connect(_clear_enemy_firing_meta.bind(enemy_id))
+				if is_instance_valid(world):
+					world.add_child(t)
+				t.start()
 
 func _on_remote_skill_used(data):
 	if typeof(data) != TYPE_DICTIONARY: return
@@ -4652,3 +4682,15 @@ func _on_taunt_event(data: Dictionary):
 		world.entities_node.add_child(taunt_vfx)
 		taunt_vfx.init(null, affected_nodes, proj_pos, radius, duration)
 		taunt_vfx.top_level = true
+
+func _clear_enemy_firing_meta(enemy_id: String):
+	if is_instance_valid(world) and world.enemies.has(enemy_id):
+		var enemy = world.enemies[enemy_id]
+		if is_instance_valid(enemy) and enemy.has_meta("is_firing"):
+			enemy.remove_meta("is_firing")
+
+func _clear_enemy_casting_meta(enemy_id: String):
+	if is_instance_valid(world) and world.enemies.has(enemy_id):
+		var enemy = world.enemies[enemy_id]
+		if is_instance_valid(enemy) and enemy.has_meta("is_casting"):
+			enemy.remove_meta("is_casting")

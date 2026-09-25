@@ -239,6 +239,9 @@ func _on_environment_damaged(data: Dictionary):
 			if current_hp < 0: current_hp = 0
 
 		var isShieldDrain = data.get("isShield", false)
+		var src = str(data.get("source", ""))
+		var is_debuff = src == "debuff" or data.get("isDebuff", false)
+
 		if isLifeSteal:
 			# Robo de vida (life_steal): numero verde con signo negativo
 			_spawn_damage_text("-" + str(int(dmg)), Color(0.2, 1.0, 0.35))
@@ -247,12 +250,17 @@ func _on_environment_damaged(data: Dictionary):
 			# Robo de escudo (shield_steal): numero celeste con signo negativo
 			_spawn_damage_text("-" + str(int(dmg)), Color(0.0, 0.9, 0.95))
 			apply_shake(1.0)
+		elif is_debuff:
+			# Daño periódico por debuff (Veneno o Hemorragia):
+			# Popup de daño coloreado según el debuff activo, sin sacudida fuerte ni hit-flash blanco para no despintar
+			var is_poison = poison_timer > 0.0 or debuffs.has("poison") or status_effects.get("poisoned", false)
+			var debuff_color = Color(0.4, 0.95, 0.4) if is_poison else Color(0.95, 0.25, 0.25)
+			_spawn_damage_text(str(int(dmg)), debuff_color)
 		else:
-			# Daño normal
+			# Daño normal de impacto
 			_spawn_damage_text(str(int(dmg)), Color.RED)
 			apply_shake(2.0)
 			# Hit-flash visible: naranja si es del cono, blanco en genérico
-			var src = str(data.get("source", ""))
 			if src == "cone_cast":
 				_trigger_hit_flash(Color(1.0, 0.45, 0.1))
 			else:
@@ -350,7 +358,8 @@ func _on_status_effects_sync(data: Dictionary):
 			poly_timer = 0.0
 			poly_can_move = true
 			poly_can_use_skills = true
-			modulate = Color.WHITE
+			if not _has_any_status_color():
+				modulate = Color.WHITE
 		else:
 			modulate = Color(0.7, 0.95, 1.0, 1.0)
 			# v410.1: Restaurar flags de poly desde la sincronización periódica de estado
@@ -408,7 +417,8 @@ func _on_stun_state(data: Dictionary):
 		is_feared = false
 		stun_timer = 0.0
 		fear_timer = 0.0
-		modulate = Color.WHITE
+		if not _has_any_status_color():
+			modulate = Color.WHITE
 		set_debuff_timer("fear", 0)
 		set_debuff_timer("stun", 0)
 		_stop_sleep_zzz()
@@ -603,14 +613,16 @@ func _physics_process(p_delta):
 		fear_timer -= p_delta
 		if fear_timer <= 0:
 			is_feared = false
-			modulate = Color.WHITE
+			if not _has_any_status_color():
+				modulate = Color.WHITE
 			set_debuff_timer("fear", 0.0)
 
 	if is_stunned:
 		stun_timer -= p_delta
 		if stun_timer <= 0:
 			is_stunned = false
-			modulate = Color.WHITE
+			if not _has_any_status_color():
+				modulate = Color.WHITE
 			set_debuff_timer("stun", 0.0)
 		return # Bloquear TODO el proceso si está stuneado
 
@@ -622,7 +634,8 @@ func _physics_process(p_delta):
 			_poly_authoritative = false
 			poly_can_move = true
 			poly_can_use_skills = true
-			modulate = Color.WHITE
+			if not _has_any_status_color():
+				modulate = Color.WHITE
 			status_effects["polymorphed"] = false
 			_force_clear_poly_visual()
 			set_debuff_timer("poly", 0.0)
@@ -1893,7 +1906,8 @@ func update_stats(data):
 			poly_timer = 0.0
 			poly_can_move = true
 			poly_can_use_skills = true
-			modulate = Color.WHITE
+			if not _has_any_status_color():
+				modulate = Color.WHITE
 			_force_clear_poly_visual()  # Limpiar inmediatamente
 		else:
 			# Saneamiento de tipo de datos (soportar bool nativo y string de red)

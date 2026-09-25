@@ -2321,7 +2321,8 @@
             "rewardHubs": 4500,
             "rewardOhcu": 45,
             "shield": 6000,
-            "speed": 290
+            "speed": 290,
+            "aggressive": true
         },
         "14": {
             "assetPath": "res://assets/Enemigos/3D/Enemigo14/Enemigo14.glb",
@@ -2388,7 +2389,9 @@
                     "fireRate": 750,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -3203,7 +3206,11 @@
             "speed": 240,
             "visionRange": 3000,
             "canFloat": false,
-            "hitboxRadius": 100
+            "hitboxRadius": 100,
+            "animIdle": "idle",
+            "animAttack": "cast",
+            "animDie": "defeat",
+            "animRun": "walk"
         },
         "106": {
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/AnimacionesBoss6.glb",
@@ -4191,7 +4198,27 @@
         "13-D": {
             "bulletDamage": 1750,
             "bulletSpeed": 950,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "invisibility",
+                    "castTimeMs": 0,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 6000,
+                    "startDelay": 0,
+                    "invisType": "invisibility",
+                    "keepAttacking": true,
+                    "changeSpeed": false,
+                    "invisSpeedMultiplier": 1
+                }
+            ],
             "fireRange": 1200,
             "fireRate": 850,
             "hp": 60000,
@@ -4204,10 +4231,10 @@
                     "activationIntervalMs": 0,
                     "activationMode": "time",
                     "bulletDamage": 1,
-                    "bulletSpeed": 500,
+                    "bulletSpeed": 300,
                     "castInterruptible": true,
                     "castTimeMs": 0,
-                    "circleCount": 4,
+                    "circleCount": 5,
                     "fireRange": 1200,
                     "fireRate": 4000,
                     "isHoming": true,
@@ -4230,7 +4257,7 @@
                     "changeType": 150,
                     "idealDist": 150,
                     "patrolRange": 1500,
-                    "speed": 200,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "sniper"
@@ -4242,7 +4269,8 @@
             "rewardHubs": 22500,
             "rewardOhcu": 225,
             "shield": 30000,
-            "speed": 290
+            "speed": 290,
+            "aggressive": true
         },
         "14-A": {
             "assetPath": "res://assets/Enemigos/3D/Enemigo14/Enemigo14.glb",
@@ -4377,7 +4405,36 @@
             "assetPath": "res://assets/Enemigos/3D/Enemigo14/Enemigo14.glb",
             "bulletDamage": 2000,
             "bulletSpeed": 1000,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "duplicado",
+                    "castTimeMs": 0,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 5000,
+                    "cooldown": 6000,
+                    "startDelay": 0,
+                    "cloneCount": 1,
+                    "cloneSpeed": 2,
+                    "cloneDuration": 4000,
+                    "cloneExplodeOnExpiry": true,
+                    "spawnRadius": 150,
+                    "clonesList": [
+                        {
+                            "hp": 1000,
+                            "shield": 200,
+                            "role": "damage",
+                            "value": 1
+                        }
+                    ]
+                }
+            ],
             "fireRange": 1300,
             "fireRate": 800,
             "hp": 80000,
@@ -4387,20 +4444,37 @@
                 {
                     "activationIntervalMs": 0,
                     "activationMode": "time",
-                    "bulletDamage": 2000,
-                    "bulletSpeed": 1000,
+                    "bulletDamage": 1,
+                    "bulletSpeed": 800,
                     "castInterruptible": true,
                     "castTimeMs": 0,
                     "fireRange": 1300,
                     "fireRate": 800,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "worm_boomerang",
+                    "activationHPs": [
+                        50
+                    ],
+                    "projectileCount": 3,
+                    "spreadAngle": 60,
+                    "parkTimeMs": 1000,
+                    "returnDamage": 2,
+                    "debuffsList": [
+                        {
+                            "type": "poison",
+                            "dps": 1,
+                            "duration": 3000,
+                            "tickInterval": 990
+                        }
+                    ],
+                    "cooldown": 6000,
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 280,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -4416,7 +4490,8 @@
             "rotZ": 0,
             "scale": 2,
             "shield": 40000,
-            "speed": 280
+            "speed": 280,
+            "aggressive": true
         },
         "2-A": {
             "aggressive": true,
@@ -6266,6 +6341,194 @@
             "shield": 20000,
             "speed": 310,
             "visionRange": 1000
+        },
+        "15-A": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo15/Enemigo15.glb",
+            "bulletDamage": 1000,
+            "bulletSpeed": 1050,
+            "defenseMechanics": [],
+            "fireRange": 1350,
+            "fireRate": 750,
+            "hp": 40000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 1000,
+                    "bulletSpeed": 1050,
+                    "castInterruptible": true,
+                    "castTimeMs": 0,
+                    "fireRange": 1350,
+                    "fireRate": 750,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 270,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 15 A",
+            "rankingPoints": 15,
+            "rewardExp": 7000,
+            "rewardHubs": 13000,
+            "rewardOhcu": 130,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 20000,
+            "speed": 270
+        },
+        "15-B": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo15/Enemigo15.glb",
+            "bulletDamage": 1500,
+            "bulletSpeed": 1050,
+            "defenseMechanics": [],
+            "fireRange": 1350,
+            "fireRate": 750,
+            "hp": 60000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 1500,
+                    "bulletSpeed": 1050,
+                    "castInterruptible": true,
+                    "castTimeMs": 0,
+                    "fireRange": 1350,
+                    "fireRate": 750,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 270,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 15 B",
+            "rankingPoints": 15,
+            "rewardExp": 10500,
+            "rewardHubs": 19500,
+            "rewardOhcu": 195,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 30000,
+            "speed": 270
+        },
+        "15-C": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo15/Enemigo15.glb",
+            "bulletDamage": 2000,
+            "bulletSpeed": 1050,
+            "defenseMechanics": [],
+            "fireRange": 1350,
+            "fireRate": 750,
+            "hp": 80000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 2000,
+                    "bulletSpeed": 1050,
+                    "castInterruptible": true,
+                    "castTimeMs": 0,
+                    "fireRange": 1350,
+                    "fireRate": 750,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 270,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 15 C",
+            "rankingPoints": 15,
+            "rewardExp": 14000,
+            "rewardHubs": 26000,
+            "rewardOhcu": 260,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 40000,
+            "speed": 270
+        },
+        "15-D": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo15/Enemigo15.glb",
+            "bulletDamage": 2500,
+            "bulletSpeed": 1050,
+            "defenseMechanics": [],
+            "fireRange": 1350,
+            "fireRate": 750,
+            "hp": 100000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 2500,
+                    "bulletSpeed": 1050,
+                    "castInterruptible": true,
+                    "castTimeMs": 2000,
+                    "fireRange": 1350,
+                    "fireRate": 750,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "choque_devastador",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "cooldown": 6000,
+                    "damage": 1,
+                    "range": 100,
+                    "speed": 700,
+                    "duration": 5000,
+                    "radius": 250,
+                    "pushOnHit": 0,
+                    "pushForce": 250,
+                    "warnTimeMs": 1200,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 1,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 15 D",
+            "rankingPoints": 15,
+            "rewardExp": 17500,
+            "rewardHubs": 32500,
+            "rewardOhcu": 325,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 50000,
+            "speed": 270,
+            "aggressive": true
         }
     },
     "gameModes": {
@@ -7892,6 +8155,36 @@
                     "type": "12-D",
                     "x": 3491,
                     "y": 6501
+                },
+                {
+                    "id": "spawn_1790303612468898",
+                    "type": "13-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 5632,
+                    "y": 1488,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1790303632994986",
+                    "type": "14-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 6581,
+                    "y": 1453,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1790303678685857",
+                    "type": "15-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 6581,
+                    "y": 2536,
+                    "radius": 300
                 }
             ],
             "terrainImage": "assets/maps/terrain_zone_5.png",

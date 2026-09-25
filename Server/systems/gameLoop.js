@@ -636,7 +636,7 @@ function startGameLoop(io, state, aiManager) {
                 }
                 combatTracker.trackDamageTaken(p.socketId, 'debuff', debuffDmg, 'debuff', state);
 
-                io.to(p.socketId).emit('environmentDamage', { damage: debuffDmg });
+                io.to(p.socketId).emit('environmentDamage', { damage: debuffDmg, source: 'debuff', isDebuff: true });
                 changed = true;
             }
 
@@ -753,7 +753,9 @@ function startGameLoop(io, state, aiManager) {
                     maxHp: p.maxHp, 
                     maxShield: p.maxShield,
                     isInvisible: p.isInvisible,
-                    isSlowed: p.isSlowed
+                    isSlowed: !!p.isSlowed,
+                    isBleeding: !!p.isBleeding,
+                    isPoisoned: !!p.isPoisoned
                 });
             }
         });

@@ -134,8 +134,10 @@ func _ready():
 				child.minimized.connect(_on_minimize_pressed)
 	
 	if NetworkManager:
-		if not NetworkManager.login_success.is_connected(_on_server_data_received):
-			NetworkManager.auth_success.connect(func(d): _on_server_data_received(d))
+		if not NetworkManager.auth_success.is_connected(_on_server_data_received):
+			NetworkManager.auth_success.connect(_on_server_data_received)
+		if NetworkManager.current_user_data and not NetworkManager.current_user_data.is_empty():
+			_on_server_data_received(NetworkManager.current_user_data)
 		NetworkManager.player_updated.connect(_on_server_player_updated)
 		NetworkManager.enemy_kill_session.connect(_on_enemy_kill_reward)
 		
@@ -233,14 +235,14 @@ func _on_server_data_received(p_data: Dictionary):
 		_update_active_slot_index(layout)
 
 func _update_active_slot_index(current_layout: Dictionary):
-	if _hud_layouts.is_empty(): 
+	if _hud_layouts.is_empty() or current_layout.is_empty(): 
 		active_slot_index = -1
 		return
 		
 	for i in range(_hud_layouts.size()):
 		var slot = _hud_layouts[i]
-		if slot and slot.has("positions"):
-			if str(slot.positions) == str(current_layout):
+		if slot and slot.has("positions") and typeof(slot.positions) == TYPE_DICTIONARY:
+			if slot.positions == current_layout:
 				active_slot_index = i
 				return
 	active_slot_index = -1
@@ -360,6 +362,8 @@ func _input(event: InputEvent):
 					get_viewport().set_input_as_handled()
 					return
 			else:
+				if _dragging_node:
+					_sync_all_drag_overlays()
 				_dragging_node = null
 				
 		elif (event is InputEventMouseMotion or event is InputEventScreenDrag) and _dragging_node:
@@ -374,6 +378,7 @@ func _input(event: InputEvent):
 				var handle = get_node_or_null("SkillsMasterHandle")
 				if handle: handle.global_position = _node_start_positions[_dragging_node] + delta + Vector2(260, -30)
 			
+			_sync_all_drag_overlays()
 			get_viewport().set_input_as_handled()
 			return
 
@@ -545,68 +550,76 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				var f_pos = Vector2.ZERO
 				
 				# X: Alineación inteligente de 3 vías (Izquierda, Centro, Derecha) - Escalable
-				var left_thresh_x = _screen_size.x / 3.0
-				var right_thresh_x = _screen_size.x * 2.0 / 3.0
+				var left_thresh_x = original_w / 3.0
+				var right_thresh_x = original_w * 2.0 / 3.0
 				var cx = rx + (base_w / 2.0)
-				if cx < left_thresh_x:
+				
+				var align_x = str(pos_data.get("align_x", ""))
+				if align_x == "":
+					if cx < left_thresh_x: align_x = "left"
+					elif cx > right_thresh_x: align_x = "right"
+					else: align_x = "center"
+					
+				if align_x == "left":
 					# 1. Alineado a la izquierda
 					f_pos.x = rx
-				elif cx > right_thresh_x:
+				elif align_x == "right":
 					# 2. Alineado a la derecha
-					var margin_right = original_w - (rx + base_w)
+					var margin_right = float(pos_data.get("margin_right", original_w - (rx + base_w)))
 					if margin_right < 0: margin_right = 0
 					f_pos.x = _screen_size.x - godot_visual_w - margin_right
 				else:
 					# 3. Alineado al centro
-					var offset_x = cx - (original_w / 2.0)
+					var offset_x = float(pos_data.get("offset_x", cx - (original_w / 2.0)))
 					f_pos.x = (_screen_size.x / 2.0) + offset_x - (godot_visual_w / 2.0)
 					
 				# Y: Alineación inteligente de 3 vías (Arriba, Centro, Abajo) - Escalable
-				var top_thresh_y = _screen_size.y / 3.0
-				var bottom_thresh_y = _screen_size.y * 2.0 / 3.0
+				var top_thresh_y = original_h / 3.0
+				var bottom_thresh_y = original_h * 2.0 / 3.0
 				var cy = ry + (base_h / 2.0)
-				if cy < top_thresh_y:
+				
+				var align_y = str(pos_data.get("align_y", ""))
+				if align_y == "":
+					if cy < top_thresh_y: align_y = "top"
+					elif cy > bottom_thresh_y: align_y = "bottom"
+					else: align_y = "center"
+					
+				if align_y == "top":
 					# 1. Alineado arriba
 					f_pos.y = ry
-				elif cy > bottom_thresh_y:
+				elif align_y == "bottom":
 					# 2. Alineado abajo
-					var margin_bottom = original_h - (ry + base_h)
+					var margin_bottom = float(pos_data.get("margin_bottom", original_h - (ry + base_h)))
 					if margin_bottom < 0: margin_bottom = 0
 					f_pos.y = _screen_size.y - godot_visual_h - margin_bottom
 				else:
 					# 3. Alineado al centro
-					var offset_y = cy - (original_h / 2.0)
+					var offset_y = float(pos_data.get("offset_y", cy - (original_h / 2.0)))
 					f_pos.y = (_screen_size.y / 2.0) + offset_y - (godot_visual_h / 2.0)
 					
 				node.global_position = f_pos
 				_sync_scifi_frame(node)
 			else:
-				# v1.31: Matemática Proporcional Original para Slots huérfanos
-				node.top_level = true
-				var final_pos = Vector2.ZERO
-				if rx <= 2.0 and ry <= 2.0:
-					final_pos = Vector2(rx * _screen_size.x, ry * _screen_size.y)
-				else:
+				# v1.31: Matemática Proporcional para Slots huérfanos/desacoplados
+				var is_detached = bool(pos_data.get("detached", false))
+				if is_detached:
+					node.top_level = true
 					var scale_x = _screen_size.x / 1280.0
 					var scale_y = _screen_size.y / 800.0
-					if node.name == "StatusEffects":
-						var width = 500.0
-						var height = 55.0
-						final_pos.x = (rx + width / 2.0) * scale_x - (width / 2.0)
-						final_pos.y = (ry + height / 2.0) * scale_y - (height / 2.0)
-					else:
-						final_pos = Vector2(rx * scale_x, ry * scale_y)
-				
-				var rs_temp = node.size
-				if "Slot" in node.name or node.name in ["Util1", "Util2", "Def", "Cur"]: rs_temp = Vector2(65, 65)
-				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
-				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
-				
-				var ns_temp = rs_temp * node.scale
-				final_pos.x = clamp(final_pos.x, 0, _screen_size.x - ns_temp.x)
-				final_pos.y = clamp(final_pos.y, 0, _screen_size.y - ns_temp.y)
-				node.global_position = final_pos
-				_sync_scifi_frame(node)
+					var final_pos = Vector2(rx * scale_x, ry * scale_y)
+					
+					var rs_temp = node.size
+					if "Slot" in node.name or node.name in ["Util1", "Util2", "Def", "Cur"]: rs_temp = Vector2(65, 65)
+					elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
+					if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
+					
+					var ns_temp = rs_temp * node.scale
+					final_pos.x = clamp(final_pos.x, 0, _screen_size.x - ns_temp.x)
+					final_pos.y = clamp(final_pos.y, 0, _screen_size.y - ns_temp.y)
+					node.global_position = final_pos
+					_sync_scifi_frame(node)
+				else:
+					node.top_level = false
 	
 	# v531.3: Control de Visibilidad independiente del Layout
 	# Los layouts cambian posiciones/escala, NO determinan qué ventanas están activas.
@@ -1356,7 +1369,7 @@ func toggle_hud_editing(slot_index: int = -1):
 	
 	var edit_container = get_node_or_null("EditLayoutUI")
 	if is_editing_layout:
-		_editing_slot_index = slot_index
+		_editing_slot_index = slot_index if slot_index >= 0 else active_slot_index
 		_capture_visibility_before_editing()
 		_backup_layout()
 		if center_stats:
@@ -1821,73 +1834,90 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			if win.name == "Skills": base_w = 575; base_h = 65
 			elif win.name == "CenterStats": base_w = 250; base_h = 140
 			elif win.name == "RadarWindow": base_w = 220; base_h = 220
-			elif "Chat" in win.name: base_w = 320; base_h = 200
+			elif "Chat" in win.name: base_w = 340; base_h = 220
 			elif "Party" in win.name: base_w = 220; base_h = 200
 			elif "ControlBar" in win.name:
 				base_w = 340; base_h = 45
 			elif "StatusEffects" in win.name: base_w = 500; base_h = 55
 			elif "TargetFrame" in win.name: base_w = 200; base_h = 65
 			elif "PortalBtnContainer" in win.name: base_w = 80; base_h = 80
-			elif "CombatMeter" in win.name: base_w = 340; base_h = 220
+			elif "CombatMeter" in win.name: base_w = 350; base_h = 220
 			elif "TopLeft" in win.name: base_w = 180; base_h = 120
 			elif "CamTouchPadContainer" in win.name or "CamEdit" in win.name: base_w = 190; base_h = 240
 			
-			var godot_w = win.size.x * win.scale.x
-			var godot_h = win.size.y * win.scale.y
+			var godot_w = base_w * win.scale.x
+			var godot_h = base_h * win.scale.y
 			
 			# X: Normalización de 3 vías (Izquierda, Centro, Derecha)
 			var screen_cx = nx + (godot_w / 2.0)
+			var align_x = "center"
+			var margin_right = _screen_size.x - (nx + godot_w)
+			var offset_x = screen_cx - (_screen_size.x / 2.0)
+			
 			if screen_cx < (_screen_size.x / 3.0):
-				# Izquierda (preservar posición absoluta)
-				pass
+				align_x = "left"
 			elif screen_cx > (_screen_size.x * 2.0 / 3.0):
-				# Derecha (preservar margen derecho)
-				var margin_right = _screen_size.x - (nx + godot_w)
+				align_x = "right"
 				nx = original_w - base_w - margin_right
 			else:
-				# Centro (preservar offset del centro)
-				nx = nx - (_screen_size.x / 2.0) + (original_w / 2.0) + (godot_w - base_w) / 2.0
+				align_x = "center"
+				nx = (original_w / 2.0) + offset_x - (base_w / 2.0)
 				
 			# Y: Normalización de 3 vías (Arriba, Centro, Abajo)
 			var screen_cy = ny + (godot_h / 2.0)
+			var align_y = "center"
+			var margin_bottom = _screen_size.y - (ny + godot_h)
+			var offset_y = screen_cy - (_screen_size.y / 2.0)
+			
 			if screen_cy < (_screen_size.y / 3.0):
-				# Arriba (preservar posición absoluta)
-				pass
+				align_y = "top"
 			elif screen_cy > (_screen_size.y * 2.0 / 3.0):
-				# Abajo (preservar margen inferior)
-				var margin_bottom = _screen_size.y - (ny + godot_h)
+				align_y = "bottom"
 				ny = original_h - base_h - margin_bottom
 			else:
-				# Centro (preservar offset del centro)
-				ny = ny - (_screen_size.y / 2.0) + (original_h / 2.0) + (godot_h - base_h) / 2.0
+				align_y = "center"
+				ny = (original_h / 2.0) + offset_y - (base_h / 2.0)
 				
-		elif win.top_level:
+			return {
+				"x": nx,
+				"y": ny,
+				"align_x": align_x,
+				"align_y": align_y,
+				"margin_right": margin_right,
+				"margin_bottom": margin_bottom,
+				"offset_x": offset_x,
+				"offset_y": offset_y
+			}
+		else:
 			var scale_x = original_w / _screen_size.x
 			var scale_y = original_h / _screen_size.y
-			if win.name == "StatusEffects":
-				var width = 500.0
-				var height = 55.0
-				nx = (nx + width / 2.0) * scale_x - (width / 2.0)
-				ny = (ny + height / 2.0) * scale_y - (height / 2.0)
-			else:
-				nx = nx * scale_x
-				ny = ny * scale_y
-			
-		return Vector2(nx, ny)
+			return {
+				"x": nx * scale_x,
+				"y": ny * scale_y
+			}
 
 	var layout = {}
 	if skills_hud:
-		var npos = get_normalized_pos.call(skills_hud, 1280.0, 800.0)
-		layout["SkillsContainer"] = { 
-			"x": npos.x, "y": npos.y,
+		var norm_skills = get_normalized_pos.call(skills_hud, 1280.0, 800.0)
+		var sdata = { 
+			"x": norm_skills.x, "y": norm_skills.y,
 			"scale": skills_hud.scale.x / 2.0, "alpha": skills_hud.modulate.a
 		}
+		if norm_skills.has("align_x"): sdata["align_x"] = norm_skills.align_x
+		if norm_skills.has("align_y"): sdata["align_y"] = norm_skills.align_y
+		if norm_skills.has("margin_right"): sdata["margin_right"] = norm_skills.margin_right
+		if norm_skills.has("margin_bottom"): sdata["margin_bottom"] = norm_skills.margin_bottom
+		if norm_skills.has("offset_x"): sdata["offset_x"] = norm_skills.offset_x
+		if norm_skills.has("offset_y"): sdata["offset_y"] = norm_skills.offset_y
+		layout["SkillsContainer"] = sdata
+		
 		for child in skills_hud.get_children():
 			if child.name == "DragOverlay": continue
 			var cpos = get_normalized_pos.call(child, 1280.0, 800.0)
 			layout[child.name] = { 
 				"x": cpos.x, "y": cpos.y,
-				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
+				"scale": child.scale.x / 2.0, "alpha": child.modulate.a,
+				"detached": child.top_level
 			}
 	
 	for win_id in ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]:
@@ -1898,6 +1928,12 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				"x": wpos.x, "y": wpos.y,
 				"scale": win.scale.x / 2.0, "alpha": win.modulate.a
 			}
+			if wpos.has("align_x"): wdata["align_x"] = wpos.align_x
+			if wpos.has("align_y"): wdata["align_y"] = wpos.align_y
+			if wpos.has("margin_right"): wdata["margin_right"] = wpos.margin_right
+			if wpos.has("margin_bottom"): wdata["margin_bottom"] = wpos.margin_bottom
+			if wpos.has("offset_x"): wdata["offset_x"] = wpos.offset_x
+			if wpos.has("offset_y"): wdata["offset_y"] = wpos.offset_y
 			if win_id == "ControlBar" and "rows" in win:
 				wdata["rows"] = win.rows
 			layout[win_id] = wdata
@@ -1929,45 +1965,14 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		
 		active_slot_index = slot_index
 		NetworkManager.send_event("saveHudLayout", payload)
+		notify("LAYOUT GUARDADO CORRECTAMENTE", "info")
 
 func _backup_layout():
 	_layout_backup.clear()
-	var screen_size = get_viewport_rect().size
-	var scale_x = 1280.0 / screen_size.x
-	var scale_y = 800.0 / screen_size.y
-
-	if skills_hud:
-		_layout_backup["SkillsContainer"] = { 
-			"x": skills_hud.global_position.x * scale_x, "y": skills_hud.global_position.y * scale_y,
-			"scale": skills_hud.scale.x / 2.0, "alpha": skills_hud.modulate.a
-		}
-		for child in skills_hud.get_children():
-			if child is Control and child.name != "DragOverlay":
-				_layout_backup[child.name] = { 
-					"x": child.global_position.x * scale_x, "y": child.global_position.y * scale_y,
-					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
-				}
-	
-	for win_id in ["RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]:
-		var win = _get_hud_node(win_id)
-		if win:
-			var wdata = {}
-			if win_id == "StatusEffects":
-				var width = 500.0
-				var height = 55.0
-				wdata = { 
-					"x": (win.global_position.x + width / 2.0) * scale_x - (width / 2.0),
-					"y": (win.global_position.y + height / 2.0) * scale_y - (height / 2.0),
-					"scale": win.scale.x / 2.0, "alpha": win.modulate.a
-				}
-			else:
-				wdata = { 
-					"x": win.global_position.x * scale_x, "y": win.global_position.y * scale_y,
-					"scale": win.scale.x / 2.0, "alpha": win.modulate.a
-				}
-			if win_id == "ControlBar" and "rows" in win:
-				wdata["rows"] = win.rows
-			_layout_backup[win_id] = wdata
+	if not _last_applied_layout.is_empty():
+		_layout_backup = _last_applied_layout.duplicate(true)
+	elif NetworkManager and typeof(NetworkManager.current_user_data) == TYPE_DICTIONARY and NetworkManager.current_user_data.has("hudPositions"):
+		_layout_backup = NetworkManager.current_user_data["hudPositions"].duplicate(true)
 
 func _restore_layout_backup():
 	if _layout_backup.is_empty(): return

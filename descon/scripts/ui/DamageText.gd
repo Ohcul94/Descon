@@ -25,6 +25,8 @@ func _ready():
 func setup(p_text: String, p_color: Color = Color.WHITE):
 	label.text = p_text
 	label.modulate = p_color
+	label.reset_size()
+	label.position = -label.size / 2.0
 
 func _process(p_delta):
 	position += velocity * p_delta

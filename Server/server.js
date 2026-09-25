@@ -777,6 +777,9 @@ const handleUserLogin = async (socket, user, username) => {
         isInvulnerable: !!p_ref.isInvulnerable,
         gameData: isAdminSocket(socket) ? {
             ...JSON.parse(JSON.stringify(user.gameData)),
+            hudPositions: p_ref.hudPositions,
+            hudLayouts: p_ref.hudLayouts,
+            hudConfig: p_ref.hudConfig,
             pvpEnabled: !!p_ref.pvpEnabled, // SYNC FIX: Usar el valor real en memoria (forzado por reglas de zona en login)
             isInvulnerable: !!p_ref.isInvulnerable,
             equippedByShip: JSON.parse(JSON.stringify(eByShipObj)),
@@ -784,6 +787,9 @@ const handleUserLogin = async (socket, user, username) => {
             supportMailbox: JSON.parse(JSON.stringify(user.gameData.supportMailbox || []))
         } : visibilityGuard.sanitizeGameDataForClient({
             ...JSON.parse(JSON.stringify(user.gameData)),
+            hudPositions: p_ref.hudPositions,
+            hudLayouts: p_ref.hudLayouts,
+            hudConfig: p_ref.hudConfig,
             pvpEnabled: !!p_ref.pvpEnabled, // SYNC FIX: Usar el valor real en memoria (forzado por reglas de zona en login)
             isInvulnerable: !!p_ref.isInvulnerable,
             equippedByShip: JSON.parse(JSON.stringify(eByShipObj)),
@@ -1245,6 +1251,7 @@ const savePlayerToDB = async (socketId) => {
                     "gameData.skillTree": p.skillTree,
                     "gameData.hudConfig": p.hudConfig || {},
                     "gameData.hudPositions": p.hudPositions || {},
+                    "gameData.hudLayouts": p.hudLayouts || [],
                     "gameData.currentShipId": p.currentShipId || 1,
                     // v6.02: Campos de persistencia del estado en RAM
                     "gameData.vaultItems": p.vaultItems || [],
@@ -1630,6 +1637,9 @@ io.on('connection', (socket) => {
             
             // v3.9: Sincronía en Caliente (Update global memory)
             state.SERVER_CONFIG = config;
+            
+            // v3.9: Broadcast inmediato a todos los clientes conectados
+            broadcastConfigUpdate(io, config);
             
             // v266.145: Sincronizar en caliente los ítems de todos los jugadores conectados
             Object.keys(players).forEach(async (socketId) => {
@@ -2612,50 +2622,56 @@ io.on('connection', (socket) => {
 
     socket.on('saveHudLayout', async (data) => {
         if (players[socket.id]) {
+            const p = players[socket.id];
+            const targetId = p.id || (socket.dbUser ? socket.dbUser._id : null);
+
             // v266.130: Guardado en slot específico
             if (data.slotIndex !== undefined && data.slotIndex >= 0 && data.slotIndex < 4) {
-                if (!players[socket.id].hudLayouts) players[socket.id].hudLayouts = [];
+                if (!p.hudLayouts) p.hudLayouts = [];
                 
-                // Asegurar que el slot exista
-                if (!players[socket.id].hudLayouts[data.slotIndex]) {
-                    players[socket.id].hudLayouts[data.slotIndex] = { name: data.name || `Layout ${data.slotIndex + 1}`, positions: {} };
+                // Asegurar que los slots previos existan
+                while (p.hudLayouts.length <= data.slotIndex) {
+                    p.hudLayouts.push({
+                        name: `Layout ${p.hudLayouts.length + 1}`,
+                        positions: {}
+                    });
                 }
                 
-                const slot = players[socket.id].hudLayouts[data.slotIndex];
+                const slot = p.hudLayouts[data.slotIndex];
                 if (data.name) slot.name = data.name;
                 if (data.positions) slot.positions = data.positions;
                 
                 // Sincronizar el layout activo para persistencia global
-                players[socket.id].hudPositions = data.positions || players[socket.id].hudPositions;
+                p.hudPositions = data.positions || p.hudPositions;
                 
-                Logger.debug('HUD', `Guardado Slot ${data.slotIndex} para ${players[socket.id].user}`);
+                Logger.debug('HUD', `Guardado Slot ${data.slotIndex} para ${p.user}`);
 
-                if (socket.dbUser) {
+                if (targetId) {
                     try {
-                        const updatePath = `gameData.hudLayouts.${data.slotIndex}`;
-                        const updateObj = { [updatePath]: players[socket.id].hudLayouts[data.slotIndex] };
-                        updateObj["gameData.hudPositions"] = players[socket.id].hudPositions;
-                        
-                        await User.updateOne({ _id: socket.dbUser._id }, { $set: updateObj });
+                        const updateObj = {
+                            "gameData.hudLayouts": p.hudLayouts,
+                            "gameData.hudPositions": p.hudPositions
+                        };
+                        await User.updateOne({ _id: targetId }, { $set: updateObj });
                         Logger.debug('HUD-SLOT', `Persistencia exitosa en DB para slot ${data.slotIndex}`);
                     } catch (e) { Logger.error('HUD-SAVE', e.message); }
                 }
                 return;
             }
 
-            if (data.config !== undefined) players[socket.id].hudConfig = data.config;
-            if (data.positions !== undefined) players[socket.id].hudPositions = data.positions;
-            Logger.debug('HUD', `Config global recibida de ${players[socket.id].user}`);
+            if (data.config !== undefined) p.hudConfig = data.config;
+            if (data.positions !== undefined) p.hudPositions = data.positions;
+            Logger.debug('HUD', `Config global recibida de ${p.user}`);
             
-            if (socket.dbUser) {
+            if (targetId) {
                 try {
                     const updateObj = {};
                     if (data.config !== undefined) updateObj["gameData.hudConfig"] = data.config;
                     if (data.positions !== undefined) updateObj["gameData.hudPositions"] = data.positions;
                     
                     if (Object.keys(updateObj).length > 0) {
-                        await User.updateOne({ _id: socket.dbUser._id }, { $set: updateObj });
-                        Logger.debug('HUD', `Config global persistida en DB para ${players[socket.id].user}`);
+                        await User.updateOne({ _id: targetId }, { $set: updateObj });
+                        Logger.debug('HUD', `Config global persistida en DB para ${p.user}`);
                     }
                 } catch (e) {
                     Logger.error('HUD-SAVE', e.message);
@@ -2665,20 +2681,24 @@ io.on('connection', (socket) => {
     });
 
     socket.on('saveHUD', async (data) => {
-        if (players[socket.id] && socket.dbUser) {
-            try {
-                if (!players[socket.id].hudPositions) players[socket.id].hudPositions = {};
-                players[socket.id].hudPositions[data.id] = data.pos;
+        if (players[socket.id]) {
+            const p = players[socket.id];
+            const targetId = p.id || (socket.dbUser ? socket.dbUser._id : null);
+            if (targetId) {
+                try {
+                    if (!p.hudPositions) p.hudPositions = {};
+                    p.hudPositions[data.id] = data.pos;
 
-                // v189.96: PERSISTENCIA INSTANTÁNEA (DB Atlas Write)
-                const updatePath = `gameData.hudPositions.${data.id}`;
-                await User.updateOne(
-                    { _id: socket.dbUser._id },
-                    { $set: { [updatePath]: data.pos } }
-                );
+                    // v189.96: PERSISTENCIA INSTANTÁNEA (DB Atlas Write)
+                    const updatePath = `gameData.hudPositions.${data.id}`;
+                    await User.updateOne(
+                        { _id: targetId },
+                        { $set: { [updatePath]: data.pos } }
+                    );
 
-                Logger.debug('HUD-DB', `Registro guardado: ${data.id} para ${players[socket.id].user}`);
-            } catch (e) { Logger.error('HUD-PERSIST', e.message); }
+                    Logger.debug('HUD-DB', `Registro guardado: ${data.id} para ${p.user}`);
+                } catch (e) { Logger.error('HUD-PERSIST', e.message); }
+            }
         }
     });
 

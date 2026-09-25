@@ -308,9 +308,12 @@ func _ready():
 	
 	if name_tag:
 		if name_tag.get_parent() != _ui_wrapper: name_tag.reparent(_ui_wrapper)
-		name_tag.visible = true; name_tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		name_tag.visible = not is_in_group("enemies"); name_tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		name_tag.grow_horizontal = Control.GROW_DIRECTION_BOTH; name_tag.grow_vertical = Control.GROW_DIRECTION_BOTH
 		name_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	
+	if is_in_group("enemies") and is_instance_valid(_ui_wrapper):
+		_ui_wrapper.visible = false
 	
 	_update_tags()
 	
@@ -435,6 +438,8 @@ func _process(delta):
 				world_root_3d.visible = false
 			if is_instance_valid(_ui_wrapper) and _ui_wrapper.visible:
 				_ui_wrapper.visible = false
+			if is_instance_valid(name_tag) and name_tag.visible:
+				name_tag.visible = false
 			if is_instance_valid(_vfx_container_2d) and _vfx_container_2d.visible:
 				_vfx_container_2d.visible = false
 			if is_instance_valid(sprite) and sprite.visible:
@@ -471,6 +476,10 @@ func _process(delta):
 				elif get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
 					_ui_wrapper.visible = false
 				elif (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
+					_ui_wrapper.visible = false
+				elif get_meta("is_pooled", false):
+					_ui_wrapper.visible = false
+				elif is_in_group("enemies") and (current_hp <= 0.0 or username == "" or username == "Unknown"):
 					_ui_wrapper.visible = false
 				else:
 					_ui_wrapper.visible = visible and not is_dead
@@ -520,23 +529,26 @@ func _process(delta):
 		var projected_pos_hud = global_position
 		var projected_pos_vfx = Vector2.ZERO
 		var has_projected = false
+		var hud_3d_pos = Vector3.ZERO
 		
 		if is_single and is_instance_valid(world_root_3d):
 			# Altura 3D del punto de anclaje del HUD.
 			# Calibrada por tipo según la escala real del modelo.
 			# Los offsets locales del name_tag y barras se restan encima de este punto.
 			const HUD_HEIGHTS = {
-				-1: 2.0,  # Jugador
-				1: 1.5, 2: 1.5, 3: 1.5, 4: 1.5, 5: 1.5,
-				6: 1.5, 7: 1.5, 8: 1.5, 9: 1.5, 10: 1.5,
-				11: 1.5, 12: 1.5, 13: 1.5,
-				101: 4.5, 102: 4.5, 103: 4.5, 104: 5.5,
-				200: 3.5,
+				-1: 2.2,  # Jugador
+				1: 2.4, 2: 2.4, 3: 2.4, 4: 3.2, 5: 2.4,
+				6: 3.0, 7: 2.4, 8: 2.4, 9: 2.4, 10: 2.4,
+				11: 2.4, 12: 2.4, 13: 2.4,
+				14: 2.6, 15: 2.8,
+				101: 5.5, 102: 5.5, 103: 5.5, 104: 6.5,
+				105: 6.5, 106: 6.5, 107: 6.5,
+				200: 4.0,
 			}
 			# Usar raw_entity_type primero (para "6-C"), si no, usar entity_type (para "6")
 			var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 			var lookup_key = -1 if is_in_group("player") else entity_type
-			var default_height = HUD_HEIGHTS.get(lookup_key, 5.5 if entity_type >= 101 else 1.5)
+			var default_height = HUD_HEIGHTS.get(lookup_key, 5.5 if entity_type >= 101 else 2.4)
 			var hud_height_3d: float = float(enemy_cfg.get("hudHeight", default_height))
 			# Si es un Boss escalado y no tiene hudHeight explícito, escalar la altura proporcionalmente
 			if not enemy_cfg.has("hudHeight") and entity_type >= 101 and enemy_cfg.has("scale"):
@@ -544,7 +556,7 @@ func _process(delta):
 				if cfg_scale > 6.0:
 					hud_height_3d = default_height * (cfg_scale / 6.0)
 			
-			var hud_3d_pos = world_root_3d.global_position + Vector3(0, hud_height_3d, 0)
+			hud_3d_pos = world_root_3d.global_position + Vector3(0, hud_height_3d, 0)
 			projected_pos_hud = _project_3d_pos_to_2d(hud_3d_pos)
 			if is_instance_valid(_vfx_container_2d) and _vfx_container_2d.get_child_count() > 0:
 				projected_pos_vfx = _project_3d_pos_to_2d(world_root_3d.global_position)
@@ -554,12 +566,24 @@ func _process(delta):
 		
 		if is_instance_valid(_ui_wrapper):
 			var nm = get_node_or_null("/root/NetworkManager")
+			var hud_behind = false
+			if has_projected and is_instance_valid(_cached_camera_3d):
+				hud_behind = _cached_camera_3d.is_position_behind(hud_3d_pos)
 			if nm and not nm.is_logged_in:
+				_ui_wrapper.visible = false
+			elif get_meta("is_pooled", false):
+				_ui_wrapper.visible = false
+			elif is_in_group("enemies") and (current_hp <= 0.0 or username == "" or username == "Unknown"):
+				_ui_wrapper.visible = false
+			elif hud_behind:
 				_ui_wrapper.visible = false
 			else:
 				_ui_wrapper.visible = visible and not is_dead
 			_ui_wrapper.global_position = projected_pos_hud
-			if name_tag: _update_hud_offsets()
+			_update_hud_zoom_scale(hud_3d_pos if has_projected else Vector3.ZERO)
+			if name_tag:
+				name_tag.visible = _ui_wrapper.visible and ((SettingsManager.show_enemy_tags or SettingsManager.show_enemy_stats) if is_in_group("enemies") else (SettingsManager.show_player_tags or SettingsManager.show_player_stats))
+				_update_hud_offsets()
 		
 		# 3. Resto de efectos (ya se llamó _update_3d_root_sync arriba)
 		_update_3d_shield(delta) # Aquí se procesa la invulnerabilidad
@@ -926,34 +950,73 @@ func _process(delta):
 	# v167.70: Removida la falsa regeneración local que generaba desincronizaciones y saltos con el servidor autoritativo
 
 	
+func _update_hud_zoom_scale(hud_pos_3d: Vector3 = Vector3.ZERO):
+	if not is_instance_valid(_ui_wrapper):
+		return
+		
+	var is_projected = get_meta("is_single_world", false) and is_instance_valid(world_root_3d)
+	var final_scale = 1.0
+	
+	if is_projected and is_instance_valid(_cached_camera_3d):
+		var cam3d = _cached_camera_3d
+		var pos_for_dist = hud_pos_3d if hud_pos_3d != Vector3.ZERO else (world_root_3d.global_position + Vector3(0, 2.0, 0))
+		var dist = cam3d.global_position.distance_to(pos_for_dist)
+		const REF_DIST = 18.0
+		var dist_ratio = REF_DIST / maxf(2.0, dist)
+		# Escalado adaptativo suave con límites: crece en zoom cercano y se achica en lejano
+		var raw_scale = pow(dist_ratio, 0.45)
+		final_scale = clampf(raw_scale, 0.8, 1.35)
+	elif is_projected:
+		var current_map = _get_map_node()
+		if is_instance_valid(current_map) and "fixed_cam_zoom" in current_map:
+			var zoom_ratio = 0.35 / maxf(0.05, float(current_map.fixed_cam_zoom))
+			var raw_scale = pow(zoom_ratio, 0.45)
+			final_scale = clampf(raw_scale, 0.8, 1.35)
+			
+	_ui_wrapper.scale = Vector2(final_scale, final_scale)
+
 func _update_hud_offsets():
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.global_rotation = 0.0
 	
+	if not is_instance_valid(name_tag):
+		return
+		
 	var is_projected = get_meta("is_single_world", false) and is_instance_valid(world_root_3d)
-	var y_offset: float
 	
-	if is_projected:
-		# Modo 3D: el contenedor ya está proyectado sobre el modelo.
-		# Usamos offsets pequeños para que el nombre quede justo encima de las barras.
-		if is_in_group("player"):
-			y_offset = -75.0
-		elif entity_type >= 101: # Boss
-			y_offset = -75.0
-		else:
-			y_offset = -70.0
-	else:
-		# Modo 2D clásico: offsets originales en píxeles desde la base del sprite.
-		if is_in_group("player"):
-			y_offset = -180.0
-		elif entity_type >= 4:
-			y_offset = -300.0
-		else:
-			y_offset = -145.0
+	# Determinar si se muestran barras actualmente
+	var is_entity_player = is_in_group("player") or is_in_group("remote_players")
+	var show_bars = SettingsManager.show_player_bars if is_entity_player else SettingsManager.show_enemy_bars
+	var is_boss = entity_type >= 101
 	
-	name_tag.position.y = y_offset
-	if name_tag.size.x > 0:
-		name_tag.position.x = -(name_tag.size.x / 2.0)
+	# Altura de la base de las barras
+	var base_y = 0.0
+	if not is_projected:
+		if is_entity_player: base_y = -105.0
+		elif is_boss: base_y = -220.0
+		else: base_y = -70.0
+	
+	# Calcular la parte superior del conjunto de barras
+	var bar_top_y = base_y
+	if show_bars:
+		var has_shield = max_shield > 0
+		var bar_h = 4.5
+		bar_top_y = base_y - ((bar_h * 2.0 + 2.0) if has_shield else bar_h)
+	
+	# El name_tag debe quedar SIEMPRE encima de las barras, con un margen de 5px
+	var tag_h = name_tag.size.y
+	var tag_w = name_tag.size.x
+	if name_tag is RichTextLabel:
+		var ch = name_tag.get_content_height()
+		if ch > 0: tag_h = maxf(tag_h, float(ch))
+		var cw = name_tag.get_content_width()
+		if cw > 0: tag_w = maxf(tag_w, float(cw))
+	if tag_h <= 0.0:
+		tag_h = 24.0
+		
+	name_tag.position.y = (bar_top_y - 5.0) - tag_h
+	if tag_w > 0.0:
+		name_tag.position.x = -(tag_w / 2.0)
 
 func _draw():
 	# v268.825: Dibujo del Domo de Supervivencia (Survival Dome)
@@ -1105,7 +1168,8 @@ func update_stats(data):
 				set("poly_timer", 0.0)
 				set("poly_can_move", true)
 				set("poly_can_use_skills", true)
-				modulate = Color.WHITE
+				if not _has_any_status_color():
+					modulate = Color.WHITE
 				
 		status_effects["polymorphed"] = _poly_authoritative
 		_refresh_debuffs_from_status_effects()
@@ -1117,8 +1181,15 @@ func update_stats(data):
 		if not p_active:
 			# Limpiar visual de poly inmediatamente sin esperar al próximo frame
 			_force_clear_poly_visual()
-			if not status_effects.get("slowed", false):
+			if not _has_any_status_color():
 				modulate = Color.WHITE
+
+	if data.has("isSlowed"):
+		status_effects["slowed"] = bool(data.isSlowed)
+	if data.has("isBleeding"):
+		status_effects["bleeding"] = bool(data.isBleeding)
+	if data.has("isPoisoned"):
+		status_effects["poisoned"] = bool(data.isPoisoned)
 	
 	# v268.87: Capturar posición desde el paquete de stats para evitar rubber-banding
 	if data.has("x"): target_position.x = _safe_float(data.x, target_position.x)
@@ -1314,10 +1385,16 @@ func _force_update_tags():
 
 func _update_tags():
 	if not name_tag: return
+	if get_meta("is_pooled", false):
+		if is_instance_valid(name_tag): name_tag.visible = false
+		return
 	
 	var is_enemy = is_in_group("enemies")
 	var show_tag = SettingsManager.show_enemy_tags if is_enemy else SettingsManager.show_player_tags
 	var show_stats = SettingsManager.show_enemy_stats if is_enemy else SettingsManager.show_player_stats
+	var allow_tag_vis = (show_tag or show_stats) and visible and not is_dead and not get_meta("is_pooled", false)
+	if is_enemy and (current_hp <= 0.0 or username == "" or username == "Unknown"):
+		allow_tag_vis = false
 	
 	# Obtener rol de party si es un jugador aliado/party
 	var party_role = ""
@@ -1342,7 +1419,7 @@ func _update_tags():
 	):
 		# Aún así, actualizar visibilidad por si cambió el setting externamente
 		if is_instance_valid(name_tag):
-			name_tag.visible = show_tag or show_stats
+			name_tag.visible = allow_tag_vis
 		return # No cambió nada visual, evitar recálculo
 
 	# Guardar valores actuales
@@ -1429,13 +1506,14 @@ func _update_tags():
 			if show_stats:
 				var wrap_stats_start = "[b]" if stats_bold else ""
 				var wrap_stats_end = "[/b]" if stats_bold else ""
-				txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
+				if max_shield > 0:
+					txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
 				txt += wrap_stats_start + "[color=#00ff00][font_size=" + str(stats_sz) + "]HP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp)) + "[/font_size][/color]" + wrap_stats_end + "[/center]"
 			else:
 				txt += "[/center]"
 			
 			name_tag.text = txt
-			name_tag.visible = show_tag or show_stats
+			name_tag.visible = allow_tag_vis
 		else: 
 			# Caso Label normal: sin BBCode, color plano
 			var name_str = username
@@ -1449,15 +1527,20 @@ func _update_tags():
 					"dps": role_icon_str = "⚔️"
 			if role_icon_str != "":
 				name_str = role_icon_str + "\n" + name_str
+			var stat_lines = ""
+			if show_stats:
+				if max_shield > 0:
+					stat_lines += "SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\n"
+				stat_lines += "HP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
 			if show_tag and show_stats:
-				name_tag.text = name_str + "\nSH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\nHP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
+				name_tag.text = name_str + "\n" + stat_lines
 			elif show_tag:
 				name_tag.text = name_str
 			elif show_stats:
-				name_tag.text = (role_icon_str + "\n" if role_icon_str != "" else "") + "SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\nHP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
+				name_tag.text = (role_icon_str + "\n" if role_icon_str != "" else "") + stat_lines
 			else:
 				name_tag.text = ""
-			name_tag.visible = show_tag or show_stats
+			name_tag.visible = allow_tag_vis
 			if name_bold or stats_bold:
 				name_tag.add_theme_font_override("font", SettingsManager.get_bold_font())
 			else:
@@ -1553,9 +1636,16 @@ func _force_clear_poly_visual() -> void:
 				child.visible = true
 		# Eliminar cualquier material override azul del modelo 3D
 		_apply_material_recursive(_3d_model, null, false)
-	# Restaurar sprite 2D al color original
-	if is_instance_valid(sprite):
+	# Restaurar sprite 2D al color original solo si no hay debuffs activos
+	if is_instance_valid(sprite) and not _has_any_status_color():
 		sprite.modulate = Color.WHITE
+
+func _has_any_status_color() -> bool:
+	var is_poison = poison_timer > 0.0 or debuffs.has("poison") or status_effects.get("poisoned", false)
+	var is_bleed = bleed_timer > 0.0 or debuffs.has("bleed") or status_effects.get("bleeding", false)
+	var is_slow = (has_method("get") and get("slow_points") != null and float(get("slow_points")) > 1.0) or slow_timer > 0.0 or debuffs.has("slow") or status_effects.get("slowed", false)
+	var is_cc = status_effects.get("stunned", false) or status_effects.get("frozen", false) or status_effects.get("feared", false) or debuffs.has("stun") or debuffs.has("freeze") or debuffs.has("fear")
+	return is_poison or is_bleed or is_slow or is_cc
 
 func _on_status_effects_sync(_data: Dictionary):
 	pass # Override en Player.gd
@@ -1835,24 +1925,31 @@ func _spawn_damage_text(txt: String, clr: Color):
 		# v222.95: Añadir al wrapper de UI de la nave para que la SIGA
 		var target_parent = _ui_wrapper if is_instance_valid(_ui_wrapper) else self
 		
+		# Spawnea por encima del name_tag para no tapar los nombres ni las barras
+		var spawn_y = -35.0
+		if is_instance_valid(name_tag) and name_tag.visible:
+			spawn_y = minf(name_tag.position.y - 12.0, -35.0)
+		elif is_instance_valid(_ui_wrapper):
+			spawn_y = -35.0
+			
 		# Evitar solapamiento si se spawnean múltiples textos a la vez (ej. vida y escudo juntos)
 		var offset_x = 0
 		var recent_texts = []
 		for child in target_parent.get_children():
 			if child.get_script() == dt_script:
-				if abs(child.position.y - (-60)) < 15:
+				if abs(child.position.y - spawn_y) < 18:
 					recent_texts.append(child)
 					
 		if recent_texts.size() == 1:
-			recent_texts[0].position.x = -28
-			offset_x = 28
+			recent_texts[0].position.x = -30
+			offset_x = 30
 		elif recent_texts.size() == 2:
-			recent_texts[0].position.x = -35
+			recent_texts[0].position.x = -40
 			recent_texts[1].position.x = 0
-			offset_x = 35
+			offset_x = 40
 			
 		target_parent.add_child(dt)
-		dt.position = Vector2(offset_x, -60)
+		dt.position = Vector2(offset_x, spawn_y)
 		
 		if dt.has_method("setup"): dt.setup(txt, clr)
 
@@ -2386,7 +2483,7 @@ func _update_animations():
 		var anim_attack = str(enemy_cfg.get("animAttack", default_attack))
 		
 		var target_anim = anim_idle
-		if get_meta("is_firing", false):
+		if get_meta("is_firing", false) or get_meta("is_casting", false):
 			target_anim = anim_attack
 		elif vel_len >= 15.0:
 			target_anim = anim_run
@@ -3962,8 +4059,24 @@ func deactivate_for_pooling():
 			child.set_deferred("disabled", true)
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.visible = false
+		_ui_wrapper.queue_redraw()
+	if is_instance_valid(name_tag):
+		name_tag.visible = false
+		name_tag.text = ""
 	if is_instance_valid(world_root_3d):
 		world_root_3d.visible = false
+		
+	# Mover fuera de pantalla para no interferir en proyecciones ni detecciones
+	global_position = Vector2(-999999, -999999)
+	target_position = Vector2(-999999, -999999)
+	username = ""
+	_last_rendered_username = ""
+	_last_rendered_hp = -1.0
+	_last_rendered_shield = -1.0
+	_last_rendered_max_hp = -1.0
+	_last_rendered_max_shield = -1.0
+	entity_type = 1
+	raw_entity_type = "1"
 		
 	# v410.6: Limpieza radical de variables en el pool para evitar corrupción de datos (vida 10/3000, invisible, celeste, etc.)
 	current_hp = 0.0
@@ -4012,7 +4125,7 @@ func deactivate_for_pooling():
 func activate_from_pool():
 	set_meta("is_pooled", false)
 	is_dead = false
-	visible = true
+	visible = false # Comienza invisible hasta recibir coordenadas válidas y update_stats
 	set_process(true)
 	set_physics_process(true)
 	# v416.1: Reactivar todas las formas de colisión 2D (incluye CollisionPolygon2D)
@@ -4020,9 +4133,11 @@ func activate_from_pool():
 		if child is CollisionShape2D or child is CollisionPolygon2D:
 			child.set_deferred("disabled", false)
 	if is_instance_valid(_ui_wrapper):
-		_ui_wrapper.visible = true
+		_ui_wrapper.visible = false
+	if is_instance_valid(name_tag):
+		name_tag.visible = false
 	if is_instance_valid(world_root_3d):
-		world_root_3d.visible = true
+		world_root_3d.visible = false
 	rebuild_3d_layout()
 
 # v306.4: Reconstruir visuales 3D al cambiar de mapa para re-ubicarse en el nuevo Viewport global

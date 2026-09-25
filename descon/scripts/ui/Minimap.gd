@@ -218,7 +218,9 @@ func _update_parent_window_size():
 
 func _process(delta):
 	if visible:
-		_update_parent_window_size()
+		var hud = get_tree().get_first_node_in_group("hud")
+		if not (hud and hud.get("is_editing_layout")):
+			_update_parent_window_size()
 		_redraw_accum += delta
 		if _redraw_accum >= MINIMAP_REDRAW_INTERVAL:
 			_redraw_accum = 0.0
