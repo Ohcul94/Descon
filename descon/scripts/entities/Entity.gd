@@ -18,6 +18,9 @@ const DashSparkTexture = preload("res://VFX/textures/T_VFX_sparks112.jpg")
 const VFX_HexTexture = preload("res://VFX/textures/T_Hex1_inv.jpg")
 const VFX_SmokeTexture = preload("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
 const VFX_FlareTexture = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+const VFX_GlowTexture = preload("res://VFX/textures/T_VFX_Glo31.png")
+const VFX_FireBallTexture = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
+const VFX_SmokePuffTexture = preload("res://VFX/textures/T_VFX_smoke_1.PNG")
 const VFX_WaterNormalTexture = preload("res://VFX/textures/T_GW_WaterNormal_01_b.PNG")
 # Propulsión 3D: precargados para no construir resources en runtime (FPS)
 const PropProcMaterial = preload("res://assets/VFX/Propulsion/propulsion_material.tres")
@@ -52,6 +55,10 @@ const VFXHitHexScene = preload("res://VFX/scenes/VFX_Hit_Hex_Sphere.tscn")
 const VFXHitDemonScene = preload("res://VFX/scenes/VFX_Hit_sphere_demon.tscn")
 const VFXHitGreenScene = preload("res://VFX/scenes/VFX_Hit_sphere_green.tscn")
 const VFXHitYellowScene = preload("res://VFX/scenes/VFX_Hit_sphere_bbasic.tscn")
+
+# Proyectil e impactos 3D de Reflect (devuelve ataque con shaders de VFX)
+const VFXLaserProjectileScene = preload("res://VFX/scenes/VFX_Laser_projectile.tscn")
+const VFXLaserHitScene = preload("res://VFX/scenes/VFX_Laser_Hit.tscn")
 
 # Caché de modelos 3D centralizada en VFXSystem (v313.7)
 
@@ -366,21 +373,24 @@ func teleport_to(new_pos: Vector2):
 	# 1. Ocultar ANTES de mover para que no se vea ningún frame de tránsito
 	modulate.a = 0.0
 	if is_instance_valid(_3d_model): _3d_model.visible = false
+	if is_instance_valid(accessory_pivot_3d): accessory_pivot_3d.visible = false
 	if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
 	# 2. Teletransporte instantáneo (ambos valores)
 	global_position = new_pos
 	target_position = new_pos
-	# 3. Re-aparecer después de 2 frames (tiempo suficiente para que el render procese)
+	# 3. Re-aparecer después de ~4 frames (tiempo óptimo para percepción visual del warp)
 	var tw = create_tween()
-	tw.tween_interval(0.05)
+	tw.tween_interval(0.07)
 	var cb_show = func():
 		modulate.a = 1.0
 		if is_instance_valid(_3d_model): _3d_model.visible = true
+		if is_instance_valid(accessory_pivot_3d): accessory_pivot_3d.visible = true
 		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
 		# Destello fijo en la coordenada exacta de LLEGADA
 		_spawn_blink_vfx(global_position, "in")
+		_trigger_hit_flash(Color(2.2, 1.6, 0.6))
 	tw.tween_callback(cb_show)
-	tw.tween_interval(0.45)
+	tw.tween_interval(0.4)
 	var cb_teleport = func():
 		is_teleporting = false
 	tw.tween_callback(cb_teleport)
@@ -1839,9 +1849,18 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 				if str(ent.get("entity_id")) == attacker_id:
 					target_node = ent; break
 		
-		var visual_target = attacker_pos
-		if visual_target == Vector2.ZERO and target_node: visual_target = target_node.global_position
-		_trigger_reflect_visual(visual_target if visual_target != Vector2.ZERO else global_position + Vector2.UP)
+		var visual_target = Vector2.ZERO
+		if target_node and is_instance_valid(target_node):
+			visual_target = target_node.global_position
+		elif attacker_pos != Vector2.ZERO and attacker_pos.distance_squared_to(global_position) > 400.0:
+			visual_target = attacker_pos
+		elif attacker_pos != Vector2.ZERO:
+			var from_bullet_dir = (global_position - attacker_pos).normalized()
+			visual_target = global_position + (from_bullet_dir if from_bullet_dir.length_squared() > 0.001 else Vector2.UP) * 350.0
+		else:
+			visual_target = global_position + Vector2.UP * 350.0
+
+		_trigger_reflect_visual(visual_target)
 
 		# 2. DAÑO: Notificación Red (Obligatorio) + Aplicación Local (Si existe el nodo)
 		if is_in_group("player") and attacker_id != "" and attacker_id != entity_id:
@@ -1882,211 +1901,185 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 		call("_emit_stats") # v164.72: Actualizar HUD local instantáneamente
 	if current_hp <= 0: die()
 
+func _make_particle_billboard_mat(p_tex: Texture2D) -> StandardMaterial3D:
+	var m = StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = p_tex
+	return m
+
 func _trigger_reflect_visual(p_dest: Vector2):
-	# Anti-spam: bajo fuego rápido no se apilan instancias del VFX
+	# Anti-spam: bajo ráfagas continuas no sobrecargar instancias
 	var now_ms = Time.get_ticks_msec()
-	if now_ms - _last_reflect_vfx_ms < 80:
+	if now_ms - _last_reflect_vfx_ms < 65:
 		return
 	_last_reflect_vfx_ms = now_ms
 
-	# v235.11: Dirección del rebote
+	var current_map = _get_map_node()
+	var is_single = get_meta("is_single_world", false)
+	var has_3d = is_single and is_instance_valid(current_map) and is_instance_valid(current_map.get("sub_viewport"))
+
+	# Vector 2D base
 	var dir_to_target = (p_dest - global_position).normalized()
-	if dir_to_target.length() < 0.1: dir_to_target = Vector2.UP
+	if dir_to_target.length_squared() < 0.001:
+		dir_to_target = Vector2.UP
 
-	# Fallback 2D (comportamiento histórico) para entidades sin modelo 3D
-	if not is_instance_valid(_3d_model):
-		var spr = Sprite2D.new()
-		if TEX_REFLECT_IMPACT:
-			spr.texture = TEX_REFLECT_IMPACT
-			spr.top_level = true
-			spr.z_index = 101
-			var spawn_origin = global_position
-			if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
-				spawn_origin = _project_3d_pos_to_2d(world_root_3d.global_position)
-			spr.global_position = spawn_origin + dir_to_target * 35.0
-			spr.rotation = dir_to_target.angle()
-			spr.scale = Vector2(0.01, 0.01)
-			spr.modulate = Color(4.0, 0.4, 0.4, 1.0)
-			get_tree().root.add_child(spr)
-			var tw_fb = create_tween().set_parallel(true)
-			tw_fb.tween_property(spr, "global_position", spr.global_position + dir_to_target * 140.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tw_fb.tween_property(spr, "scale", Vector2(0.12, 0.12), 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-			tw_fb.tween_property(spr, "modulate:a", 0.0, 0.2).set_delay(0.12)
-			tw_fb.finished.connect(spr.queue_free)
-		return
+	if has_3d:
+		var sub_vp: SubViewport = current_map.get("sub_viewport")
+		var sf: float = current_map.scale_factor if "scale_factor" in current_map else 0.02
+		var cz: float = current_map.correction_z if "correction_z" in current_map else 1.41421356
 
-	# Dirección en unidades 3D del mundo (mismo patrón que Projectile.gd)
-	var map_node = _get_map_node()
-	var sf: float = map_node.scale_factor if is_instance_valid(map_node) and "scale_factor" in map_node else 0.02
-	var cz: float = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
-	var dir3d = Vector3(dir_to_target.x * sf, 0.0, dir_to_target.y * sf * cz)
-	if dir3d.length_squared() < 0.000001:
-		dir3d = Vector3(0.0, 0.0, -1.0)
-	dir3d = dir3d.normalized()
+		var y_pos: float = 0.5
+		if is_instance_valid(world_root_3d):
+			y_pos = maxf(world_root_3d.position.y, 0.3)
+		elif is_instance_valid(_3d_model):
+			y_pos = maxf(_3d_model.global_position.y, 0.3)
 
-	# Punto de impacto sobre la superficie del escudo Reflect activo
-	var origin = _3d_model.global_position
-	var shield_r = 0.65
-	if is_instance_valid(_active_shield_vfx):
-		origin = _active_shield_vfx.global_position
-		shield_r = maxf(absf(_active_shield_vfx.global_transform.basis.get_scale().x), 0.05)
-	var impact_pos = origin + dir3d * shield_r
+		var my_pos_3d = Vector3(global_position.x * sf, y_pos, global_position.y * sf * cz)
+		var target_pos_3d = Vector3(p_dest.x * sf, y_pos, p_dest.y * sf * cz)
 
-	var root = Node3D.new()
-	root.name = "ReflectImpact"
-	_3d_model.add_child(root)
-	root.top_level = true
-	root.global_transform = Transform3D(Basis.IDENTITY, impact_pos)
+		# Vector hacia el atacante en el plano de combate
+		var to_target = target_pos_3d - my_pos_3d
+		to_target.y = 0.0
+		var dist = to_target.length()
+		var dir3d = to_target.normalized() if dist > 0.05 else Vector3(dir_to_target.x, 0.0, dir_to_target.y * cz).normalized()
 
-	# 1) Reacción del escudo: shield_modifier.gd anima Size_Sphere del propio shader
-	#     → las mismas colores dinámicas del escudo reaccionando al impacto
-	if is_instance_valid(_active_shield_vfx) and "sphere_size" in _active_shield_vfx:
-		var tw_shield = _active_shield_vfx.create_tween()
-		tw_shield.tween_property(_active_shield_vfx, "sphere_size", 0.1, 0.10).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		tw_shield.tween_property(_active_shield_vfx, "sphere_size", 0.0, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		# Radio del domo del escudo
+		var shield_r = 0.75
+		if is_instance_valid(_active_shield_vfx):
+			shield_r = maxf(absf(_active_shield_vfx.global_transform.basis.get_scale().x), 0.5)
 
-	# 2) Mini explosión de vuelta: humo rojo (textura del propio escudo) estallando
-	#     desde el punto de impacto hacia el atacante
-	var smoke_atlas = AtlasTexture.new()
-	smoke_atlas.atlas = VFX_SmokeTexture
-	smoke_atlas.region = Rect2(Vector2.ZERO, VFX_SmokeTexture.get_size() / 4.0)
+		var impact_pos = my_pos_3d + dir3d * shield_r
 
-	var explosion = CPUParticles3D.new()
-	explosion.one_shot = true
-	explosion.emitting = false
-	explosion.amount = 16
-	explosion.lifetime = 0.32
-	explosion.explosiveness = 1.0
-	explosion.direction = (dir3d + Vector3.UP * 0.2).normalized()
-	explosion.spread = 65.0
-	explosion.gravity = Vector3.ZERO
-	explosion.initial_velocity_min = 1.5
-	explosion.initial_velocity_max = 3.4
-	explosion.angle_min = -180.0
-	explosion.angle_max = 180.0
-	explosion.scale_amount_min = 0.45
-	explosion.scale_amount_max = 1.0
-	var e_grad = Gradient.new()
-	e_grad.set_color(0, Color(3.0, 0.5, 0.15, 1.0))
-	e_grad.set_color(1, Color(0.2, 0.0, 0.0, 0.0))
-	e_grad.add_point(0.45, Color(1.6, 0.12, 0.04, 0.9))
-	explosion.color_ramp = e_grad
-	var e_quad = QuadMesh.new()
-	e_quad.size = Vector2(shield_r * 0.5, shield_r * 0.5)
-	var e_mat = StandardMaterial3D.new()
-	e_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	e_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	e_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	e_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	e_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	e_mat.vertex_color_use_as_albedo = true
-	e_mat.albedo_texture = smoke_atlas
-	e_quad.material = e_mat
-	explosion.mesh = e_quad
-	root.add_child(explosion)
-	explosion.position = dir3d * shield_r * 0.15
-	explosion.emitting = true
+		# 1. Reacción elástica en el shader del escudo demoníaco activo
+		if is_instance_valid(_active_shield_vfx) and "sphere_size" in _active_shield_vfx:
+			var tw_shield = _active_shield_vfx.create_tween()
+			tw_shield.tween_property(_active_shield_vfx, "sphere_size", 0.16, 0.06).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw_shield.tween_property(_active_shield_vfx, "sphere_size", 0.0, 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
-	# 3) Piques cortos de cilindro apenas saliendo del escudo hacia el atacante
-	#     Degradado propio con la paleta HDR del Line_Gradient del escudo:
-	#     base roja intensa → punta que se desvanece (nada plano)
-	var p_g = Gradient.new()
-	p_g.set_color(0, Color(0.0, 0.0, 0.0, 0.0))
-	p_g.set_color(1, Color(3.0, 0.13, 0.03, 1.0))
-	p_g.add_point(0.5, Color(1.5, 0.1, 0.03, 0.9))
-	var p_tex = GradientTexture1D.new()
-	p_tex.gradient = p_g
-	p_tex.use_hdr = true
+		# 2. Destello de impacto sobre la superficie del escudo con shader de Hit Demoníaco
+		if VFXHitDemonScene:
+			var hit_shield = VFXHitDemonScene.instantiate()
+			sub_vp.add_child(hit_shield)
+			hit_shield.position = impact_pos
+			hit_shield.scale = Vector3(0.55, 0.55, 0.55)
+			if hit_shield is GPUParticles3D:
+				hit_shield.emitting = true
+			var tw_hs = hit_shield.create_tween()
+			tw_hs.tween_interval(0.5)
+			tw_hs.tween_callback(hit_shield.queue_free)
 
-	var pique_mat = StandardMaterial3D.new()
-	pique_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	pique_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	pique_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	pique_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	pique_mat.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
-	pique_mat.albedo_texture = p_tex
+		# 3. Luz dinámica de deflexión en la superficie del escudo
+		var defl_light = OmniLight3D.new()
+		defl_light.light_color = Color(1.0, 0.25, 0.08)
+		defl_light.light_energy = 3.8
+		defl_light.omni_range = 4.5
+		sub_vp.add_child(defl_light)
+		defl_light.position = impact_pos
+		var tw_dl = defl_light.create_tween()
+		tw_dl.tween_property(defl_light, "light_energy", 0.0, 0.12)
+		tw_dl.tween_callback(defl_light.queue_free)
 
-	var pique_len = shield_r * 0.55
-	var pique_r = maxf(shield_r * 0.05, 0.02)
-	var pique_angles = [-36.0, -18.0, 0.0, 18.0, 36.0]
-	var pique_roots = []
-	for i in pique_angles.size():
-		var a: float = pique_angles[i]
-		var d = dir3d.rotated(Vector3.UP, deg_to_rad(a))
-		var p_root = Node3D.new()
-		root.add_child(p_root)
-		p_root.look_at(impact_pos + d, Vector3.UP)
-		var len_i = pique_len * (1.35 if absf(a) < 0.01 else 1.0)
-		var p_mesh = CylinderMesh.new()
-		p_mesh.top_radius = pique_r
-		p_mesh.bottom_radius = 0.0
-		p_mesh.height = len_i
-		p_mesh.radial_segments = 6
-		p_mesh.cap_top = false
-		p_mesh.cap_bottom = false
-		var p_mi = MeshInstance3D.new()
-		p_mi.mesh = p_mesh
-		p_mi.material_override = pique_mat
-		p_mi.rotation.x = PI / 2.0
-		p_mi.position = Vector3(0.0, 0.0, -len_i * 0.5)
-		p_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		p_root.add_child(p_mi)
-		p_root.scale = Vector3(1.0, 1.0, 0.04)
-		pique_roots.append({ "node": p_root, "delay": absf(a) / 36.0 * 0.05 })
+		# 4. Chispas 3D esféricas de deflexión reflectiva (sin planos cortados)
+		var sparks = CPUParticles3D.new()
+		sparks.amount = 14
+		sparks.lifetime = 0.25
+		sparks.one_shot = true
+		sparks.explosiveness = 0.95
+		sparks.direction = (dir3d + Vector3(0, 0.2, 0)).normalized()
+		sparks.spread = 45.0
+		sparks.gravity = Vector3(0, -5.0, 0)
+		sparks.initial_velocity_min = 2.0
+		sparks.initial_velocity_max = 4.5
+		var spark_mesh = SphereMesh.new()
+		spark_mesh.radius = 0.03
+		spark_mesh.height = 0.06
+		var smat = StandardMaterial3D.new()
+		smat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+		smat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+		smat.albedo_color = Color(3.5, 0.6, 0.15, 1.0)
+		spark_mesh.material = smat
+		sparks.mesh = spark_mesh
+		sub_vp.add_child(sparks)
+		sparks.position = impact_pos
+		sparks.emitting = true
+		var tw_sp = sparks.create_tween()
+		tw_sp.tween_interval(0.3)
+		tw_sp.tween_callback(sparks.queue_free)
 
-	# 4) Luz de impacto
-	var light = OmniLight3D.new()
-	light.light_color = Color(1.0, 0.16, 0.05)
-	light.light_energy = 0.0
-	light.omni_range = shield_r * 3.5
-	root.add_child(light)
+		# 5. ASSET PROYECTIL DE REFLECT 3D (Devuelve el ataque al agresor con shaders de VFX)
+		if VFXLaserProjectileScene:
+			var reflect_proj = VFXLaserProjectileScene.instantiate()
+			sub_vp.add_child(reflect_proj)
+			reflect_proj.position = impact_pos
+			reflect_proj.scale = Vector3(0.65, 0.65, 0.65)
 
-	# 5) Chispas rojas apenas despegando de la superficie
-	var sparks = CPUParticles3D.new()
-	sparks.one_shot = true
-	sparks.emitting = false
-	sparks.amount = 8
-	sparks.lifetime = 0.22
-	sparks.explosiveness = 1.0
-	sparks.direction = (dir3d + Vector3.UP * 0.3).normalized()
-	sparks.spread = 55.0
-	sparks.gravity = Vector3.ZERO
-	sparks.initial_velocity_min = 1.2
-	sparks.initial_velocity_max = 2.8
-	sparks.scale_amount_min = 0.18
-	sparks.scale_amount_max = 0.45
-	var s_grad = Gradient.new()
-	s_grad.set_color(0, Color(3.0, 0.7, 0.25, 1.0))
-	s_grad.set_color(1, Color(0.3, 0.0, 0.0, 0.0))
-	s_grad.add_point(0.5, Color(2.0, 0.2, 0.06, 0.9))
-	sparks.color_ramp = s_grad
-	var s_quad = QuadMesh.new()
-	s_quad.size = Vector2(shield_r * 0.35, shield_r * 0.35)
-	var s_mat = StandardMaterial3D.new()
-	s_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	s_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	s_mat.vertex_color_use_as_albedo = true
-	s_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	s_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	s_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	s_mat.albedo_texture = VFX_FlareTexture
-	s_quad.material = s_mat
-	sparks.mesh = s_quad
-	root.add_child(sparks)
-	sparks.emitting = true
+			# Orientar hacia la posición del atacante
+			if impact_pos.distance_squared_to(target_pos_3d) > 0.001:
+				reflect_proj.look_at(target_pos_3d, Vector3.UP)
 
-	# Animación: piques que brotan y se apagan + luz (explosión total ~0.34s)
-	var tw = root.create_tween().set_parallel(true)
-	tw.tween_method(func(v: float) -> void: light.light_energy = v, 0.0, 4.0, 0.04)
-	tw.tween_method(func(v: float) -> void: light.light_energy = v, 4.0, 0.0, 0.14).set_delay(0.04)
-	for p in pique_roots:
-		tw.tween_property(p.node, "scale", Vector3.ONE, 0.05).set_delay(p.delay).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			# Luz viva de proyectil en tránsito
+			var p_light = OmniLight3D.new()
+			p_light.light_color = Color(1.0, 0.28, 0.08)
+			p_light.light_energy = 2.8
+			p_light.omni_range = 4.0
+			reflect_proj.add_child(p_light)
 
-	var tw_end = root.create_tween()
-	tw_end.tween_interval(0.14)
-	tw_end.tween_property(pique_mat, "albedo_color", Color(1.0, 1.0, 1.0, 0.0), 0.10)
-	tw_end.tween_interval(0.10)
-	tw_end.tween_callback(root.queue_free)
+			# Velocidad de contraataque veloz
+			var travel_time = clampf(dist / 38.0, 0.10, 0.28)
+
+			var tw_proj = reflect_proj.create_tween()
+			tw_proj.tween_property(reflect_proj, "position", target_pos_3d, travel_time).set_trans(Tween.TRANS_LINEAR)
+
+			var on_proj_reach = func():
+				if is_instance_valid(sub_vp):
+					# Impacto detonante en el atacante con shaders de VFX
+					var hit_scene = VFXLaserHitScene if VFXLaserHitScene else VFXHitDemonScene
+					if hit_scene:
+						var target_hit = hit_scene.instantiate()
+						sub_vp.add_child(target_hit)
+						target_hit.position = target_pos_3d
+						target_hit.scale = Vector3(0.75, 0.75, 0.75)
+						if target_hit is GPUParticles3D:
+							target_hit.emitting = true
+						var tw_th = target_hit.create_tween()
+						tw_th.tween_interval(0.55)
+						tw_th.tween_callback(target_hit.queue_free)
+
+					# Flash dinámico de impacto en el objetivo
+					var targ_light = OmniLight3D.new()
+					targ_light.light_color = Color(1.0, 0.35, 0.1)
+					targ_light.light_energy = 3.5
+					targ_light.omni_range = 5.0
+					sub_vp.add_child(targ_light)
+					targ_light.position = target_pos_3d
+					var tw_tl = targ_light.create_tween()
+					tw_tl.tween_property(targ_light, "light_energy", 0.0, 0.14)
+					tw_tl.tween_callback(targ_light.queue_free)
+
+				if is_instance_valid(reflect_proj):
+					reflect_proj.queue_free()
+
+			tw_proj.tween_callback(on_proj_reach)
+	else:
+		# Fallback 2D sin lienzo 3D: haz estilizado sin sprites planos rotos
+		var layer := _blink_vfx_layer()
+		if layer != null:
+			var beam := Line2D.new()
+			beam.width = 4.0
+			beam.default_color = Color(3.0, 0.5, 0.1, 1.0)
+			beam.add_point(global_position)
+			beam.add_point(global_position + dir_to_target * 120.0)
+			layer.add_child(beam)
+			var tw_b = beam.create_tween()
+			tw_b.tween_property(beam, "modulate:a", 0.0, 0.15)
+			tw_b.tween_callback(beam.queue_free)
+
+	print("[REFLECT VFX 3D] Reflejando proyectil hacia: ", p_dest)
 
 func _play_shield_hit_vfx():
 	if _active_shield_type == "" or not is_instance_valid(_active_shield_vfx): return
@@ -2959,46 +2952,39 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			invulnerable_timer = _get_skill_duration("INVULNERABILIDAD", {}, 2.0) # Activar visual 3D amarilla
 			print("[SKILL] Activando visual de INVULNERABILIDAD para: ", username)
 		"BLINK_OUT":
-			# v3.2: Desaparición TOTAL e INSTANTÁNEA (sin VFX expansivo)
-			# Destello anclado a la coordenada de SALIDA (se llama antes del salto)
+			# v3.2: Desaparición con VFX de implosión/salida de energía
 			_spawn_blink_vfx(global_position, "out")
 			modulate.a = 0.0
 			if is_instance_valid(_3d_model): _3d_model.visible = false
+			if is_instance_valid(accessory_pivot_3d): accessory_pivot_3d.visible = false
 			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
 		"BLINK_IN":
-			# v3.2: Reaparición con destello puntual (sin nova expansiva)
-			# Destello anclado a la coordenada exacta de LLEGADA (ya saltó)
+			# v3.2: Reaparición con destello de llegada y chispas 3D de fricción
 			_spawn_blink_vfx(global_position, "in")
 			modulate.a = 1.0
 			if is_instance_valid(_3d_model): _3d_model.visible = true
+			if is_instance_valid(accessory_pivot_3d): accessory_pivot_3d.visible = true
 			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
-			# Destello blanco puntual en el destino (no expansivo)
+			_trigger_hit_flash(Color(2.2, 1.6, 0.6))
 			var tw = create_tween()
-			tw.tween_property(self, "modulate", Color(3.0, 3.0, 3.0, 1.0), 0.0)
+			tw.tween_property(self, "modulate", Color(2.5, 2.0, 1.2, 1.0), 0.0)
 			tw.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.15)
 
 
 # ==============================================================================
-# BLINK (Destello) - Destellos de teletransporte
-# Se colocan en un contenedor del MUNDO (no como hijos de la entidad) para que:
-#   1) El destello de SALIDA quede fijo en el punto de origen aunque la nave ya saltó.
-#   2) El destello de LLEGADA quede exactamente en la coordenada de aterrizaje.
-#   3) No se oculten junto con la entidad (modulate.a = 0 / visible = false).
+# BLINK (Destello) - Chispas de Fricción 3D (Estilo roce de piedras)
+# Efecto 100% volumétrico en el SubViewport: sin quads planos, sin billboards
+# cuadrados con bordes cortados, con gravedad física y fragmentos de roca en 3D.
 # ==============================================================================
-func _blink_add_material() -> CanvasItemMaterial:
-	var m := CanvasItemMaterial.new()
-	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	return m
-
 func _blink_glow_texture() -> GradientTexture2D:
 	var grad := Gradient.new()
 	grad.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
-	grad.add_point(0.4, Color(0.55, 0.9, 1.0, 0.45))
-	grad.set_color(grad.get_point_count() - 1, Color(0.05, 0.45, 1.0, 0.0))
+	grad.add_point(0.4, Color(1.0, 0.75, 0.3, 0.6))
+	grad.set_color(grad.get_point_count() - 1, Color(0.8, 0.2, 0.0, 0.0))
 	var tex := GradientTexture2D.new()
 	tex.gradient = grad
-	tex.width = 128
-	tex.height = 128
+	tex.width = 64
+	tex.height = 64
 	tex.fill = GradientTexture2D.FILL_RADIAL
 	tex.fill_from = Vector2(0.5, 0.5)
 	tex.fill_to = Vector2(0.5, 0.0)
@@ -3023,78 +3009,271 @@ func _blink_vfx_layer() -> Node2D:
 		host.add_child(layer)
 	return layer as Node2D
 
-func _blink_sparks(parent: Node2D, amount: int, life: float, vel_min: float, vel_max: float, tex: Texture2D) -> void:
-	if not is_instance_valid(parent):
-		return
-	var parts := CPUParticles2D.new()
-	parts.texture = tex
-	parts.one_shot = true
-	parts.amount = amount
-	parts.lifetime = life
-	parts.explosiveness = 1.0
-	parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	parts.emission_sphere_radius = 8.0
-	parts.direction = Vector2(0, -1)
-	parts.spread = 180.0
-	parts.gravity = Vector2.ZERO
-	parts.initial_velocity_min = vel_min
-	parts.initial_velocity_max = vel_max
-	parts.damping_min = 320.0
-	parts.damping_max = 560.0
-	parts.scale_amount_min = 0.08
-	parts.scale_amount_max = 0.18
-	parts.color = Color(0.85, 0.96, 1.0, 1.0)
-	var ramp := Gradient.new()
-	ramp.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
-	ramp.add_point(0.35, Color(0.6, 0.9, 1.0, 0.8))
-	ramp.set_color(ramp.get_point_count() - 1, Color(0.2, 0.6, 1.0, 0.0))
-	parts.color_ramp = ramp
-	parts.material = _blink_add_material()
-	parts.z_index = 2
-	parent.add_child(parts)
-	parts.emitting = true
-
 func _spawn_blink_vfx(at_pos: Vector2, mode: String) -> void:
-	var layer := _blink_vfx_layer()
-	if layer == null:
-		return
-	var is_out := mode == "out"
-	var burst := Node2D.new()
-	burst.name = "BlinkBurst"
-	layer.add_child(burst)
-	burst.top_level = true
-	burst.global_position = at_pos
+	var current_map = _get_map_node()
+	var is_single = get_meta("is_single_world", false)
+	var has_3d = is_single and is_instance_valid(current_map) and is_instance_valid(current_map.get("sub_viewport"))
+	var is_out := (mode == "out")
 
-	var glow := _blink_glow_texture()
+	if has_3d:
+		var sub_vp = current_map.get("sub_viewport")
+		var s_factor: float = current_map.scale_factor if "scale_factor" in current_map else 0.02
+		var correction_z: float = current_map.correction_z if "correction_z" in current_map else 1.41421356
+		
+		var y_pos: float = 0.5
+		if is_instance_valid(world_root_3d):
+			y_pos = maxf(world_root_3d.position.y, 0.3)
+		
+		var pos_3d = Vector3(at_pos.x * s_factor, y_pos, at_pos.y * s_factor * correction_z)
+		
+		var burst_3d = Node3D.new()
+		burst_3d.name = "BlinkBurst3D_" + mode
+		burst_3d.position = pos_3d
+		sub_vp.add_child(burst_3d)
 
-	if is_out:
-		# PUNTO DE LUZ en el origen que persiste ~1 segundo y se desvanece.
-		# Sin anillos ni áreas: solo un puntito (misma escala que el de llegada).
-		var core := Sprite2D.new()
-		core.texture = glow
-		core.material = _blink_add_material()
-		burst.add_child(core)
-		core.scale = Vector2(0.13, 0.13)
-		core.modulate = Color(2.0, 2.3, 2.6, 1.0)
-		var tw_core := burst.create_tween()
-		tw_core.tween_interval(0.06)
-		tw_core.tween_property(core, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.14)
-		var tw_life := burst.create_tween()
-		tw_life.tween_interval(0.2)
-		tw_life.tween_property(core, "modulate:a", 0.0, 0.8)
-		var tw_grow := burst.create_tween()
-		tw_grow.tween_interval(0.2)
-		tw_grow.tween_property(core, "scale", Vector2(0.2, 0.2), 0.8)
-		_blink_sparks(burst, 14, 0.5, 60.0, 130.0, glow)
+		if is_out:
+			# ==================================================================
+			# SALIDA (Warp Out): Chispas violentas de roce entre rocas 3D
+			# ==================================================================
+			# 1. Luz de fricción dinámica e intensa
+			var light = OmniLight3D.new()
+			light.omni_range = 8.0
+			light.light_energy = 3.6
+			light.light_color = Color(1.0, 0.72, 0.28)
+			burst_3d.add_child(light)
+			var tw_l = burst_3d.create_tween()
+			tw_l.tween_property(light, "light_energy", 0.0, 0.15)
+
+			# 2. Núcleo volumétrico 3D de ignición instantánea (SphereMesh)
+			var core_sphere = MeshInstance3D.new()
+			var sphere_m = SphereMesh.new()
+			sphere_m.radius = 0.16
+			sphere_m.height = 0.32
+			sphere_m.radial_segments = 10
+			sphere_m.rings = 5
+			core_sphere.mesh = sphere_m
+			var c_mat = StandardMaterial3D.new()
+			c_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+			c_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+			c_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			c_mat.albedo_color = Color(3.2, 2.5, 1.4, 0.95)
+			core_sphere.material_override = c_mat
+			burst_3d.add_child(core_sphere)
+
+			var tw_c = burst_3d.create_tween()
+			tw_c.tween_property(core_sphere, "scale", Vector3(2.2, 2.2, 2.2), 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tw_c.parallel().tween_property(c_mat, "albedo_color:a", 0.0, 0.12)
+
+			# 3. Chispas incandescentes de roce entre rocas (Esferas 3D con parábola y gravedad)
+			var sparks = CPUParticles3D.new()
+			sparks.amount = 52
+			sparks.lifetime = 0.5
+			sparks.one_shot = true
+			sparks.explosiveness = 0.97
+			sparks.direction = Vector3(0, 1, 0)
+			sparks.spread = 180.0
+			sparks.gravity = Vector3(0, -9.8, 0)
+			sparks.initial_velocity_min = 4.5
+			sparks.initial_velocity_max = 10.2
+			sparks.damping_min = 3.0
+			sparks.damping_max = 5.5
+
+			var spark_mesh = SphereMesh.new()
+			spark_mesh.radius = 0.038
+			spark_mesh.height = 0.076
+			spark_mesh.radial_segments = 6
+			spark_mesh.rings = 3
+			var s_mat = StandardMaterial3D.new()
+			s_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+			s_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+			s_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			s_mat.vertex_color_use_as_albedo = true
+			spark_mesh.material = s_mat
+			sparks.mesh = spark_mesh
+
+			var spark_ramp = Gradient.new()
+			spark_ramp.set_color(0, Color(3.2, 2.8, 1.8, 1.0))
+			spark_ramp.add_point(0.2, Color(2.6, 1.6, 0.3, 1.0))
+			spark_ramp.add_point(0.55, Color(2.0, 0.7, 0.08, 0.85))
+			spark_ramp.add_point(0.85, Color(1.0, 0.2, 0.02, 0.35))
+			spark_ramp.set_color(spark_ramp.get_point_count() - 1, Color(0.2, 0.0, 0.0, 0.0))
+			sparks.color_ramp = spark_ramp
+
+			burst_3d.add_child(sparks)
+			sparks.emitting = true
+
+			# 4. Esquirlas y fragmentos de roca en 3D (BoxMesh volteando con rotación angular)
+			var rock_chips = CPUParticles3D.new()
+			rock_chips.amount = 18
+			rock_chips.lifetime = 0.55
+			rock_chips.one_shot = true
+			rock_chips.explosiveness = 0.98
+			rock_chips.direction = Vector3(0, 1, 0)
+			rock_chips.spread = 160.0
+			rock_chips.gravity = Vector3(0, -11.5, 0)
+			rock_chips.initial_velocity_min = 2.8
+			rock_chips.initial_velocity_max = 6.8
+			rock_chips.damping_min = 2.0
+			rock_chips.damping_max = 4.0
+			rock_chips.angular_velocity_min = -18.0
+			rock_chips.angular_velocity_max = 18.0
+
+			var chip_mesh = BoxMesh.new()
+			chip_mesh.size = Vector3(0.065, 0.065, 0.065)
+			var chip_mat = StandardMaterial3D.new()
+			chip_mat.shading_mode = StandardMaterial3D.SHADING_MODE_PER_PIXEL
+			chip_mat.albedo_color = Color(0.7, 0.42, 0.25, 1.0)
+			chip_mat.emission_enabled = true
+			chip_mat.emission = Color(1.8, 1.0, 0.3)
+			chip_mat.emission_energy_multiplier = 1.0
+			chip_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			chip_mat.vertex_color_use_as_albedo = true
+			chip_mesh.material = chip_mat
+			rock_chips.mesh = chip_mesh
+
+			var chip_ramp = Gradient.new()
+			chip_ramp.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+			chip_ramp.add_point(0.6, Color(0.8, 0.5, 0.3, 0.9))
+			chip_ramp.set_color(chip_ramp.get_point_count() - 1, Color(0.25, 0.15, 0.1, 0.0))
+			rock_chips.color_ramp = chip_ramp
+
+			burst_3d.add_child(rock_chips)
+			rock_chips.emitting = true
+
+			var tw_clean = burst_3d.create_tween()
+			tw_clean.tween_interval(0.6)
+			tw_clean.tween_callback(burst_3d.queue_free)
+		else:
+			# ==================================================================
+			# LLEGADA (Warp In): Aterrizaje más leve, polvareda suave 3D y brillo cálido
+			# CERO planos 2D o quads cortados: pura geometría tridimensional suave.
+			# ==================================================================
+			# 1. Luz de aterrizaje tenue y suave
+			var light = OmniLight3D.new()
+			light.omni_range = 5.5
+			light.light_energy = 1.6
+			light.light_color = Color(1.0, 0.82, 0.45)
+			burst_3d.add_child(light)
+			var tw_l = burst_3d.create_tween()
+			tw_l.tween_property(light, "light_energy", 0.0, 0.22)
+
+			# 2. Pequeña condensación suave de llegada a ras de suelo (SphereMesh)
+			var land_sphere = MeshInstance3D.new()
+			var land_mesh = SphereMesh.new()
+			land_mesh.radius = 0.12
+			land_mesh.height = 0.16
+			land_mesh.radial_segments = 10
+			land_mesh.rings = 5
+			land_sphere.mesh = land_mesh
+			land_sphere.position.y = -0.15
+			var lm_mat = StandardMaterial3D.new()
+			lm_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+			lm_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+			lm_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			lm_mat.albedo_color = Color(2.0, 1.5, 0.8, 0.75)
+			land_sphere.material_override = lm_mat
+			burst_3d.add_child(land_sphere)
+
+			var tw_ls = burst_3d.create_tween()
+			tw_ls.tween_property(land_sphere, "scale", Vector3(1.8, 0.4, 1.8), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tw_ls.parallel().tween_property(lm_mat, "albedo_color:a", 0.0, 0.18)
+
+			# 3. Micro polvo 3D volumétrico suave a ras de suelo (sin planos cortados)
+			var dust = CPUParticles3D.new()
+			dust.amount = 18
+			dust.lifetime = 0.42
+			dust.one_shot = true
+			dust.explosiveness = 0.92
+			dust.direction = Vector3(1, 0.1, 1)
+			dust.spread = 180.0
+			dust.gravity = Vector3(0, -1.2, 0)
+			dust.initial_velocity_min = 1.2
+			dust.initial_velocity_max = 2.4
+			dust.damping_min = 4.0
+			dust.damping_max = 6.0
+
+			var dust_m = SphereMesh.new()
+			dust_m.radius = 0.045
+			dust_m.height = 0.09
+			dust_m.radial_segments = 6
+			dust_m.rings = 3
+			var d_mat = StandardMaterial3D.new()
+			d_mat.shading_mode = StandardMaterial3D.SHADING_MODE_PER_PIXEL
+			d_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			d_mat.vertex_color_use_as_albedo = true
+			dust_m.material = d_mat
+			dust.mesh = dust_m
+
+			var dust_ramp = Gradient.new()
+			dust_ramp.set_color(0, Color(0.85, 0.75, 0.6, 0.5))
+			dust_ramp.add_point(0.4, Color(0.75, 0.65, 0.5, 0.35))
+			dust_ramp.set_color(dust_ramp.get_point_count() - 1, Color(0.5, 0.4, 0.3, 0.0))
+			dust.color_ramp = dust_ramp
+
+			burst_3d.add_child(dust)
+			dust.emitting = true
+
+			# 4. Chispitas tenues remanentes de aterrizaje
+			var settle_sparks = CPUParticles3D.new()
+			settle_sparks.amount = 14
+			settle_sparks.lifetime = 0.35
+			settle_sparks.one_shot = true
+			settle_sparks.explosiveness = 0.90
+			settle_sparks.direction = Vector3(0, 1, 0)
+			settle_sparks.spread = 120.0
+			settle_sparks.gravity = Vector3(0, -7.0, 0)
+			settle_sparks.initial_velocity_min = 1.4
+			settle_sparks.initial_velocity_max = 3.2
+			settle_sparks.damping_min = 2.5
+			settle_sparks.damping_max = 4.5
+
+			var s_spark_m = SphereMesh.new()
+			s_spark_m.radius = 0.025
+			s_spark_m.height = 0.05
+			s_spark_m.radial_segments = 6
+			s_spark_m.rings = 3
+			var ss_mat = StandardMaterial3D.new()
+			ss_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+			ss_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+			ss_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			ss_mat.vertex_color_use_as_albedo = true
+			s_spark_m.material = ss_mat
+			settle_sparks.mesh = s_spark_m
+
+			var ss_ramp = Gradient.new()
+			ss_ramp.set_color(0, Color(2.4, 1.8, 0.8, 0.9))
+			ss_ramp.add_point(0.4, Color(1.8, 1.0, 0.2, 0.7))
+			ss_ramp.set_color(ss_ramp.get_point_count() - 1, Color(0.8, 0.2, 0.0, 0.0))
+			settle_sparks.color_ramp = ss_ramp
+
+			burst_3d.add_child(settle_sparks)
+			settle_sparks.emitting = true
+
+			var tw_clean = burst_3d.create_tween()
+			tw_clean.tween_interval(0.55)
+			tw_clean.tween_callback(burst_3d.queue_free)
 	else:
-		# En la llegada manda el PUNTITO original de la entidad (modulate 3.0 -> 1.0).
-		# Aquí solo una ráfaga corta de chispas sobre esa misma coordenada.
-		_blink_sparks(burst, 16, 0.3, 90.0, 170.0, glow)
+		# Fallback 2D sin lienzo 3D
+		var layer := _blink_vfx_layer()
+		if layer != null:
+			var burst_2d := Node2D.new()
+			burst_2d.name = "BlinkBurst2D"
+			layer.add_child(burst_2d)
+			burst_2d.global_position = at_pos
+			
+			var core := Sprite2D.new()
+			core.texture = _blink_glow_texture()
+			core.modulate = Color(2.5, 1.6, 0.4, 1.0) if is_out else Color(1.8, 1.4, 0.6, 0.8)
+			core.scale = Vector2(0.8, 0.8) if is_out else Vector2(0.5, 0.5)
+			burst_2d.add_child(core)
+			
+			var tw_2d = burst_2d.create_tween()
+			var target_scale = Vector2(1.8, 1.8) if is_out else Vector2(1.2, 1.2)
+			tw_2d.tween_property(core, "scale", target_scale, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tw_2d.parallel().tween_property(core, "modulate:a", 0.0, 0.18)
+			tw_2d.tween_callback(burst_2d.queue_free)
 
-	# Limpieza automática (si el contenedor se libera, el tween muere con él)
-	var tw_cleanup := burst.create_tween()
-	tw_cleanup.tween_interval(1.05 if is_out else 0.4)
-	tw_cleanup.tween_callback(burst.queue_free)
+	print("[BLINK VFX 3D] ", mode, " @ ", at_pos)
 
 
 func _frost_ring(base_radius: float, width: float, dur: float, scale_to: float) -> void:
@@ -3666,11 +3845,12 @@ func _update_3d_shield(delta: float):
 				_active_shield_vfx = vfx
 				
 				# Configurar escala local relativa al pivote de la nave
-				var base_scale = 0.65
+				var base_scale = 0.75 if target_type == "reflect" else 0.65
 				if target_type == "heal" and _heal_shield_scale != 1.0:
 					base_scale *= _heal_shield_scale
 					_heal_shield_scale = 1.0
 				vfx.scale = Vector3(base_scale, base_scale, base_scale)
+				vfx.position = Vector3(0.0, 0.12, 0.0)
 				
 				# Iniciar animación de entrada
 				var anim = vfx.get_node_or_null("AnimationPlayer")

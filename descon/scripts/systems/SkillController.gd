@@ -638,18 +638,21 @@ func _draw():
 			fill_color = Color(0.1, 0.9, 0.2, 0.08)
 		elif s_name == "PROVOCACION":
 			draw_color = Color(1.0, 0.25, 0.2, 0.45)
-		if use_perspective:
-			var steps = 64
-			var pts_c = PackedVector2Array()
-			for i in range(steps + 1):
-				var ang = (float(i) / steps) * TAU
-				pts_c.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
-			draw_polyline(pts_c, draw_color, 2.0)
-			draw_circle(end_proj, 8.0, draw_color)
+		if s_name != "BLINK":
+			if use_perspective:
+				var steps = 64
+				var pts_c = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					pts_c.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
+				draw_polyline(pts_c, draw_color, 2.0)
+				draw_circle(end_proj, 8.0, draw_color)
+			else:
+				draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
+				draw_circle(end_point, radius_val, fill_color)
+				draw_circle(end_point, 8.0, draw_color)
 		else:
-			draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
-			draw_circle(end_point, radius_val, fill_color)
-			draw_circle(end_point, 8.0, draw_color)
+			draw_circle(end_proj, 8.0, draw_color)
 		if s_name == "PROVOCACION":
 			var time_scale = Time.get_ticks_msec() / 1000.0
 			var charge_factor = fmod(time_scale * 1.5, 1.0)

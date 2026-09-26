@@ -11,6 +11,39 @@ const ZigZagAI = require('../behaviors/ZigZagAI');
 const Logger = require('../utils/logger');
 const spawnValidator = require('../utils/spawnValidator');
 
+// ===== Utilidades de zona polígono (Cartografía → aparición random dentro) =====
+function pointInPolygon(poly, px, py) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i].x, yi = poly[i].y;
+        const xj = poly[j].x, yj = poly[j].y;
+        const intersect = ((yi > py) !== (yj > py)) &&
+            (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+function randomPointInPolygon(poly) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const p of poly) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+    }
+    // Rejection sampling dentro del bounding box
+    for (let i = 0; i < 40; i++) {
+        const rx = minX + Math.random() * (maxX - minX);
+        const ry = minY + Math.random() * (maxY - minY);
+        if (pointInPolygon(poly, rx, ry)) return { x: rx, y: ry };
+    }
+    // Polígono degenerado: centroide
+    let sx = 0, sy = 0;
+    for (const p of poly) { sx += p.x; sy += p.y; }
+    return { x: sx / poly.length, y: sy / poly.length };
+}
+
 /**
  * AIManager
  * Gestiona el spawn y la lógica de los enemigos.
@@ -231,6 +264,27 @@ class AIManager {
                                             posX = s.x + Math.cos(angle) * r;
                                             posY = s.y + Math.sin(angle) * r;
                                             Logger.warn('SPAWN', `No se halló punto libre para ${s.id} en zona ${mapId} — se usa random sin filtro`);
+                                        }
+                                    } else if (s.spawnMode === 'polygon' && Array.isArray(s.polygon) && s.polygon.length >= 3) {
+                                        // Zona personalizada: aparición aleatoria DENTRO del polígono dibujado
+                                        let chosen = null;
+                                        let lastCand = null;
+                                        for (let a = 0; a < 12 && !chosen; a++) {
+                                            const cand = randomPointInPolygon(s.polygon);
+                                            lastCand = cand;
+                                            if (cand && !spawnValidator.isPointBlocked(cand.x, cand.y, mapId, this.state)) {
+                                                chosen = cand;
+                                            }
+                                        }
+                                        if (chosen) {
+                                            posX = chosen.x;
+                                            posY = chosen.y;
+                                        } else if (lastCand) {
+                                            // Último recurso: candidato dentro del polígono aunque haya colisión
+                                            // (serverSpawnEnemy revalida y reubica cerca como fallback final)
+                                            posX = lastCand.x;
+                                            posY = lastCand.y;
+                                            Logger.warn('SPAWN', `Polígono ${s.id} en zona ${mapId}: sin punto libre dentro de la zona, se usa candidato [${Math.round(posX)}, ${Math.round(posY)}]`);
                                         }
                                     }
 

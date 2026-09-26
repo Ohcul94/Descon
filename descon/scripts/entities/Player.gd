@@ -790,9 +790,9 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 								s_type = aim_override
 						if s_type == -1:
 							s_type = 3 # Instant por defecto
-							if s_name in ["ESFERA DE TERROR", "BARRERA DE VIENTO"]:
+							if s_name in ["ESFERA DE TERROR", "BARRERA DE VIENTO", "BLINK"]:
 								s_type = 0 # Apuntable (Directional)
-							elif s_name in ["RESURRECCIÓN", "BALIZA DE CURACION", "REGENERACIÓN ALFA", "BLINK"]:
+							elif s_name in ["RESURRECCIÓN", "BALIZA DE CURACION", "REGENERACIÓN ALFA"]:
 								s_type = 2 # Area
 							elif s_name in ["PROVOCACION", "SMOKE-BOMB", "STEALTH", "FROST-TRAIL", "INVULNERABILIDAD", "HYPER-DASH", "TURBO-IMPULSO"]:
 								s_type = 3 # Instant

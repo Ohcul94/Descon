@@ -76,9 +76,9 @@ func activate(player: CharacterBody2D):
 	if "velocity" in player:
 		player.velocity = Vector2.ZERO
 	
-	# 3. VFX Reaparecer (Con un pequeño delay de 2 frames para asegurar que el motor lo oculte en el origen)
+	# 3. VFX Reaparecer (Delay de ~4 frames para transicionar limpiamente el warp)
 	if player.has_method("play_skill_vfx"):
-		player.get_tree().create_timer(0.03).timeout.connect(func():
+		player.get_tree().create_timer(0.07).timeout.connect(func():
 			if is_instance_valid(player):
 				player.play_skill_vfx("BLINK_IN", 0.0)
 		)

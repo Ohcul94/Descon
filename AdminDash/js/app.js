@@ -1324,52 +1324,57 @@ function removeDrawToolbar() {
 // ===== Iniciar modo dibujo =====
 // Cierra el modal completamente y entra en modo dibujo sobre el radar
 function startPolygonDraw(idx) {
-    // Cerrar modal completamente - esto es clave para que el radar sea accesible
-    closeMapAddModal();
+    const overlay = document.getElementById('map-add-overlay');
+    if (overlay) overlay.style.display = 'none';
+    window._mapAddKind = null;
     
     const m = config.mapsConfig[selectedMapId];
-    if (!m || !m.spawns[idx]) return;
+    if (!m || !m.spawns || !m.spawns[idx]) {
+        showToast('⚠️ Error: no se encontró el spawn para editar.');
+        return;
+    }
     
     polygonDrawMode = true;
     polygonDrawTargetIdx = idx;
     polygonDrawPoints = (m.spawns[idx].polygon || []).map(p => ({x: p.x, y: p.y}));
     
-    // Crear toolbar de controles fijos
     createDrawToolbar();
     
     const canvas = document.getElementById('map-radar-canvas');
     if (canvas) {
         canvas.style.cursor = 'crosshair';
-        canvas.title = 'Modo dibujo activo. Click para añadir vértice. Click derecho/Enter: cerrar y guardar. ESC: cancelar.';
+        canvas.title = 'Modo dibujo activo. Click para añadir vértice. ESC: cancelar.';
     }
-    
-    showToast('📐 Modo dibujo activado. Dibujá el polígono en el radar. Usá los botones de abajo.');
 }
 
 // Para nuevo spawn (desde el botón "+ AÑADIR ESPECIE")
 function startPolygonDrawForNew() {
-    // Cerrar modal completamente
-    closeMapAddModal();
+    // No entrar a dibujar sin especie seleccionada: el spawn nuevo nace de ese dato
+    const enemyId = document.getElementById('map-add-enemy-id')?.value;
+    if (!enemyId) {
+        showToast('⚠️ Seleccioná un tipo de enemigo primero.', 'ERROR', '⚠️');
+        return;
+    }
+    const overlay = document.getElementById('map-add-overlay');
+    if (overlay) overlay.style.display = 'none';
+    window._mapAddKind = null;
     
     polygonDrawMode = true;
-    polygonDrawTargetIdx = -1; // Nuevo spawn
+    polygonDrawTargetIdx = -1;
     polygonDrawPoints = [];
     
-    // Crear toolbar de controles
     createDrawToolbar();
     
     const canvas = document.getElementById('map-radar-canvas');
     if (canvas) {
         canvas.style.cursor = 'crosshair';
-        canvas.title = 'Modo dibujo activo. Click para añadir vértice. Click derecho/Enter: cerrar y guardar. ESC: cancelar.';
+        canvas.title = 'Modo dibujo activo. Click para añadir vértice. ESC: cancelar.';
     }
-    
-    showToast('📐 Modo dibujo activado. Dibujá el polígono para esta zona nueva.');
 }
 
 // ===== Cancelar dibujo =====
-// Vuelve al estado anterior: remueve toolbar, vuelve a abrir modal (vacío para nuevo, o keeps state para existente)
 function cancelPolygonDraw() {
+    const wasEditing = polygonDrawTargetIdx >= 0; // Guardar ANTES de resetear
     polygonDrawMode = false;
     polygonDrawTargetIdx = -1;
     polygonDrawPoints = [];
@@ -1381,61 +1386,80 @@ function cancelPolygonDraw() {
         canvas.title = '';
     }
     
-    // Si estaba editando un spawn existente (targetIdx >= 0), no reabrimos modal automáticamente
-    // para no interrumpir la vista detalle. El usuario puede hacer clic en la tarjeta nuevamente.
-    // Si era nuevo (targetIdx === -1), reabrimos modal vacío.
-    if (polygonDrawTargetIdx === -1) {
+    // Solo reabrir modal si era un spawn nuevo (no estaba editando uno existente)
+    if (!wasEditing) {
         setTimeout(() => openMapAddModal('enemy'), 100);
     }
-    showToast('❌ Dibujo cancelado.');
+    showToast('❌ Dibujo cancelado.', 'OPERACIÓN CANCELADA', '✕');
 }
 
-// ===== Guardar polígono y reabrir modal =====
+// ===== Guardar polígono: agregar/editar spawn y volver al ecosistema =====
 function finishPolygonDraw() {
     if (polygonDrawPoints.length < 3) {
-        showToast('⚠️ Se necesitan al menos 3 vértices para un polígono válido.');
+        showToast('⚠️ Se necesitan al menos 3 vértices para un polígono válido.', 'ERROR', '⚠️');
         return false;
     }
+    const savedVerts = polygonDrawPoints.length;
     
     const m = config.mapsConfig[selectedMapId];
     if (!m) return false;
     
-    // Guardar polígono en la config
-    if (polygonDrawTargetIdx >= 0) {
-        // Editando spawn existente
-        if (!m.spawns[polygonDrawTargetIdx]) return false;
-        m.spawns[polygonDrawTargetIdx].polygon = polygonDrawPoints.map(p => ({x: p.x, y: p.y}));
-        m.spawns[polygonDrawTargetIdx].spawnMode = 'polygon';
-        m.spawns[polygonDrawTargetIdx].radius = 0;
-        // Centroide para referencia X,Y
-        const cx = polygonDrawPoints.reduce((a,p)=>a+p.x,0)/polygonDrawPoints.length;
-        const cy = polygonDrawPoints.reduce((a,p)=>a+p.y,0)/polygonDrawPoints.length;
-        m.spawns[polygonDrawTargetIdx].x = Math.round(cx);
-        m.spawns[polygonDrawTargetIdx].y = Math.round(cy);
+    const targetIdx = polygonDrawTargetIdx;
+    const pts = polygonDrawPoints.map(p => ({x: p.x, y: p.y}));
+    const cx = pts.reduce((a,p) => a + p.x, 0) / pts.length;
+    const cy = pts.reduce((a,p) => a + p.y, 0) / pts.length;
+    let newIdx = -1;
+    
+    if (targetIdx >= 0) {
+        // Editando spawn existente → convertirlo a zona polígono (aparición random dentro)
+        if (!m.spawns[targetIdx]) return false;
+        m.spawns[targetIdx].polygon = pts;
+        m.spawns[targetIdx].spawnMode = 'polygon';
+        m.spawns[targetIdx].radius = 0;
+        m.spawns[targetIdx].x = Math.round(cx);
+        m.spawns[targetIdx].y = Math.round(cy);
+        newIdx = targetIdx;
     } else {
-        // Nuevo spawn - agregar al array del mapa configurado
+        // Nuevo spawn: especie que aparece random dentro del polígono dibujado,
+        // respetando cantidad de slots e intervalo de respawn del formulario
+        const enemyId = document.getElementById('map-add-enemy-id')?.value;
+        if (!enemyId) {
+            showToast('⚠️ Seleccioná un tipo de enemigo primero.', 'ERROR', '⚠️');
+            return false;
+        }
         if (!m.spawns) m.spawns = [];
         m.spawns.push({
             id: 'spawn_' + Date.now() + Math.floor(Math.random() * 1000),
-            type: config.enemyModels ? (config.enemyModels[document.getElementById('map-add-enemy-id')?.value]?.id || '1') : '1',
-            count: 5,
-            intervalMs: 5000,
+            type: enemyId,
+            count: parseInt(document.getElementById('map-add-count')?.value) || 5,
+            intervalMs: parseInt(document.getElementById('map-add-interval')?.value) || 5000,
             spawnMode: 'polygon',
-            x: polygonDrawPoints.reduce((a,p)=>a+p.x,0)/polygonDrawPoints.length,
-            y: polygonDrawPoints.reduce((a,p)=>a+p.y,0)/polygonDrawPoints.length,
-            polygon: polygonDrawPoints.map(p => ({x: p.x, y: p.y}))
+            x: Math.round(cx),
+            y: Math.round(cy),
+            radius: parseInt(document.getElementById('map-add-radius')?.value) || 300,
+            polygon: pts
         });
+        newIdx = m.spawns.length - 1;
+        window._mapCardExpanded[`spawn-${newIdx}`] = true;
     }
     
-    // ¡Hecho! Remover toolbar, cerrar modo dibujo, reabrir modal con datos
+    // Hecho: salir del modo dibujo, cerrar el modal y mostrar el ECOSISTEMA
+    // con la especie recién agregada/editada seleccionada
     removeDrawToolbar();
     polygonDrawMode = false;
     polygonDrawTargetIdx = -1;
     polygonDrawPoints = [];
     
-    showToast('✅ Polígono guardado con ' + polygonDrawPoints.length + ' vértices.');
-    // Pequeño delay para que el toast se vea, luego reabrir modal
-    setTimeout(() => openMapAddModal('enemy'), 200);
+    const canvas = document.getElementById('map-radar-canvas');
+    if (canvas) {
+        canvas.style.cursor = 'crosshair';
+        canvas.title = '';
+    }
+    
+    closeMapAddModal();
+    renderMapDetail();
+    selectMapItem('spawn', newIdx);
+    showToast('✅ Polígono guardado con ' + savedVerts + ' vértices.');
     return true;
 }
 
@@ -1635,7 +1659,7 @@ function confirmMapAdd() {
         if (mode === 'polygon') {
             spawnData.polygon = parsePolygonString(document.getElementById('map-add-polygon').value);
             if (!spawnData.polygon || spawnData.polygon.length < 3) {
-                showToast('⚠️ Un polígono necesita al menos 3 vértices. Dibujá en el radar o ingresá coordenadas.'); 
+                showToast('⚠️ Un polígono necesita al menos 3 vértices. Dibujá en el radar o ingresá coordenadas.', 'ERROR', '⚠️');
                 return;
             }
             // Calcular centroide para referencia
@@ -2058,8 +2082,12 @@ function patchMechanicsLib() {
     renderAll();
 }
 
-function showToast(msg) {
+function showToast(msg, title = 'OPERACIÓN EXITOSA', icon = '✓') {
     document.getElementById('toast-msg').innerText = msg;
+    const t = document.getElementById('toast-title');
+    if (t) t.innerText = title;
+    const i = document.getElementById('toast-icon');
+    if (i) i.innerText = icon;
     document.getElementById('toast-overlay').style.display = 'flex';
 }
 
@@ -3437,7 +3465,6 @@ function initMapRadar() {
         if (polygonDrawMode) {
             if (e.key === 'Escape') {
                 cancelPolygonDraw();
-                showToast('❌ Dibujo de polígono cancelado.');
             } else if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 finishPolygonDraw();
@@ -3462,7 +3489,7 @@ function initMapRadar() {
     // Cleanup al cerrar el detalle del mapa
     const originalRenderMapDetail = window.renderMapDetail;
     window.renderMapDetail = function() {
-        if (polygonDrawMode) cancelPolygonDraw();
+        // NO cancelar el modo dibujo acá - redibujar normalmente y que el modo persista
         return originalRenderMapDetail.apply(this, arguments);
     };
 

@@ -880,6 +880,14 @@ func _run_shader_warmup():
 		_cache_materials_recursive(laser_warmup)
 		instantiated_nodes.append(laser_warmup)
 
+	# Precalentar mallas 3D, shaders y partículas de Blink (Chispas de salida y aterrizaje suave)
+	var blink_warmup = _create_blink_warmup_node()
+	if blink_warmup:
+		tn.add_child(blink_warmup)
+		blink_warmup.position = Vector3(999.0, 999.0, 999.0)
+		_cache_materials_recursive(blink_warmup)
+		instantiated_nodes.append(blink_warmup)
+
 	await get_tree().process_frame
 
 	status.text = "Compilando graficos (GPU)..."
@@ -1302,7 +1310,16 @@ func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 		sub_vp.remove_child(l_warm)
 		l_warm.queue_free()
 
-	print("[VFXManager] Pool precalentado en SubViewport con éxito (38 escenas VFX + auras).")
+	# Precalentar también mallas y partículas del Blink en el SubViewport activo
+	var b_warm = _create_blink_warmup_node()
+	if b_warm:
+		b_warm.position = Vector3(0.0, -9999.0, 0.0)
+		sub_vp.add_child(b_warm)
+		_cache_materials_recursive(b_warm)
+		sub_vp.remove_child(b_warm)
+		b_warm.queue_free()
+
+	print("[VFXManager] Pool precalentado en SubViewport con éxito (38 escenas VFX + auras + Blink).")
 
 func _create_meteor_warmup_node() -> Node3D:
 	var root = Node3D.new()
@@ -1600,5 +1617,114 @@ func _create_skills_and_auras_warmup_node() -> Node3D:
 			spr.texture = load(t_path)
 			spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			root.add_child(spr)
+
+	return root
+
+func _create_blink_warmup_node() -> Node3D:
+	var root = Node3D.new()
+	root.name = "BlinkWarmup"
+
+	# 1. Luz OmniLight3D de fricción e impacto
+	var light = OmniLight3D.new()
+	light.light_energy = 3.6
+	light.light_color = Color(1.0, 0.72, 0.28)
+	root.add_child(light)
+
+	# 2. Núcleo volumétrico 3D (SphereMesh aditivo)
+	var core = MeshInstance3D.new()
+	var s_mesh = SphereMesh.new()
+	s_mesh.radius = 0.16
+	s_mesh.height = 0.32
+	s_mesh.radial_segments = 10
+	s_mesh.rings = 5
+	core.mesh = s_mesh
+	var c_mat = StandardMaterial3D.new()
+	c_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	c_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+	c_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	c_mat.albedo_color = Color(3.2, 2.5, 1.4, 0.95)
+	core.material_override = c_mat
+	root.add_child(core)
+
+	# 3. Malla de condensación de aterrizaje a ras de piso (SphereMesh achatada)
+	var land = MeshInstance3D.new()
+	var land_m = SphereMesh.new()
+	land_m.radius = 0.12
+	land_m.height = 0.16
+	land.mesh = land_m
+	var land_mat = StandardMaterial3D.new()
+	land_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	land_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+	land_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	land_mat.albedo_color = Color(2.0, 1.5, 0.8, 0.75)
+	land.material_override = land_mat
+	root.add_child(land)
+
+	# 4. Partículas de chispas incandescentes de salida (SphereMesh 3D)
+	var sparks = CPUParticles3D.new()
+	sparks.amount = 8
+	var spark_mesh = SphereMesh.new()
+	spark_mesh.radius = 0.038
+	spark_mesh.height = 0.076
+	spark_mesh.radial_segments = 6
+	spark_mesh.rings = 3
+	var s_mat = StandardMaterial3D.new()
+	s_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	s_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+	s_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	s_mat.vertex_color_use_as_albedo = true
+	spark_mesh.material = s_mat
+	sparks.mesh = spark_mesh
+	root.add_child(sparks)
+
+	# 5. Partículas de fragmentos y esquirlas de roca (BoxMesh 3D con emisión)
+	var chips = CPUParticles3D.new()
+	chips.amount = 6
+	var chip_mesh = BoxMesh.new()
+	chip_mesh.size = Vector3(0.065, 0.065, 0.065)
+	var chip_mat = StandardMaterial3D.new()
+	chip_mat.shading_mode = StandardMaterial3D.SHADING_MODE_PER_PIXEL
+	chip_mat.albedo_color = Color(0.7, 0.42, 0.25, 1.0)
+	chip_mat.emission_enabled = true
+	chip_mat.emission = Color(1.8, 1.0, 0.3)
+	chip_mat.emission_energy_multiplier = 1.0
+	chip_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	chip_mat.vertex_color_use_as_albedo = true
+	chip_mesh.material = chip_mat
+	chips.mesh = chip_mesh
+	root.add_child(chips)
+
+	# 6. Partículas de polvareda suave de aterrizaje 3D (SphereMesh translúcido)
+	var dust = CPUParticles3D.new()
+	dust.amount = 6
+	var dust_m = SphereMesh.new()
+	dust_m.radius = 0.045
+	dust_m.height = 0.09
+	dust_m.radial_segments = 6
+	dust_m.rings = 3
+	var d_mat = StandardMaterial3D.new()
+	d_mat.shading_mode = StandardMaterial3D.SHADING_MODE_PER_PIXEL
+	d_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	d_mat.vertex_color_use_as_albedo = true
+	dust_m.material = d_mat
+	dust.mesh = dust_m
+	root.add_child(dust)
+
+	# 7. Micro-chispas de aterrizaje
+	var s_sparks = CPUParticles3D.new()
+	s_sparks.amount = 4
+	var ss_mesh = SphereMesh.new()
+	ss_mesh.radius = 0.025
+	ss_mesh.height = 0.05
+	ss_mesh.radial_segments = 6
+	ss_mesh.rings = 3
+	var ss_mat = StandardMaterial3D.new()
+	ss_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	ss_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+	ss_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ss_mat.vertex_color_use_as_albedo = true
+	ss_mesh.material = ss_mat
+	s_sparks.mesh = ss_mesh
+	root.add_child(s_sparks)
 
 	return root

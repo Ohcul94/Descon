@@ -148,8 +148,9 @@ void fragment() {
 				float top_variation = (cloud_layer1 * 0.60 + cloud_layer2 * 0.40 - 0.5) * (fog_height * 0.40);
 				float effective_top = max(fog_height + top_variation, 6.0);
 
-				// Límite vertical inferior: la niebla se desvanece a 0 a partir de 1.5 metros por debajo del suelo
-				float bottom_fade = smoothstep(-1.5, 0.2, frag_world.y);
+				// Límite vertical inferior: cubre terreno hundido / cráteres hasta varios metros bajo Y=0,
+				// y se desvanece suavemente a 0 más abajo (-8.0m) para no pintar bajo el suelo del mapa.
+				float bottom_fade = smoothstep(-8.0, -3.5, frag_world.y);
 
 				// Desvanecimiento suave e irregular hacia arriba
 				float top_fade = 1.0;
