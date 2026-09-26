@@ -174,6 +174,46 @@ function registerMovementHandlers(socket, io, state) {
             p.speed = ship ? ship.speed : 500;
         }
 
+        // v800.0: VALIDACIÓN DE TELETRANSPORTE AUTORIZADO (Portales, Warps M, Respawn, Blink)
+        let isAuthorizedTeleport = false;
+        if (p.authorizedTeleport) {
+            const timeSinceAuth = now - (p.authorizedTeleport.timestamp || 0);
+            if (timeSinceAuth < 5000) { // Ventana de 5s para sincronizar el primer movimiento tras warp/respawn
+                const tdx = movementData.x - p.authorizedTeleport.x;
+                const tdy = movementData.y - p.authorizedTeleport.y;
+                const distFromDest = Math.sqrt(tdx * tdx + tdy * tdy);
+                
+                // Si la posición enviada por el cliente está dentro de la tolerancia legítima del destino autorizado
+                if (distFromDest <= 350) {
+                    isAuthorizedTeleport = true;
+                    p.x = movementData.x;
+                    p.y = movementData.y;
+                    p.authorizedTeleport = null;
+                } else {
+                    // INTENTO DE HACK: El usuario murió, warpeó o usó portal, pero intentó moverse a una posición arbitraria
+                    Logger.warn('SECURITY', `[EXPLOIT TELEPORT BLOQUEADO] ${p.user} intentó desviarse ${Math.round(distFromDest)}px del punto autorizado (${p.authorizedTeleport.x}, ${p.authorizedTeleport.y})`);
+                    movementData.x = p.authorizedTeleport.x;
+                    movementData.y = p.authorizedTeleport.y;
+                    p.x = p.authorizedTeleport.x;
+                    p.y = p.authorizedTeleport.y;
+                    p.authorizedTeleport = null;
+                    socket.emit('playerStatSync', {
+                        id: socket.id,
+                        x: p.x,
+                        y: p.y,
+                        hp: p.hp,
+                        shield: p.shield,
+                        maxHp: p.maxHp,
+                        maxShield: p.maxShield,
+                        spheres: p.spheres || []
+                    });
+                    return;
+                }
+            } else {
+                p.authorizedTeleport = null;
+            }
+        }
+
         // v210.0: ANTI-SPEEDHACK (Ajuste de Precisión Dinámico con Tolerancia)
         const dx = movementData.x - p.x;
         const dy = movementData.y - p.y;
@@ -183,7 +223,7 @@ function registerMovementHandlers(socket, io, state) {
         // Limitamos dt a 0.2s para evitar exploits de lag-switch, y reducimos tolerancia a 100px por seguridad
         const maxAllowed = (shipSpeed * Math.min(0.2, dt)) + 100;
         
-        if (distance > maxAllowed && !p.justBlinked && !p.isAdmin) { 
+        if (distance > maxAllowed && !isAuthorizedTeleport && !p.justBlinked && !p.isAdmin) { 
             const lastLog = socket.lastSecurityLogTime || 0;
             if (now - lastLog > 5000) {
                 Logger.warn('SECURITY', `Movimiento sospechoso detectado en [${p.user}]: distancia ${Math.round(distance)}px, máx permitido ${Math.round(maxAllowed)}px (dt: ${dt.toFixed(3)}s)`);
@@ -323,8 +363,25 @@ function registerMovementHandlers(socket, io, state) {
         p.isFeared = false; p.fearEndTime = 0;
         p.forcedTarget = null; p.tauntEndTime = 0;
         
-        let targetX = respawnData.x || 2000;
-        let targetY = respawnData.y || 2000;
+        // v_fix_dead: Validar zona autoritativamente
+        if (respawnData.zone) {
+            const rz = Number(respawnData.zone);
+            p.zone = (!isNaN(rz) && rz > 0 && rz < 1000) ? rz : 1;
+        }
+        const targetZone = p.zone;
+
+        let targetX = 2000;
+        let targetY = 2000;
+
+        const mapCfg = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig && state.SERVER_CONFIG.mapsConfig[String(targetZone)];
+        if (mapCfg && mapCfg.spawnX !== undefined && mapCfg.spawnY !== undefined) {
+            targetX = Number(mapCfg.spawnX);
+            targetY = Number(mapCfg.spawnY);
+        } else if (respawnData.x !== undefined && respawnData.y !== undefined) {
+            const bounds = getMapBounds(targetZone, state);
+            targetX = Math.max(100, Math.min(bounds.w - 100, Number(respawnData.x)));
+            targetY = Math.max(100, Math.min(bounds.h - 100, Number(respawnData.y)));
+        }
 
         if (typeof p.zone === 'string' && p.zone.startsWith('arena_')) {
             const arenaManager = require('../systems/arenaManager');
@@ -376,13 +433,10 @@ function registerMovementHandlers(socket, io, state) {
 
         p.x = targetX;
         p.y = targetY;
-        
-        // v_fix_dead: Validar zona — nunca persistir zonas especiales (arena_, extract_, dungeon_)
-        if (respawnData.zone) {
-            const rz = Number(respawnData.zone);
-            p.zone = (!isNaN(rz) && rz > 0 && rz < 1000) ? rz : 1;
-        }
-        const targetZone = p.zone;
+        p.lastPos = { x: targetX, y: targetY };
+        p.lastMoveTime = Date.now();
+        // v800.0: Autorizar teletransporte legítimo por respawn para no disparar anti-speedhack
+        p.authorizedTeleport = { x: targetX, y: targetY, zone: targetZone, timestamp: Date.now() };
 
         if (oldZone !== targetZone) {
             // v380.0: Actualizar indexación playersByZone

@@ -116,6 +116,9 @@ function registerZoneHandlers(socket, io, state) {
         p.zone = newZone;
         p.x = 2000;
         p.y = 2000;
+        p.lastPos = { x: 2000, y: 2000 };
+        p.lastMoveTime = Date.now();
+        p.authorizedTeleport = { x: 2000, y: 2000, zone: newZone, timestamp: Date.now() };
         onZoneChanged(socket.id, newZone, state, io);
         applyZoneRules(p, socket, io, state);
         socket.emit('playerStatSync', {
@@ -479,6 +482,10 @@ function registerZoneHandlers(socket, io, state) {
                 p.x = newSize / 2;
                 p.y = newSize / 2;
             }
+
+            p.lastPos = { x: p.x, y: p.y };
+            p.lastMoveTime = Date.now();
+            p.authorizedTeleport = { x: p.x, y: p.y, zone: zoneId, timestamp: Date.now() };
 
             socket.emit('changeZoneDone', { zoneId: zoneId, x: p.x, y: p.y });
 

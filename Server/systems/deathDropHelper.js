@@ -182,6 +182,8 @@ async function checkAndProcessDeathDrop(p, io, state) {
                 p.zone = lobbyZone;
                 p.x = 2000;
                 p.y = 2000;
+                p.authorizedTeleport = { x: 2000, y: 2000, zone: lobbyZone, timestamp: Date.now() };
+                p.lastMoveTime = Date.now();
 
                 // Aplicar stats de la nave default
                 p.currentShipId = defaultShipId;

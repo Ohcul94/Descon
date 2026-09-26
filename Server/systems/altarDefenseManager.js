@@ -459,6 +459,8 @@ class AltarDefenseManager {
                 pl.zone = targetZoneId;
                 pl.x = 2000;
                 pl.y = 2000;
+                pl.authorizedTeleport = { x: 2000, y: 2000, zone: targetZoneId, timestamp: Date.now() };
+                pl.lastMoveTime = Date.now();
                 plSocket.emit('changeZoneDone', { zoneId: targetZoneId, x: 2000, y: 2000 });
                 plSocket.to(`zone_${targetZoneId}`).emit('newPlayer', {
                     id: plSocket.id,

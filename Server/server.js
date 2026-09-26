@@ -2789,6 +2789,7 @@ io.on('connection', (socket) => {
                             p.zone = targetZoneId;
                             p.x = targetX;
                             p.y = targetY;
+                            p.authorizedTeleport = { x: targetX, y: targetY, zone: targetZoneId, timestamp: Date.now() };
                             p.justBlinked = true; // v770.8: bypass anti-speedhack en el primer movimiento tras warp
                             p.lastMoveTime = Date.now();
 

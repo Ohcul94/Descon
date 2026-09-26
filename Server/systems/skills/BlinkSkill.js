@@ -62,6 +62,8 @@ class BlinkSkill extends BaseSkill {
         p.x = finalX;
         p.y = finalY;
         p.justBlinked = true; // v266.700: Bypass anti-cheat
+        p.authorizedTeleport = { x: finalX, y: finalY, zone: p.zone, timestamp: Date.now() };
+        p.lastMoveTime = Date.now();
         
         // Sincronización inmediata para que los demás vean el salto
         io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', { 

@@ -505,6 +505,8 @@ function startGameLoop(io, state, aiManager) {
                         p.zone = lobbyZoneId;
                         p.x = 1000;
                         p.y = 1000;
+                        p.authorizedTeleport = { x: 1000, y: 1000, zone: lobbyZoneId, timestamp: Date.now() };
+                        p.lastMoveTime = Date.now();
                         
                         const User = require('../models/User');
                         User.updateOne({ _id: socket.dbUser._id }, { $set: { "gameData.zone": lobbyZoneId } })

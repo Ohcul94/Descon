@@ -367,6 +367,8 @@ class ExtractionManager {
             p.y = spawnPoint.y;
             p.lastPos = { x: p.x, y: p.y };
         }
+        p.authorizedTeleport = { x: p.x, y: p.y, zone: matchId, timestamp: Date.now() };
+        p.lastMoveTime = Date.now();
 
         // Guardar estado original de PvP y forzar modo Combate (PvP)
         p.originalPvpEnabled = !!p.pvpEnabled;
@@ -653,6 +655,8 @@ class ExtractionManager {
             const size = (newZone === 1 ? 2000 : 4000);
             p.x = size / 2;
             p.y = size / 2;
+            p.authorizedTeleport = { x: p.x, y: p.y, zone: newZone, timestamp: Date.now() };
+            p.lastMoveTime = Date.now();
             
             p.isExtracting = false;
             p.tempInventory = [];

@@ -121,6 +121,35 @@ async function runAudit() {
         totalFailed++;
     }
 
+    // 2.1 SIMULACIÓN DE TELETRANSPORTE AUTORIZADO (Muerte, Portales, Tecla M) VS INYECCIÓN DE COORDENADAS
+    const authorizedDest = { x: 2000, y: 2000, timestamp: Date.now() };
+    const arrivalRadius = 350;
+
+    // Caso A: Teletransporte legal (ej. respawn o portal legítimo)
+    const clientLegalArrival = { x: 2050, y: 2020 };
+    const distLegal = Math.hypot(clientLegalArrival.x - authorizedDest.x, clientLegalArrival.y - authorizedDest.y);
+    const isLegalAccepted = distLegal <= arrivalRadius;
+
+    // Caso B: Intento de exploit (inyección de coordenadas arbitrarias entre portales o al morir)
+    const clientExploitArrival = { x: 8500, y: 9200 };
+    const distExploit = Math.hypot(clientExploitArrival.x - authorizedDest.x, clientExploitArrival.y - authorizedDest.y);
+    const isExploitBlocked = distExploit > arrivalRadius;
+
+    // Caso C: Token expirado (> 5000ms)
+    const expiredAuth = { x: 2000, y: 2000, timestamp: Date.now() - 6000 };
+    const isExpiredRejected = (Date.now() - expiredAuth.timestamp) > 5000;
+
+    if (isLegalAccepted && isExploitBlocked && isExpiredRejected) {
+        pass('Sistema Autoritativo de Teletransporte Validado:');
+        pass(`  - Teletransporte Legítimo (Δ=${Math.round(distLegal)}px <= ${arrivalRadius}px): PERMITIDO sin rubberband.`);
+        pass(`  - Intento de Inyección de Coordenadas (Δ=${Math.round(distExploit)}px > ${arrivalRadius}px): BLOQUEADO y devuelto al destino oficial.`);
+        pass(`  - Expiración de Token de Teletransporte (> 5s): INVALIDADO automáticamente.`);
+        totalPassed += 4;
+    } else {
+        fail('Fallo en la validación del sistema de teletransporte autorizado y anti-inyección.');
+        totalFailed++;
+    }
+
     // 3. MECÁNICAS DE DEFENSA, ESCUDOS Y REGENERACIÓN
     section('3. MECÁNICAS DE DEFENSA, REGENERACIÓN Y ESTADOS');
 

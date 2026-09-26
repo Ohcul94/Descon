@@ -288,6 +288,8 @@ class ArenaManager {
                 playerObj.zone = matchId;
                 playerObj.x = targetX;
                 playerObj.y = targetY;
+                playerObj.authorizedTeleport = { x: targetX, y: targetY, zone: matchId, timestamp: Date.now() };
+                playerObj.lastMoveTime = Date.now();
                 playerObj.pvpEnabled = true; 
                 playerObj.team = pl.team; 
                 playerObj.isFrozen = true; // Congelado al iniciar
@@ -562,6 +564,8 @@ class ArenaManager {
                     playerObj.zone = targetZoneId;
                     playerObj.x = 2000;
                     playerObj.y = 2000;
+                    playerObj.authorizedTeleport = { x: 2000, y: 2000, zone: targetZoneId, timestamp: Date.now() };
+                    playerObj.lastMoveTime = Date.now();
                     playerObj.team = null; 
 
                     targetSocket.emit('changeZoneDone', { zoneId: targetZoneId, x: 2000, y: 2000 });

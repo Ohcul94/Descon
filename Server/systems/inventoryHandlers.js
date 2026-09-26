@@ -277,8 +277,20 @@ function registerInventoryHandlers(socket, io, state) {
                 }
             }
 
+            // Blindaje de seguridad y sanitización de inputs (Anti-Hack / Anti-Exploit)
+            if (currency !== 'hubs' && currency !== 'ohcu') {
+                return socket.emit('authError', 'MONEDA NO VALIDA');
+            }
+            const cleanAmount = Math.max(1, parseInt(amount) || 100);
+            if (category === 'ammo' && cleanAmount <= 0) {
+                return socket.emit('authError', 'CANTIDAD INVALIDA');
+            }
+
             const price = itemConfig.prices[currency] || 0;
-            const totalPrice = category === 'ammo' ? Math.floor((parseInt(amount)/100)*price) : price;
+            const totalPrice = category === 'ammo' ? Math.floor((cleanAmount / 100) * price) : price;
+            if (totalPrice < 0) {
+                return socket.emit('authError', 'PRECIO INVALIDO');
+            }
             console.log(`[SHOP-DEBUG] Precio calculado: ${totalPrice} ${currency}`);
 
             if ((user.gameData[currency] || 0) < totalPrice) {
@@ -698,7 +710,13 @@ function registerInventoryHandlers(socket, io, state) {
 
             const item = user.gameData.inventory[idx];
             const amount = parseInt(item.amount) || 1;
-            const quantityToSell = quantity ? Math.min(parseInt(quantity) || 1, amount) : amount;
+
+            // Blindaje de seguridad y sanitización contra Dupe Hacks con números negativos
+            const requestedQty = parseInt(quantity);
+            if (quantity !== undefined && (isNaN(requestedQty) || requestedQty <= 0)) {
+                return socket.emit('gameNotification', { msg: 'CANTIDAD INVALIDA PARA VENTA', type: 'error' });
+            }
+            const quantityToSell = quantity !== undefined ? Math.max(1, Math.min(requestedQty, amount)) : amount;
             
             let originalPrice = 0;
             const configItem = getMasterItemConfig(item.id, state.SERVER_CONFIG);
