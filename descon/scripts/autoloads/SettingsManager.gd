@@ -92,9 +92,12 @@ var show_enemy_stats: bool = true
 
 var bold_font: SystemFont = null
 
+static func is_mobile_platform() -> bool:
+	return OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+
 func _ready():
 	# v303.01: Soporte para argumentos de lanzamiento (--mobile) o plataforma móvil nativa (Android/iOS)
-	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+	if is_mobile_platform():
 		mobile_mode = true
 		print("[SETTINGS] Modo Celular activado por plataforma móvil detectada.")
 	for arg in OS.get_cmdline_user_args():
@@ -103,7 +106,7 @@ func _ready():
 			print("[SETTINGS] Forzando Modo Celular vía comando.")
 	
 	load_settings()
-	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+	if is_mobile_platform():
 		mobile_mode = true
 	apply_fps_limit(fps_limit)
 	cam_use_orthogonal = camera_use_orthogonal
@@ -184,7 +187,7 @@ func reset_to_factory():
 	show_enemy_stats = true
 	window_mode = 0
 	screen_resolution = "1280x720"
-	render_scale_3d = 1.0
+	render_scale_3d = 0.75 if is_mobile_platform() else 1.0
 	apply_window_mode(0)
 	apply_resolution("1280x720")
 	apply_fps_limit(60)
@@ -300,7 +303,16 @@ func load_settings():
 		screen_resolution = config_file.get_value("graphics", "screen_resolution", "1280x720")
 		if screen_resolution == "1280x800":
 			screen_resolution = "1280x720"
-		render_scale_3d = config_file.get_value("graphics", "render_scale_3d", 1.0)
+		var is_mob = is_mobile_platform()
+		var default_scale = 0.75 if is_mob else 1.0
+		render_scale_3d = config_file.get_value("graphics", "render_scale_3d", default_scale)
+		# v905.2: En móviles, si viene de una versión anterior con render_scale_3d en 1.0 (que provoca calentamiento en QHD+),
+		# inicializarlo inteligentemente en 0.75 una sola vez, permitiendo luego al usuario mover el slider libremente.
+		if is_mob and not config_file.has_section_key("graphics", "mobile_thermal_v1"):
+			if render_scale_3d > 0.80:
+				render_scale_3d = 0.75
+			config_file.set_value("graphics", "mobile_thermal_v1", true)
+			save_settings()
 		music_volume = config_file.get_value("audio", "music_volume", 60.0)
 		music_muted = config_file.get_value("audio", "music_muted", false)
 		sfx_volume = config_file.get_value("audio", "sfx_volume", 50.0)
@@ -352,7 +364,7 @@ func load_settings():
 		minimap_rotate = false
 		window_mode = 0
 		screen_resolution = "1280x800"
-		render_scale_3d = 1.0
+		render_scale_3d = 0.75 if is_mobile_platform() else 1.0
 		sfx_volume = 50.0
 		sfx_muted = false
 		hit_flash_enabled = true

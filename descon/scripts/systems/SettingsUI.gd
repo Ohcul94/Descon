@@ -526,10 +526,11 @@ func _setup_ui():
 	gfx_label.text = "CALIDAD DE MODELOS 3D:"
 	gfx_vbox.add_child(gfx_label)
 	
+	var is_mob_ui = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
 	var gfx_option = OptionButton.new()
 	gfx_option.add_item("Baja (Rendimiento)", 0)
 	gfx_option.add_item("Media (Recomendado)", 1)
-	gfx_option.add_item("Alta (PCs Potentes)", 2)
+	gfx_option.add_item("Alta (Gama Alta Móvil)" if is_mob_ui else "Alta (PCs Potentes)", 2)
 	
 	if get_node_or_null("/root/SettingsManager"):
 		gfx_option.selected = SettingsManager.get_graphics_quality()
@@ -1423,13 +1424,20 @@ func _on_graphics_quality_changed(idx: int):
 		SettingsManager.graphics_quality = idx
 		
 		# Ajustar render_scale_3d según preset por defecto por comodidad
-		match idx:
-			0: SettingsManager.render_scale_3d = 0.30
-			1: SettingsManager.render_scale_3d = 0.60
-			2: SettingsManager.render_scale_3d = 1.0
+		var is_mob = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+		if is_mob:
+			match idx:
+				0: SettingsManager.render_scale_3d = 0.35
+				1: SettingsManager.render_scale_3d = 0.60
+				2: SettingsManager.render_scale_3d = 0.75 # 75% en celulares (~1080p en QHD+) previene sobrecalentamiento manteniendo nitidez total
+		else:
+			match idx:
+				0: SettingsManager.render_scale_3d = 0.30
+				1: SettingsManager.render_scale_3d = 0.60
+				2: SettingsManager.render_scale_3d = 1.0 # 100% nativo para PC
 			
 		SettingsManager.save_settings()
-		print("[SETTINGS] Calidad gráfica cambiada a: ", idx, " | Escala 3D: ", SettingsManager.render_scale_3d)
+		print("[SETTINGS] Calidad gráfica cambiada a: ", idx, " | Escala 3D: ", SettingsManager.render_scale_3d, " (Móvil: ", is_mob, ")")
 		
 		# Refrescar la UI para reflejar el cambio en los sliders/opciones
 		refresh_ui()

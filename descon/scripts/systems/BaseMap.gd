@@ -1084,6 +1084,8 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	if get_node_or_null("/root/SettingsManager"):
 		quality = SettingsManager.get_graphics_quality()
 
+	var is_mobile_device = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+
 	var current_renderer = ""
 	if ProjectSettings.has_setting("rendering/renderer/rendering_method"):
 		current_renderer = ProjectSettings.get_setting("rendering/renderer/rendering_method")
@@ -1115,9 +1117,14 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 			env.glow_enabled = false
 		else:
 			env.glow_enabled = true
-			env.glow_intensity = 0.6
-			env.glow_strength = 1.2
-			env.glow_bloom = 0.15
+			if is_mobile_device:
+				env.glow_intensity = 0.5
+				env.glow_strength = 1.0
+				env.glow_bloom = 0.10
+			else:
+				env.glow_intensity = 0.6
+				env.glow_strength = 1.2
+				env.glow_bloom = 0.15
 			env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 			env.glow_hdr_threshold = 1.2
 
@@ -1156,7 +1163,7 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 
 	# Configuración de Render Scale y Calidad 3D en el Viewport (se aplica independientemente del Env)
 	# Para dispositivos de gama baja (calidad = 0), bajamos la resolución de renderizado 3D al 30% (muy liviano, se ve pixelado pero corre fluido)
-	# Para calidad media, al 60%. Para calidad alta, al 100%.
+	# Para calidad media, al 60%. Para calidad alta, al 100% en PC y 75% en Celular.
 	# Nota: Esto no afecta las letras/HUD/UI, que siguen viéndose perfectamente nítidos y legibles.
 	var render_scale = 0.60
 	var sm = get_node_or_null("/root/SettingsManager")
@@ -1164,27 +1171,41 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		render_scale = sm.render_scale_3d
 	else:
 		if quality == 0:
-			render_scale = 0.30
+			render_scale = 0.35 if is_mobile_device else 0.30
 		elif quality == 1:
 			render_scale = 0.60
 		elif quality == 2:
-			render_scale = 1.0
+			render_scale = 0.75 if is_mobile_device else 1.0
 
 	var scale_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	var msaa_mode = Viewport.MSAA_DISABLED
 	var screen_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	var lod_threshold = 8.0 # Simplifica enormemente los polígonos de los modelos 3D lejanos
 
-	if quality == 1:
-		scale_mode = Viewport.SCALING_3D_MODE_FSR if current_renderer == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
-		msaa_mode = Viewport.MSAA_DISABLED
-		screen_aa = Viewport.SCREEN_SPACE_AA_FXAA if current_renderer != "gl_compatibility" else Viewport.SCREEN_SPACE_AA_DISABLED
-		lod_threshold = 2.0
-	elif quality == 2:
-		scale_mode = Viewport.SCALING_3D_MODE_FSR if current_renderer == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
-		msaa_mode = Viewport.MSAA_2X
-		screen_aa = Viewport.SCREEN_SPACE_AA_FXAA if current_renderer != "gl_compatibility" else Viewport.SCREEN_SPACE_AA_DISABLED
-		lod_threshold = 1.0
+	if is_mobile_device:
+		# Perfil térmico y de rendimiento optimizado para móviles (pantallas con alta densidad de DPI)
+		if quality == 1:
+			scale_mode = Viewport.SCALING_3D_MODE_BILINEAR
+			msaa_mode = Viewport.MSAA_DISABLED
+			screen_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+			lod_threshold = 3.5
+		elif quality == 2:
+			scale_mode = Viewport.SCALING_3D_MODE_BILINEAR
+			msaa_mode = Viewport.MSAA_DISABLED # En móviles con >400 DPI, MSAA 2X sobrecalienta sin beneficio visible
+			screen_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+			lod_threshold = 2.0
+	else:
+		# Perfil PC intacto (máxima fidelidad gráfica para monitores grandes)
+		if quality == 1:
+			scale_mode = Viewport.SCALING_3D_MODE_FSR if current_renderer == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
+			msaa_mode = Viewport.MSAA_DISABLED
+			screen_aa = Viewport.SCREEN_SPACE_AA_FXAA if current_renderer != "gl_compatibility" else Viewport.SCREEN_SPACE_AA_DISABLED
+			lod_threshold = 2.0
+		elif quality == 2:
+			scale_mode = Viewport.SCALING_3D_MODE_FSR if current_renderer == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
+			msaa_mode = Viewport.MSAA_2X
+			screen_aa = Viewport.SCREEN_SPACE_AA_FXAA if current_renderer != "gl_compatibility" else Viewport.SCREEN_SPACE_AA_DISABLED
+			lod_threshold = 1.0
 
 	sub_vp.scaling_3d_scale = render_scale
 	sub_vp.scaling_3d_mode = scale_mode
@@ -1225,10 +1246,13 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		main_light.shadow_enabled = native_shadows
 		if native_shadows:
 			main_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-			main_light.directional_shadow_max_distance = 65.0
+			main_light.directional_shadow_max_distance = 50.0 if is_mobile_device else 65.0
 			main_light.shadow_bias = 0.04
 			main_light.shadow_normal_bias = 1.5
-			sub_vp.positional_shadow_atlas_size = 2048
+			if is_mobile_device:
+				sub_vp.positional_shadow_atlas_size = 1024 if quality == 2 else 512
+			else:
+				sub_vp.positional_shadow_atlas_size = 2048
 			sub_vp.positional_shadow_atlas_16_bits = true
 	else:
 		# Si la escena ya tiene su luz, nos aseguramos de que la por defecto no interfiera
@@ -1238,7 +1262,7 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		# Optimizar distancia de sombras en la DirectionalLight3D personalizada
 		for custom_l in sub_vp.find_children("*", "DirectionalLight3D", true, false):
 			if custom_l is DirectionalLight3D:
-				custom_l.directional_shadow_max_distance = 65.0
+				custom_l.directional_shadow_max_distance = 50.0 if is_mobile_device else 65.0
 				custom_l.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 
 	# 3. Limpieza de luces secundarias (GL Compatibility solo soporta 1-2 luces direccionales de forma estable)
