@@ -8,47 +8,33 @@ echo.
 
 cd /d "%~dp0"
 
-echo [1/5] Auditoria del Sistema de Talentos...
-node audit_talents.js
-if %errorlevel% neq 0 (
+set /a total_tests=0
+set /a failed_tests=0
+
+for %%f in (audit_*.js) do (
+    echo --------------------------------------------------------------------
+    echo [EJECUTANDO TEST]: %%f
+    echo --------------------------------------------------------------------
+    node "%%f"
+    if errorlevel 1 (
+        echo.
+        echo [ERROR CRITICO] El test %%f ha fallado.
+        set /a failed_tests+=1
+    )
+    set /a total_tests+=1
     echo.
-    echo [ERROR] El test de talentos fallo.
 )
 
-echo.
-echo [2/5] Auditoria de Tienda, Items, Naves y Crafting...
-node audit_items_shop.js
-if %errorlevel% neq 0 (
-    echo.
-    echo [ERROR] El test de tienda e items fallo.
-)
-
-echo.
-echo [3/5] Auditoria de Misiones, Recompensas y Unlocks...
-node audit_quests.js
-if %errorlevel% neq 0 (
-    echo.
-    echo [ERROR] El test de misiones fallo.
-)
-
-echo.
-echo [4/5] Auditoria de Mapas, Zonas, Mobs y Modos de Juego...
-node audit_maps_mobs.js
-if %errorlevel% neq 0 (
-    echo.
-    echo [ERROR] El test de mapas y mobs fallo.
-)
-
-echo.
-echo [5/5] Auditoria de Habilidades, Combate y Anti-Cheat...
-node audit_skills_combat.js
-if %errorlevel% neq 0 (
-    echo.
-    echo [ERROR] El test de habilidades y combate fallo.
-)
-
-echo.
 echo ====================================================================
-echo   TODOS LOS TESTS DE LA SUITE HAN SIDO EJECUTADOS.
+echo   RESUMEN FINAL DE LA SUITE DE AUDITORIAS
+echo ====================================================================
+echo   Total de Tests Ejecutados: %total_tests%
+echo   Tests con Fallos:          %failed_tests%
+echo ====================================================================
+if %failed_tests% gtr 0 (
+    echo   ESTADO: ATENCION - ALGUNOS TESTS HAN FALLADO.
+) else (
+    echo   ESTADO: EXITO TOTAL - TODOS LOS TESTS PASARON CORRECTAMENTE.
+)
 echo ====================================================================
 pause

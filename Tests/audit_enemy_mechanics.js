@@ -7,9 +7,9 @@
 const fs = require('fs');
 const path = require('path');
 
-let SERVER_DIR = path.resolve(__dirname, '..', '..', 'Server');
+let SERVER_DIR = path.resolve(__dirname, '..', 'Server');
 if (!fs.existsSync(SERVER_DIR)) {
-    SERVER_DIR = path.resolve(__dirname, '..', 'Server');
+    SERVER_DIR = path.resolve(__dirname, '..', '..', 'Server');
 }
 const CONFIG_PATH = path.join(SERVER_DIR, 'config.json');
 

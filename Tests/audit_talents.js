@@ -14,7 +14,10 @@ const fs = require('fs');
 const path = require('path');
 
 // Localizar rutas relativas hacia el Server
-const SERVER_DIR = path.resolve(__dirname, '..', '..', 'Server');
+let SERVER_DIR = path.resolve(__dirname, '..', 'Server');
+if (!fs.existsSync(SERVER_DIR)) {
+    SERVER_DIR = path.resolve(__dirname, '..', '..', 'Server');
+}
 const CONFIG_PATH = path.join(SERVER_DIR, 'config.json');
 
 const { calculateFinalStats, getTalentBonuses, applyHealTalentBonus } = require(path.join(SERVER_DIR, 'systems', 'statCalculator'));
