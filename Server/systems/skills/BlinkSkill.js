@@ -13,9 +13,9 @@ class BlinkSkill extends BaseSkill {
         const dy = targetY - p.y;
         const dist = Math.hypot(dx, dy);
 
-        // Obtener el rango de la habilidad desde la configuración (por defecto 450)
+        // Obtener el rango de la habilidad desde la configuración (modificado por talentos)
         const skillConfig = state.SERVER_CONFIG?.skillsData?.[this.name] || { range: 450 };
-        const maxRange = skillConfig.range || 450;
+        const maxRange = this.getEffectiveAttr(p, skillConfig, 'range', 450);
 
         let finalX = targetX;
         let finalY = targetY;

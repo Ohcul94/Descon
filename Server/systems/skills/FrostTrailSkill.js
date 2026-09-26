@@ -8,8 +8,8 @@ class FrostTrailSkill extends BaseSkill {
     execute(p, data, { io, state, socket }) {
         const config = (state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData[this.name] : {};
 
-        // Duracion: el config la guarda en segundos (6). Si el admin pone ms (>=100), se respeta como ms.
-        const durationRaw = Number(config.duration);
+        // Duracion: el config la guarda en segundos (6). Modificado autoritativamente por talentos
+        const durationRaw = this.getEffectiveAttr(p, config, 'duration', 6);
         const duration = (Number.isFinite(durationRaw) && durationRaw > 0)
             ? (durationRaw >= 100 ? durationRaw : durationRaw * 1000)
             : 6000;

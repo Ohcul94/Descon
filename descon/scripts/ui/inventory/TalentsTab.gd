@@ -1314,19 +1314,30 @@ func _do_save():
 	if not is_instance_valid(talent_system):
 		return
 
-	# Enviar cada punto pendiente al servidor uno por uno
+	var investments: Array = []
 	for node_id in pending_points:
 		var amount = pending_points[node_id]
+		if amount <= 0:
+			continue
 		var talent = _get_talent_by_id(node_id)
 		if talent.is_empty():
 			continue
 
 		var cat = talent.get("category", "")
 		var idx = _get_talent_index_in_category(node_id)
+		investments.append({
+			"category": cat,
+			"index": idx,
+			"amount": amount
+		})
 
-		for i in range(amount):
-			# Esperar un frame entre cada envío para evitar flood
-			talent_system.invest_point(cat, idx)
+	if not investments.is_empty():
+		if talent_system.has_method("invest_points_batch"):
+			talent_system.invest_points_batch(investments)
+		else:
+			for inv in investments:
+				for i in range(inv["amount"]):
+					talent_system.invest_point(inv["category"], inv["index"])
 
 	# Limpiar pendientes
 	pending_points.clear()

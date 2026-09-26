@@ -59,15 +59,21 @@ function getTalentBonuses(skillTree, talentsConfig) {
         const effectsMeta = t.effectsMeta || {};
         for (const [key, val] of Object.entries(effects)) {
             const meta = effectsMeta[key] || {};
+            const numVal = Number(val) || 0;
             if (meta.flat) {
                 const flatKey = key + '_flat';
                 if (bonuses.hasOwnProperty(flatKey)) {
-                    bonuses[flatKey] += val * lvl;
+                    bonuses[flatKey] += numVal * lvl;
                 } else if (bonuses.hasOwnProperty(key)) {
-                    bonuses[key] += val * lvl;
+                    bonuses[key] += numVal * lvl;
+                } else {
+                    bonuses[flatKey] = (bonuses[flatKey] || 0) + numVal * lvl;
                 }
             } else if (bonuses.hasOwnProperty(key)) {
-                bonuses[key] += val * lvl;
+                bonuses[key] += numVal * lvl;
+            } else {
+                // Claves dinámicas de talentos (weapon:..., ammo:..., skill:...)
+                bonuses[key] = (bonuses[key] || 0) + numVal * lvl;
             }
         }
     }

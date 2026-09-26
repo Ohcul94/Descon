@@ -220,6 +220,110 @@ function registerSkillHandlers(socket, io, state) {
         }
     });
 
+    // ASIGNACIÓN MÚLTIPLE DE TALENTOS EN LOTE (v301.0 - Atómica, Anti-Lockout)
+    socket.on('investSkillBatch', async (data) => {
+        if (!socket.dbUser || !players[socket.id] || !data || !Array.isArray(data.investments)) return;
+
+        if (socket._investSkillLock) {
+            return socket.emit('gameNotification', { msg: 'Procesando asignación previa...', type: 'warn' });
+        }
+        socket._investSkillLock = true;
+
+        try {
+            const talentsConfig = state.SERVER_CONFIG?.talentsConfig || {};
+            const validCategories = (talentsConfig.categories || []).map(c => c.id);
+            const user = getPlayerRAMAdapter(players[socket.id]);
+            if (!user) return;
+
+            sanitizeSkillTree(user, talentsConfig);
+
+            let pts = Number(user.gameData.skillPoints) || 0;
+            let totalInvested = 0;
+
+            for (const item of data.investments) {
+                const cat = String(item.category || '').trim();
+                const idx = parseInt(item.index, 10);
+                const count = Math.max(1, parseInt(item.amount || item.count || 1, 10));
+
+                if (!validCategories.includes(cat) || isNaN(idx) || idx < 0) continue;
+
+                const talentsInCat = (talentsConfig.talents || []).filter(t => t.category === cat);
+                if (idx >= talentsInCat.length) continue;
+
+                const targetTalent = talentsInCat[idx];
+                if (!targetTalent) continue;
+
+                const branch = user.gameData.skillTree[cat] || [];
+                let currentLvl = Number(branch[idx]) || 0;
+                const maxLvl = Number(targetTalent.maxLevel) || 5;
+
+                // Validar desbloqueo por misiones
+                const lockedConfig = (state.SERVER_CONFIG && Array.isArray(state.SERVER_CONFIG.talentsLockedConfig)) ? state.SERVER_CONFIG.talentsLockedConfig : [];
+                const lockedEntry = lockedConfig.find(t => String(t.category) === cat && Number(t.index) === idx);
+                if (lockedEntry) {
+                    const unlocks = (user.gameData.unlocks && Array.isArray(user.gameData.unlocks)) ? user.gameData.unlocks : [];
+                    if (!unlocks.includes('talent:' + cat + ':' + idx)) continue;
+                }
+
+                for (let k = 0; k < count; k++) {
+                    if (pts <= 0) break;
+                    if (currentLvl >= maxLvl) break;
+                    if (currentLvl === 0 && !checkTreePrerequisites(targetTalent, user.gameData.skillTree, talentsConfig)) {
+                        break;
+                    }
+                    currentLvl++;
+                    branch[idx] = currentLvl;
+                    pts--;
+                    totalInvested++;
+                }
+                user.gameData.skillTree[cat] = branch;
+            }
+
+            if (totalInvested > 0) {
+                user.gameData.skillPoints = pts;
+                user.markModified('gameData.skillTree');
+                user.markModified('gameData.skillPoints');
+                user.markModified('gameData');
+
+                players[socket.id].skillTree = user.gameData.skillTree;
+                players[socket.id].skillPoints = user.gameData.skillPoints;
+
+                calculateFinalStats(players[socket.id], state.SERVER_CONFIG);
+                await user.save();
+                socket.dbUser = user;
+
+                const eByShipObj = {};
+                if (user.gameData.equippedByShip) {
+                    if (user.gameData.equippedByShip instanceof Map) {
+                        user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+                    } else {
+                        Object.assign(eByShipObj, user.gameData.equippedByShip);
+                    }
+                }
+
+                socket.emit('inventoryData', {
+                    player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj }
+                });
+                if (io && typeof io.to === 'function') {
+                    io.to(`zone_${players[socket.id].zone || 1}`).emit('playerStatSync', {
+                        id: socket.id,
+                        hp: players[socket.id].hp,
+                        shield: players[socket.id].shield,
+                        maxHp: players[socket.id].maxHp,
+                        maxShield: players[socket.id].maxShield
+                    });
+                }
+                socket.emit('gameNotification', { msg: `TALENTOS GUARDADOS: Se asignaron ${totalInvested} punto(s).`, type: 'success' });
+            } else {
+                socket.emit('gameNotification', { msg: 'No se pudieron asignar los puntos seleccionados.', type: 'warn' });
+            }
+        } catch (e) {
+            Logger.error('SKILL-BATCH', e.message);
+        } finally {
+            socket._investSkillLock = false;
+        }
+    });
+
     // RESET DE TALENTOS AUTORITATIVO (v300.95 - Blindado Anti-Hacks)
     socket.on('resetSkills', async () => {
         if (!socket.dbUser || !players[socket.id]) return;

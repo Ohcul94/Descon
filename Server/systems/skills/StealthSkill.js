@@ -7,7 +7,8 @@ class StealthSkill extends BaseSkill {
 
     execute(p, data, { io, state, socket }) {
         const config = (state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData["STEALTH"] : { duration: 8 };
-        const duration = (config.duration || 8) * 1000;
+        let durationSec = this.getEffectiveAttr(p, config, 'duration', 8);
+        const duration = (durationSec >= 100 ? durationSec : durationSec * 1000);
         
         p.isInvisible = true;
         socket.emit('gameNotification', { msg: "¡SIGILO ACTIVADO!", type: "info" });

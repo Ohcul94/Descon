@@ -39,7 +39,7 @@ class WindBarrierSkill extends BaseSkill {
         const dy = targetY - p.y;
         const angle = Math.atan2(dy, dx);
 
-        let durationMs = config.duration || 6;
+        let durationMs = this.getEffectiveAttr(p, config, 'duration', 6);
         if (durationMs < 1000) {
             durationMs *= 1000;
         }

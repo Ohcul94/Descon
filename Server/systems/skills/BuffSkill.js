@@ -18,10 +18,11 @@ class BuffSkill extends BaseSkill {
             const skillConfig = (state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData)
                 ? state.SERVER_CONFIG.skillsData[this.name]
                 : {};
-            let durationMs = skillConfig.duration !== undefined ? skillConfig.duration : 3000;
+            let durationMs = this.getEffectiveAttr(p, skillConfig, 'duration', 3000);
             if (durationMs < 1000) durationMs = durationMs * 1000;
 
-            const mult = skillConfig.reflect_mult !== undefined ? skillConfig.reflect_mult : 0.8;
+            const baseMult = skillConfig.reflect_mult !== undefined ? skillConfig.reflect_mult : 0.8;
+            const mult = this.getEffectiveAttr(p, skillConfig, 'amount', baseMult);
 
             target.reflectActive = true;
             target.reflectMult = mult;

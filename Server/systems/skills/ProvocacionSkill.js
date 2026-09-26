@@ -35,7 +35,7 @@ class ProvocacionSkill extends BaseSkill {
             const dx = targetPosX - p.x;
             const dy = targetPosY - p.y;
             const dist = Math.hypot(dx, dy);
-            const maxRange = this.range; // Usamos la propiedad limpia del objeto
+            const maxRange = this.getEffectiveAttr(p, (state.SERVER_CONFIG?.skillsData?.[this.name] || {}), 'range', this.range);
 
             if (dist > maxRange) {
                 const angle = Math.atan2(dy, dx);
@@ -47,8 +47,9 @@ class ProvocacionSkill extends BaseSkill {
             }
         }
 
-        const radius = this.radius; // Usamos la propiedad limpia del objeto
-        const tauntDuration = this.taunt_duration; // Usamos la propiedad limpia del objeto
+        const skillConfig = (state.SERVER_CONFIG?.skillsData?.[this.name] || {});
+        const radius = this.getEffectiveAttr(p, skillConfig, 'radius', this.radius);
+        const tauntDuration = this.getEffectiveAttr(p, skillConfig, 'taunt_duration', this.taunt_duration);
         const affectedEnemies = [];
 
         // Obtener enemigos cercanos de forma eficiente a través de la grilla espacial (Anti-Lag)

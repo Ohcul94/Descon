@@ -48,7 +48,7 @@ class HealBeaconSkill extends BaseSkill {
             y: targetY,
             radius: config.radius || 200,
             pulse_interval: config.pulse_interval || 1500,
-            heal_amount: config.heal_amount || 250,
+            heal_amount: this.getEffectiveAttr(p, config, 'heal_amount', 250),
             type: 'HEAL_BEACON',
             ownerId: socket.id,
             endTime: Date.now() + durationMs,

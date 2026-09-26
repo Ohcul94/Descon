@@ -84,24 +84,61 @@ function registerCombatHandlers(socket, io, state) {
     
     // SISTEMA DE DAÑO AUTORITATIVO (Anti-Cheat Server-Side)
         // ==== SISTEMA DE CASTEO AUTORITATIVO (Anti-Hack) ====
-    function getAmmoCastTimeMs(ammoType, ammoTier) {
+    function getAmmoCastTimeMs(ammoType, ammoTier, p) {
         try {
             const list = state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo ? state.SERVER_CONFIG.shopItems.ammo[ammoType] : null;
             if (Array.isArray(list) && list[ammoTier]) {
-                return Math.max(0, Number(list[ammoTier].castTimeMs || 0));
+                let base = Math.max(0, Number(list[ammoTier].castTimeMs || 0));
+                if (p && p._talentBonuses) {
+                    const globalCastRed = Math.abs(Number(p._talentBonuses.cast_time_reduction) || 0);
+                    const ammoCastRed = Math.abs(Number(p._talentBonuses[`ammo:${ammoType}:castTimeMs`]) || 0);
+                    const mult = Math.max(0.1, 1.0 - (globalCastRed + ammoCastRed));
+                    base = Math.round(base * mult);
+                }
+                return base;
             }
         } catch(e) {}
         return 0;
     }
-    function getSkillCastTimeMs(skillName) {
+    function getSkillCastTimeMs(skillName, p) {
         try {
             let sd = state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[skillName] : null;
-            if (sd) return Math.max(0, Number(sd.castTimeMs || 0));
-            const norm = skillName ? skillName.toUpperCase().replace(/Ó/g,"O").replace(/É/g,"E").replace(/Í/g,"I").replace(/Á/g,"A").replace(/Ú/g,"U") : "";
-            let sd2 = state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[norm] : null;
-            if (sd2) return Math.max(0, Number(sd2.castTimeMs || 0));
+            if (!sd) {
+                const norm = skillName ? skillName.toUpperCase().replace(/Ó/g,"O").replace(/É/g,"E").replace(/Í/g,"I").replace(/Á/g,"A").replace(/Ú/g,"U") : "";
+                sd = state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[norm] : null;
+            }
+            if (sd) {
+                let base = Math.max(0, Number(sd.castTimeMs || 0));
+                if (p && p._talentBonuses) {
+                    const globalCastRed = Math.abs(Number(p._talentBonuses.cast_time_reduction) || 0);
+                    const skillCastRed = Math.abs(Number(sd.id && p._talentBonuses[`skill:${sd.id}:castTimeMs`]) || 0);
+                    const mult = Math.max(0.1, 1.0 - (globalCastRed + skillCastRed));
+                    base = Math.round(base * mult);
+                }
+                return base;
+            }
         } catch(e) {}
         return 0;
+    }
+    function getSkillEffectiveCooldownMs(skillName, p) {
+        try {
+            let sd = state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[skillName] : null;
+            if (!sd) {
+                const norm = skillName ? skillName.toUpperCase().replace(/Ó/g,"O").replace(/É/g,"E").replace(/Í/g,"I").replace(/Á/g,"A").replace(/Ú/g,"U") : "";
+                sd = state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[norm] : null;
+            }
+            const cd_val = sd ? sd.cd : 10000;
+            let cd_ms = (cd_val < 100) ? (cd_val * 1000) : cd_val;
+            if (p && p._talentBonuses) {
+                const globalCdRed = Math.abs(Number(p._talentBonuses.cooldown_reduction) || 0);
+                const skillCdRed = Math.abs(Number(sd?.id && p._talentBonuses[`skill:${sd.id}:cd`]) || 0);
+                const mult = Math.max(0.1, 1.0 - (globalCdRed + skillCdRed));
+                cd_ms = Math.round(cd_ms * mult);
+            }
+            return cd_ms;
+        } catch(e) {
+            return 10000;
+        }
     }
     function clearPlayerCast(p) {
         if (p.pendingCast) {
@@ -126,7 +163,7 @@ function registerCombatHandlers(socket, io, state) {
             const at = castData.ammoType || castData.type || 'laser';
             const tier = castData.ammoTier !== undefined ? castData.ammoTier : (castData.tier !== undefined ? castData.tier : 0);
             const typeKey = ammoTypes.includes(at) ? at : 'laser';
-            required = getAmmoCastTimeMs(typeKey, tier);
+            required = getAmmoCastTimeMs(typeKey, tier, p);
             if (required <= 0) return;
             const now = Date.now();
             if (!p.lastFireTimes) p.lastFireTimes = {};
@@ -134,7 +171,16 @@ function registerCombatHandlers(socket, io, state) {
             let cooldownMs = 120;
             const ammoList = state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo ? state.SERVER_CONFIG.shopItems.ammo[typeKey] : null;
             const ammoMaster = (ammoList && Array.isArray(ammoList)) ? ammoList[tier] : null;
-            if (ammoMaster && ammoMaster.cooldown !== undefined) cooldownMs = Math.max(120, (Number(ammoMaster.cooldown)||120)*0.9);
+            if (ammoMaster && ammoMaster.cooldown !== undefined) {
+                let baseCd = (Number(ammoMaster.cooldown)||120)*0.9;
+                if (p && p._talentBonuses) {
+                    const ammoCdRed = Math.abs(Number(p._talentBonuses[`ammo:${typeKey}:cooldown`]) || 0);
+                    const fireRateBonus = Math.abs(Number(p._talentBonuses.fire_rate_pct) || 0);
+                    const mult = Math.max(0.1, 1.0 - (ammoCdRed + fireRateBonus));
+                    baseCd = baseCd * mult;
+                }
+                cooldownMs = Math.max(60, baseCd);
+            }
             if (now - lastFire < cooldownMs && !p.isAdmin) {
                 socket.emit('castRejected', { reason: 'cooldown', type: 'ammo', ammoType: typeKey });
                 return;
@@ -161,14 +207,12 @@ function registerCombatHandlers(socket, io, state) {
             const skillName = castData.skillName || castData.name || '';
             if (!skillName) return;
             const sphereIdx = castData.sphereIdx !== undefined ? castData.sphereIdx : (castData.id !== undefined ? castData.id : -1);
-            required = getSkillCastTimeMs(skillName);
+            required = getSkillCastTimeMs(skillName, p);
             if (required <= 0) return;
             const now = Date.now();
             if (!p.sphereCooldowns) p.sphereCooldowns = [0,0,0,0];
             const lastUse = (sphereIdx>=0 && sphereIdx<4) ? (p.sphereCooldowns[sphereIdx]||0) : 0;
-            const sd = state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[skillName] : null;
-            const cd_val = sd ? sd.cd : 10000;
-            const cd_ms = (cd_val < 100) ? (cd_val*1000) : cd_val;
+            const cd_ms = getSkillEffectiveCooldownMs(skillName, p);
             if (sphereIdx>=0 && now - lastUse < cd_ms && !p.isAdmin) {
                 socket.emit('castRejected', { reason: 'cooldown', type: 'skill' });
                 return;
@@ -278,14 +322,21 @@ socket.on('playerFire', (fireData) => {
         let cooldownMs = 120; // Límite mínimo/fallback entre disparos
         if (ammoMaster && ammoMaster.cooldown !== undefined) {
             // Aplicamos una tolerancia de lag del 10% para no desconectar a jugadores legítimos
-            cooldownMs = Math.max(120, (Number(ammoMaster.cooldown) || 120) * 0.9);
+            let baseCd = (Number(ammoMaster.cooldown) || 120) * 0.9;
+            if (p && p._talentBonuses) {
+                const ammoCdRed = Math.abs(Number(p._talentBonuses[`ammo:${typeKey}:cooldown`]) || 0);
+                const fireRateBonus = Math.abs(Number(p._talentBonuses.fire_rate_pct) || 0);
+                const mult = Math.max(0.1, 1.0 - (ammoCdRed + fireRateBonus));
+                baseCd = baseCd * mult;
+            }
+            cooldownMs = Math.max(60, baseCd);
         }
         
         if (now - lastFire < cooldownMs && !p.isAdmin) {
             return;
         }
         // ==== GATE CASTEO MUNICION (Anti-Hack) ====
-        let requiredCastAmmo = getAmmoCastTimeMs(typeKey, ammoTier);
+        let requiredCastAmmo = getAmmoCastTimeMs(typeKey, ammoTier, p);
         if (requiredCastAmmo > 0) {
             if (!p.pendingCast || p.pendingCast.type !== 'ammo' || p.pendingCast.ammoType !== typeKey || p.pendingCast.ammoTier !== ammoTier) {
                 if (!p.isAdmin) {
@@ -435,7 +486,7 @@ socket.on('playerFire', (fireData) => {
 
         const now = Date.now();
         // ==== GATE CASTEO SKILL (Anti-Hack) ====
-        let requiredCastSkill = getSkillCastTimeMs(data.skillName || '');
+        let requiredCastSkill = getSkillCastTimeMs(data.skillName || '', p);
         if (requiredCastSkill > 0) {
             if (!p.pendingCast || p.pendingCast.type !== 'skill' || (p.pendingCast.skillName||'').toUpperCase() !== (data.skillName||'').toUpperCase()) {
                 if (!p.isAdmin) {
@@ -465,8 +516,7 @@ socket.on('playerFire', (fireData) => {
         if (!p.sphereCooldowns) p.sphereCooldowns = [0, 0, 0, 0];
         const lastUse = p.sphereCooldowns[sphereIdx] || 0;
         
-        const cd_val = (state.SERVER_CONFIG.skillsData && state.SERVER_CONFIG.skillsData[data.skillName]) ? state.SERVER_CONFIG.skillsData[data.skillName].cd : 10000;
-        const cd_ms = (cd_val < 100) ? (cd_val * 1000) : cd_val;
+        const cd_ms = getSkillEffectiveCooldownMs(data.skillName, p);
         if (now - lastUse < cd_ms) return;
 
         // Actualizar cooldown antes de ejecutar para evitar spam
@@ -630,7 +680,15 @@ socket.on('playerFire', (fireData) => {
             });
         }
         const dmgModMult = 1.0 + (dmgModPct / 100);
-        const talentDmgMult = 1.0 + (p._talentBonuses?.laser_dmg_pct || 0) + (p._talentBonuses?.dmg_pct || 0);
+        let weaponTalentBonus = 0;
+        if (p._talentBonuses && p.equipped && Array.isArray(p.equipped.w)) {
+            p.equipped.w.forEach(w => {
+                if (w && w.id && p._talentBonuses[`weapon:${w.id}:base`]) {
+                    weaponTalentBonus += Number(p._talentBonuses[`weapon:${w.id}:base`]) || 0;
+                }
+            });
+        }
+        const talentDmgMult = 1.0 + (p._talentBonuses?.laser_dmg_pct || 0) + (p._talentBonuses?.dmg_pct || 0) + weaponTalentBonus;
 
         // Permitimos un 50% extra para críticos/buffs del cliente
         let maxAllowed = (weaponsBase * maxAmmoMult + dmgModFlat) * dmgModMult * talentDmgMult * 1.5;
@@ -1315,7 +1373,15 @@ socket.on('playerFire', (fireData) => {
                     });
                 }
                 const dmgModMult = 1.0 + (dmgModPct / 100);
-                const talentDmgMult = 1.0 + (attacker._talentBonuses?.laser_dmg_pct || 0) + (attacker._talentBonuses?.dmg_pct || 0);
+                let weaponTalentBonus = 0;
+                if (attacker._talentBonuses && attacker.equipped && Array.isArray(attacker.equipped.w)) {
+                    attacker.equipped.w.forEach(w => {
+                        if (w && w.id && attacker._talentBonuses[`weapon:${w.id}:base`]) {
+                            weaponTalentBonus += Number(attacker._talentBonuses[`weapon:${w.id}:base`]) || 0;
+                        }
+                    });
+                }
+                const talentDmgMult = 1.0 + (attacker._talentBonuses?.laser_dmg_pct || 0) + (attacker._talentBonuses?.dmg_pct || 0) + weaponTalentBonus;
 
                 const finalMaxTheoreticalDamage = (baseDmg * maxMultiplier + dmgModFlat) * dmgModMult * talentDmgMult;
                 const maxAllowedDmg = finalMaxTheoreticalDamage * 1.5; // 50% extra para críticos/buffs del cliente

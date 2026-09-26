@@ -26,7 +26,7 @@ class ResurreccionSkill extends BaseSkill {
         const dx = targetPosX - p.x;
         const dy = targetPosY - p.y;
         const dist = Math.hypot(dx, dy);
-        const maxRange = config.range || 500;
+        const maxRange = this.getEffectiveAttr(p, config, 'range', 500);
 
         if (dist > maxRange) {
             const angle = Math.atan2(dy, dx);
@@ -37,7 +37,7 @@ class ResurreccionSkill extends BaseSkill {
             targetY = targetPosY;
         }
 
-        const areaRadius = config.radius || 200;
+        const areaRadius = this.getEffectiveAttr(p, config, 'radius', 200);
         const reviveHpPct = config.revive_hp_pct || 50;
         const reviveShieldPct = config.revive_shield_pct || 20;
         const filters = config.targetFilters || { allies: true, enemies: false, bosses: false, players: true, clan: true };

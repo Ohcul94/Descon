@@ -295,6 +295,13 @@ func invest_point(category: String, index: int):
 	else:
 		print("[TALENT-SYS] Nivel máximo alcanzado: ", category, "[", index, "] lvl ", current_lvl)
 
+func invest_points_batch(investments: Array):
+	if skill_points <= 0 or investments.is_empty():
+		print("[TALENT-SYS] ERROR: Intentaste invertir lote pero no hay puntos o lista vacía.")
+		return
+	print("[TALENT-SYS] Enviando investSkillBatch: ", investments.size(), " items")
+	NetworkManager.send_event("investSkillBatch", {"investments": investments})
+
 func reset_talents():
 	print("[TALENT-SYS] Enviando resetSkills...")
 	NetworkManager.send_event("resetSkills", {})

@@ -21,6 +21,21 @@ class BaseSkill {
     }
 
     /**
+     * Devuelve el valor efectivo de un atributo de habilidad considerando los bonos de talentos del jugador.
+     */
+    getEffectiveAttr(p, skillConfig, attrName, defaultValue = 0) {
+        let baseVal = (skillConfig && skillConfig[attrName] !== undefined) ? Number(skillConfig[attrName]) : defaultValue;
+        const skillId = skillConfig?.id;
+        if (p && p._talentBonuses && skillId) {
+            const bonusPct = Number(p._talentBonuses[`skill:${skillId}:${attrName}`]) || 0;
+            if (bonusPct !== 0) {
+                baseVal = baseVal * (1.0 + bonusPct);
+            }
+        }
+        return baseVal;
+    }
+
+    /**
      * Resuelve el objetivo de la habilidad basado en la configuración.
      */
     getTarget(p, data, state, socket) {
@@ -37,10 +52,11 @@ class BaseSkill {
 
             if (!potentialTarget || potentialTarget.hp <= 0) return null;
 
-            // Validación de Rango
-            if (data.targetId !== socket.id && skillConfig.range && skillConfig.range > 0) {
+            // Validación de Rango (con bonos de talentos)
+            const effectiveRange = this.getEffectiveAttr(p, skillConfig, 'range', skillConfig.range || 0);
+            if (data.targetId !== socket.id && effectiveRange > 0) {
                 const dist = Math.hypot(p.x - potentialTarget.x, p.y - potentialTarget.y);
-                if (dist > skillConfig.range + 50) return null;
+                if (dist > effectiveRange + 50) return null;
             }
 
             if (data.targetId === socket.id) {
