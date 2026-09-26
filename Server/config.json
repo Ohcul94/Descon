@@ -7845,12 +7845,12 @@
                 {
                     "count": 1,
                     "id": "spawn_1786814304356427",
-                    "intervalMs": 15000,
+                    "intervalMs": 20000,
                     "radius": 500,
                     "spawnMode": "random",
                     "type": "8",
-                    "x": 1201,
-                    "y": 2808
+                    "x": 1879,
+                    "y": 3202
                 },
                 {
                     "count": 1,
@@ -7879,8 +7879,8 @@
                     "radius": 300,
                     "spawnMode": "fixed",
                     "type": "102",
-                    "x": 1989,
-                    "y": 2013
+                    "x": 2113,
+                    "y": 3852
                 },
                 {
                     "count": 8,
@@ -7901,6 +7901,16 @@
                     "type": "105",
                     "x": 730,
                     "y": -2850
+                },
+                {
+                    "id": "spawn_1790383916040735",
+                    "type": "7",
+                    "count": 2,
+                    "intervalMs": 20000,
+                    "spawnMode": "random",
+                    "x": 2034,
+                    "y": 3749,
+                    "radius": 600
                 }
             ],
             "terrainImage": "assets/maps/terrain_zone_3.png",

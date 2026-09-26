@@ -218,9 +218,9 @@ func _setup_post_process_quad():
 	shader_mat.set_shader_parameter("vision_texture", vision_viewport.get_texture())
 	shader_mat.set_shader_parameter("history_texture", history_viewport.get_texture())
 	shader_mat.set_shader_parameter("noise_texture", TEXTURE_NOISE_21D)
-	# v925.0: Invertir eje Y para texturas de SubViewport en móviles (GLES3/Compatibility tiene Y invertida respecto a D3D12 en PC)
-	var is_mobile_platform = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
-	shader_mat.set_shader_parameter("flip_y", is_mobile_platform)
+	# En Godot 4 las coordenadas UV de SubViewport son idénticas en todas las plataformas (PC y móviles).
+	# flip_y debe mantenerse en false para que la niebla y la visión de las naves coincidan perfectamente con el mundo 3D.
+	shader_mat.set_shader_parameter("flip_y", false)
 	# v920.0 NIEBLA ATMOSFÉRICA TIPO AUTOPISTA (Nubes, jirones, partículas en suspensión y degradés orgánicos)
 	shader_mat.set_shader_parameter("fog_opacity", 0.96)
 	shader_mat.set_shader_parameter("shroud_opacity", 0.44)
@@ -400,9 +400,7 @@ func _process(_delta):
 			if is_instance_valid(shader_mat):
 				shader_mat.set_shader_parameter("map_offset_3d", map_offset_3d)
 				shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
-		if is_instance_valid(shader_mat):
-			var is_mob = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
-			shader_mat.set_shader_parameter("flip_y", is_mob)
+
 	
 	if _initial_draw_frames > 0:
 		_initial_draw_frames -= 1
