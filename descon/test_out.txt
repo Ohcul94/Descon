@@ -1,0 +1,35 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+--- TESTING INSTANTIATION OF PLAYER AND ENEMY ---
+ERROR: Cannot open file 'res://scenes/entities/Player.tscn'.
+   at: load (scene/resources/resource_format_text.cpp:1442)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://test_instantiate.gd:5)
+ERROR: Failed loading resource: res://scenes/entities/Player.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://test_instantiate.gd:5)
+Player scene: <Object#null>
+SCRIPT ERROR: Compile Error: Identifier not found: NetworkManager
+   at: GDScript::reload (res://scripts/entities/Entity.gd:335)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://test_instantiate.gd:11)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/entities/Enemy.gd:0)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://test_instantiate.gd:11)
+ERROR: Failed to load script "res://scripts/entities/Enemy.gd" with error "Compilation failed".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://test_instantiate.gd:11)
+Enemy scene: (res://scenes/entities/Enemy.tscn):<PackedScene#-9223371986707675677>
+ERROR: Parameter "p_script->implicit_initializer" is null.
+   at: _super_implicit_constructor (modules/gdscript/gdscript.cpp:146)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://test_instantiate.gd:14)
+Enemy instantiated: Enemy:<CharacterBody2D#50214208988>
+SUCCESS!
+[VFX] Sistema restaurado para compatibilidad de escenas.
+[SETTINGS] Configuración cargada.
+[SETTINGS] Límite de FPS aplicado: 120 (VSync: OFF)
+[SETTINGS] Modo de ventana aplicado: 0

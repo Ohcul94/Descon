@@ -81,11 +81,11 @@ void fragment() {
 			float t_ground = -cam_y / ray_dir.y;
 			if (t_ground > 0.0) {
 				frag_world = ray_origin + ray_dir * t_ground;
+				frag_world.y = 0.0;
+				has_geom   = true;
 			}
-		} else {
-			// Rayo hacia el horizonte o plano lejano
-			frag_world = ray_origin + ray_dir * 120.0;
 		}
+		// Rayos hacia el horizonte o cielo sin geometría: has_geom permanece false y no proyectan niebla en el espacio
 	}
 
 	vec3 final_color = screen_color;
@@ -100,7 +100,7 @@ void fragment() {
 	float edge_fade = smoothstep(0.0, 0.05, min(min(fog_uv.x, 1.0 - fog_uv.x),
 	                                            min(fog_uv.y, 1.0 - fog_uv.y)));
 
-	if (in_map && edge_fade > 0.001) {
+	if (has_geom && in_map && edge_fade > 0.001) {
 		// Bruma y viento suave en los bordes
 		vec2 wind_uv = sample_xz * 0.012 + vec2(TIME * noise_speed, TIME * noise_speed * 0.65);
 		float noise_val = texture(noise_texture, wind_uv).r;
@@ -148,14 +148,18 @@ void fragment() {
 				float top_variation = (cloud_layer1 * 0.60 + cloud_layer2 * 0.40 - 0.5) * (fog_height * 0.40);
 				float effective_top = max(fog_height + top_variation, 6.0);
 
+				// Límite vertical inferior: la niebla se desvanece a 0 a partir de 1.5 metros por debajo del suelo
+				float bottom_fade = smoothstep(-1.5, 0.2, frag_world.y);
+
 				// Desvanecimiento suave e irregular hacia arriba
-				float height_factor = 1.0;
-				if (has_geom && frag_world.y > 0.1) {
+				float top_fade = 1.0;
+				if (frag_world.y > 0.1) {
 					// El umbral de desvanecimiento ondula dinámicamente con la densidad de cada jirón
 					float fade_start = mix(0.35, 0.65, cloud_structure);
 					float norm_y     = clamp(frag_world.y / effective_top, 0.0, 1.0);
-					height_factor    = 1.0 - smoothstep(fade_start, 1.0, norm_y);
+					top_fade         = 1.0 - smoothstep(fade_start, 1.0, norm_y);
 				}
+				float height_factor = bottom_fade * top_fade;
 
 				// En la entrada de la niebla, las volutas más densas penetran primero
 				float billow_mod = mix(0.80, 1.35, cloud_structure);

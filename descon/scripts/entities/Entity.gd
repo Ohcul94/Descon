@@ -1938,36 +1938,73 @@ func _trigger_reflect_visual(p_dest: Vector2):
 	root.top_level = true
 	root.global_transform = Transform3D(Basis.IDENTITY, impact_pos)
 
-	# 1) Flash de impacto en la superficie (paleta roja demon del escudo)
-	var flash = MeshInstance3D.new()
-	var flash_mesh = QuadMesh.new()
-	flash_mesh.size = Vector2(shield_r * 0.9, shield_r * 0.9)
-	flash.mesh = flash_mesh
-	flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var flash_mat = StandardMaterial3D.new()
-	flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	flash_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	flash_mat.billboard_keep_scale = true
-	flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	flash_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	flash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	flash_mat.albedo_texture = VFX_FlareTexture
-	flash_mat.albedo_color = Color(1.0, 0.14, 0.04, 1.0)
-	flash.material_override = flash_mat
-	root.add_child(flash)
-	flash.position = dir3d * shield_r * 0.08
-	flash.scale = Vector3.ONE * 0.4
+	# 1) Reacción del escudo: shield_modifier.gd anima Size_Sphere del propio shader
+	#     → las mismas colores dinámicas del escudo reaccionando al impacto
+	if is_instance_valid(_active_shield_vfx) and "sphere_size" in _active_shield_vfx:
+		var tw_shield = _active_shield_vfx.create_tween()
+		tw_shield.tween_property(_active_shield_vfx, "sphere_size", 0.1, 0.10).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw_shield.tween_property(_active_shield_vfx, "sphere_size", 0.0, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
-	# 2) Piques cortos de cilindro: apenas saliendo del escudo hacia el atacante
+	# 2) Mini explosión de vuelta: humo rojo (textura del propio escudo) estallando
+	#     desde el punto de impacto hacia el atacante
+	var smoke_atlas = AtlasTexture.new()
+	smoke_atlas.atlas = VFX_SmokeTexture
+	smoke_atlas.region = Rect2(Vector2.ZERO, VFX_SmokeTexture.get_size() / 4.0)
+
+	var explosion = CPUParticles3D.new()
+	explosion.one_shot = true
+	explosion.emitting = false
+	explosion.amount = 16
+	explosion.lifetime = 0.32
+	explosion.explosiveness = 1.0
+	explosion.direction = (dir3d + Vector3.UP * 0.2).normalized()
+	explosion.spread = 65.0
+	explosion.gravity = Vector3.ZERO
+	explosion.initial_velocity_min = 1.5
+	explosion.initial_velocity_max = 3.4
+	explosion.angle_min = -180.0
+	explosion.angle_max = 180.0
+	explosion.scale_amount_min = 0.45
+	explosion.scale_amount_max = 1.0
+	var e_grad = Gradient.new()
+	e_grad.set_color(0, Color(3.0, 0.5, 0.15, 1.0))
+	e_grad.set_color(1, Color(0.2, 0.0, 0.0, 0.0))
+	e_grad.add_point(0.45, Color(1.6, 0.12, 0.04, 0.9))
+	explosion.color_ramp = e_grad
+	var e_quad = QuadMesh.new()
+	e_quad.size = Vector2(shield_r * 0.5, shield_r * 0.5)
+	var e_mat = StandardMaterial3D.new()
+	e_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	e_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	e_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	e_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	e_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	e_mat.vertex_color_use_as_albedo = true
+	e_mat.albedo_texture = smoke_atlas
+	e_quad.material = e_mat
+	explosion.mesh = e_quad
+	root.add_child(explosion)
+	explosion.position = dir3d * shield_r * 0.15
+	explosion.emitting = true
+
+	# 3) Piques cortos de cilindro apenas saliendo del escudo hacia el atacante
+	#     Degradado propio con la paleta HDR del Line_Gradient del escudo:
+	#     base roja intensa → punta que se desvanece (nada plano)
+	var p_g = Gradient.new()
+	p_g.set_color(0, Color(0.0, 0.0, 0.0, 0.0))
+	p_g.set_color(1, Color(3.0, 0.13, 0.03, 1.0))
+	p_g.add_point(0.5, Color(1.5, 0.1, 0.03, 0.9))
+	var p_tex = GradientTexture1D.new()
+	p_tex.gradient = p_g
+	p_tex.use_hdr = true
+
 	var pique_mat = StandardMaterial3D.new()
 	pique_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	pique_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	pique_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	pique_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	pique_mat.albedo_color = Color(1.0, 0.09, 0.03, 1.0)
-	pique_mat.emission_enabled = true
-	pique_mat.emission = Color(3.0, 0.13, 0.03)
-	pique_mat.emission_energy_multiplier = 1.5
+	pique_mat.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
+	pique_mat.albedo_texture = p_tex
 
 	var pique_len = shield_r * 0.55
 	var pique_r = maxf(shield_r * 0.05, 0.02)
@@ -1997,14 +2034,14 @@ func _trigger_reflect_visual(p_dest: Vector2):
 		p_root.scale = Vector3(1.0, 1.0, 0.04)
 		pique_roots.append({ "node": p_root, "delay": absf(a) / 36.0 * 0.05 })
 
-	# 3) Luz de impacto
+	# 4) Luz de impacto
 	var light = OmniLight3D.new()
 	light.light_color = Color(1.0, 0.16, 0.05)
 	light.light_energy = 0.0
 	light.omni_range = shield_r * 3.5
 	root.add_child(light)
 
-	# 4) Chispas rojas apenas despegando de la superficie
+	# 5) Chispas rojas apenas despegando de la superficie
 	var sparks = CPUParticles3D.new()
 	sparks.one_shot = true
 	sparks.emitting = false
@@ -2020,8 +2057,8 @@ func _trigger_reflect_visual(p_dest: Vector2):
 	sparks.scale_amount_max = 0.45
 	var s_grad = Gradient.new()
 	s_grad.set_color(0, Color(3.0, 0.7, 0.25, 1.0))
-	s_grad.add_point(0.5, Color(2.0, 0.2, 0.06, 0.9))
 	s_grad.set_color(1, Color(0.3, 0.0, 0.0, 0.0))
+	s_grad.add_point(0.5, Color(2.0, 0.2, 0.06, 0.9))
 	sparks.color_ramp = s_grad
 	var s_quad = QuadMesh.new()
 	s_quad.size = Vector2(shield_r * 0.35, shield_r * 0.35)
@@ -2038,10 +2075,8 @@ func _trigger_reflect_visual(p_dest: Vector2):
 	root.add_child(sparks)
 	sparks.emitting = true
 
-	# Animación: flash + piques que apenas brotan y se apagan (total ~0.28s)
+	# Animación: piques que brotan y se apagan + luz (explosión total ~0.34s)
 	var tw = root.create_tween().set_parallel(true)
-	tw.tween_property(flash, "scale", Vector3.ONE, 0.07).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(flash_mat, "albedo_color", Color(1.0, 0.14, 0.04, 0.0), 0.13).set_delay(0.06)
 	tw.tween_method(func(v: float) -> void: light.light_energy = v, 0.0, 4.0, 0.04)
 	tw.tween_method(func(v: float) -> void: light.light_energy = v, 4.0, 0.0, 0.14).set_delay(0.04)
 	for p in pique_roots:
@@ -2049,9 +2084,8 @@ func _trigger_reflect_visual(p_dest: Vector2):
 
 	var tw_end = root.create_tween()
 	tw_end.tween_interval(0.14)
-	tw_end.tween_property(pique_mat, "emission_energy_multiplier", 0.0, 0.10)
-	tw_end.parallel().tween_property(pique_mat, "albedo_color", Color(1.0, 0.09, 0.03, 0.0), 0.10)
-	tw_end.tween_interval(0.04)
+	tw_end.tween_property(pique_mat, "albedo_color", Color(1.0, 1.0, 1.0, 0.0), 0.10)
+	tw_end.tween_interval(0.10)
 	tw_end.tween_callback(root.queue_free)
 
 func _play_shield_hit_vfx():
@@ -3034,25 +3068,32 @@ func _spawn_blink_vfx(at_pos: Vector2, mode: String) -> void:
 	var glow := _blink_glow_texture()
 
 	if is_out:
-		# Destello BREVE en el punto de salida: la luz colapsa hacia dentro (0.12s)
+		# PUNTO DE LUZ en el origen que persiste ~1 segundo y se desvanece.
+		# Sin anillos ni áreas: solo un puntito (misma escala que el de llegada).
 		var core := Sprite2D.new()
 		core.texture = glow
 		core.material = _blink_add_material()
 		burst.add_child(core)
-		core.scale = Vector2(0.55, 0.55)
-		var tw_scale := burst.create_tween()
-		tw_scale.tween_property(core, "scale", Vector2(0.04, 0.04), 0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-		var tw_fade := burst.create_tween()
-		tw_fade.tween_property(core, "modulate:a", 0.0, 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		_blink_sparks(burst, 14, 0.22, 90.0, 170.0, glow)
+		core.scale = Vector2(0.13, 0.13)
+		core.modulate = Color(2.0, 2.3, 2.6, 1.0)
+		var tw_core := burst.create_tween()
+		tw_core.tween_interval(0.06)
+		tw_core.tween_property(core, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.14)
+		var tw_life := burst.create_tween()
+		tw_life.tween_interval(0.2)
+		tw_life.tween_property(core, "modulate:a", 0.0, 0.8)
+		var tw_grow := burst.create_tween()
+		tw_grow.tween_interval(0.2)
+		tw_grow.tween_property(core, "scale", Vector2(0.2, 0.2), 0.8)
+		_blink_sparks(burst, 14, 0.5, 60.0, 130.0, glow)
 	else:
-		# En la llegada manda el PUNTITO original (modulate de la entidad).
-		# Aquí solo una ráfaga MUY corta de chispas sobre esa misma coordenada.
-		_blink_sparks(burst, 18, 0.25, 110.0, 200.0, glow)
+		# En la llegada manda el PUNTITO original de la entidad (modulate 3.0 -> 1.0).
+		# Aquí solo una ráfaga corta de chispas sobre esa misma coordenada.
+		_blink_sparks(burst, 16, 0.3, 90.0, 170.0, glow)
 
 	# Limpieza automática (si el contenedor se libera, el tween muere con él)
 	var tw_cleanup := burst.create_tween()
-	tw_cleanup.tween_interval(0.32 if not is_out else 0.3)
+	tw_cleanup.tween_interval(1.05 if is_out else 0.4)
 	tw_cleanup.tween_callback(burst.queue_free)
 
 
