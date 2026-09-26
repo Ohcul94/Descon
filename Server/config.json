@@ -1977,26 +1977,52 @@
             "lootDrops": [],
             "mechanics": [
                 {
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "bulletDamage": 2,
+                    "bulletSpeed": 1000,
+                    "fireRange": 900,
+                    "fireRate": 300,
+                    "startDelay": 0,
+                    "burstShots": 1
+                },
+                {
                     "activationIntervalMs": 0,
                     "activationMode": "time",
                     "bulletDamage": 10,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
                     "castTimeMs": 0,
-                    "cooldown": 5000,
+                    "cooldown": 6000,
                     "damage": 100,
                     "duration": 3000,
                     "fireRange": 600,
                     "fireRate": 1000,
                     "intervalMs": 300,
-                    "radius": 500,
-                    "startDelay": 0,
-                    "type": "aura_damage"
+                    "radius": 100,
+                    "startDelay": 4557,
+                    "type": "ascension",
+                    "activationHPs": [
+                        50
+                    ],
+                    "targetCount": 1,
+                    "targetMode": "proximity",
+                    "targetSphereColor": "",
+                    "airTimeMs": 2000,
+                    "warnDelayMs": 0,
+                    "warnTimeMs": 1500,
+                    "_collapsed": false
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 320,
+                    "speed": 300,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -2008,7 +2034,9 @@
             "rewardHubs": 1000,
             "rewardOhcu": 10,
             "shield": 1500,
-            "speed": 320
+            "speed": 320,
+            "aggressive": true,
+            "visionRange": 1000
         },
         "8": {
             "aggressive": true,
@@ -12616,7 +12644,7 @@
         "BLINK": {
             "canTargetOthers": false,
             "castTimeMs": 0,
-            "cd": 15000,
+            "cd": 1500,
             "desc": "Teletransportación instantánea al punto seleccionado.",
             "icon": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
             "id": "SK-UTIL-04",
@@ -12900,7 +12928,7 @@
             "amount": 500,
             "canTargetOthers": true,
             "castTimeMs": 0,
-            "cd": 12000,
+            "cd": 1200,
             "desc": "Crea un campo de resonancia que refleja daño hostil.",
             "duration": 3000,
             "icon": "res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png",

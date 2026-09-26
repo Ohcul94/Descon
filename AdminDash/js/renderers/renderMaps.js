@@ -390,36 +390,50 @@ function renderMapDetail() {
                                         <label>Intervalo Respawn (ms)</label>
                                         <input type="number" value="${s.intervalMs}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].intervalMs = parseInt(this.value) || 0">
                                     </div>
-                                    <div class="field" style="grid-column: span 2;">
-                                        <label>Modo de Aparición (Respawn)</label>
-                                        <select style="background:#0f172a; border:none; color:var(--success); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;"
-                                                onchange="const val = this.value;
-                                                          const s = config.mapsConfig['${selectedMapId}'].spawns[${idx}];
-                                                          if (val === 'random_global') { s.spawnMode = 'random'; s.radius = 0; }
-                                                          else if (val === 'random_zone') { s.spawnMode = 'random'; if (!s.radius || s.radius === 0) s.radius = 500; }
-                                                          else if (val === 'fixed') { s.spawnMode = 'fixed'; }
-                                                          renderMapDetail();">
-                                            <option value="random_global" ${(s.spawnMode === 'random_global') || (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) ? 'selected' : ''}>🌍 Aleatorio (En todo el mapa)</option>
-                                            <option value="random_zone" ${(s.spawnMode === 'random_zone') || (s.spawnMode === 'random' && s.radius > 0) ? 'selected' : ''}>⭕ Aleatorio en un área (Centro + Radio)</option>
-                                            <option value="fixed" ${s.spawnMode === 'fixed' ? 'selected' : ''}>📍 Fijo (Coordenadas Exactas)</option>
-                                        </select>
-                                    </div>
-                                    ${s.spawnMode === 'fixed' || s.spawnMode === 'random_zone' || (s.spawnMode === 'random' && s.radius > 0) ? `
-                                    <div class="field">
-                                        <label>Coordenada Centro X</label>
-                                        <input type="number" value="${s.x !== undefined ? s.x : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].x = parseInt(this.value) || 0">
-                                    </div>
-                                    <div class="field">
-                                        <label>Coordenada Centro Y</label>
-                                        <input type="number" value="${s.y !== undefined ? s.y : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].y = parseInt(this.value) || 0">
-                                    </div>
-                                    ` : ''}
-                                    ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? `
-                                    <div class="field" style="grid-column: span 2;">
-                                        <label>Radio de Área de Spawn (px)</label>
-                                        <input type="number" value="${s.radius}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].radius = parseInt(this.value) || 0">
-                                    </div>
-                                    ` : ''}
+<div class="field" style="grid-column: span 2;">
+                                         <label>Modo de Aparición (Respawn)</label>
+                                         <select style="background:#0f172a; border:none; color:var(--success); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;"
+                                                 onchange="const val = this.value;
+                                                           const s = config.mapsConfig['${selectedMapId}'].spawns[${idx}];
+                                                           if (val === 'random_global') { s.spawnMode = 'random'; s.radius = 0; s.polygon = null; }
+                                                           else if (val === 'random_zone') { s.spawnMode = 'random'; if (!s.radius || s.radius === 0) s.radius = 500; s.polygon = null; }
+                                                           else if (val === 'polygon') { s.spawnMode = 'polygon'; s.radius = 0; if (!s.polygon || s.polygon.length < 3) s.polygon = []; }
+                                                           else if (val === 'fixed') { s.spawnMode = 'fixed'; s.polygon = null; }
+                                                           renderMapDetail();">
+                                             <option value="random_global" ${(s.spawnMode === 'random_global') || (s.spawnMode === 'random' && (!s.radius || s.radius === 0) && !s.polygon) ? 'selected' : ''}>🌍 Aleatorio (En todo el mapa)</option>
+                                             <option value="random_zone" ${(s.spawnMode === 'random_zone') || (s.spawnMode === 'random' && s.radius > 0 && !s.polygon) ? 'selected' : ''}>⭕ Aleatorio en un área (Centro + Radio)</option>
+                                             <option value="polygon" ${s.spawnMode === 'polygon' ? 'selected' : ''}>📐 Zona Personalizada (Polígono)</option>
+                                             <option value="fixed" ${s.spawnMode === 'fixed' ? 'selected' : ''}>📍 Fijo (Coordenadas Exactas)</option>
+                                         </select>
+                                     </div>
+${(s.spawnMode === 'fixed' || s.spawnMode === 'random_zone' || (s.spawnMode === 'random' && s.radius > 0) || s.spawnMode === 'polygon') ? `
+                                     <div class="field">
+                                         <label>Coordenada Centro X</label>
+                                         <input type="number" value="${s.x !== undefined ? s.x : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].x = parseInt(this.value) || 0">
+                                     </div>
+                                     <div class="field">
+                                         <label>Coordenada Centro Y</label>
+                                         <input type="number" value="${s.y !== undefined ? s.y : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].y = parseInt(this.value) || 0">
+                                     </div>
+                                     ` : ''}
+${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? `
+                                     <div class="field" style="grid-column: span 2;">
+                                         <label>Radio de Área de Spawn (px)</label>
+                                         <input type="number" value="${s.radius}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].radius = parseInt(this.value) || 0">
+                                     </div>
+                                     ` : ''}
+                                     ${s.spawnMode === 'polygon' ? `
+                                     <div class="field" style="grid-column: span 2;">
+                                         <label>Vértices del Polígono (X,Y)</label>
+                                         <textarea id="spawn-polygon-${idx}" style="width:100%; height:80px; background:#0a0f1a; border:1px solid rgba(16,185,129,0.3); border-radius:4px; color:#10b981; font-family:monospace; font-size:0.7rem; padding:6px; resize:vertical;" 
+                                             oninput="parsePolygonInput(this.value, ${idx})" placeholder="Ej: 1000,2000&#10;1500,2000&#10;1500,2500&#10;1000,2500">${(s.polygon || []).map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join('\n')}</textarea>
+                                         <div style="font-size:0.6rem; color:#64748b; margin-top:4px; display:flex; gap:8px; flex-wrap:wrap;">
+                                             <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="startPolygonDraw(${idx})">✏️ Dibujar en Radar</button>
+                                             <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="clearPolygon(${idx})">🗑️ Limpiar</button>
+                                             <span>${(s.polygon || []).length} vértices</span>
+                                         </div>
+                                     </div>
+                                     ` : ''}
                                 </div>
                             </div>` : ''}
                         </div>

@@ -366,6 +366,7 @@ func update_sky_dome_visibility():
 		print("[BaseMap] Visibilidad de estrellas en cúpula estelar actualizada.")
 
 func setup_map():
+	_classic_cam_smoothed_y = -999.0
 	_setup_dynamic_3d_map_layout()
 
 func _on_network_config_updated(_config):
@@ -1657,7 +1658,7 @@ func _process(_delta):
 				
 				# v1000.2: Suavizado cinemático vertical (elimina saltitos por relieve manteniendo sincronía horizontal 1:1)
 				var dt = get_process_delta_time()
-				if _classic_cam_smoothed_y < -900.0:
+				if _classic_cam_smoothed_y < -900.0 or absf(_classic_cam_smoothed_y - base_y) > 0.5:
 					_classic_cam_smoothed_y = base_y
 				else:
 					_classic_cam_smoothed_y = lerp(_classic_cam_smoothed_y, base_y, clamp(dt * 6.0, 0.0, 1.0))

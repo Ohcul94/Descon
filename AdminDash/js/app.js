@@ -1114,7 +1114,7 @@ async function requestMapDelete(kind, idx) {
         if (!s) return;
         const en = s.type ? config.enemyModels[s.type] : null;
         const enName = en ? `[ID ${s.type}] ${en.name}` : (s.type ? `ID ${s.type}` : 'Sin enemigo asignado');
-        const modeName = s.spawnMode === 'random' ? (s.radius > 0 ? 'Aleatorio en un área' : 'Aleatorio (todo el mapa)') : 'Fijo';
+        const modeName = s.spawnMode === 'polygon' ? 'Polígono personalizado' : (s.spawnMode === 'random' ? (s.radius > 0 ? 'Aleatorio en un área' : 'Aleatorio (todo el mapa)') : 'Fijo');
         msg = `SE ELIMINARÁ ESTE ENEMIGO:\n\n👾 ${enName}\nModo: ${modeName}\nCant. Máx: ${s.count}\nUbicación: X ${s.x !== undefined ? s.x : 1000}, Y ${s.y !== undefined ? s.y : 1000}\n\n¿Confirmás la eliminación?`;
         title = '⚠️ ELIMINAR ENEMIGO';
     } else if (kind === 'door') {
@@ -1193,6 +1193,289 @@ function defaultAmbienceField(f) {
     return 0;
 }
 
+// ========== POLYGON SPAWN ZONE HELPERS ==========
+function parsePolygonString(str) {
+    if (!str || !str.trim()) return null;
+    const lines = str.trim().split('\n');
+    const points = [];
+    for (const line of lines) {
+        const parts = line.trim().split(',');
+        if (parts.length >= 2) {
+            const x = parseFloat(parts[0].trim());
+            const y = parseFloat(parts[1].trim());
+            if (!isNaN(x) && !isNaN(y)) {
+                points.push({ x, y });
+            }
+        }
+    }
+    return points.length >= 3 ? points : null;
+}
+
+function formatPolygon(polygon) {
+    if (!polygon || !polygon.length) return '';
+    return polygon.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join('\n');
+}
+
+function parsePolygonInput(value, idx) {
+    const m = config.mapsConfig[selectedMapId];
+    if (!m || !m.spawns[idx]) return;
+    const polygon = parsePolygonString(value);
+    if (polygon) {
+        m.spawns[idx].polygon = polygon;
+        // Actualizar centroide
+        const cx = polygon.reduce((a,p)=>a+p.x,0)/polygon.length;
+        const cy = polygon.reduce((a,p)=>a+p.y,0)/polygon.length;
+        m.spawns[idx].x = Math.round(cx);
+        m.spawns[idx].y = Math.round(cy);
+    }
+}
+
+function clearPolygon(idx) {
+    const m = config.mapsConfig[selectedMapId];
+    if (!m || !m.spawns[idx]) return;
+    m.spawns[idx].polygon = [];
+    const ta = document.getElementById(`spawn-polygon-${idx}`);
+    if (ta) ta.value = '';
+    renderMapDetail();
+}
+
+// ========== MODO DIBUJO DE POLÍGONO (ENFOQUE SIMPLE) ==========
+// Cuando el usuario quiere dibujar, cerramos el modal completamente,
+// dibujamos sobre el radar, y al guardar/cancelar volvemos a abrir el modal.
+
+let polygonDrawMode = false;
+let polygonDrawTargetIdx = -1; // -1 = nuevo spawn, >=0 = editando existente
+let polygonDrawPoints = [];
+let drawToolbar = null; // Referencia al toolbar de controles
+
+// ===== Toolbar de controles fija durante el dibujo =====
+function createDrawToolbar() {
+    // Remover toolbar anterior si existe
+    if (drawToolbar) {
+        drawToolbar.remove();
+        drawToolbar = null;
+    }
+    
+    const toolbar = document.createElement('div');
+    toolbar.id = 'polygon-draw-toolbar';
+    toolbar.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.7);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 8px;
+        padding: 8px 16px;
+        z-index: 99998;
+        font-family: 'Outfit', sans-serif;
+        display: flex;
+        gap: 12px;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    const btnCancel = document.createElement('button');
+    btnCancel.innerText = '❌ Cancelar';
+    btnCancel.style.cssText = `
+        background: #ff5f57;
+        border: none;
+        color: white;
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        min-width: 80px;
+    `;
+    btnCancel.onmouseover = () => btnCancel.style.background = '#ff6b6b';
+    btnCancel.onmouseout = () => btnCancel.style.background = '#ff5f57';
+    btnCancel.onclick = cancelPolygonDraw;
+    
+    const btnGuardar = document.createElement('button');
+    btnGuardar.innerText = '✅ Guardar';
+    btnGuardar.style.cssText = `
+        background: #10b981;
+        border: none;
+        color: #0a0f1a;
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        cursor: pointer;
+        min-width: 80px;
+    `;
+    btnGuardar.onmouseover = () => btnGuardar.style.background = '#20c990';
+    btnGuardar.onmouseout = () => btnGuardar.style.background = '#10b981';
+    btnGuardar.onclick = finishPolygonDraw;
+    
+    toolbar.appendChild(btnCancel);
+    toolbar.appendChild(btnGuardar);
+    document.body.appendChild(toolbar);
+    drawToolbar = toolbar;
+}
+
+function removeDrawToolbar() {
+    if (drawToolbar) {
+        drawToolbar.remove();
+        drawToolbar = null;
+    }
+}
+
+// ===== Iniciar modo dibujo =====
+// Cierra el modal completamente y entra en modo dibujo sobre el radar
+function startPolygonDraw(idx) {
+    // Cerrar modal completamente - esto es clave para que el radar sea accesible
+    closeMapAddModal();
+    
+    const m = config.mapsConfig[selectedMapId];
+    if (!m || !m.spawns[idx]) return;
+    
+    polygonDrawMode = true;
+    polygonDrawTargetIdx = idx;
+    polygonDrawPoints = (m.spawns[idx].polygon || []).map(p => ({x: p.x, y: p.y}));
+    
+    // Crear toolbar de controles fijos
+    createDrawToolbar();
+    
+    const canvas = document.getElementById('map-radar-canvas');
+    if (canvas) {
+        canvas.style.cursor = 'crosshair';
+        canvas.title = 'Modo dibujo activo. Click para añadir vértice. Click derecho/Enter: cerrar y guardar. ESC: cancelar.';
+    }
+    
+    showToast('📐 Modo dibujo activado. Dibujá el polígono en el radar. Usá los botones de abajo.');
+}
+
+// Para nuevo spawn (desde el botón "+ AÑADIR ESPECIE")
+function startPolygonDrawForNew() {
+    // Cerrar modal completamente
+    closeMapAddModal();
+    
+    polygonDrawMode = true;
+    polygonDrawTargetIdx = -1; // Nuevo spawn
+    polygonDrawPoints = [];
+    
+    // Crear toolbar de controles
+    createDrawToolbar();
+    
+    const canvas = document.getElementById('map-radar-canvas');
+    if (canvas) {
+        canvas.style.cursor = 'crosshair';
+        canvas.title = 'Modo dibujo activo. Click para añadir vértice. Click derecho/Enter: cerrar y guardar. ESC: cancelar.';
+    }
+    
+    showToast('📐 Modo dibujo activado. Dibujá el polígono para esta zona nueva.');
+}
+
+// ===== Cancelar dibujo =====
+// Vuelve al estado anterior: remueve toolbar, vuelve a abrir modal (vacío para nuevo, o keeps state para existente)
+function cancelPolygonDraw() {
+    polygonDrawMode = false;
+    polygonDrawTargetIdx = -1;
+    polygonDrawPoints = [];
+    removeDrawToolbar();
+    
+    const canvas = document.getElementById('map-radar-canvas');
+    if (canvas) {
+        canvas.style.cursor = 'crosshair';
+        canvas.title = '';
+    }
+    
+    // Si estaba editando un spawn existente (targetIdx >= 0), no reabrimos modal automáticamente
+    // para no interrumpir la vista detalle. El usuario puede hacer clic en la tarjeta nuevamente.
+    // Si era nuevo (targetIdx === -1), reabrimos modal vacío.
+    if (polygonDrawTargetIdx === -1) {
+        setTimeout(() => openMapAddModal('enemy'), 100);
+    }
+    showToast('❌ Dibujo cancelado.');
+}
+
+// ===== Guardar polígono y reabrir modal =====
+function finishPolygonDraw() {
+    if (polygonDrawPoints.length < 3) {
+        showToast('⚠️ Se necesitan al menos 3 vértices para un polígono válido.');
+        return false;
+    }
+    
+    const m = config.mapsConfig[selectedMapId];
+    if (!m) return false;
+    
+    // Guardar polígono en la config
+    if (polygonDrawTargetIdx >= 0) {
+        // Editando spawn existente
+        if (!m.spawns[polygonDrawTargetIdx]) return false;
+        m.spawns[polygonDrawTargetIdx].polygon = polygonDrawPoints.map(p => ({x: p.x, y: p.y}));
+        m.spawns[polygonDrawTargetIdx].spawnMode = 'polygon';
+        m.spawns[polygonDrawTargetIdx].radius = 0;
+        // Centroide para referencia X,Y
+        const cx = polygonDrawPoints.reduce((a,p)=>a+p.x,0)/polygonDrawPoints.length;
+        const cy = polygonDrawPoints.reduce((a,p)=>a+p.y,0)/polygonDrawPoints.length;
+        m.spawns[polygonDrawTargetIdx].x = Math.round(cx);
+        m.spawns[polygonDrawTargetIdx].y = Math.round(cy);
+    } else {
+        // Nuevo spawn - agregar al array del mapa configurado
+        if (!m.spawns) m.spawns = [];
+        m.spawns.push({
+            id: 'spawn_' + Date.now() + Math.floor(Math.random() * 1000),
+            type: config.enemyModels ? (config.enemyModels[document.getElementById('map-add-enemy-id')?.value]?.id || '1') : '1',
+            count: 5,
+            intervalMs: 5000,
+            spawnMode: 'polygon',
+            x: polygonDrawPoints.reduce((a,p)=>a+p.x,0)/polygonDrawPoints.length,
+            y: polygonDrawPoints.reduce((a,p)=>a+p.y,0)/polygonDrawPoints.length,
+            polygon: polygonDrawPoints.map(p => ({x: p.x, y: p.y}))
+        });
+    }
+    
+    // ¡Hecho! Remover toolbar, cerrar modo dibujo, reabrir modal con datos
+    removeDrawToolbar();
+    polygonDrawMode = false;
+    polygonDrawTargetIdx = -1;
+    polygonDrawPoints = [];
+    
+    showToast('✅ Polígono guardado con ' + polygonDrawPoints.length + ' vértices.');
+    // Pequeño delay para que el toast se vea, luego reabrir modal
+    setTimeout(() => openMapAddModal('enemy'), 200);
+    return true;
+}
+
+// ===== Teclado: ESC para cancelar, Enter para guardar =====
+window.addEventListener('keydown', (e) => {
+    if (!polygonDrawMode) return;
+    
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelPolygonDraw();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        finishPolygonDraw();
+    }
+});
+
+// Point-in-polygon test (ray casting)
+function pointInPolygon(px, py, polygon) {
+    if (!polygon || polygon.length < 3) return false;
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].x, yi = polygon[i].y;
+        const xj = polygon[j].x, yj = polygon[j].y;
+        const intersect = ((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+// Distancia punto a segmento
+function distPointToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len2 = dx*dx + dy*dy;
+    if (len2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * dx + (py - y1) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const projX = x1 + t * dx, projY = y1 + t * dy;
+    return Math.hypot(px - projX, py - projY);
+}
+
 function mapAddRadarPos() {
     const rx = parseInt(document.getElementById('map-radar-x')?.value);
     const ry = parseInt(document.getElementById('map-radar-y')?.value);
@@ -1223,7 +1506,8 @@ function openMapAddModal(kind) {
                 <label>MODO DE APARICIÓN</label>
                 <select id="map-add-spawn-mode" onchange="toggleMapAddSpawnMode(this.value)">
                     <option value="random_global">🌍 Aleatorio (En todo el mapa)</option>
-                    <option value="random_zone" selected>⭕ Aleatorio en un área</option>
+                    <option value="random_zone" selected>⭕ Aleatorio en un área (Centro + Radio)</option>
+                    <option value="polygon">📐 Zona Personalizada (Polígono)</option>
                     <option value="fixed">📍 Fijo (Coordenadas Exactas)</option>
                 </select>
             </div>
@@ -1236,6 +1520,14 @@ function openMapAddModal(kind) {
                 <div class="field"><label>Coordenada Y</label><input type="number" id="map-add-y" value="${pos.y}"></div>
             </div>
             <div id="map-add-radius-field" class="field" style="margin-top:12px;"><label>Radio de Área de Spawn (px)</label><input type="number" id="map-add-radius" value="300"></div>
+            <div id="map-add-polygon-field" class="field" style="margin-top:12px; display:none;">
+                <label>Vértices del Polígono (X,Y por línea)</label>
+                <textarea id="map-add-polygon" style="width:100%; height:80px; background:#0a0f1a; border:1px solid rgba(16,185,129,0.3); border-radius:4px; color:#10b981; font-family:monospace; font-size:0.7rem; padding:6px; resize:vertical;" placeholder="Ej: 1000,2000&#10;1500,2000&#10;1500,2500&#10;1000,2500"></textarea>
+                <div style="font-size:0.6rem; color:#64748b; margin-top:4px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="startPolygonDrawForNew()">✏️ Dibujar en Radar</button>
+                    <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="document.getElementById('map-add-polygon').value=''">🗑️ Limpiar</button>
+                </div>
+            </div>
         `;
     } else if (kind === 'door') {
         title.innerText = '➕ AGREGAR PUERTA / WARP';
@@ -1295,8 +1587,10 @@ function closeMapAddModal() {
 function toggleMapAddSpawnMode(mode) {
     const pos = document.getElementById('map-add-pos-fields');
     const rad = document.getElementById('map-add-radius-field');
-    if (pos) pos.style.display = (mode === 'random_global') ? 'none' : 'grid';
+    const poly = document.getElementById('map-add-polygon-field');
+    if (pos) pos.style.display = (mode === 'random_global' || mode === 'polygon') ? 'none' : 'grid';
     if (rad) rad.style.display = (mode === 'random_zone') ? 'block' : 'none';
+    if (poly) poly.style.display = (mode === 'polygon') ? 'block' : 'none';
 }
 
 function refreshMapAddAmbFields(type) {
@@ -1328,16 +1622,29 @@ function confirmMapAdd() {
         if (!type) { showToast('⚠️ Seleccioná un tipo de enemigo primero.'); return; }
         const mode = document.getElementById('map-add-spawn-mode').value;
         if (!m.spawns) m.spawns = [];
-        m.spawns.push({
+        const spawnData = {
             id: 'spawn_' + Date.now() + Math.floor(Math.random() * 1000),
             type: type,
             count: parseInt(document.getElementById('map-add-count').value) || 5,
             intervalMs: parseInt(document.getElementById('map-add-interval').value) || 5000,
-            spawnMode: mode === 'fixed' ? 'fixed' : 'random',
+            spawnMode: mode === 'fixed' ? 'fixed' : (mode === 'polygon' ? 'polygon' : 'random'),
             x: parseInt(document.getElementById('map-add-x').value) || 0,
             y: parseInt(document.getElementById('map-add-y').value) || 0,
             radius: mode === 'random_global' ? 0 : (parseInt(document.getElementById('map-add-radius').value) || 300)
-        });
+        };
+        if (mode === 'polygon') {
+            spawnData.polygon = parsePolygonString(document.getElementById('map-add-polygon').value);
+            if (!spawnData.polygon || spawnData.polygon.length < 3) {
+                showToast('⚠️ Un polígono necesita al menos 3 vértices. Dibujá en el radar o ingresá coordenadas.'); 
+                return;
+            }
+            // Calcular centroide para referencia
+            const cx = spawnData.polygon.reduce((a,p)=>a+p.x,0)/spawnData.polygon.length;
+            const cy = spawnData.polygon.reduce((a,p)=>a+p.y,0)/spawnData.polygon.length;
+            spawnData.x = Math.round(cx);
+            spawnData.y = Math.round(cy);
+        }
+        m.spawns.push(spawnData);
         newIdx = m.spawns.length - 1;
         window._mapCardExpanded[`spawn-${newIdx}`] = true;
     } else if (kind === 'door') {
@@ -2909,13 +3216,27 @@ function initMapRadar() {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        // Panning con clic derecho (2) o botón central de la rueda (1)
-        if (e.button === 1 || e.button === 2) {
-            e.preventDefault();
-            isPanning = true;
-            panStart = { x: e.clientX, y: e.clientY };
-            canvas.style.cursor = 'grabbing';
-            return;
+        // ===== MODO DIBUJO DE POLÍGONO =====
+        if (polygonDrawMode) {
+            if (e.button === 0) { // Click izquierdo: añadir vértice
+                e.preventDefault();
+                const world = canvasToWorld(mouseX, mouseY);
+                polygonDrawPoints.push({ x: Math.round(world.wx), y: Math.round(world.wy) });
+                // Actualizar preview en textarea si editando existente
+                if (polygonDrawTargetIdx >= 0) {
+                    const ta = document.getElementById(`spawn-polygon-${polygonDrawTargetIdx}`);
+                    if (ta) ta.value = formatPolygon(polygonDrawPoints);
+                } else {
+                    const ta = document.getElementById('map-add-polygon');
+                    if (ta) ta.value = formatPolygon(polygonDrawPoints);
+                }
+                renderMapDetail(); // Redibujar para mostrar preview
+                return;
+            } else if (e.button === 2) { // Click derecho: finalizar polígono
+                e.preventDefault();
+                finishPolygonDraw();
+                return;
+            }
         }
 
         // Si hay un modal de agregado abierto, copiar las coordenadas del clic al modal
@@ -2949,7 +3270,22 @@ function initMapRadar() {
         const spawns = m.spawns || [];
         for (let i = 0; i < spawns.length; i++) {
             const s = spawns[i];
-            if (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) continue;
+            if (s.spawnMode === 'random' && (!s.radius || s.radius === 0) && (!s.polygon || s.polygon.length < 3)) continue;
+
+            // Si es polígono, chequear vértices primero
+            if (s.spawnMode === 'polygon' && s.polygon && s.polygon.length >= 3) {
+                const polyPoints = s.polygon.map(p => worldToCanvas(p.x, p.y));
+                for (let vi = 0; vi < polyPoints.length; vi++) {
+                    const vp = polyPoints[vi];
+                    if (Math.hypot(vp.x - mouseX, vp.y - mouseY) < 10) {
+                        isDragging = true;
+                        dragItem = { type: 'map-spawn-vertex', index: i, vertexIndex: vi };
+                        canvas.style.cursor = 'grabbing';
+                        selectMapItem('spawn', i);
+                        return;
+                    }
+                }
+            }
 
             const sx = s.x !== undefined ? s.x : 0;
             const sy = s.y !== undefined ? s.y : 0;
@@ -3024,6 +3360,20 @@ function initMapRadar() {
                     if (rxInput) rxInput.value = s.x;
                     if (ryInput) ryInput.value = s.y;
                 }
+            } else if (dragItem.type === 'map-spawn-vertex') {
+                const s = m.spawns[dragItem.index];
+                if (s && s.polygon && s.polygon[dragItem.vertexIndex]) {
+                    s.polygon[dragItem.vertexIndex].x = Math.round(world.wx);
+                    s.polygon[dragItem.vertexIndex].y = Math.round(world.wy);
+                    // Actualizar textarea
+                    const ta = document.getElementById(`spawn-polygon-${dragItem.index}`);
+                    if (ta) ta.value = formatPolygon(s.polygon);
+                    // Recalcular centroide
+                    const cx = s.polygon.reduce((a,p)=>a+p.x,0)/s.polygon.length;
+                    const cy = s.polygon.reduce((a,p)=>a+p.y,0)/s.polygon.length;
+                    s.x = Math.round(cx);
+                    s.y = Math.round(cy);
+                }
             }
         } else {
             window.lastMouseWorldX = Math.round(world.wx);
@@ -3042,14 +3392,30 @@ function initMapRadar() {
                 if (!hoveringItem) {
                     const spawns = m.spawns || [];
                     for (let i = 0; i < spawns.length; i++) {
-                        const pos = worldToCanvas(spawns[i].x || 0, spawns[i].y || 0);
+                        const s = spawns[i];
+                        // Chequear vértices de polígono
+                        if (s.spawnMode === 'polygon' && s.polygon && s.polygon.length >= 3) {
+                            const polyPoints = s.polygon.map(p => worldToCanvas(p.x, p.y));
+                            for (let vi = 0; vi < polyPoints.length; vi++) {
+                                if (Math.hypot(polyPoints[vi].x - mouseX, polyPoints[vi].y - mouseY) < 10) {
+                                    hoveringItem = true;
+                                    break;
+                                }
+                            }
+                            if (hoveringItem) break;
+                        }
+                        const pos = worldToCanvas(s.x || 0, s.y || 0);
                         if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 16) {
                             hoveringItem = true;
                             break;
                         }
                     }
                 }
-                canvas.style.cursor = hoveringItem ? 'grab' : 'crosshair';
+                if (!hoveringItem && polygonDrawMode) {
+                    canvas.style.cursor = 'crosshair';
+                } else {
+                    canvas.style.cursor = hoveringItem ? 'grab' : 'crosshair';
+                }
             }
         }
     };
@@ -3064,6 +3430,40 @@ function initMapRadar() {
             isPanning = false;
             canvas.style.cursor = 'crosshair';
         }
+    };
+
+    // Teclas para modo dibujo de polígono
+    const handleKeyDown = (e) => {
+        if (polygonDrawMode) {
+            if (e.key === 'Escape') {
+                cancelPolygonDraw();
+                showToast('❌ Dibujo de polígono cancelado.');
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                finishPolygonDraw();
+            } else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+                // Undo último vértice
+                if (polygonDrawPoints.length > 0) {
+                    polygonDrawPoints.pop();
+                    if (polygonDrawTargetIdx >= 0) {
+                        const ta = document.getElementById(`spawn-polygon-${polygonDrawTargetIdx}`);
+                        if (ta) ta.value = formatPolygon(polygonDrawPoints);
+                    } else {
+                        const ta = document.getElementById('map-add-polygon');
+                        if (ta) ta.value = formatPolygon(polygonDrawPoints);
+                    }
+                    renderMapDetail();
+                }
+            }
+        }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Cleanup al cerrar el detalle del mapa
+    const originalRenderMapDetail = window.renderMapDetail;
+    window.renderMapDetail = function() {
+        if (polygonDrawMode) cancelPolygonDraw();
+        return originalRenderMapDetail.apply(this, arguments);
     };
 
     const draw = () => {
@@ -3156,7 +3556,7 @@ function initMapRadar() {
         // ========== 4. DIBUJAR SPAWNS ==========
         const spawns = m.spawns || [];
         spawns.forEach((s, idx) => {
-            if (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) return;
+            if (s.spawnMode === 'random' && (!s.radius || s.radius === 0) && (!s.polygon || s.polygon.length < 3)) return;
 
             const sx = s.x !== undefined ? s.x : 0;
             const sy = s.y !== undefined ? s.y : 0;
@@ -3166,6 +3566,49 @@ function initMapRadar() {
 
             const model = config.enemyModels ? (config.enemyModels[s.type] || { name: 'Enemigo ' + s.type }) : { name: 'Enemigo ' + s.type };
             const isBoss = (model.isBoss === true) || (Number(s.type) >= 101) || (s.type === '10' || s.type === '11');
+
+            // --- DIBUJAR POLÍGONO PERSONALIZADO ---
+            if (s.spawnMode === 'polygon' && s.polygon && s.polygon.length >= 3) {
+                const polyColor = isBoss ? '#a640ff' : '#10b981';
+                const polyPoints = s.polygon.map(p => worldToCanvas(p.x, p.y));
+                
+                // Relleno del polígono
+                ctx.fillStyle = isBoss ? 'rgba(168, 85, 247, 0.1)' : 'rgba(16, 185, 129, 0.08)';
+                ctx.beginPath();
+                ctx.moveTo(polyPoints[0].x, polyPoints[0].y);
+                for (let i = 1; i < polyPoints.length; i++) {
+                    ctx.lineTo(polyPoints[i].x, polyPoints[i].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Borde del polígono
+                ctx.strokeStyle = polyColor + (isSelected || isFocused ? 'cc' : '80');
+                ctx.lineWidth = (isSelected || isFocused) ? 2.5 : 1.5;
+                ctx.beginPath();
+                ctx.moveTo(polyPoints[0].x, polyPoints[0].y);
+                for (let i = 1; i < polyPoints.length; i++) {
+                    ctx.lineTo(polyPoints[i].x, polyPoints[i].y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+                
+                // Vértices del polígono
+                ctx.fillStyle = polyColor;
+                polyPoints.forEach((p, vi) => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, isSelected || isFocused ? 6 : 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Número de vértice
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 8px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText((vi + 1).toString(), p.x, p.y);
+                    ctx.textBaseline = 'alphabetic';
+                    ctx.fillStyle = polyColor;
+                });
+            }
 
             // Radio de dispersión de spawn si existe (escalado con zoom)
             if (s.spawnMode === 'random' && s.radius > 0) {
@@ -3280,6 +3723,66 @@ function initMapRadar() {
                 ctx.fillText(`→ ${destZoneName}`, pos.x, pos.y + 28);
             }
         });
+
+        // ========== PREVIEW DE POLÍGONO EN DIBUJO ==========
+        if (polygonDrawMode && polygonDrawPoints.length > 0) {
+            const polyPoints = polygonDrawPoints.map(p => worldToCanvas(p.x, p.y));
+            const previewColor = '#10b981';
+            
+            // Dibujar aristas completadas
+            if (polyPoints.length > 1) {
+                ctx.strokeStyle = previewColor + '80';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 4]);
+                ctx.beginPath();
+                ctx.moveTo(polyPoints[0].x, polyPoints[0].y);
+                for (let i = 1; i < polyPoints.length; i++) {
+                    ctx.lineTo(polyPoints[i].x, polyPoints[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Línea de preview al mouse actual
+            if (window.lastMouseWorldX !== undefined && window.lastMouseWorldY !== undefined) {
+                const mouseCanvas = worldToCanvas(window.lastMouseWorldX, window.lastMouseWorldY);
+                ctx.strokeStyle = previewColor + 'cc';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                ctx.moveTo(polyPoints[polyPoints.length - 1].x, polyPoints[polyPoints.length - 1].y);
+                ctx.lineTo(mouseCanvas.x, mouseCanvas.y);
+                // Si hay más de 2 puntos, mostrar línea de cierre
+                if (polyPoints.length >= 2) {
+                    ctx.moveTo(mouseCanvas.x, mouseCanvas.y);
+                    ctx.lineTo(polyPoints[0].x, polyPoints[0].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Vértices colocados
+            ctx.fillStyle = previewColor;
+            polyPoints.forEach((p, vi) => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 8px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText((vi + 1).toString(), p.x, p.y);
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillStyle = previewColor;
+            });
+            
+            // Texto de ayuda
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+            ctx.font = 'bold 11px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText(`📐 Dibujando: ${polyPoints.length} vértices  |  Click: Añadir  |  Click derecho/Enter: Finalizar  |  ESC: Cancelar  |  Ctrl+Z: Deshacer`, 
+                canvas.width / 2, 30);
+        }
 
         // Coordenadas flotantes y nivel de zoom en la barra inferior
         ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';

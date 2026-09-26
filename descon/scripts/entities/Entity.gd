@@ -135,6 +135,7 @@ var _bank_current: float = 0.0
 var _ship_rot_mem: Dictionary = {}
 var pvp_status: bool = false
 var reflect_timer: float = 0.0
+var _last_reflect_vfx_ms: int = 0 # Anti-spam del VFX de impacto de reflect
 var shield_visual_timer: float = 0.0
 var heal_visual_timer: float = 0.0
 var invulnerable_timer: float = 0.0
@@ -222,12 +223,21 @@ func get_aim_target_3d(mouse_pos_2d: Vector2) -> Vector3:
 	
 	return intersect if intersect != null else Vector3.ZERO
 
+func invalidate_map_cache():
+	_cached_map = null
+	_cached_camera_3d = null
+	_cached_sub_viewport = null
+	_cached_camera_2d = null
+
 func _get_map_node() -> Node:
-	if not is_instance_valid(_cached_map):
+	if not is_instance_valid(_cached_map) or not is_instance_valid(_cached_camera_3d) or not is_instance_valid(_cached_sub_viewport):
 		_cached_map = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(_cached_map):
 			_cached_camera_3d = _cached_map.get("camera_3d")
 			_cached_sub_viewport = _cached_map.get("sub_viewport")
+		else:
+			_cached_camera_3d = null
+			_cached_sub_viewport = null
 	return _cached_map
 
 func _get_camera_2d() -> Camera2D:
@@ -272,7 +282,11 @@ func _ready():
 		add_child(_mechanics_vfx)
 
 	z_index = 1 # v166.60: Por encima de las estrellas
-	visible = true; show()
+	if is_in_group("enemies") or get_meta("is_pooled", false):
+		visible = false
+	else:
+		visible = true
+		show()
 	target_position = global_position
 	target_rotation = rotation
 	
@@ -347,6 +361,8 @@ func activate_sync_lock(duration: float = 2.5):
 # v3.2: Teletransporte Autoritativo Instantáneo (Anti-Lerp)
 func teleport_to(new_pos: Vector2):
 	is_teleporting = true
+	# 0. Destello fijo en el punto de SALIDA (antes de mover para capturar la coordenada)
+	_spawn_blink_vfx(global_position, "out")
 	# 1. Ocultar ANTES de mover para que no se vea ningún frame de tránsito
 	modulate.a = 0.0
 	if is_instance_valid(_3d_model): _3d_model.visible = false
@@ -361,6 +377,8 @@ func teleport_to(new_pos: Vector2):
 		modulate.a = 1.0
 		if is_instance_valid(_3d_model): _3d_model.visible = true
 		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
+		# Destello fijo en la coordenada exacta de LLEGADA
+		_spawn_blink_vfx(global_position, "in")
 	tw.tween_callback(cb_show)
 	tw.tween_interval(0.45)
 	var cb_teleport = func():
@@ -1865,37 +1883,176 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	if current_hp <= 0: die()
 
 func _trigger_reflect_visual(p_dest: Vector2):
+	# Anti-spam: bajo fuego rápido no se apilan instancias del VFX
+	var now_ms = Time.get_ticks_msec()
+	if now_ms - _last_reflect_vfx_ms < 80:
+		return
+	_last_reflect_vfx_ms = now_ms
 
-	var spr = Sprite2D.new()
-	if TEX_REFLECT_IMPACT:
-		spr.texture = TEX_REFLECT_IMPACT
-		spr.top_level = true
-		spr.z_index = 101
-		
-		# v235.11: Dirección del rebote
-		var dir_to_target = (p_dest - global_position).normalized()
-		if dir_to_target.length() < 0.1: dir_to_target = Vector2.UP
-		
-		var spawn_origin = global_position
-		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
-			spawn_origin = _project_3d_pos_to_2d(world_root_3d.global_position)
-		
-		spr.global_position = spawn_origin + dir_to_target * 35.0
-		# v235.12: Quitamos el offset para que no salga de costado
-		spr.rotation = dir_to_target.angle()
-		
-		spr.scale = Vector2(0.01, 0.01)
-		spr.modulate = Color(4.0, 0.4, 0.4, 1.0)
-		
-		get_tree().root.add_child(spr)
-		
-		var tw = create_tween().set_parallel(true)
-		var travel_dist = dir_to_target * 140.0
-		tw.tween_property(spr, "global_position", spr.global_position + travel_dist, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tw.tween_property(spr, "scale", Vector2(0.12, 0.12), 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tw.tween_property(spr, "modulate:a", 0.0, 0.2).set_delay(0.12)
-		
-		tw.finished.connect(spr.queue_free)
+	# v235.11: Dirección del rebote
+	var dir_to_target = (p_dest - global_position).normalized()
+	if dir_to_target.length() < 0.1: dir_to_target = Vector2.UP
+
+	# Fallback 2D (comportamiento histórico) para entidades sin modelo 3D
+	if not is_instance_valid(_3d_model):
+		var spr = Sprite2D.new()
+		if TEX_REFLECT_IMPACT:
+			spr.texture = TEX_REFLECT_IMPACT
+			spr.top_level = true
+			spr.z_index = 101
+			var spawn_origin = global_position
+			if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
+				spawn_origin = _project_3d_pos_to_2d(world_root_3d.global_position)
+			spr.global_position = spawn_origin + dir_to_target * 35.0
+			spr.rotation = dir_to_target.angle()
+			spr.scale = Vector2(0.01, 0.01)
+			spr.modulate = Color(4.0, 0.4, 0.4, 1.0)
+			get_tree().root.add_child(spr)
+			var tw_fb = create_tween().set_parallel(true)
+			tw_fb.tween_property(spr, "global_position", spr.global_position + dir_to_target * 140.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tw_fb.tween_property(spr, "scale", Vector2(0.12, 0.12), 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw_fb.tween_property(spr, "modulate:a", 0.0, 0.2).set_delay(0.12)
+			tw_fb.finished.connect(spr.queue_free)
+		return
+
+	# Dirección en unidades 3D del mundo (mismo patrón que Projectile.gd)
+	var map_node = _get_map_node()
+	var sf: float = map_node.scale_factor if is_instance_valid(map_node) and "scale_factor" in map_node else 0.02
+	var cz: float = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+	var dir3d = Vector3(dir_to_target.x * sf, 0.0, dir_to_target.y * sf * cz)
+	if dir3d.length_squared() < 0.000001:
+		dir3d = Vector3(0.0, 0.0, -1.0)
+	dir3d = dir3d.normalized()
+
+	# Punto de impacto sobre la superficie del escudo Reflect activo
+	var origin = _3d_model.global_position
+	var shield_r = 0.65
+	if is_instance_valid(_active_shield_vfx):
+		origin = _active_shield_vfx.global_position
+		shield_r = maxf(absf(_active_shield_vfx.global_transform.basis.get_scale().x), 0.05)
+	var impact_pos = origin + dir3d * shield_r
+
+	var root = Node3D.new()
+	root.name = "ReflectImpact"
+	_3d_model.add_child(root)
+	root.top_level = true
+	root.global_transform = Transform3D(Basis.IDENTITY, impact_pos)
+
+	# 1) Flash de impacto en la superficie (paleta roja demon del escudo)
+	var flash = MeshInstance3D.new()
+	var flash_mesh = QuadMesh.new()
+	flash_mesh.size = Vector2(shield_r * 0.9, shield_r * 0.9)
+	flash.mesh = flash_mesh
+	flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var flash_mat = StandardMaterial3D.new()
+	flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flash_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	flash_mat.billboard_keep_scale = true
+	flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	flash_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	flash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	flash_mat.albedo_texture = VFX_FlareTexture
+	flash_mat.albedo_color = Color(1.0, 0.14, 0.04, 1.0)
+	flash.material_override = flash_mat
+	root.add_child(flash)
+	flash.position = dir3d * shield_r * 0.08
+	flash.scale = Vector3.ONE * 0.4
+
+	# 2) Piques cortos de cilindro: apenas saliendo del escudo hacia el atacante
+	var pique_mat = StandardMaterial3D.new()
+	pique_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	pique_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	pique_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pique_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	pique_mat.albedo_color = Color(1.0, 0.09, 0.03, 1.0)
+	pique_mat.emission_enabled = true
+	pique_mat.emission = Color(3.0, 0.13, 0.03)
+	pique_mat.emission_energy_multiplier = 1.5
+
+	var pique_len = shield_r * 0.55
+	var pique_r = maxf(shield_r * 0.05, 0.02)
+	var pique_angles = [-36.0, -18.0, 0.0, 18.0, 36.0]
+	var pique_roots = []
+	for i in pique_angles.size():
+		var a: float = pique_angles[i]
+		var d = dir3d.rotated(Vector3.UP, deg_to_rad(a))
+		var p_root = Node3D.new()
+		root.add_child(p_root)
+		p_root.look_at(impact_pos + d, Vector3.UP)
+		var len_i = pique_len * (1.35 if absf(a) < 0.01 else 1.0)
+		var p_mesh = CylinderMesh.new()
+		p_mesh.top_radius = pique_r
+		p_mesh.bottom_radius = 0.0
+		p_mesh.height = len_i
+		p_mesh.radial_segments = 6
+		p_mesh.cap_top = false
+		p_mesh.cap_bottom = false
+		var p_mi = MeshInstance3D.new()
+		p_mi.mesh = p_mesh
+		p_mi.material_override = pique_mat
+		p_mi.rotation.x = PI / 2.0
+		p_mi.position = Vector3(0.0, 0.0, -len_i * 0.5)
+		p_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		p_root.add_child(p_mi)
+		p_root.scale = Vector3(1.0, 1.0, 0.04)
+		pique_roots.append({ "node": p_root, "delay": absf(a) / 36.0 * 0.05 })
+
+	# 3) Luz de impacto
+	var light = OmniLight3D.new()
+	light.light_color = Color(1.0, 0.16, 0.05)
+	light.light_energy = 0.0
+	light.omni_range = shield_r * 3.5
+	root.add_child(light)
+
+	# 4) Chispas rojas apenas despegando de la superficie
+	var sparks = CPUParticles3D.new()
+	sparks.one_shot = true
+	sparks.emitting = false
+	sparks.amount = 8
+	sparks.lifetime = 0.22
+	sparks.explosiveness = 1.0
+	sparks.direction = (dir3d + Vector3.UP * 0.3).normalized()
+	sparks.spread = 55.0
+	sparks.gravity = Vector3.ZERO
+	sparks.initial_velocity_min = 1.2
+	sparks.initial_velocity_max = 2.8
+	sparks.scale_amount_min = 0.18
+	sparks.scale_amount_max = 0.45
+	var s_grad = Gradient.new()
+	s_grad.set_color(0, Color(3.0, 0.7, 0.25, 1.0))
+	s_grad.add_point(0.5, Color(2.0, 0.2, 0.06, 0.9))
+	s_grad.set_color(1, Color(0.3, 0.0, 0.0, 0.0))
+	sparks.color_ramp = s_grad
+	var s_quad = QuadMesh.new()
+	s_quad.size = Vector2(shield_r * 0.35, shield_r * 0.35)
+	var s_mat = StandardMaterial3D.new()
+	s_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	s_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	s_mat.vertex_color_use_as_albedo = true
+	s_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	s_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	s_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	s_mat.albedo_texture = VFX_FlareTexture
+	s_quad.material = s_mat
+	sparks.mesh = s_quad
+	root.add_child(sparks)
+	sparks.emitting = true
+
+	# Animación: flash + piques que apenas brotan y se apagan (total ~0.28s)
+	var tw = root.create_tween().set_parallel(true)
+	tw.tween_property(flash, "scale", Vector3.ONE, 0.07).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(flash_mat, "albedo_color", Color(1.0, 0.14, 0.04, 0.0), 0.13).set_delay(0.06)
+	tw.tween_method(func(v: float) -> void: light.light_energy = v, 0.0, 4.0, 0.04)
+	tw.tween_method(func(v: float) -> void: light.light_energy = v, 4.0, 0.0, 0.14).set_delay(0.04)
+	for p in pique_roots:
+		tw.tween_property(p.node, "scale", Vector3.ONE, 0.05).set_delay(p.delay).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	var tw_end = root.create_tween()
+	tw_end.tween_interval(0.14)
+	tw_end.tween_property(pique_mat, "emission_energy_multiplier", 0.0, 0.10)
+	tw_end.parallel().tween_property(pique_mat, "albedo_color", Color(1.0, 0.09, 0.03, 0.0), 0.10)
+	tw_end.tween_interval(0.04)
+	tw_end.tween_callback(root.queue_free)
 
 func _play_shield_hit_vfx():
 	if _active_shield_type == "" or not is_instance_valid(_active_shield_vfx): return
@@ -2769,11 +2926,15 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			print("[SKILL] Activando visual de INVULNERABILIDAD para: ", username)
 		"BLINK_OUT":
 			# v3.2: Desaparición TOTAL e INSTANTÁNEA (sin VFX expansivo)
+			# Destello anclado a la coordenada de SALIDA (se llama antes del salto)
+			_spawn_blink_vfx(global_position, "out")
 			modulate.a = 0.0
 			if is_instance_valid(_3d_model): _3d_model.visible = false
 			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
 		"BLINK_IN":
 			# v3.2: Reaparición con destello puntual (sin nova expansiva)
+			# Destello anclado a la coordenada exacta de LLEGADA (ya saltó)
+			_spawn_blink_vfx(global_position, "in")
 			modulate.a = 1.0
 			if is_instance_valid(_3d_model): _3d_model.visible = true
 			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
@@ -2781,6 +2942,118 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			var tw = create_tween()
 			tw.tween_property(self, "modulate", Color(3.0, 3.0, 3.0, 1.0), 0.0)
 			tw.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.15)
+
+
+# ==============================================================================
+# BLINK (Destello) - Destellos de teletransporte
+# Se colocan en un contenedor del MUNDO (no como hijos de la entidad) para que:
+#   1) El destello de SALIDA quede fijo en el punto de origen aunque la nave ya saltó.
+#   2) El destello de LLEGADA quede exactamente en la coordenada de aterrizaje.
+#   3) No se oculten junto con la entidad (modulate.a = 0 / visible = false).
+# ==============================================================================
+func _blink_add_material() -> CanvasItemMaterial:
+	var m := CanvasItemMaterial.new()
+	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	return m
+
+func _blink_glow_texture() -> GradientTexture2D:
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	grad.add_point(0.4, Color(0.55, 0.9, 1.0, 0.45))
+	grad.set_color(grad.get_point_count() - 1, Color(0.05, 0.45, 1.0, 0.0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.width = 128
+	tex.height = 128
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 0.0)
+	return tex
+
+func _blink_vfx_layer() -> Node2D:
+	var host: Node = null
+	var world = get_tree().get_first_node_in_group("world_node") if get_tree() else null
+	if is_instance_valid(world) and "entities_node" in world:
+		var en = world.get("entities_node")
+		if is_instance_valid(en):
+			host = en
+	if host == null:
+		host = get_parent()
+	if not is_instance_valid(host):
+		return null
+	var layer = host.get_node_or_null(^"BlinkVFXLayer")
+	if not is_instance_valid(layer):
+		layer = Node2D.new()
+		layer.name = "BlinkVFXLayer"
+		layer.z_index = 5
+		host.add_child(layer)
+	return layer as Node2D
+
+func _blink_sparks(parent: Node2D, amount: int, life: float, vel_min: float, vel_max: float, tex: Texture2D) -> void:
+	if not is_instance_valid(parent):
+		return
+	var parts := CPUParticles2D.new()
+	parts.texture = tex
+	parts.one_shot = true
+	parts.amount = amount
+	parts.lifetime = life
+	parts.explosiveness = 1.0
+	parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	parts.emission_sphere_radius = 8.0
+	parts.direction = Vector2(0, -1)
+	parts.spread = 180.0
+	parts.gravity = Vector2.ZERO
+	parts.initial_velocity_min = vel_min
+	parts.initial_velocity_max = vel_max
+	parts.damping_min = 320.0
+	parts.damping_max = 560.0
+	parts.scale_amount_min = 0.08
+	parts.scale_amount_max = 0.18
+	parts.color = Color(0.85, 0.96, 1.0, 1.0)
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	ramp.add_point(0.35, Color(0.6, 0.9, 1.0, 0.8))
+	ramp.set_color(ramp.get_point_count() - 1, Color(0.2, 0.6, 1.0, 0.0))
+	parts.color_ramp = ramp
+	parts.material = _blink_add_material()
+	parts.z_index = 2
+	parent.add_child(parts)
+	parts.emitting = true
+
+func _spawn_blink_vfx(at_pos: Vector2, mode: String) -> void:
+	var layer := _blink_vfx_layer()
+	if layer == null:
+		return
+	var is_out := mode == "out"
+	var burst := Node2D.new()
+	burst.name = "BlinkBurst"
+	layer.add_child(burst)
+	burst.top_level = true
+	burst.global_position = at_pos
+
+	var glow := _blink_glow_texture()
+
+	if is_out:
+		# Destello BREVE en el punto de salida: la luz colapsa hacia dentro (0.12s)
+		var core := Sprite2D.new()
+		core.texture = glow
+		core.material = _blink_add_material()
+		burst.add_child(core)
+		core.scale = Vector2(0.55, 0.55)
+		var tw_scale := burst.create_tween()
+		tw_scale.tween_property(core, "scale", Vector2(0.04, 0.04), 0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		var tw_fade := burst.create_tween()
+		tw_fade.tween_property(core, "modulate:a", 0.0, 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		_blink_sparks(burst, 14, 0.22, 90.0, 170.0, glow)
+	else:
+		# En la llegada manda el PUNTITO original (modulate de la entidad).
+		# Aquí solo una ráfaga MUY corta de chispas sobre esa misma coordenada.
+		_blink_sparks(burst, 18, 0.25, 110.0, 200.0, glow)
+
+	# Limpieza automática (si el contenedor se libera, el tween muere con él)
+	var tw_cleanup := burst.create_tween()
+	tw_cleanup.tween_interval(0.32 if not is_out else 0.3)
+	tw_cleanup.tween_callback(burst.queue_free)
 
 
 func _frost_ring(base_radius: float, width: float, dur: float, scale_to: float) -> void:
@@ -4049,6 +4322,7 @@ func _exit_tree():
 		world_root_3d.queue_free()
 
 func deactivate_for_pooling():
+	invalidate_map_cache()
 	set_meta("is_pooled", true)
 	visible = false
 	set_process(false)
@@ -4123,6 +4397,7 @@ func deactivate_for_pooling():
 		sprite.modulate = Color.WHITE
 
 func activate_from_pool():
+	invalidate_map_cache()
 	set_meta("is_pooled", false)
 	is_dead = false
 	visible = false # Comienza invisible hasta recibir coordenadas válidas y update_stats
@@ -4144,6 +4419,7 @@ func activate_from_pool():
 func rebuild_3d_layout():
 	if get_meta("is_pooled", false) == true:
 		return
+	invalidate_map_cache()
 	if is_in_group("enemies"):
 		_setup_enemy_visuals()
 	else:

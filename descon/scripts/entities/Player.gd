@@ -1786,6 +1786,13 @@ func _on_connection_lost_player():
 	entity_id = ""
 	is_dead = false
 	velocity = Vector2.ZERO
+	visible = false
+	invalidate_map_cache()
+	if is_instance_valid(world_root_3d):
+		world_root_3d.queue_free()
+		world_root_3d = null
+	if is_instance_valid(_ui_wrapper):
+		_ui_wrapper.visible = false
 
 func _on_login_success(p_in):
 	_is_initializing = true # v269.170: Silenciar save_progress redundante

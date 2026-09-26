@@ -14,6 +14,12 @@ func _draw():
 	if not visible or not entity.visible: return
 	if entity.get_meta("is_pooled", false): return
 	if "current_hp" in entity and entity.current_hp <= 0.0: return
+	if not entity.is_inside_tree() or not is_inside_tree(): return
+	
+	# Si la entidad usa el Lienzo 3D Único pero su modelo no está instanciado o no está visible, no dibujar
+	var is_single = entity.get_meta("is_single_world", false)
+	if is_single and (not is_instance_valid(entity.world_root_3d) or not entity.world_root_3d.visible):
+		return
 	
 	# Ocultar barras de vida y escudo en la zona de housing (100)
 	var current_map = get_tree().get_first_node_in_group("map")
@@ -22,6 +28,17 @@ func _draw():
 	
 	# Ocultar barras según configuración del jugador
 	var is_entity_player = entity.is_in_group("player") or entity.is_in_group("remote_players")
+	
+	# Reglas estrictas para enemigos: si no tiene nombre válido o está en mecánicas ocultas, jamás dibujar barras
+	if not is_entity_player:
+		var u_name = entity.username.strip_edges()
+		if u_name == "" or u_name == "Unknown":
+			return
+		if entity.get("is_burrowed") and not entity.get("_burrow_emerging"):
+			return
+		if entity.get("_is_currently_invisible"):
+			return
+	
 	var show_bars = SettingsManager.show_player_bars if is_entity_player else SettingsManager.show_enemy_bars
 	if not show_bars:
 		return

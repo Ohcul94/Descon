@@ -470,7 +470,36 @@ func _process(delta):
 				# D. Limpiar proyectiles activos
 				if combat_system and combat_system.has_method("clear_all_bullets"):
 					combat_system.clear_all_bullets()
-		if is_instance_valid(local_player):
+				
+				# E. Destruir mapa actual y limpiar su lienzo 3D
+				if is_instance_valid(current_map_node):
+					current_map_node.remove_from_group("map")
+					current_map_node.queue_free()
+					current_map_node = null
+				
+				# F. Limpiar referencias visuales y caché de local_player
+				if is_instance_valid(local_player):
+					local_player.visible = false
+					if local_player.has_method("invalidate_map_cache"):
+						local_player.invalidate_map_cache()
+					var wr3d = local_player.get("world_root_3d")
+					if is_instance_valid(wr3d):
+						wr3d.queue_free()
+						local_player.world_root_3d = null
+					var uiw = local_player.get("_ui_wrapper")
+					if is_instance_valid(uiw):
+						uiw.visible = false
+				
+				# G. Resetear estado de cámara en SettingsManager a cámara fija 25°
+				if SettingsManager:
+					SettingsManager.cam_free_active = false
+					SettingsManager.set("cam_use_hybrid", false)
+					SettingsManager.cam_fixed_zoom = 0.35
+					SettingsManager.cam_free_h = 0.0
+					SettingsManager.cam_free_v = 40.0
+					SettingsManager.cam_free_zoom = 35.0
+					SettingsManager.cam_free_orbit = true
+		if is_instance_valid(local_player) and is_logged:
 			if local_player.visible != is_logged:
 				local_player.visible = is_logged
 			var wr3d = local_player.get("world_root_3d")
@@ -479,7 +508,7 @@ func _process(delta):
 			var uiw = local_player.get("_ui_wrapper")
 			if uiw and is_instance_valid(uiw) and uiw.visible != is_logged:
 				uiw.visible = is_logged
-		if is_instance_valid(current_map_node):
+		if is_instance_valid(current_map_node) and is_logged:
 			if current_map_node.visible != is_logged:
 				current_map_node.visible = is_logged
 			for child in current_map_node.find_children("*", "CanvasLayer", true, false):
@@ -601,19 +630,26 @@ func _on_arena_match_started_world(data: Dictionary):
 	_update_hud_map_name(match_id)
 
 func _on_login_success(data):
-	local_player._on_login_success(data)
+	var target_zone = 1
+	if typeof(data) == TYPE_DICTIONARY and data.has("gameData") and data.gameData.has("zone"):
+		target_zone = int(data.gameData.zone)
+	elif is_instance_valid(local_player) and "current_zone" in local_player:
+		target_zone = local_player.current_zone
+	
+	# v600.1: Cargar el mapa primero de forma asíncrona para que su SubViewport y Camera3D existan
+	await _update_background(target_zone)
+	_update_hud_map_name(target_zone)
 
-	if not local_player.shoot_fired.is_connected(_on_local_shoot): 
-		local_player.shoot_fired.connect(_on_local_shoot)
+	if is_instance_valid(local_player):
+		local_player._on_login_success(data)
+
+		if not local_player.shoot_fired.is_connected(_on_local_shoot): 
+			local_player.shoot_fired.connect(_on_local_shoot)
 	
 	# v410.4: Limpiar de forma proactiva todas las entidades locales al reconectarse/loguearse
 	# Esto evita que queden nodos huérfanos de la sesión anterior con referencias 3D rotas
 	if is_instance_valid(entity_manager):
-		entity_manager._on_clear_zone_entities(local_player.current_zone)
-	
-	if "current_zone" in local_player:
-		_update_background(local_player.current_zone)
-		_update_hud_map_name(local_player.current_zone)
+		entity_manager._on_clear_zone_entities(target_zone)
 		
 	if ui_hud: ui_hud.visible = true
 	# v531.2: ChatUI NO se fuerza a visible — MainHUD restaura estado guardado en hudConfig
