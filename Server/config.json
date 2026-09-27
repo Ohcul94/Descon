@@ -3106,7 +3106,7 @@
             ],
             "mechanics": [
                 {
-                    "_collapsed": false,
+                    "_collapsed": true,
                     "activationHPs": [
                         50
                     ],
@@ -3207,6 +3207,30 @@
                     "damage": 30,
                     "lockTimeMs": 500,
                     "_collapsed": true
+                },
+                {
+                    "type": "fireball",
+                    "castTimeMs": 1000,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 1000,
+                    "startDelay": 3000,
+                    "cooldown": 7000,
+                    "duration": 5000,
+                    "areaRadius": 350,
+                    "areaMode": "enemy",
+                    "speed": 250,
+                    "radius": 100,
+                    "damage_per_tick": 4,
+                    "tick_interval": 990,
+                    "_collapsed": false
                 }
             ],
             "movementPhases": [
