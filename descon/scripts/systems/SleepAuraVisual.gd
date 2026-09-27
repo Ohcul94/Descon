@@ -13,6 +13,7 @@ func start_aura() -> void:
 func stop_aura() -> void:
 	_active = false
 	visible = false
+	queue_redraw()
 
 func _process(delta: float) -> void:
 	if _active:

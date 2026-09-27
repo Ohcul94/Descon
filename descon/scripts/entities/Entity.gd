@@ -367,6 +367,11 @@ func activate_sync_lock(duration: float = 2.5):
 
 # v3.2: Teletransporte Autoritativo Instantáneo (Anti-Lerp)
 func teleport_to(new_pos: Vector2):
+	if has_meta("_active_pull_tween"):
+		var pt = get_meta("_active_pull_tween")
+		if is_instance_valid(pt) and pt.is_valid():
+			pt.kill()
+		remove_meta("_active_pull_tween")
 	is_teleporting = true
 	# 0. Destello fijo en el punto de SALIDA (antes de mover para capturar la coordenada)
 	_spawn_blink_vfx(global_position, "out")

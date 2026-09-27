@@ -2549,6 +2549,13 @@ func _on_hook_pulled(data: Dictionary):
 		victim_node = remote_players[victim_id]
 	
 	if is_instance_valid(attacker_node) and is_instance_valid(victim_node) and is_instance_valid(world) and is_instance_valid(world.entities_node):
+		# Cancelar cualquier arrastre previo en la víctima si existiera
+		if victim_node.has_meta("_active_pull_tween"):
+			var old_tw = victim_node.get_meta("_active_pull_tween")
+			if is_instance_valid(old_tw) and old_tw.is_valid():
+				old_tw.kill()
+			victim_node.remove_meta("_active_pull_tween")
+
 		var chain = Line2D.new()
 		chain.width = 4.0
 		chain.default_color = Color(0.7, 0.7, 0.7, 0.8) 
@@ -2563,15 +2570,39 @@ func _on_hook_pulled(data: Dictionary):
 		tw.tween_property(chain, "modulate:a", 0.0, 0.5)
 		tw.finished.connect(chain.queue_free)
 		
-		var angle = (victim_node.global_position - attacker_node.global_position).angle()
-		var target_pos = attacker_node.global_position + Vector2.RIGHT.rotated(angle) * 100.0
+		var target_pos: Vector2
+		if data.has("targetX") and data.has("targetY"):
+			target_pos = Vector2(float(data.targetX), float(data.targetY))
+		else:
+			var angle = (victim_node.global_position - attacker_node.global_position).angle()
+			target_pos = attacker_node.global_position + Vector2.RIGHT.rotated(angle) * 100.0
 		
 		var pull_speed = float(data.get("pullSpeed", 1500.0))
+		if pull_speed < 1200.0:
+			pull_speed = 1500.0
 		var dist = victim_node.global_position.distance_to(target_pos)
-		var duration = clamp(dist / pull_speed, 0.1, 0.8) 
+		var duration = clamp(dist / pull_speed, 0.05, 1.2)
+		if data.has("duration"):
+			duration = float(data.duration) / 1000.0
+		
+		# Si es el jugador local, cancelar navegación por click residual para evitar pelear con el arrastre
+		if victim_node == world.local_player:
+			victim_node.is_moving = false
+			victim_node.autopilot_enabled = false
+			victim_node.velocity = Vector2.ZERO
+			victim_node.target_position = target_pos
 		
 		var tw_pull = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		victim_node.set_meta("_active_pull_tween", tw_pull)
 		tw_pull.tween_property(victim_node, "global_position", target_pos, duration)
+		tw_pull.finished.connect(func():
+			if is_instance_valid(victim_node):
+				if victim_node.has_meta("_active_pull_tween"):
+					victim_node.remove_meta("_active_pull_tween")
+				if victim_node == world.local_player:
+					victim_node.target_position = victim_node.global_position
+					victim_node._force_move_sync()
+		)
 
 func _on_wind_push(data: Dictionary):
 	var victim_id = str(data.get("victimId", ""))
@@ -3640,6 +3671,33 @@ func _on_remote_skill_used(data):
 				"owner_type": "player" if sender_id == world.local_player.entity_id else "remote"
 			}
 			world.combat_system._spawn_projectile(proj_data, proj_data.owner_type)
+		return
+
+	if skill_name == "HOOKSHOT":
+		var hook_emisor = null
+		if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == sender_id:
+			hook_emisor = world.local_player
+		elif remote_players.has(sender_id):
+			hook_emisor = remote_players[sender_id]
+
+		if is_instance_valid(hook_emisor) and is_instance_valid(world) and is_instance_valid(world.combat_system):
+			var h_data = GameConstants.SKILLS_DATA.get("HOOKSHOT", {})
+			var aim_angle = float(data.get("angle", hook_emisor.rotation))
+			var hook_proj = {
+				"id": sender_id,
+				"senderId": sender_id,
+				"x": hook_emisor.global_position.x,
+				"y": hook_emisor.global_position.y,
+				"angle": aim_angle,
+				"bulletType": "hook",
+				"type": "hook",
+				"damage": 0,
+				"speed": float(h_data.get("speed", 2000.0)),
+				"range": float(h_data.get("range", 600.0)),
+				"duration": float(h_data.get("duration", 2000.0)),
+				"owner_type": "player" if (is_instance_valid(world) and is_instance_valid(world.local_player) and sender_id == world.local_player.entity_id) else "remote"
+			}
+			world.combat_system._spawn_projectile(hook_proj, hook_proj.owner_type)
 		return
 		
 	var target_id = str(data.get("targetId", sender_id))

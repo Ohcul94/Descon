@@ -1992,6 +1992,8 @@ func _on_body_entered(body):
 			elif owner_type == "player" and body.is_in_group("enemies"):
 				if type == "fear":
 					NetworkManager.send_event("fearSphereHit", {"enemyId": body.entity_id, "damage": damage, "duration": float(get_meta("duration")) if has_meta("duration") else 3000.0})
+				elif type == "hook":
+					NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": damage, "bulletType": "hook"})
 				else:
 					NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": damage})
 			elif owner_type == "player" and is_pvp_target:

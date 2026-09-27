@@ -128,6 +128,11 @@ class BaseSkill {
             payload.pos = { x: p.x, y: p.y };
         }
 
+        // Pasar datos de apuntado para skills direccionales (HOOKSHOT)
+        if (data.angle !== undefined) payload.angle = data.angle;
+        if (data.posX !== undefined) payload.posX = data.posX;
+        if (data.posY !== undefined) payload.posY = data.posY;
+
         io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', payload);
     }
 }

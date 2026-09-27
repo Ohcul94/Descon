@@ -134,16 +134,6 @@ func _ready():
 		sprite.scale = Vector2(0.84, 0.84)
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	
-	# Etiqueta flotante "MERCADO"
-	var label = Label.new()
-	label.text = "MERCADO"
-	label.position = Vector2(-42, -95)
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
-	label.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.0))
-	label.add_theme_constant_override("outline_size", 6)
-	add_child(label)
-	
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	

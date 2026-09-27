@@ -1202,8 +1202,31 @@ fs.readJson(CONFIG_FILE).then(config => {
             "icon": ""
         };
     }
+    if (!state.SERVER_CONFIG.skillsData["HOOKSHOT"]) {
+        state.SERVER_CONFIG.skillsData["HOOKSHOT"] = {
+            "name": "HOOKSHOT",
+            "type": "Ataque",
+            "cd": 12000,
+            "amount": 300,
+            "range": 600,
+            "speed": 2000,
+            "pull_speed": 1500,
+            "duration": 2000,
+            "aimType": 0,
+            "canTargetOthers": true,
+            "targetFilters": {
+                "allies": false,
+                "enemies": true,
+                "bosses": true,
+                "players": false,
+                "clan": false,
+                "blockProjectiles": false
+            },
+            "desc": "Dispara un gancho que viaja hacia el enemigo, dañándolo y arrastrándote hasta él.",
+            "icon": ""
+        };
+    }
 
-    
     console.log('\x1b[35m[SERVER]\x1b[0m Configuración maestro cargada y habilidades inyectadas.');
     if (state.SERVER_CONFIG && state.SERVER_CONFIG.hordeConfig) hordeManager.updateConfig(state.SERVER_CONFIG.hordeConfig);
     watchConfigFile();

@@ -20,6 +20,7 @@ const HealBeaconSkill = require('./skills/HealBeaconSkill');
 const ProvocacionSkill = require('./skills/ProvocacionSkill');
 const ResurreccionSkill = require('./skills/ResurreccionSkill');
 const FearSphereSkill = require('./skills/FearSphereSkill');
+const HookshotSkill = require('./skills/HookshotSkill');
 const combatTracker = require('./combatTracker');
 const { checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento (munición)
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
@@ -41,6 +42,7 @@ SkillManager.registerSkill(new HealBeaconSkill());
 SkillManager.registerSkill(new ProvocacionSkill());
 SkillManager.registerSkill(new ResurreccionSkill());
 SkillManager.registerSkill(new FearSphereSkill());
+SkillManager.registerSkill(new HookshotSkill());
 
 
 // Habilidades de Curación/Soporte
@@ -595,6 +597,117 @@ socket.on('playerFire', (fireData) => {
 
         const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
         if (Number(p.zone) === lobbyZoneId) return;
+
+        // HOOKSHOT: El proyectil hook impactó al enemigo
+        if (data.bulletType === "hook") {
+            const hookDmg = p._hookshotDamage || 0;
+            const pullSpeed = p._hookshotPullSpeed || 1500;
+
+            if (hookDmg > 0) {
+                const oldHp = enemy.hp || 0;
+                if (enemy.shield >= hookDmg) {
+                    enemy.shield -= hookDmg;
+                } else {
+                    enemy.hp -= (hookDmg - enemy.shield);
+                    enemy.shield = 0;
+                }
+                if (enemy.hp < 0) enemy.hp = 0;
+                const actualDmg = Math.ceil(oldHp - enemy.hp);
+
+                if (enemy.socketId) {
+                    io.to(`zone_${enemy.zone}`).emit('playerStatSync', {
+                        id: enemy.socketId || enemy.id,
+                        hp: Math.ceil(enemy.hp),
+                        shield: Math.ceil(enemy.shield),
+                        isDead: enemy.hp <= 0
+                    });
+                }
+
+                if (!enemy.playerDamage) enemy.playerDamage = {};
+                enemy.playerDamage[socket.id] = (enemy.playerDamage[socket.id] || 0) + hookDmg;
+                combatTracker.trackDamageDealt(socket.id, enemyId, hookDmg, 'pve', state);
+            }
+
+            // Aggro y combate (incluso con daño 0)
+            enemy.lastHit = Date.now();
+            enemy.lastHitter = socket.id;
+            if (enemy.isAsleep) {
+                enemy.isAsleep = false;
+                enemy.sleepEndTime = 0;
+                enemy.sleepDmgPerSecond = 0;
+            }
+            recordPlayerCombat(p, state);
+
+            socket.emit('enemyDamaged', { id: enemyId, hp: Math.max(0, enemy.hp), shield: enemy.shield, bulletId: data.bulletId });
+
+            if (enemy.hp <= 0 && !enemy.isDeadProcessed) {
+                handleEnemyDeath(enemyId, io, state, socket.id);
+            }
+
+            // Arrastre del jugador hacia el enemigo
+            if (p._hookPullTimer) {
+                clearTimeout(p._hookPullTimer);
+                p._hookPullTimer = null;
+            }
+
+            const startX = p.x;
+            const startY = p.y;
+            const angleToEnemy = Math.atan2(enemy.y - p.y, enemy.x - p.x);
+            const pullDist = 100;
+            const targetX = enemy.x - Math.cos(angleToEnemy) * pullDist;
+            const targetY = enemy.y - Math.sin(angleToEnemy) * pullDist;
+            const dist = Math.hypot(targetX - startX, targetY - startY);
+            const pullDurationMs = Math.min(2000, Math.max(100, (dist / pullSpeed) * 1000));
+
+            const pullId = Date.now() + '_' + Math.random();
+            p._activeHookPull = {
+                id: pullId,
+                startX: startX,
+                startY: startY,
+                targetX: targetX,
+                targetY: targetY,
+                speed: pullSpeed,
+                startTime: Date.now(),
+                duration: pullDurationMs,
+                enemyId: enemy.id
+            };
+
+            io.to(`zone_${p.zone}`).emit('hookPulled', {
+                victimId: socket.id,
+                attackerId: enemy.id,
+                pullSpeed: pullSpeed,
+                targetX: targetX,
+                targetY: targetY,
+                duration: pullDurationMs
+            });
+
+            p._hookPullTimer = setTimeout(() => {
+                p._hookPullTimer = null;
+                // Si el pull fue cancelado por Blink u otra acción, abortar
+                if (!p._activeHookPull || p._activeHookPull.id !== pullId) return;
+
+                p._activeHookPull = null;
+                p.x = targetX;
+                p.y = targetY;
+                p.justBlinked = true;
+                p.authorizedTeleport = { x: p.x, y: p.y, zone: p.zone, timestamp: Date.now() };
+                p.lastMoveTime = Date.now();
+
+                socket.emit('playerStatSync', {
+                    id: socket.id,
+                    x: p.x,
+                    y: p.y,
+                    hp: p.hp,
+                    shield: p.shield,
+                    maxHp: p.maxHp,
+                    maxShield: p.maxShield
+                });
+            }, pullDurationMs + 50);
+
+            p._hookshotDamage = null;
+            p._hookshotPullSpeed = null;
+            return;
+        }
 
         const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
         if (dist > 1800) return;

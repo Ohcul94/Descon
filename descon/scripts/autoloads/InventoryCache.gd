@@ -134,7 +134,8 @@ static var SPHERE_SCRIPT_PATHS = [
 	"res://scripts/resources/skills/Skill_Stealth.gd",
 	"res://scripts/resources/skills/Skill_TurboImpulse.gd",
 	"res://scripts/resources/skills/Skill_VitalLink.gd",
-	"res://scripts/resources/skills/Skill_WindBarrier.gd"
+	"res://scripts/resources/skills/Skill_WindBarrier.gd",
+	"res://scripts/resources/skills/Skill_Hookshot.gd"
 ]
 
 # Precargar todos los recursos en memoria

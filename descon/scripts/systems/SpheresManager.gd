@@ -198,7 +198,8 @@ func _build_skill_from_data(real_equipped) -> Resource:
 		"BALIZA DE CURACION": "res://scripts/resources/skills/Skill_HealBeacon.gd",
 		"PROVOCACION": "res://scripts/resources/skills/Skill_Provocacion.gd",
 		"RESURRECCIÓN": "res://scripts/resources/skills/Skill_Resurreccion.gd",
-		"ESFERA DE TERROR": "res://scripts/resources/skills/Skill_FearSphere.gd"
+		"ESFERA DE TERROR": "res://scripts/resources/skills/Skill_FearSphere.gd",
+		"HOOKSHOT": "res://scripts/resources/skills/Skill_Hookshot.gd"
 	}
 	
 	var s_class = null

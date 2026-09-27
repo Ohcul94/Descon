@@ -284,8 +284,7 @@ func _on_slow_state(data: Dictionary):
 			slow_is_percentage = false
 			slow_timer = 0.0
 			set_debuff_timer("slow", 0.0)
-			if data.get("isSleep", false):
-				_stop_sleep_aura()
+			_stop_sleep_aura()
 		_emit_stats()
 
 var _sleep_aura: Node2D = null
@@ -301,16 +300,20 @@ func _start_sleep_aura() -> void:
 	var aura := Node2D.new()
 	aura.set_script(SLEEP_AURA_SCRIPT)
 	aura.name = "SleepAura"
-	aura.z_index = 15
-	aura.z_as_relative = false
-	add_child(aura)
+	aura.z_index = 5
+	aura.z_as_relative = true
+	var target_parent = _vfx_container_2d if is_instance_valid(_vfx_container_2d) else (_ui_wrapper if is_instance_valid(_ui_wrapper) else self)
+	target_parent.add_child(aura)
 	if aura.has_method("start_aura"):
 		aura.start_aura()
 	_sleep_aura = aura
 
 func _stop_sleep_aura() -> void:
-	if is_instance_valid(_sleep_aura) and _sleep_aura.has_method("stop_aura"):
-		_sleep_aura.stop_aura()
+	if is_instance_valid(_sleep_aura):
+		if _sleep_aura.has_method("stop_aura"):
+			_sleep_aura.stop_aura()
+		_sleep_aura.queue_free()
+		_sleep_aura = null
 
 func _on_status_effects_sync(data: Dictionary):
 	if is_casting and (data.has("stun") or data.has("slow") or data.has("poly")):
@@ -334,6 +337,7 @@ func _on_status_effects_sync(data: Dictionary):
 		if slow_timer <= 0.0:
 			slow_points = 0.0
 			slow_is_percentage = false
+			_stop_sleep_aura()
 		_emit_stats()
 	if data.has("stun"):
 		stun_timer = float(data.stun) / 1000.0
@@ -572,6 +576,7 @@ func _physics_process(p_delta):
 			slow_is_percentage = false
 			set_debuff_timer("slow", 0.0)
 			status_effects["slowed"] = false
+			_stop_sleep_aura()
 			_emit_stats()
 	if heal_timer > 0.0:
 		heal_timer = max(0.0, heal_timer - p_delta)
@@ -596,6 +601,8 @@ func _physics_process(p_delta):
 			set_debuff_timer("electron_speed", 0.0)
 	if _sleep_grace > 0.0:
 		_sleep_grace = max(0.0, _sleep_grace - p_delta)
+		if _sleep_grace <= 0.0 and slow_timer <= 0.0:
+			_stop_sleep_aura()
 	
 	# ==== CASTEO LOCAL: congelar y bloquear input/movimiento ====
 	if is_casting:
@@ -1760,6 +1767,12 @@ func _force_move_sync():
 
 func respawn():
 	is_dead = false
+	slow_points = 0.0
+	slow_is_percentage = false
+	slow_timer = 0.0
+	set_debuff_timer("slow", 0.0)
+	_stop_sleep_aura()
+	_stop_sleep_zzz()
 	_recalculate_stats()
 	current_hp = max_hp
 	current_shield = max_shield
@@ -1950,12 +1963,13 @@ func update_stats(data):
 		apply_shake(total_dmg * 0.15)
 	
 	if data.has("x") and data.has("y"):
-		# Forzar el posicionamiento directo para que el rubber-banding del server sea efectivo.
-		global_position = Vector2(float(data.x), float(data.y))
-		if is_moving:
-			target_position = old_target_pos
-		else:
-			target_position = global_position
+		# No forzar correcciones que choquen con un arrastre legítimo del hook en curso (evitar titileo)
+		if not has_meta("_active_pull_tween") or is_teleporting:
+			global_position = Vector2(float(data.x), float(data.y))
+			if is_moving:
+				target_position = old_target_pos
+			else:
+				target_position = global_position
 			
 	_emit_stats()
 
@@ -1995,7 +2009,8 @@ func _find_skill_by_name(n: String):
 		"BALIZA DE CURACION": "res://scripts/resources/skills/Skill_HealBeacon.gd",
 		"PROVOCACION": "res://scripts/resources/skills/Skill_Provocacion.gd",
 		"RESURRECCIÓN": "res://scripts/resources/skills/Skill_Resurreccion.gd",
-		"ESFERA DE TERROR": "res://scripts/resources/skills/Skill_FearSphere.gd"
+		"ESFERA DE TERROR": "res://scripts/resources/skills/Skill_FearSphere.gd",
+		"HOOKSHOT": "res://scripts/resources/skills/Skill_Hookshot.gd"
 	}
 	
 	if skill_paths.has(target_n):

@@ -214,16 +214,31 @@ function registerMovementHandlers(socket, io, state) {
             }
         }
 
+        // Validación de Hook Pull activo (Desplazamiento autorizado a alta velocidad)
+        let isHookPulling = false;
+        let hookPullSpeed = 0;
+        if (p._activeHookPull) {
+            const pullElapsed = now - (p._activeHookPull.startTime || 0);
+            if (pullElapsed <= (p._activeHookPull.duration || 1000) + 600) {
+                isHookPulling = true;
+                hookPullSpeed = Number(p._activeHookPull.speed) || 1500;
+            } else {
+                p._activeHookPull = null;
+            }
+        }
+
         // v210.0: ANTI-SPEEDHACK (Ajuste de Precisión Dinámico con Tolerancia)
         const dx = movementData.x - p.x;
         const dy = movementData.y - p.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         const shipSpeed = p.speed || 500;
-        // Limitamos dt a 0.2s para evitar exploits de lag-switch, y reducimos tolerancia a 100px por seguridad
-        const maxAllowed = (shipSpeed * Math.min(0.2, dt)) + 100;
+        const effectiveSpeed = isHookPulling ? Math.max(shipSpeed, hookPullSpeed * 1.5) : shipSpeed;
+        const speedTol = isHookPulling ? 300 : 100;
+        // Limitamos dt a 0.25s para evitar exploits de lag-switch
+        const maxAllowed = (effectiveSpeed * Math.min(0.25, dt)) + speedTol;
         
-        if (distance > maxAllowed && !isAuthorizedTeleport && !p.justBlinked && !p.isAdmin) { 
+        if (distance > maxAllowed && !isAuthorizedTeleport && !p.justBlinked && !isHookPulling && !p.isAdmin) { 
             const lastLog = socket.lastSecurityLogTime || 0;
             if (now - lastLog > 5000) {
                 Logger.warn('SECURITY', `Movimiento sospechoso detectado en [${p.user}]: distancia ${Math.round(distance)}px, máx permitido ${Math.round(maxAllowed)}px (dt: ${dt.toFixed(3)}s)`);

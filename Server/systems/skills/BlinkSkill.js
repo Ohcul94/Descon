@@ -59,6 +59,15 @@ class BlinkSkill extends BaseSkill {
             }
         }
 
+        // Cancelar de inmediato cualquier Hook Pull activo para permitir combos limpios (Hook -> Blink)
+        if (p._hookPullTimer) {
+            clearTimeout(p._hookPullTimer);
+            p._hookPullTimer = null;
+        }
+        if (p._activeHookPull) {
+            p._activeHookPull = null;
+        }
+
         p.x = finalX;
         p.y = finalY;
         p.justBlinked = true; // v266.700: Bypass anti-cheat

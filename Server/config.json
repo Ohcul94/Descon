@@ -12923,6 +12923,35 @@
             "taunt_duration": 4000,
             "type": "Ataque"
         },
+        "HOOKSHOT": {
+            "amount": 1,
+            "canTargetOthers": true,
+            "castTimeMs": 0,
+            "cd": 4000,
+            "desc": "Dispara un gancho que viaja hacia el enemigo, dañándolo y arrastrándote hasta él.",
+            "duration": 2000,
+            "icon": "res://assets/Skills/Iconos/Ataque/Hookshot/Hookshot.png",
+            "id": "SK-ATK-03",
+            "name": "HOOKSHOT",
+            "range": 600,
+            "requirements": [],
+            "sound": "",
+            "soundMaxDist": 1400,
+            "soundVolumeDb": 0,
+            "soundVolumePercent": 50,
+            "speed": 2000,
+            "pull_speed": 1500,
+            "targetFilters": {
+                "allies": true,
+                "bosses": true,
+                "clan": false,
+                "enemies": true,
+                "players": true,
+                "blockProjectiles": false
+            },
+            "type": "Ataque",
+            "aimType": 0
+        },
         "REFLECT-OMEGA": {
             "aimType": 1,
             "amount": 500,

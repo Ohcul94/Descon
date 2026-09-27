@@ -60,6 +60,12 @@ func activate(player: CharacterBody2D):
 		player.play_skill_vfx("BLINK_OUT", 0.0)
 	
 	# 2. Teletransporte Real y Orientación
+	if player.has_meta("_active_pull_tween"):
+		var pt = player.get_meta("_active_pull_tween")
+		if is_instance_valid(pt) and pt.is_valid():
+			pt.kill()
+		player.remove_meta("_active_pull_tween")
+
 	var dir_leap = (target_pos - player.global_position).normalized()
 	if dir_leap.length() > 0.1:
 		player.rotation = dir_leap.angle()
