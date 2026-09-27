@@ -87,6 +87,47 @@ function trackHealingDone(healerSocketId, targetId, amount, type, state) {
             }
         }
     }
+
+    // Sistema de Agro AAA: Generación y distribución de amenaza por curación
+    // Se calcula usando el área de visión individual de cada enemigo en combate (o si ya tienen al jugador en su tabla de amenaza)
+    if (state && state.enemies) {
+        const targetPlayer = targetId ? state.players[targetId] : null;
+        const engagedEnemies = [];
+        const now = Date.now();
+
+        for (const eid in state.enemies) {
+            const e = state.enemies[eid];
+            if (!e || e.hp <= 0 || String(e.zone) !== String(p.zone)) continue;
+            
+            const inCombat = e._inCombat || (e.threatTable && e.threatTable.entries && e.threatTable.entries.size > 0) || ((now - (e.lastHit || 0)) < 15000);
+            if (!inCombat) continue;
+
+            // Rango de percepción basado autoritativamente en la visión del enemigo (Bosses, élites, hordas o normales)
+            const visionRange = e.threatTable 
+                ? e.threatTable.getEffectiveVisionRange() 
+                : (Number(e.config?.visionRange) || 800);
+
+            const distToHealer = Math.hypot(e.x - p.x, e.y - p.y);
+            const distToTarget = targetPlayer ? Math.hypot(e.x - targetPlayer.x, e.y - targetPlayer.y) : Infinity;
+
+            // El enemigo percibe la curación si el sanador o el objetivo están en su área de visión,
+            // o si el enemigo ya tiene a alguno de los dos en su tabla de amenaza activa
+            const alreadyInThreat = e.threatTable && (e.threatTable.entries.has(healerSocketId) || (targetId && e.threatTable.entries.has(targetId)));
+
+            if (distToHealer <= visionRange || distToTarget <= visionRange || alreadyInThreat) {
+                engagedEnemies.push(e);
+            }
+        }
+
+        if (engagedEnemies.length > 0) {
+            const enemyCount = engagedEnemies.length;
+            engagedEnemies.forEach(e => {
+                if (e.threatTable) {
+                    e.threatTable.addHealingThreat(healerSocketId, amount, enemyCount, p);
+                }
+            });
+        }
+    }
 }
 
 function trackHealingReceived(victimSocketId, amount, state) {

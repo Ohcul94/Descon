@@ -626,6 +626,9 @@ socket.on('playerFire', (fireData) => {
                 if (!enemy.playerDamage) enemy.playerDamage = {};
                 enemy.playerDamage[socket.id] = (enemy.playerDamage[socket.id] || 0) + hookDmg;
                 combatTracker.trackDamageDealt(socket.id, enemyId, hookDmg, 'pve', state);
+                if (enemy.threatTable && hookDmg > 0) {
+                    enemy.threatTable.addDamageThreat(socket.id, hookDmg, p);
+                }
             }
 
             // Aggro y combate (incluso con daño 0)
@@ -959,6 +962,11 @@ socket.on('playerFire', (fireData) => {
             // v400.60: Registro de daño individual por jugador al enemigo (usado en mecánicas tipo "burrow" al elegir target "más daño hace")
             if (!enemy.playerDamage) enemy.playerDamage = {};
             enemy.playerDamage[socket.id] = (enemy.playerDamage[socket.id] || 0) + finalDamage;
+
+            // Sistema de Agro AAA: Generación de amenaza por daño
+            if (enemy.threatTable && finalDamage > 0) {
+                enemy.threatTable.addDamageThreat(socket.id, finalDamage, p);
+            }
         }
         
         enemy.lastHit = Date.now();
@@ -1352,11 +1360,25 @@ socket.on('playerFire', (fireData) => {
                 p.hp = 0;
                 p.isDead = true;
                 checkAndProcessDeathDrop(p, io, state);
+                // Sistema de Agro AAA: Limpiar agro de jugador muerto en todos los enemigos de la zona
+                if (state && state.enemies) {
+                    for (const eid in state.enemies) {
+                        const eObj = state.enemies[eid];
+                        if (eObj && eObj.threatTable && String(eObj.zone) === String(p.zone)) {
+                            eObj.threatTable.clearTarget(socket.id);
+                        }
+                    }
+                }
             }
             recordPlayerCombat(p, state);
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
             if (dmgTakenFinal > 0) {
                 combatTracker.trackDamageTaken(socket.id, attackerId, dmgTakenFinal, 'pve', state);
+                // Sistema de Agro AAA: Tanqueo y Mitigación activa generan amenaza masiva
+                const attackerEnemy = state.enemies ? state.enemies[attackerId] : null;
+                if (attackerEnemy && attackerEnemy.threatTable) {
+                    attackerEnemy.threatTable.addTankingThreat(socket.id, dmgTakenFinal, p);
+                }
             }
             
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 

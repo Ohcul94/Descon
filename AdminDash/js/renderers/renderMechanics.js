@@ -55,7 +55,10 @@ function renderMechanicsLib() {
         "pushForce": "Distancia de Expulsión (px)",
         "speed": "Velocidad (px/s)",
         "warnTimeMs": "Tiempo de Aviso (ms)",
-        "pushOnHit": "Expulsar al Colisionar"
+        "pushOnHit": "Expulsar al Colisionar",
+        // v901.0: Bola de Fuego Dinámica
+        "areaRadius": "Radio del Área de Deambulación (px)",
+        "areaMode": "Ubicación del Área"
     };
 
     if (currentMechTab === 'attack') {
@@ -141,6 +144,237 @@ function renderMechanicsLib() {
             }).join(' • ')}</div>`;
             grid.appendChild(card);
         }
+    } else if (currentMechTab === 'aggro') {
+        if (!config.aggroConfig) {
+            config.aggroConfig = {
+                enabled: true,
+                damageThreatMultiplier: 1.0,
+                healingThreatMultiplier: 0.5,
+                tankDamageTakenMultiplier: 1.5,
+                tankRoleThreatMultiplier: 2.5,
+                sphereBlueThreatBonus: 0.50,
+                sphereRedThreatBonus: 0.15,
+                sphereGreenThreatBonus: 0.25,
+                sphereYellowThreatBonus: 0.10,
+                meleePeelThreshold: 1.10,
+                rangedPeelThreshold: 1.30,
+                meleeRangeThreshold: 250,
+                threatDecayRatePercent: 5,
+                threatDecayDelayMs: 5000,
+                tauntBonusPercent: 10,
+                initialPullThreat: 100,
+                altarBaseThreat: 500
+            };
+        }
+        const ac = config.aggroConfig;
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.gridColumn = '1 / -1';
+        card.style.background = 'linear-gradient(135deg, rgba(234, 179, 8, 0.05), rgba(168, 85, 247, 0.05), rgba(6, 182, 212, 0.05))';
+        card.style.border = '1px solid rgba(234, 179, 8, 0.35)';
+        card.style.borderRadius = '12px';
+        card.style.padding = '1.8rem';
+        card.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(234,179,8,0.25); padding-bottom:1rem; margin-bottom:1.5rem; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <h2 style="color:#eab308; margin:0; font-size:1.4rem; display:flex; align-items:center; gap:8px;">
+                        <span>👑</span> SISTEMA DE AGRO Y AMENAZA (BALANCE GLOBAL)
+                    </h2>
+                    <p style="color:#999; font-size:0.85rem; margin:4px 0 0;">Configuración de amenaza para Tanques (Esferas Azules), Sanadores (Esferas Verdes) y Dañadores (Esferas Rojas).</p>
+                </div>
+                <div>
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; color:white; font-size:0.9rem; font-weight:bold; background:rgba(0,0,0,0.45); padding:8px 16px; border-radius:6px; border:1px solid rgba(255,255,255,0.15);">
+                        <input type="checkbox" ${ac.enabled !== false ? 'checked' : ''} onchange="config.aggroConfig.enabled = this.checked; renderMechanicsLib();">
+                        <span>Sistema de Agro Activo</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.5rem;">
+                <!-- TARJETA 1: ESFERAS Y ROL TANQUE -->
+                <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(59,130,246,0.35); border-radius:10px; padding:1.3rem;">
+                    <h4 style="color:#60a5fa; margin:0 0 0.5rem; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+                        🔮 AGRO POR ESFERAS EQUIPADAS Y ROL TANQUE
+                    </h4>
+                    <p style="color:#aaa; font-size:0.75rem; margin:0 0 1.2rem; line-height:1.4;">
+                        Cada esfera orbital equipada suma amenaza pasiva. <strong>El jugador con más esferas azules del grupo es consagrado como el Tanque oficial</strong> y recibe el multiplicador de tanque.
+                    </p>
+                    <div style="display:flex; flex-direction:column; gap:14px;">
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#93c5fd;">🔵 Esfera Azul (Defensa)</span>
+                                <span style="color:#60a5fa; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">+${Math.round((ac.sphereBlueThreatBonus !== undefined ? ac.sphereBlueThreatBonus : 0.50) * 100)}% de Agro</span>
+                            </label>
+                            <input type="number" step="0.05" min="0" max="5.0" value="${ac.sphereBlueThreatBonus !== undefined ? ac.sphereBlueThreatBonus : 0.50}" onchange="config.aggroConfig.sphereBlueThreatBonus = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Bono por cada esfera azul equipada (0.50 = +50% de amenaza acumulable).</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#fca5a5;">🔴 Esfera Roja (Ataque)</span>
+                                <span style="color:#f87171; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">+${Math.round((ac.sphereRedThreatBonus !== undefined ? ac.sphereRedThreatBonus : 0.15) * 100)}% de Agro</span>
+                            </label>
+                            <input type="number" step="0.05" min="0" max="5.0" value="${ac.sphereRedThreatBonus !== undefined ? ac.sphereRedThreatBonus : 0.15}" onchange="config.aggroConfig.sphereRedThreatBonus = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Bono por cada esfera roja equipada (0.15 = +15% de amenaza acumulable).</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#86efac;">🟢 Esfera Verde (Curación)</span>
+                                <span style="color:#4ade80; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">+${Math.round((ac.sphereGreenThreatBonus !== undefined ? ac.sphereGreenThreatBonus : 0.25) * 100)}% de Agro</span>
+                            </label>
+                            <input type="number" step="0.05" min="0" max="5.0" value="${ac.sphereGreenThreatBonus !== undefined ? ac.sphereGreenThreatBonus : 0.25}" onchange="config.aggroConfig.sphereGreenThreatBonus = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Bono por cada esfera verde equipada (0.25 = +25% de amenaza acumulable).</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#fde047;">🟡 Esfera Amarilla (Utilidad)</span>
+                                <span style="color:#facc15; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">+${Math.round((ac.sphereYellowThreatBonus !== undefined ? ac.sphereYellowThreatBonus : 0.10) * 100)}% de Agro</span>
+                            </label>
+                            <input type="number" step="0.05" min="0" max="5.0" value="${ac.sphereYellowThreatBonus !== undefined ? ac.sphereYellowThreatBonus : 0.10}" onchange="config.aggroConfig.sphereYellowThreatBonus = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Bono por cada esfera amarilla equipada (0.10 = +10% de amenaza acumulable).</small>
+                        </div>
+                        <div class="field" style="border-top:1px dashed rgba(234,179,8,0.3); padding-top:10px; margin-top:4px;">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:bold; color:#eab308;">🛡️ Multiplicador para el Tanque del Grupo</span>
+                                <span style="color:#eab308; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.95rem;">${ac.tankRoleThreatMultiplier !== undefined ? ac.tankRoleThreatMultiplier : 2.5}x</span>
+                            </label>
+                            <input type="number" step="0.1" min="1" max="50" value="${ac.tankRoleThreatMultiplier !== undefined ? ac.tankRoleThreatMultiplier : 2.5}" onchange="config.aggroConfig.tankRoleThreatMultiplier = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#eab308; font-size:0.7rem;">Multiplicador otorgado automáticamente al miembro con más esferas azules (mínimo 1).</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TARJETA 2: GENERACIÓN BASE DE AMENAZA -->
+                <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(239,68,68,0.35); border-radius:10px; padding:1.3rem;">
+                    <h4 style="color:#f87171; margin:0 0 0.5rem; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+                        ⚔️ GENERACIÓN BASE DE AGRO (PESOS)
+                    </h4>
+                    <p style="color:#aaa; font-size:0.75rem; margin:0 0 1.2rem; line-height:1.4;">
+                        Equivalencia base entre las acciones de combate y la amenaza generada hacia los enemigos.
+                    </p>
+                    <div style="display:flex; flex-direction:column; gap:14px;">
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#fca5a5;">Agro por Daño Infligido (DPS)</span>
+                                <span style="color:#f87171; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${ac.damageThreatMultiplier !== undefined ? ac.damageThreatMultiplier : 1.0}x</span>
+                            </label>
+                            <input type="number" step="0.1" min="0" max="100" value="${ac.damageThreatMultiplier !== undefined ? ac.damageThreatMultiplier : 1.0}" onchange="config.aggroConfig.damageThreatMultiplier = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">1 de daño genera X puntos de amenaza (funciona a cualquier distancia).</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#86efac;">Agro por Curación Realizada (Healer)</span>
+                                <span style="color:#4ade80; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${ac.healingThreatMultiplier !== undefined ? ac.healingThreatMultiplier : 0.5}x</span>
+                            </label>
+                            <input type="number" step="0.05" min="0" max="100" value="${ac.healingThreatMultiplier !== undefined ? ac.healingThreatMultiplier : 0.5}" onchange="config.aggroConfig.healingThreatMultiplier = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">1 de curación genera X puntos de amenaza repartidos entre enemigos en combate.</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#93c5fd;">Agro por Mitigación / Daño Recibido</span>
+                                <span style="color:#60a5fa; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${ac.tankDamageTakenMultiplier !== undefined ? ac.tankDamageTakenMultiplier : 1.5}x</span>
+                            </label>
+                            <input type="number" step="0.1" min="0" max="100" value="${ac.tankDamageTakenMultiplier !== undefined ? ac.tankDamageTakenMultiplier : 1.5}" onchange="config.aggroConfig.tankDamageTakenMultiplier = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Amenaza base generada por el tanque al recibir y resistir ataques del enemigo.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TARJETA 3: HISTÉRESIS Y VISIÓN DE AGRO -->
+                <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(6,182,212,0.35); border-radius:10px; padding:1.3rem;">
+                    <h4 style="color:#22d3ee; margin:0 0 0.5rem; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+                        🎯 CONTROL DE TARGET Y DESPEGUE (ANTI-PING-PONG)
+                    </h4>
+                    <p style="color:#aaa; font-size:0.75rem; margin:0 0 1.2rem; line-height:1.4;">
+                        Evita que el mob cambie erráticamente de objetivo ante pequeñas variaciones de daño entre jugadores.
+                    </p>
+                    <div style="display:flex; flex-direction:column; gap:14px;">
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#a5f3fc;">Robo de Agro en Cuerpo a Cuerpo</span>
+                                <span style="color:#22d3ee; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${Math.round((ac.meleePeelThreshold || 1.10) * 100)}%</span>
+                            </label>
+                            <input type="number" step="0.05" min="1.0" max="3.0" value="${ac.meleePeelThreshold !== undefined ? ac.meleePeelThreshold : 1.10}" onchange="config.aggroConfig.meleePeelThreshold = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">1.10 = 110%. Un atacante melee debe superar en un 10% la amenaza del tanque actual.</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#a5f3fc;">Robo de Agro a Distancia (Rango)</span>
+                                <span style="color:#22d3ee; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${Math.round((ac.rangedPeelThreshold || 1.30) * 100)}%</span>
+                            </label>
+                            <input type="number" step="0.05" min="1.0" max="3.0" value="${ac.rangedPeelThreshold !== undefined ? ac.rangedPeelThreshold : 1.30}" onchange="config.aggroConfig.rangedPeelThreshold = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">1.30 = 130%. Un tirador lejano debe superar en un 30% la amenaza para robar el objetivo.</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#a5f3fc;">Distancia Cuerpo a Cuerpo (Píxeles)</span>
+                                <span style="color:#22d3ee; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${ac.meleeRangeThreshold || 250} px</span>
+                            </label>
+                            <input type="number" step="10" min="50" max="1000" value="${ac.meleeRangeThreshold !== undefined ? ac.meleeRangeThreshold : 250}" onchange="config.aggroConfig.meleeRangeThreshold = parseInt(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Distancia en píxeles por debajo de la cual se considera rango cuerpo a cuerpo.</small>
+                        </div>
+                        <div style="background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.25); border-radius:6px; padding:0.7rem;">
+                            <span style="color:#22d3ee; font-size:0.75rem; font-weight:bold;">👁️ PERCEPCIÓN DINÁMICA POR VISIÓN DEL ENEMIGO:</span>
+                            <p style="color:#aaa; font-size:0.7rem; margin:4px 0 0; line-height:1.35;">La detección de curaciones y ataques utiliza el área de visión individual de cada mob o boss, impidiendo que jugadores a distancia curen o ataquen impunemente.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TARJETA 4: PROVOCACIÓN, PULL Y DECAIMIENTO -->
+                <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(168,85,247,0.35); border-radius:10px; padding:1.3rem;">
+                    <h4 style="color:#c084fc; margin:0 0 0.5rem; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+                        📢 PROVOCACIÓN (TAUNT), PULL Y PÉRDIDA DE AGRO
+                    </h4>
+                    <p style="color:#aaa; font-size:0.75rem; margin:0 0 1.2rem; line-height:1.4;">
+                        Mecánicas de fijación obligatoria y reducción de amenaza por inactividad prolongada.
+                    </p>
+                    <div style="display:flex; flex-direction:column; gap:14px;">
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#e9d5ff;">Bono Extra de Provocación (Taunt)</span>
+                                <span style="color:#c084fc; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">+${ac.tauntBonusPercent !== undefined ? ac.tauntBonusPercent : 10}%</span>
+                            </label>
+                            <input type="number" step="1" min="0" max="100" value="${ac.tauntBonusPercent !== undefined ? ac.tauntBonusPercent : 10}" onchange="config.aggroConfig.tauntBonusPercent = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Porcentaje extra otorgado al tanque por encima de la amenaza máxima al usar Taunt.</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#e9d5ff;">Agro Inicial al Avistar Jugador (Pull)</span>
+                                <span style="color:#c084fc; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${ac.initialPullThreat || 100} pts</span>
+                            </label>
+                            <input type="number" step="10" min="0" max="10000" value="${ac.initialPullThreat !== undefined ? ac.initialPullThreat : 100}" onchange="config.aggroConfig.initialPullThreat = parseInt(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Amenaza base otorgada al primer jugador que entra en la visión del enemigo agresivo.</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#e9d5ff;">Pérdida de Agro por Inactividad (% / seg)</span>
+                                <span style="color:#c084fc; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${ac.threatDecayRatePercent !== undefined ? ac.threatDecayRatePercent : 5}%</span>
+                            </label>
+                            <input type="number" step="1" min="0" max="100" value="${ac.threatDecayRatePercent !== undefined ? ac.threatDecayRatePercent : 5}" onchange="config.aggroConfig.threatDecayRatePercent = parseFloat(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Porcentaje de pérdida de amenaza por segundo si el jugador deja de atacar o curar.</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#e9d5ff;">Tiempo de Espera para Perder Agro</span>
+                                <span style="color:#c084fc; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${(ac.threatDecayDelayMs !== undefined ? ac.threatDecayDelayMs : 5000) / 1000} seg</span>
+                            </label>
+                            <input type="number" step="500" min="1000" max="60000" value="${ac.threatDecayDelayMs !== undefined ? ac.threatDecayDelayMs : 5000}" onchange="config.aggroConfig.threatDecayDelayMs = parseInt(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Milisegundos de inactividad antes de que la amenaza comience a degradarse (5000 ms = 5 seg).</small>
+                        </div>
+                        <div class="field">
+                            <label style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; color:#fde047;">Agro Base del Altar (Modo Invasión)</span>
+                                <span style="color:#eab308; font-family:'JetBrains Mono'; font-weight:bold; font-size:0.85rem;">${ac.altarBaseThreat || 500} pts</span>
+                            </label>
+                            <input type="number" step="50" min="0" max="100000" value="${ac.altarBaseThreat !== undefined ? ac.altarBaseThreat : 500}" onchange="config.aggroConfig.altarBaseThreat = parseInt(this.value); renderMechanicsLib();">
+                            <small style="color:#888; font-size:0.7rem;">Amenaza base del Altar para que los jugadores puedan rescatarlo haciendo daño o con Taunt.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
     } else {
         for(let type in MOVEMENT_LIB) {
             const m = MOVEMENT_LIB[type];

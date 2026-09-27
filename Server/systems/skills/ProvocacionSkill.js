@@ -62,6 +62,9 @@ class ProvocacionSkill extends BaseSkill {
                         // Aplicación del estado de provocación autoritativo
                         e.forcedTarget = socket.id;
                         e.tauntEndTime = Date.now() + tauntDuration;
+                        if (e.threatTable) {
+                            e.threatTable.applyTaunt(socket.id, tauntDuration);
+                        }
                         affectedEnemies.push(e.id);
                     }
                 }

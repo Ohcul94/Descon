@@ -22,8 +22,8 @@ module.exports = class BossAI extends BaseAI {
         // v266.999: Forzar ciclo base para detectar Agresividad Extrema y Agro Global
         super.update(grid, players, now, io);
         
-        // El bicho hereda el target de la lógica base
-        let target = this.getNearestPlayer(grid, players);
+        // El bicho hereda el target de la lógica base o consulta threatTable
+        let target = this.activeTarget || (this.threatTable ? this.threatTable.getTopThreatTarget(players) : null) || this.getNearestPlayer(grid, players);
         if (!target) {
             if (this.noAggroStartTime === 0) this.noAggroStartTime = now;
             
@@ -60,6 +60,7 @@ module.exports = class BossAI extends BaseAI {
                     // 3. Limpieza de Clones y Proyectiles
                     if (global.serverDespawnClones) global.serverDespawnClones(this.enemy.zone);
                     if (global.serverClearProjectiles) global.serverClearProjectiles(this.enemy.zone, this.enemy.id);
+                    if (this.threatTable) this.threatTable.reset();
                 }
                 this.noAggroStartTime = 0;
             }

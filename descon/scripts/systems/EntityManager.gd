@@ -13,6 +13,7 @@ var _frost_flake_tex: Texture2D = null # Copo de nieve procedural, generado una 
 var loot_drops = {} # Cache de botines activos en el mapa
 var active_laser_tracking = {} # Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
 var active_wind_walls = {} # Paredes de viento en fase de carga {wall_id: Node2D}
+var active_fireballs = {} # Bolas de fuego dinámicas (tipo sol) {enemy_id_mId: Node2D} (v901.0)
 var active_meteors = {} # Meteoritos activos {key: {warn_3d, meteor_3d, fall_s, landed}} (v411)
 var active_meteor_zones = {} # Zonas persistentes de meteoritos {mId: {zone_2d, elapsed}}
 var death_marks = {} # Marks de Ejecución Directa {mark_key: {enemy_id, node, target_id}}
@@ -973,7 +974,8 @@ func _on_enemy_action(data: Dictionary):
 	var action = data.get("action", "")
 	var enemy_id = str(data.get("id", ""))
 	# v900.0: sonido de mecánica genérico (2D con atenuación)
-	if AudioManager and AudioManager.has_method("play_mechanic_sound") and not str(action).is_empty():
+	# v901.0: "silent" evita repetir el sonido en los updates de posición/estado (Bola de Fuego Dinámica)
+	if AudioManager and AudioManager.has_method("play_mechanic_sound") and not str(action).is_empty() and not data.get("silent", false):
 		var candidate = str(action).split("_")[0]
 		if candidate.is_empty():
 			candidate = str(action)
@@ -1000,6 +1002,11 @@ func _on_enemy_action(data: Dictionary):
 		return
 	if action == "meteor_zone_start" or action == "meteor_zone_end":
 		_handle_meteor_zone_action(data)
+		return
+	# v901.0: Bola de Fuego Dinámica - la esfera solar vive en el mapa (no depende de que el
+	# enemigo esté renderizado) y su posición/daño la manda el servidor.
+	if action == "fireball_charge" or action == "fireball_spawn" or action == "fireball_move" or action == "fireball_expire":
+		_handle_fireball_action(data)
 		return
 	# v413: Sueño Inducido - orbe 3D que vuela del enemigo al jugador al lanzar el sleep
 	if action == "sleep_cast":
@@ -2330,6 +2337,87 @@ func _handle_meteor_action(data: Dictionary):
 
 func _handle_meteor_zone_action(data: Dictionary) -> void:
 	if boss_action_handler: boss_action_handler.handle_meteor_zone_action(data)
+
+# ==============================================================================
+# v901.0: BOLA DE FUEGO DINÁMICA (esfera solar que deambula por un área)
+# El servidor es el dueño de la verdad: posición, daño, duración y cooldown.
+# Aquí solo se construye/actualiza/libera el VFX según los eventos serverEnemyAction.
+# ==============================================================================
+func _handle_fireball_action(data: Dictionary) -> void:
+	var action := str(data.get("action", ""))
+	var enemy_id := str(data.get("id", ""))
+	var m_id := str(data.get("mId", ""))
+	var key := enemy_id + "_" + m_id
+	var map_node = get_tree().get_first_node_in_group("map")
+	var enemy_node = enemies.get(enemy_id) if enemies.has(enemy_id) else null
+	if enemy_node != null and not is_instance_valid(enemy_node):
+		enemy_node = null
+
+	if action == "fireball_expire":
+		if active_fireballs.has(key):
+			var fb = active_fireballs[key]
+			active_fireballs.erase(key)
+			if is_instance_valid(fb) and fb.has_method("finish"):
+				fb.finish()
+		return
+
+	if action == "fireball_charge":
+		var charge_key := "charge_" + key
+		if active_fireballs.has(charge_key):
+			var old_charge = active_fireballs[charge_key]
+			active_fireballs.erase(charge_key)
+			if is_instance_valid(old_charge):
+				old_charge.queue_free()
+		var charge_node := _create_fireball_node("FireballCharge_" + key)
+		if charge_node == null:
+			return
+		if charge_node.has_method("setup_charge"):
+			charge_node.setup_charge(data, map_node, enemy_node)
+		active_fireballs[charge_key] = charge_node
+		return
+
+	if action == "fireball_spawn":
+		# Limpieza del telegrafiado y de una bola previa (evento perdido / re-spawn)
+		var charge_key := "charge_" + key
+		if active_fireballs.has(charge_key):
+			var old_charge = active_fireballs[charge_key]
+			active_fireballs.erase(charge_key)
+			if is_instance_valid(old_charge):
+				old_charge.queue_free()
+		if active_fireballs.has(key):
+			var old_fb = active_fireballs[key]
+			active_fireballs.erase(key)
+			if is_instance_valid(old_fb):
+				old_fb.queue_free()
+		var fb_node := _create_fireball_node("FireballSun_" + key)
+		if fb_node == null:
+			return
+		if fb_node.has_method("setup"):
+			fb_node.setup(data, map_node, enemy_node)
+		active_fireballs[key] = fb_node
+		return
+
+	if action == "fireball_move":
+		if active_fireballs.has(key):
+			var fb = active_fireballs[key]
+			if is_instance_valid(fb) and fb.has_method("set_target"):
+				fb.set_target(Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0))))
+		return
+
+func _create_fireball_node(node_name: String) -> Node2D:
+	var fb_script = load("res://scripts/systems/FireballSunVisual.gd")
+	if not fb_script:
+		return null
+	var node := Node2D.new()
+	node.set_script(fb_script)
+	node.name = node_name
+	node.z_index = 6
+	node.set_as_top_level(true)
+	if is_instance_valid(world) and is_instance_valid(world.entities_node):
+		world.entities_node.add_child(node)
+	else:
+		add_child(node)
+	return node
 
 
 # --- Spawn safety: evita que enemigos aparezcan dentro de colliders 2D (muro/estructura) ---
@@ -3757,9 +3845,10 @@ func _on_clear_zone_entities(payload):
 	# Gusano Bumerán: limpiar gusanos activos al cambiar de zona
 	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):
 		for child in world.entities_node.get_children():
-			if is_instance_valid(child) and (child.name.begins_with("Worm_") or child.name.begins_with("WindWall_")):
+			if is_instance_valid(child) and (child.name.begins_with("Worm_") or child.name.begins_with("WindWall_") or child.name.begins_with("Fireball")):
 				child.queue_free()
 	active_wind_walls.clear()
+	active_fireballs.clear() # v901.0: Bola de Fuego Dinámica
 
 	# v400.60: Limpiar visuales de zambullida (Burrow_) al cambiar de zona
 	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):

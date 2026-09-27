@@ -196,7 +196,7 @@ class AIManager {
 
         enemies[id] = e;
 
-        const { ai, _hookSafetyTimeout, ...spawnData } = e;
+        const { ai, _hookSafetyTimeout, threatTable, ...spawnData } = e;
         Logger.debug('SPAWN', `Enemigo ${name} [${type}] creado en Zona ${zone} (x:${Math.floor(finalX)}, y:${Math.floor(finalY)})`);
         this.io.to(`zone_${zone}`).emit('enemySpawn', spawnData);
         return e;

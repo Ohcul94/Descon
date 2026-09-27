@@ -9,6 +9,9 @@ const meteorMechanics = require('./mechanics/BossMeteorMechanics');
 const offensiveMechanics = require('./mechanics/BossOffensiveMechanics');
 const defenseMechanics = require('./mechanics/BossDefenseMechanics');
 const puzzleMechanics = require('./mechanics/BossPuzzleMechanics');
+// v901.0: Bola de Fuego Dinámica
+const fireballMechanics = require('./mechanics/FireballMechanics');
+const { ThreatTable } = require('../systems/ThreatTable');
 
 module.exports = class BaseAI {
     constructor(enemy, config, state) {
@@ -20,6 +23,11 @@ module.exports = class BaseAI {
         this._currentPhaseIndex = 0; // v500.0: Índice de fase dinámica activa
         this._lastMovementType = null; // v500.0: Último tipo de movimiento asignado
         this.baseConfig = { ...config }; // v500.1: Guardar copia de configuración base
+        if (!this.enemy.threatTable) {
+            this.enemy.threatTable = new ThreatTable(this.enemy, this.state);
+        }
+        this.threatTable = this.enemy.threatTable;
+        this.activeTarget = null;
     }
 
     // v_fix_dead: Helper centralizado para matar jugadores desde IA de bosses
@@ -299,8 +307,18 @@ module.exports = class BaseAI {
         const isAltarRush = activeMovType === 'altar_rush' || cfg.movementAI === 'altar_rush';
         const hasAltarMechanic = Boolean(isAltarZone || isAltarRush || hasAltarPhase || cfg.movementAI === 'altar_rush' || focusTarget === 'altar' || focusTarget === 'altar_aggro');
 
-        // 1. REGLA PRIORITARIA: Provocación (Taunt)
-        if (this.enemy.forcedTarget && players[this.enemy.forcedTarget] && now < this.enemy.tauntEndTime) {
+        // 1. EVALUAR AMENAZA AUTORITATIVA (Sistema de Agro AAA)
+        // Consulta la tabla de amenaza (Daño, Curación, Tanqueo/Mitigación, Taunt e Histéresis de Peel)
+        if (this.threatTable) {
+            const threatTopPlayer = this.threatTable.getTopThreatTarget(players);
+            if (threatTopPlayer) {
+                activeTarget = threatTopPlayer;
+                isRevenge = true;
+            }
+        }
+
+        // 1.1 REGLA PRIORITARIA: Provocación (Taunt)
+        if (!activeTarget && this.enemy.forcedTarget && players[this.enemy.forcedTarget] && now < this.enemy.tauntEndTime) {
             const tauntPlayer = players[this.enemy.forcedTarget];
             if (!tauntPlayer.isDead && !tauntPlayer.isInvisible) {
                 activeTarget = tauntPlayer;
@@ -448,8 +466,11 @@ module.exports = class BaseAI {
             }
 
             // PROXIMIDAD: Si soy agresivo y no tengo venganza pendiente, busco al más cercano
-            if (!activeTarget && isAggressive) {
+            if (!activeTarget && isAggressive && potentialTarget) {
                 activeTarget = potentialTarget;
+                if (this.threatTable) {
+                    this.threatTable.addPullThreat(potentialTarget.socketId, potentialTarget);
+                }
             }
         }
 
@@ -460,6 +481,10 @@ module.exports = class BaseAI {
                 activeTarget = altarTarget;
             }
         }
+
+        // Guardar referencia autoritativa de target activo para BossAI y mecánicas secundarias
+        this.activeTarget = activeTarget;
+        this.enemy.currentTarget = activeTarget;
 
         // Manejar el inicio de persecución (chaseStartTime) si hay un target de JUGADOR activo válido
         // v500.4: NO actualizar chaseStartTime si el target es el Altar (para que no active combate contra jugadores)
@@ -506,6 +531,7 @@ module.exports = class BaseAI {
                 this.enemy.returningToSpawn = true;
                 this._interruptActiveMechanics(now, io);
                 this.enemy.lastHitter = null; // Olvidar agresor para forzar retorno
+                if (this.threatTable) this.threatTable.reset();
                 activeTarget = null;
             }
         }
@@ -564,6 +590,7 @@ module.exports = class BaseAI {
                 this.enemy.returningToSpawn = true;
                 this._interruptActiveMechanics(now, io);
                 this.enemy.lastHitter = null;
+                if (this.threatTable) this.threatTable.reset();
                 activeTarget = null;
             }
         }
@@ -1317,7 +1344,7 @@ module.exports = class BaseAI {
 
     _isGenericCastType(type) {
         // Types with internal cast handling (their own charge) - generic runs in parallel (double bar)
-        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador"];
+        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball"];
         return !internal.includes(type);
     }
     _handleGenericCast(mech, mId, now, io) {
@@ -1441,6 +1468,11 @@ module.exports = class BaseAI {
 
         if (mech.type === "meteor") {
             return this._handleMeteorLogic(mech, mId, target, dist, angle, now, io, players);
+        }
+
+        // v901.0: Bola de Fuego Dinámica - esfera solar que deambula por un área
+        if (mech.type === "fireball") {
+            return fireballMechanics._handleFireballLogic.call(this, mech, mId, target, dist, now, io, players);
         }
 
         if (dist > fireRange && !state.isCharging && !state.isActive && mech.type !== "polymorph") return false;

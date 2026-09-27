@@ -959,7 +959,7 @@ function updateMechanicType(enemyId, idx, newType) {
     const lib = (config.mechanicsLib && config.mechanicsLib[newType]) ? config.mechanicsLib[newType] : DEFAULT_MECHANICS_LIB[newType];
     lib.fields.forEach(f => {
         if (mech[f] === undefined) {
-            if (f === 'radius') mech[f] = newType === 'ascension' ? 250 : 250;
+            if (f === 'radius') mech[f] = newType === 'fireball' ? 90 : (newType === 'ascension' ? 250 : 250);
             else if (f === 'damage') mech[f] = newType === 'spin_ring' ? 100 : (newType === 'circle_cast' ? 500 : 15);
             else if (f === 'intervalMs') mech[f] = 1000;
             else if (f === 'duration') mech[f] = 5000;
@@ -972,8 +972,13 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'aimDelayMs') mech[f] = 1000;
             else if (f === 'coneFollow') mech[f] = false;
             else if (f === 'lockTimeMs') mech[f] = newType === 'circle_cast' ? 800 : 0;
-            else if (f === 'castTimeMs') mech[f] = 0;
+            else if (f === 'castTimeMs') mech[f] = newType === 'fireball' ? 1200 : 0;
             else if (f === 'castInterruptible') mech[f] = true;
+            else if (f === 'areaRadius') mech[f] = 350;
+            else if (f === 'areaMode') mech[f] = 'enemy';
+            else if (f === 'speed') mech[f] = newType === 'fireball' ? 180 : 400;
+            else if (f === 'tick_interval') mech[f] = 800;
+            else if (f === 'damage_per_tick') mech[f] = 30;
             else if (f === 'bombCount') mech[f] = 3;
             else if (f === 'bombDelayMs') mech[f] = 500;
             else if (f === 'fuseTimeMs') mech[f] = 1000;

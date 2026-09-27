@@ -250,6 +250,44 @@ function renderEnemyDetail() {
                         <div class="field"><label>Intervalo de Regeneración (ms)</label><input type="number" value="${en.regenIntervalMs !== undefined ? en.regenIntervalMs : 1000}" onchange="config.enemyModels['${selectedEnemyId}'].regenIntervalMs = parseInt(this.value)"></div>
                     </div>
                 </div>
+                <div class="card" style="width:100%; margin-bottom: 2rem; border-color: #eab308; background: rgba(234, 179, 8, 0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <label style="color:#eab308; font-size: 0.75rem; font-weight:bold; display:flex; align-items:center; gap:6px;">
+                            <span>👑</span> SISTEMA DE AGRO Y AMENAZA (AAA)
+                        </label>
+                        <div class="field" style="display:flex; align-items:center; gap:8px; margin:0; background:transparent; border:none;">
+                            <input type="checkbox" ${en.useCustomAggro ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].useCustomAggro = this.checked; renderEnemyDetail();">
+                            <label style="margin:0; font-size:0.7rem; color:#eab308; font-weight:bold;">Personalizar Agro</label>
+                        </div>
+                    </div>
+                    
+                    ${en.useCustomAggro ? `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div class="field">
+                            <label>Mult. Amenaza Daño (DPS)</label>
+                            <input type="number" step="0.1" value="${en.aggroDamageMult !== undefined ? en.aggroDamageMult : 1.0}" placeholder="Hereda global (1.0)" onchange="config.enemyModels['${selectedEnemyId}'].aggroDamageMult = parseFloat(this.value)">
+                        </div>
+                        <div class="field">
+                            <label>Mult. Amenaza Curación (Healer)</label>
+                            <input type="number" step="0.05" value="${en.aggroHealMult !== undefined ? en.aggroHealMult : 0.5}" placeholder="Hereda global (0.5)" onchange="config.enemyModels['${selectedEnemyId}'].aggroHealMult = parseFloat(this.value)">
+                        </div>
+                        <div class="field">
+                            <label>Mult. Amenaza Mitigación (Tanque)</label>
+                            <input type="number" step="0.1" value="${en.aggroTankMult !== undefined ? en.aggroTankMult : 1.5}" placeholder="Hereda global (1.5)" onchange="config.enemyModels['${selectedEnemyId}'].aggroTankMult = parseFloat(this.value)">
+                        </div>
+                        <div class="field">
+                            <label>Umbral de Despegue Melee</label>
+                            <input type="number" step="0.05" value="${en.aggroPeelThreshold !== undefined ? en.aggroPeelThreshold : 1.10}" placeholder="Hereda global (1.10)" onchange="config.enemyModels['${selectedEnemyId}'].aggroPeelThreshold = parseFloat(this.value)">
+                        </div>
+                        <div class="field" style="display:flex; align-items:center; gap:10px; background:transparent; border:none; grid-column:span 2;">
+                            <input type="checkbox" ${en.immuneToTaunt ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].immuneToTaunt = this.checked">
+                            <label style="margin:0; color:#ff4444; font-weight:bold;">Inmune a Provocación (Taunt)</label>
+                        </div>
+                    </div>
+                    ` : `
+                    <p style="margin:0; font-size:0.7rem; color:#888;">Utiliza el balance global configurado en <i>Mecánicas ▶ Sistema de Agro</i> (Daño: 1.0x, Heal: 0.5x, Tanque: 1.5x, Peel: 110% Melee / 130% Rango).</p>
+                    `}
+                </div>
                 <div style="margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
                     <label style="color:#eab308; font-size: 0.8rem; font-weight:bold;">🏃 CICLO DE MOVIMIENTO</label>
                     <div style="display:flex; gap:6px; align-items:center;">
@@ -375,7 +413,11 @@ const fieldLabelsMap = {
                                           orbitRadius: "Radio de Órbita (px)",
                                           orbitDuration: "Tiempo de Giro (ms)",
                                           staticTime: "Tiempo Estático (ms)",
-                                           radius: m.type === 'spin_ring' ? "Radio del Círculo (px)" : (m.type === 'bomb' ? "Radio de Explosión (px)" : (m.type === 'wall_dome' ? "Radio del Domo (px)" : (m.type === 'burrow' ? "Radio del Círculo de Daño (px)" : (m.type === 'ascension' ? "Radio del Área de Caída (px)" : "Radio del Aura (px)")))),
+                                           radius: m.type === 'fireball' ? "Tamaño de la Bola de Fuego (px / radio de daño)" : (m.type === 'spin_ring' ? "Radio del Círculo (px)" : (m.type === 'bomb' ? "Radio de Explosión (px)" : (m.type === 'wall_dome' ? "Radio del Domo (px)" : (m.type === 'burrow' ? "Radio del Círculo de Daño (px)" : (m.type === 'ascension' ? "Radio del Área de Caída (px)" : "Radio del Aura (px)"))))),
+                                           // v901.0: Bola de Fuego Dinámica
+                                           areaRadius: m.type === 'fireball' ? "Radio del Área de Deambulación (px)" : "Radio del Área (px)",
+                                           areaMode: m.type === 'fireball' ? "Ubicación del Área" : "Modo de Área",
+                                           speed: m.type === 'fireball' ? "Velocidad de la Bola (px/s)" : "Velocidad (px/s)",
                                           damage: m.type === 'survival_dome' ? "Daño de la Explosión (pts)" : "Daño (pts)",
                                           intervalMs: "Intervalo de Tick (ms)",
                                           duration: m.type === 'sleep' ? "Duración del Sueño (ms)" : (m.type === 'reflect' ? "Duración del Escudo (ms)" : "Duración Total (ms)"),
@@ -722,6 +764,13 @@ if (f === 'targetMode') {
                                          </select></div>`;
                                      }
                                       if (f === 'turnSpeed' && m.type !== 'execution') return '';
+                                       if (f === 'areaMode') {
+                                           const amVal = m[f] || 'enemy';
+                                           return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].areaMode = this.value; renderEnemyDetail();">
+                                               <option value="enemy" ${amVal === 'enemy' ? 'selected' : ''}>👾 Alrededor del Enemigo</option>
+                                               <option value="target" ${amVal === 'target' ? 'selected' : ''}>🎯 Sobre la Posición del Objetivo</option>
+                                           </select></div>`;
+                                       }
                                       if ((f === 'zoneTickMs' || f === 'zoneDuration' || f === 'zoneDamage') && (m.burstMode || 'burst') !== 'zone' && !m.persistentZone) return '';
                                       if (f === 'slowIsPercentage') return '';
                                       if (f === 'slow_amount') {

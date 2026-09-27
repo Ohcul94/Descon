@@ -15,12 +15,18 @@
  * - Configuración reactiva en tiempo real desde AdminDash (config.json).
  */
 
+const { countPlayerSphereColors } = require('./equipRequirements');
+
 const DEFAULT_AGGRO_CONFIG = {
     enabled: true,
     damageThreatMultiplier: 1.0,         // 1 daño infligido = 1 pt de amenaza base
     healingThreatMultiplier: 0.5,        // 1 curación = 0.5 pts de amenaza repartida entre enemigos
-    tankDamageTakenMultiplier: 1.5,      // 1 daño recibido/mitigado = 1.5 pts de amenaza para el tanque
-    tankRoleThreatMultiplier: 3.5,       // Bono multiplicador pasivo de amenaza para tanques (3.5x)
+    tankDamageTakenMultiplier: 1.5,      // 1 daño recibido/mitigado = 1.5 pts de amenaza base
+    tankRoleThreatMultiplier: 2.5,       // Multiplicador extra de rol tanque otorgado al jugador con más esferas azules del grupo (2.5x)
+    sphereBlueThreatBonus: 0.50,         // +50% amenaza por cada esfera azul equipada (Defensa/Tanqueo)
+    sphereRedThreatBonus: 0.15,          // +15% amenaza por cada esfera roja equipada (Ataque/DPS)
+    sphereGreenThreatBonus: 0.25,        // +25% amenaza por cada esfera verde equipada (Curación/Soporte)
+    sphereYellowThreatBonus: 0.10,       // +10% amenaza por cada esfera amarilla equipada (Utilidad/Movilidad)
     meleePeelThreshold: 1.10,            // Requiere 110% de amenaza para quitarle el agro al objetivo actual en melee
     rangedPeelThreshold: 1.30,           // Requiere 130% de amenaza para quitarle el agro a distancia
     meleeRangeThreshold: 250,            // Radio en px considerado cuerpo a cuerpo
@@ -28,7 +34,6 @@ const DEFAULT_AGGRO_CONFIG = {
     threatDecayDelayMs: 5000,            // Milisegundos de inactividad antes de comenzar decaimiento
     tauntBonusPercent: 10,               // Bonus de amenaza que recibe el tanque sobre el top actual (+10%)
     initialPullThreat: 100,              // Amenaza inicial al avistar a un jugador agresivo
-    healingThreatRadius: 1000,           // Radio de percepción de curación por enemigos
     altarBaseThreat: 500                 // Amenaza base del Altar en modo Defensa del Altar
 };
 
@@ -68,25 +73,105 @@ class ThreatTable {
     }
 
     /**
-     * Determina si un jugador tiene rol o armamento de Tanque
+     * Calcula el área o radio de visión efectivo del enemigo (considerando Boss, Horda o Modificador Ambiental)
      */
-    isPlayerTank(p) {
-        if (!p) return false;
-        // 1. Rol asignado en Party (WoW / FFXIV style)
+    getEffectiveVisionRange() {
+        if (!this.enemy) return 800;
+        if (this.enemy.ai && this.enemy.ai.ambienceBoost) return 50000;
+        if (this.enemy.isHorde) return 10000;
+        const cfgVision = Number(this.enemy.config?.visionRange);
+        if (!isNaN(cfgVision) && cfgVision > 0) return cfgVision;
+        if (this.enemy.isBoss || this.enemy.aiType === 'boss') return 2000;
+        return 800;
+    }
+
+    /**
+     * Determina autoritativamente si un jugador califica como el Tanque del grupo.
+     * En lugar de depender de un simple rol de texto en la party, se basa en las esferas azules
+     * (Defensa). El jugador con la mayor cantidad de esferas azules del grupo/party (mínimo 1 esfera azul)
+     * es consagrado como el Tanque oficial del grupo.
+     * Si juega en solitario, requiere al menos 1 esfera azul.
+     */
+    isGroupTank(player) {
+        if (!player) return false;
+        const counts = countPlayerSphereColors(player.spheres);
+        const playerBlues = counts.azul || 0;
+        if (playerBlues <= 0) return false; // Sin esferas azules no puede ser tanque
+
+        // Si el jugador está en Party, comparar con todos los miembros de la party en el estado
         if (this.state && this.state.playerParty && this.state.parties) {
-            const pUid = p.dbId || (p.id ? p.id.toString() : null);
+            const pUid = player.dbId || (player.id ? player.id.toString() : null);
             if (pUid) {
                 const partyId = this.state.playerParty[pUid];
-                if (partyId && this.state.parties[partyId] && this.state.parties[partyId].roles) {
-                    if (this.state.parties[partyId].roles[pUid] === 'tank') return true;
+                const party = partyId ? this.state.parties[partyId] : null;
+                if (party && Array.isArray(party.members) && party.members.length > 1) {
+                    for (const memberInfo of party.members) {
+                        const mUid = typeof memberInfo === 'object' ? memberInfo.id : memberInfo;
+                        if (!mUid || String(mUid) === String(pUid)) continue;
+
+                        // Buscar objeto de jugador activo
+                        let memberPlayer = null;
+                        if (this.state.players) {
+                            for (const sid in this.state.players) {
+                                const cand = this.state.players[sid];
+                                const candUid = cand.dbId || (cand.id ? cand.id.toString() : null);
+                                if (String(candUid) === String(mUid)) {
+                                    memberPlayer = cand;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (memberPlayer) {
+                            // Si están en zonas distintas, solo compiten los que estén en la misma zona del enemigo
+                            if (this.enemy && memberPlayer.zone !== undefined && String(memberPlayer.zone) !== String(this.enemy.zone)) {
+                                continue;
+                            }
+                            const memberBlues = (countPlayerSphereColors(memberPlayer.spheres).azul || 0);
+                            if (memberBlues > playerBlues) {
+                                return false; // Otro miembro tiene más esferas azules
+                            }
+                        }
+                    }
+                    return true; // Es el miembro con más esferas azules (o empatado en el tope)
                 }
             }
         }
-        // 2. Munición o Armamento Melee de Tanque
-        if (p.equippedAmmo && String(p.equippedAmmo).startsWith('am_m')) return true;
-        if (p.selectedAmmo && String(p.selectedAmmo).startsWith('am_m')) return true;
-        if (p.role === 'tank') return true;
-        return false;
+
+        // Jugador en solitario o sin compañeros en zona: tener al menos 1 esfera azul le otorga el rol tanque
+        return playerBlues > 0;
+    }
+
+    /**
+     * Calcula el multiplicador total de amenaza para un jugador basándose en:
+     * 1. Esferas equipadas (Azules = Defensa/Tanqueo, Rojas = Ataque/DPS, Verdes = Curación/Soporte, Amarillas = Utilidad).
+     * 2. Bono de Rol Tanque si es el miembro con más esferas azules del grupo.
+     */
+    getPlayerThreatMultiplier(player, actionType = 'all') {
+        if (!player) return 1.0;
+        const cfg = this.getConfig();
+        const counts = countPlayerSphereColors(player.spheres);
+
+        const blues = counts.azul || 0;
+        const reds = counts.roja || 0;
+        const greens = counts.verde || 0;
+        const yellows = counts.amarilla || 0;
+
+        const blueBonus = Number(cfg.sphereBlueThreatBonus !== undefined ? cfg.sphereBlueThreatBonus : 0.50);
+        const redBonus = Number(cfg.sphereRedThreatBonus !== undefined ? cfg.sphereRedThreatBonus : 0.15);
+        const greenBonus = Number(cfg.sphereGreenThreatBonus !== undefined ? cfg.sphereGreenThreatBonus : 0.25);
+        const yellowBonus = Number(cfg.sphereYellowThreatBonus !== undefined ? cfg.sphereYellowThreatBonus : 0.10);
+
+        // Suma de bonos pasivos por cada esfera orbital
+        let sphereMult = 1.0 + (blues * blueBonus) + (reds * redBonus) + (greens * greenBonus) + (yellows * yellowBonus);
+
+        // Bono de Tanque del Grupo (+ esferas azules)
+        if (this.isGroupTank(player)) {
+            const tankRoleMult = Number(cfg.tankRoleThreatMultiplier !== undefined ? cfg.tankRoleThreatMultiplier : 2.5);
+            sphereMult *= tankRoleMult;
+        }
+
+        return Math.max(0.1, sphereMult);
     }
 
     /**
@@ -111,7 +196,7 @@ class ThreatTable {
 
     /**
      * 1. GENERACIÓN DE AGRO POR DAÑO
-     * Invocado cuando un jugador golpea al enemigo
+     * Invocado cuando un jugador golpea al enemigo (desde cualquier distancia)
      */
     addDamageThreat(socketId, damage, playerObj = null) {
         if (!socketId || !damage || damage <= 0) return 0;
@@ -120,10 +205,9 @@ class ThreatTable {
 
         const p = playerObj || (this.state?.players?.[socketId]);
         const pName = p ? (p.user || p.username || 'Jugador') : 'Jugador';
-        const isTank = this.isPlayerTank(p);
+        const playerThreatMult = this.getPlayerThreatMultiplier(p, 'damage');
 
-        const roleMult = isTank ? (cfg.tankRoleThreatMultiplier || 3.5) : 1.0;
-        const threatGain = damage * (cfg.damageThreatMultiplier !== undefined ? cfg.damageThreatMultiplier : 1.0) * roleMult;
+        const threatGain = damage * (cfg.damageThreatMultiplier !== undefined ? cfg.damageThreatMultiplier : 1.0) * playerThreatMult;
 
         const entry = this._getOrCreateEntry(socketId, pName);
         entry.threat += threatGain;
@@ -148,10 +232,11 @@ class ThreatTable {
 
         const p = healerObj || (this.state?.players?.[healerSocketId]);
         const pName = p ? (p.user || p.username || 'Sanador') : 'Sanador';
+        const playerThreatMult = this.getPlayerThreatMultiplier(p, 'healing');
 
-        // En MMOs AAA, la curación genera amenaza distribuida entre todos los enemigos activos
+        // En MMOs AAA, la curación genera amenaza distribuida entre todos los enemigos que perciben la curación
         const enemyCount = Math.max(1, activeEnemiesCount);
-        const threatGain = (healAmount * (cfg.healingThreatMultiplier !== undefined ? cfg.healingThreatMultiplier : 0.5)) / enemyCount;
+        const threatGain = ((healAmount * (cfg.healingThreatMultiplier !== undefined ? cfg.healingThreatMultiplier : 0.5)) / enemyCount) * playerThreatMult;
 
         const entry = this._getOrCreateEntry(healerSocketId, pName);
         entry.threat += threatGain;
@@ -172,12 +257,11 @@ class ThreatTable {
 
         const p = victimObj || (this.state?.players?.[victimSocketId]);
         const pName = p ? (p.user || p.username || 'Tanque') : 'Tanque';
-        const isTank = this.isPlayerTank(p);
+        const playerThreatMult = this.getPlayerThreatMultiplier(p, 'tank');
 
         // Los tanques generan agro masivo por absorber y resistir ataques del enemigo
         const baseTankMult = cfg.tankDamageTakenMultiplier !== undefined ? cfg.tankDamageTakenMultiplier : 1.5;
-        const roleMult = isTank ? (cfg.tankRoleThreatMultiplier || 3.5) : 1.0;
-        const threatGain = damageTaken * baseTankMult * roleMult;
+        const threatGain = damageTaken * baseTankMult * playerThreatMult;
 
         const entry = this._getOrCreateEntry(victimSocketId, pName);
         entry.threat += threatGain;
