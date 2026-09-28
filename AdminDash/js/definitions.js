@@ -256,4 +256,9 @@ const DEFAULT_RANKING_CONFIG = {
             resetInterval: "never",
             rewards: [
                 { rank: 1, hubs: 200000, ohcu: 500, exp: 50000, bpExp: 25000, items: [] },
-                { rank: 2, hubs: 100000, ohcu: 250, exp: 25000, 
+                { rank: 2, hubs: 100000, ohcu: 250, exp: 25000, bpExp: 10000, items: [] },
+                { rank: 3, hubs: 50000, ohcu: 100, exp: 10000, bpExp: 5000, items: [] }
+            ]
+        }
+    ]
+};
