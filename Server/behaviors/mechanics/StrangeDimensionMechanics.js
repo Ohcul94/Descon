@@ -1,5 +1,7 @@
 // Server/behaviors/mechanics/StrangeDimensionMechanics.js
-// v900.0: Mecánica Defensiva/Mística - Dimensión Extraña (Strange Dimension)
+// v902.0: Mecánica Defensiva/Mística - Dimensión Extraña (Strange Dimension)
+// IMPORTANTE: Emite 'serverEnemyAction' (no 'enemy_action') para que el cliente Godot lo reciba
+// a través de NetworkManager.enemy_action signal (mapeado desde serverEnemyAction).
 
 module.exports = {
     _handleStrangeDimensionLogic: function(mech, mId, target, dist, now, io, players) {
@@ -13,15 +15,40 @@ module.exports = {
                 isActive: false,
                 chargeEndTime: 0,
                 activeEndTime: 0,
-                nextShotTime: 0
+                nextShotTime: 0,
+                capturedTargets: []
             };
             this.enemy.strangeDimensionState[mId] = state;
         }
 
         const cd = Number(mech.cooldown || 25000);
-        const castMs = Number(mech.castTimeMs || 1000);
+        const castMs = Number(mech.castTimeMs || 1200);
         const durationMs = Number(mech.duration || 5.0) * 1000.0;
-        const roomName = `zone_${this.enemy.zoneId || 0}`;
+        const fireRange = Number(mech.fireRange || this.enemy.fireRange || 1000);
+        const targetCount = Math.max(1, Number(mech.targetCount || 1));
+        const targetMode = mech.targetMode || "highest_threat";
+        const castInterruptible = mech.castInterruptible === true || mech.castInterruptible === 'true';
+        const roomName = `zone_${this.enemy.zoneId || this.enemy.zone || 0}`;
+
+        // Chequeo de interrupción por CC (Control de Masas)
+        if (castInterruptible && (state.isCharging || state.isActive)) {
+            if (this.enemy.isStunned || this.enemy.isFeared || this.enemy.isPolymorphed) {
+                state.isCharging = false;
+                state.isActive = false;
+                state.nextShotTime = now + cd;
+                if (io) {
+                    io.to(roomName).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        action: 'strange_dimension_expire',
+                        type: 'strange_dimension',
+                        interrupted: true,
+                        silent: false
+                    });
+                }
+                return false;
+            }
+        }
 
         // 1. Durante la carga / casteo
         if (state.isCharging) {
@@ -31,15 +58,22 @@ module.exports = {
                 state.activeEndTime = now + durationMs;
                 state.nextShotTime = state.activeEndTime + cd;
 
-                // Emitir activación de la dimensión a los clientes
+                // Seleccionar los objetivos capturados que entrarán en la dimensión extraña
+                const targets = this._selectTargets(players, fireRange, targetCount, targetMode, mech);
+                state.capturedTargets = targets.map(p => p.socketId);
+
+                // Ocurre en el mismo lugar — no hay teletransporte, el efecto es local
                 if (io) {
-                    io.to(roomName).emit('enemy_action', {
+                    io.to(roomName).emit('serverEnemyAction', {
                         id: this.enemy.id,
+                        mId: mId,
                         action: 'strange_dimension_start',
                         type: 'strange_dimension',
                         duration: durationMs / 1000.0,
+                        targetIds: state.capturedTargets,
                         x: this.enemy.x,
-                        y: this.enemy.y
+                        y: this.enemy.y,
+                        silent: false
                     });
                 }
             }
@@ -50,11 +84,14 @@ module.exports = {
         if (state.isActive) {
             if (now >= state.activeEndTime) {
                 state.isActive = false;
+
                 if (io) {
-                    io.to(roomName).emit('enemy_action', {
+                    io.to(roomName).emit('serverEnemyAction', {
                         id: this.enemy.id,
+                        mId: mId,
                         action: 'strange_dimension_expire',
-                        type: 'strange_dimension'
+                        type: 'strange_dimension',
+                        silent: false
                     });
                 }
             }
@@ -75,8 +112,9 @@ module.exports = {
             state.chargeEndTime = now + castMs;
 
             if (io) {
-                io.to(roomName).emit('enemy_action', {
+                io.to(roomName).emit('serverEnemyAction', {
                     id: this.enemy.id,
+                    mId: mId,
                     action: 'strange_dimension_charge',
                     type: 'strange_dimension',
                     castMs: castMs,

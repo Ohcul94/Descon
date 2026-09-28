@@ -34,7 +34,7 @@ const DEFAULT_MECHANICS_LIB = {
     "fireball": { label: "Bola de Fuego Dinámica", icon: "☀️", desc: "Invoca una esfera de fuego tipo sol que comienza a moverse dentro de un área determinada, dañando a todo lo que toca durante su duración. Tamaño, área, daño, cadencia, duración y enfriamiento los define el Admin. Opcionalmente atrae a los jugadores que estén en su rango y les pega golpes de rayos por tick.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "startDelay", "castTimeMs", "castInterruptible", "fireRange", "cooldown", "duration", "areaRadius", "areaMode", "speed", "radius", "damage_per_tick", "tick_interval", "pullEnabled", "pullRadius", "pullStrength", "ray_damage"], sound: "", soundVolumePercent: 50, soundMaxDist: 1600 },
     // v415.0: Látigo Dominante (Whip)
     "whip_summon": { label: "Látigo Dominante (Whip)", icon: "🪢", desc: "El enemigo canaliza un látigo místico que azota N veces consecutivas al objetivo a una cadencia configurable.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "startDelay", "castTimeMs", "castInterruptible", "fireRange", "hits", "cadence", "damage", "targetCount", "targetMode", "targetSphereColor"], sound: "", soundVolumePercent: 50, soundMaxDist: 1200 },
-    "strange_dimension": { label: "Dimensión Extraña", icon: "🌌", desc: "El enemigo activa un portal tenebroso que lo transporta a una dimensión paralela violeta durante unos segundos.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "startDelay", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 1200 }
+    "strange_dimension": { label: "Dimensión Extraña", icon: "🌌", desc: "El enemigo abre un portal tenebroso, selecciona objetivos según la configuración de target y los transporta a una dimensión paralela violeta durante unos segundos, devolviéndolos al finalizar.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "targetCount", "targetMode", "targetSphereColor", "startDelay", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 1200 }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)
@@ -97,7 +97,7 @@ const DEFAULT_DEFENSE_LIB = {
         label: "Dimensión Extraña", 
         icon: "🌌", 
         desc: "El enemigo abre un portal tenebroso, selecciona objetivos según la configuración de target y los transporta a una dimensión paralela violeta durante unos segundos, devolviéndolos al finalizar.", 
-        fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "targetCount", "targetMode", "targetSphereColor", "teleportDistance", "startDelay", "castTimeMs", "castInterruptible"], 
+        fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "targetCount", "targetMode", "targetSphereColor", "startDelay", "castTimeMs", "castInterruptible"], 
         sound: "", soundVolumePercent: 50, soundMaxDist: 1200 
     }
 };

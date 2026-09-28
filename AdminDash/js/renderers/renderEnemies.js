@@ -274,6 +274,8 @@ function renderEnemyDetail() {
 
     const en = config.enemyModels[selectedEnemyId];
     if(!en) return;
+    if (Array.isArray(en.defenseMechanics)) en.defenseMechanics.forEach(m => { if (m.type === 'strange_dimension') delete m.teleportDistance; });
+    if (Array.isArray(en.mechanics)) en.mechanics.forEach(m => { if (m.type === 'strange_dimension') delete m.teleportDistance; });
 
     if (!en.mechanics) {
         en.mechanics = [{ type: "laser", bulletDamage: 10, bulletSpeed: 800, fireRange: 600, fireRate: 1000, startDelay: 0 }];
@@ -749,13 +751,14 @@ if (f === 'slowIsPercentage') return '';
                                        if (f === 'canUseSkills') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].canUseSkills = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                         if (f === 'persistentZone') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:10px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].persistentZone = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                         if (f === 'castInterruptible') {
-                                            const isDefCast = typeof DEFENSE_LIB !== 'undefined' && DEFENSE_LIB[m.type] !== undefined;
-                                            if (isDefCast) {
-                                                return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(16,185,129,0.08); padding:10px; border-radius:8px; margin-top:10px;"><input type="checkbox" ${m[f] !== false ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].castInterruptible = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer; font-weight:bold; color:#10b981;">Se interrumpe con CC</label></div>`;
-                                            } else {
-                                                return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(239,68,68,0.08); padding:10px; border-radius:8px; margin-top:10px;"><input type="checkbox" ${m[f] !== false ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].castInterruptible = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer; font-weight:bold; color:#ef4444;">Se interrumpe con CC</label></div>`;
-                                            }
-                                        }
+                                             const isChecked = m[f] === true;
+                                             const isDefCast = typeof DEFENSE_LIB !== 'undefined' && DEFENSE_LIB[m.type] !== undefined;
+                                             if (isDefCast) {
+                                                 return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(16,185,129,0.08); padding:10px; border-radius:8px; margin-top:10px;"><input type="checkbox" ${isChecked ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].castInterruptible = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer; font-weight:bold; color:#10b981;">Se interrumpe con CC (Control de Masas)</label></div>`;
+                                             } else {
+                                                 return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(239,68,68,0.08); padding:10px; border-radius:8px; margin-top:10px;"><input type="checkbox" ${isChecked ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].castInterruptible = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer; font-weight:bold; color:#ef4444;">Se interrumpe con CC (Control de Masas)</label></div>`;
+                                             }
+                                         }
                                        
                                         if (f === 'debuffsList') {
                                           if (!m.debuffsList) m.debuffsList = [];
@@ -984,7 +987,11 @@ if (f === 'targetMode') {
                                         targetSphereColor: "Color de Esfera (apunta al que más tenga de ese color)",
                                         giveToEnemy: m.type === 'life_steal' ? "¿Transferir Vida Robada al Enemigo? (Sí/No)" : "¿Transferir Escudo Robado al Enemigo? (Sí/No)",
                                         castTimeMs: "Tiempo de Casteo (ms)",
-                                        castInterruptible: "¿Se Interrumpe con CC? (Sí/No)"
+                                        castInterruptible: "Se interrumpe con CC (Control de Masas)",
+                                        targetCount: "Cantidad de Objetivos (uds)",
+                                        duration: "Duración Total (ms)",
+                                        cooldown: "Tiempo de Enfriamiento (CD) (ms)",
+                                        startDelay: "Retardo de Inicio (ms)"
                                     };
                                     if (f === 'invisType') {
                                         const type = m.invisType || 'invisibility';
@@ -1156,6 +1163,15 @@ if (f === 'targetMode') {
                                             <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: 1 / -1;">
                                                 <input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].isPointAndClick = this.checked">
                                                 <label style="margin:0; cursor:pointer;">Apuntado Directo (Point & Click / Inesquivable)</label>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'castInterruptible') {
+                                        const checked = m.castInterruptible === true;
+                                        return `
+                                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(59,130,246,0.08); padding:10px; border-radius:8px; margin-top:10px; grid-column: 1 / -1;">
+                                                <input type="checkbox" ${checked ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].castInterruptible = this.checked; renderEnemyDetail();">
+                                                <label style="margin:0; cursor:pointer; font-weight:bold; color:#60a5fa;">Se interrumpe con CC (Control de Masas)</label>
                                             </div>
                                         `;
                                     }

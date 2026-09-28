@@ -1029,18 +1029,218 @@ func _on_enemy_action(data: Dictionary):
 		boss_action_handler.handle_whip_summon_action(data)
 		return
 
-	# v900.0: Dimensión Extraña - portal y efecto sombrío
+	# v900.0: Dimensión Extraña - «otra dimensión» del mismo mapa pero vacío
+	# Oculta ABSOLUTAMENTE TODO excepto el jugador local y el terreno/mapa
 	if action == "strange_dimension_start":
-		if enemies.has(enemy_id):
-			var en = enemies[enemy_id]
-			if is_instance_valid(en) and en.has_method("play_skill_vfx"):
-				en.play_skill_vfx("STRANGE_DIMENSION_PORTAL", float(data.get("duration", 5.0)))
+		var dur: float = float(data.get("duration", 5.0))
+		var target_ids: Array = data.get("targetIds", [])
+
+		# 1. Verificar si el jugador local fue capturado
+		var local_p = world.local_player if is_instance_valid(world) and "local_player" in world else null
+		var local_captured := false
+		if is_instance_valid(local_p):
+			var local_socket = NetworkManager.socket_id if NetworkManager and "socket_id" in NetworkManager else ""
+			if target_ids.has(local_socket) or target_ids.has(local_p.entity_id) or target_ids.has(str(local_p.entity_id)):
+				local_captured = true
+
+		if local_captured and is_instance_valid(local_p):
+			# 2. Activar estado interno de dimensión en el jugador (bloqueo CC, skills, etc.)
+			if local_p.has_method("activate_strange_dimension"):
+				local_p.activate_strange_dimension(dur)
+
+			# 3. Lanzar VFX de oscuridad pantalla completa
+			var vfx_script = load("res://scripts/vfx/StrangeDimensionVFX.gd")
+			if vfx_script:
+				var old_vfx = get_tree().get_first_node_in_group("strange_dimension_vfx")
+				if is_instance_valid(old_vfx):
+					old_vfx.queue_free()
+				var vfx = Node2D.new()
+				vfx.set_script(vfx_script)
+				vfx.name = "StrangeDimensionVFX_Active"
+				get_tree().get_root().add_child(vfx)
+				if vfx.has_method("init"):
+					vfx.init(local_p, local_p.global_position, dur)
+
+			# 4. OCULTAR ABSOLUTAMENTE TODO — como si el mapa se recreara vacío
+			# 4a. Nodo Entities completo (contiene enemigos, jugadores remotos, botines, VFX dinámicos)
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				world.entities_node.set_meta("dim_was_visible", world.entities_node.visible)
+				world.entities_node.visible = false
+			# 4b. Enemigos (por si están fuera del entities_node)
+			for eid in enemies:
+				var en2 = enemies[eid]
+				if is_instance_valid(en2):
+					en2.set_meta("dim_hidden", en2.visible)
+					en2.visible = false
+			# 4c. Jugadores remotos
+			for pid in remote_players:
+				var rp = remote_players[pid]
+				if is_instance_valid(rp):
+					rp.set_meta("dim_hidden", rp.visible)
+					rp.visible = false
+			# 4d. Bolas de fuego activas
+			for fbkey in active_fireballs:
+				var fb = active_fireballs[fbkey]
+				if is_instance_valid(fb):
+					fb.set_meta("dim_hidden", fb.visible)
+					fb.visible = false
+			# 4e. Áreas de efecto (vórtices, humo, hielo, zonas de curación, etc.)
+			for aid in active_areas:
+				var ar = active_areas[aid]
+				if is_instance_valid(ar):
+					ar.set_meta("dim_hidden", ar.visible)
+					ar.visible = false
+			# 4f. Meteoritos activos
+			for mkey in active_meteors:
+				var md = active_meteors[mkey]
+				if md is Dictionary:
+					for mk in ["warn_3d", "meteor_3d"]:
+						var mn = md.get(mk)
+						if is_instance_valid(mn):
+							mn.set_meta("dim_hidden", mn.visible)
+							mn.visible = false
+			# 4g. Zonas de meteoritos
+			for mzk in active_meteor_zones:
+				var mzd = active_meteor_zones[mzk]
+				if mzd is Dictionary:
+					var mzn = mzd.get("zone_2d")
+					if is_instance_valid(mzn):
+						mzn.set_meta("dim_hidden", mzn.visible)
+						mzn.visible = false
+			# 4h. Death marks
+			for dmk in death_marks:
+				var dmd = death_marks[dmk]
+				if dmd is Dictionary:
+					var dmn = dmd.get("node")
+					if is_instance_valid(dmn):
+						dmn.set_meta("dim_hidden", dmn.visible)
+						dmn.visible = false
+			# 4i. Ascensiones
+			for ask in active_ascensions:
+				var asd = active_ascensions[ask]
+				if asd is Dictionary:
+					var asn = asd.get("node")
+					if is_instance_valid(asn):
+						asn.set_meta("dim_hidden", asn.visible)
+						asn.visible = false
+			# 4j. Loot drops
+			for lk in loot_drops:
+				var ld = loot_drops[lk]
+				if is_instance_valid(ld):
+					ld.set_meta("dim_hidden", ld.visible)
+					ld.visible = false
+			# 4k. Laser tracking
+			for ltk in active_laser_tracking:
+				var ltd = active_laser_tracking[ltk]
+				if ltd is Dictionary:
+					var ltn = ltd.get("indicator_3d")
+					if is_instance_valid(ltn):
+						ltn.set_meta("dim_hidden", ltn.visible)
+						ltn.visible = false
+			# 4l. Wind walls
+			for wwk in active_wind_walls:
+				var ww = active_wind_walls[wwk]
+				if is_instance_valid(ww):
+					ww.set_meta("dim_hidden", ww.visible)
+					ww.visible = false
 		return
+
 	if action == "strange_dimension_expire":
-		if enemies.has(enemy_id):
-			var en = enemies[enemy_id]
-			if is_instance_valid(en) and en.has_method("play_skill_vfx"):
-				en.play_skill_vfx("STRANGE_DIMENSION_EXIT", 0.0)
+		# RESTAURAR ABSOLUTAMENTE TODO lo que se ocultó
+		# a. Entities node
+		if is_instance_valid(world) and is_instance_valid(world.entities_node):
+			if world.entities_node.has_meta("dim_was_visible"):
+				world.entities_node.visible = bool(world.entities_node.get_meta("dim_was_visible", true))
+				world.entities_node.remove_meta("dim_was_visible")
+			else:
+				world.entities_node.visible = true
+		# b. Enemigos
+		for eid in enemies:
+			var en = enemies[eid]
+			if is_instance_valid(en) and en.has_meta("dim_hidden"):
+				en.visible = bool(en.get_meta("dim_hidden", true))
+				en.remove_meta("dim_hidden")
+		# c. Jugadores remotos
+		for pid in remote_players:
+			var rp = remote_players[pid]
+			if is_instance_valid(rp) and rp.has_meta("dim_hidden"):
+				rp.visible = bool(rp.get_meta("dim_hidden", true))
+				rp.remove_meta("dim_hidden")
+		# d. Bolas de fuego
+		for fbkey in active_fireballs:
+			var fb = active_fireballs[fbkey]
+			if is_instance_valid(fb) and fb.has_meta("dim_hidden"):
+				fb.visible = bool(fb.get_meta("dim_hidden", true))
+				fb.remove_meta("dim_hidden")
+		# e. Áreas de efecto
+		for aid in active_areas:
+			var ar = active_areas[aid]
+			if is_instance_valid(ar) and ar.has_meta("dim_hidden"):
+				ar.visible = bool(ar.get_meta("dim_hidden", true))
+				ar.remove_meta("dim_hidden")
+		# f. Meteoritos
+		for mkey in active_meteors:
+			var md = active_meteors[mkey]
+			if md is Dictionary:
+				for mk in ["warn_3d", "meteor_3d"]:
+					var mn = md.get(mk)
+					if is_instance_valid(mn) and mn.has_meta("dim_hidden"):
+						mn.visible = bool(mn.get_meta("dim_hidden", true))
+						mn.remove_meta("dim_hidden")
+		# g. Zonas de meteoritos
+		for mzk in active_meteor_zones:
+			var mzd = active_meteor_zones[mzk]
+			if mzd is Dictionary:
+				var mzn = mzd.get("zone_2d")
+				if is_instance_valid(mzn) and mzn.has_meta("dim_hidden"):
+					mzn.visible = bool(mzn.get_meta("dim_hidden", true))
+					mzn.remove_meta("dim_hidden")
+		# h. Death marks
+		for dmk in death_marks:
+			var dmd = death_marks[dmk]
+			if dmd is Dictionary:
+				var dmn = dmd.get("node")
+				if is_instance_valid(dmn) and dmn.has_meta("dim_hidden"):
+					dmn.visible = bool(dmn.get_meta("dim_hidden", true))
+					dmn.remove_meta("dim_hidden")
+		# i. Ascensiones
+		for ask in active_ascensions:
+			var asd = active_ascensions[ask]
+			if asd is Dictionary:
+				var asn = asd.get("node")
+				if is_instance_valid(asn) and asn.has_meta("dim_hidden"):
+					asn.visible = bool(asn.get_meta("dim_hidden", true))
+					asn.remove_meta("dim_hidden")
+		# j. Loot drops
+		for lk in loot_drops:
+			var ld = loot_drops[lk]
+			if is_instance_valid(ld) and ld.has_meta("dim_hidden"):
+				ld.visible = bool(ld.get_meta("dim_hidden", true))
+				ld.remove_meta("dim_hidden")
+		# k. Laser tracking
+		for ltk in active_laser_tracking:
+			var ltd = active_laser_tracking[ltk]
+			if ltd is Dictionary:
+				var ltn = ltd.get("indicator_3d")
+				if is_instance_valid(ltn) and ltn.has_meta("dim_hidden"):
+					ltn.visible = bool(ltn.get_meta("dim_hidden", true))
+					ltn.remove_meta("dim_hidden")
+		# l. Wind walls
+		for wwk in active_wind_walls:
+			var ww = active_wind_walls[wwk]
+			if is_instance_valid(ww) and ww.has_meta("dim_hidden"):
+				ww.visible = bool(ww.get_meta("dim_hidden", true))
+				ww.remove_meta("dim_hidden")
+		# Salir de la dimensión en el Player
+		var local_p = world.local_player if is_instance_valid(world) and "local_player" in world else null
+		if is_instance_valid(local_p) and local_p.has_method("_exit_strange_dimension"):
+			local_p._exit_strange_dimension()
+		# Destruir VFX
+		var vfx_active = get_tree().get_first_node_in_group("strange_dimension_vfx")
+		if not is_instance_valid(vfx_active):
+			vfx_active = get_tree().get_root().get_node_or_null("StrangeDimensionVFX_Active")
+		if is_instance_valid(vfx_active) and vfx_active.has_method("_fade_out"):
+			vfx_active._fade_out()
 		return
 
 	if enemies.has(enemy_id):
@@ -2736,16 +2936,32 @@ func get_active_fireball_pull_vector(for_position: Vector2) -> Vector2:
 	var total_pull := Vector2.ZERO
 	for key in active_fireballs:
 		var fb = active_fireballs[key]
-		if is_instance_valid(fb) and fb.get("pull_enabled") == true:
-			var pull_r: float = float(fb.get("pull_radius"))
-			var pull_s: float = float(fb.get("pull_strength"))
-			var ball_pos: Vector2 = fb.global_position
-			var diff := ball_pos - for_position
-			var d := diff.length()
-			var hit_r: float = float(fb.get("_radius")) if "_radius" in fb else 90.0
-			if d > (hit_r + 15.0) and d <= pull_r:
-				# Vector de fuerza continua hacia el centro de la bola
-				total_pull += diff.normalized() * pull_s
+		if not is_instance_valid(fb):
+			continue
+		# Acceso directo a propiedades del script (no usar get() — retorna null para props no exportadas)
+		var fb_pull_enabled: bool = false
+		var fb_pull_radius: float = 400.0
+		var fb_pull_strength: float = 180.0
+		var fb_ball_radius: float = 90.0
+		if "pull_enabled" in fb:
+			fb_pull_enabled = bool(fb.pull_enabled)
+		if "pull_radius" in fb:
+			fb_pull_radius = float(fb.pull_radius)
+		if "pull_strength" in fb:
+			fb_pull_strength = float(fb.pull_strength)
+		if "_radius" in fb:
+			fb_ball_radius = float(fb._radius)
+		if not fb_pull_enabled or fb_pull_radius <= 0.0 or fb_pull_strength <= 0.0:
+			continue
+		var ball_pos: Vector2 = fb.global_position
+		var diff := ball_pos - for_position
+		var d := diff.length()
+		# Solo atraer si está dentro del radio de atracción y fuera de la bola misma
+		if d > (fb_ball_radius + 15.0) and d <= fb_pull_radius:
+			# La fuerza es en px/seg (coherente con CharacterBody2D.velocity)
+			# Intensidad aumenta cuanto más cerca está del centro (proximidad lineal)
+			var proximity_factor: float = 1.0 - clamp((d - fb_ball_radius) / (fb_pull_radius - fb_ball_radius), 0.0, 1.0)
+			total_pull += diff.normalized() * fb_pull_strength * (1.0 + proximity_factor)
 	return total_pull
 
 func _on_fireball_pull(_data: Dictionary) -> void:

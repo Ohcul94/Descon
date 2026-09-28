@@ -1540,6 +1540,9 @@
                 "activationIntervalMs",
                 "duration",
                 "cooldown",
+                "targetCount",
+                "targetMode",
+                "targetSphereColor",
                 "startDelay",
                 "castTimeMs",
                 "castInterruptible"
@@ -3122,7 +3125,7 @@
                 },
                 {
                     "type": "strange_dimension",
-                    "castTimeMs": 0,
+                    "castTimeMs": 1000,
                     "castInterruptible": true,
                     "activationMode": "time",
                     "activationHPs": [
@@ -3133,7 +3136,8 @@
                     "shieldRegen": 5,
                     "duration": 5000,
                     "cooldown": 10000,
-                    "startDelay": 0
+                    "startDelay": 0,
+                    "targetCount": 1
                 }
             ],
             "fireRange": 1500,
@@ -9926,13 +9930,16 @@
         "strange_dimension": {
             "label": "Dimensión Extraña",
             "icon": "🌌",
-            "desc": "El enemigo activa un portal tenebroso que lo transporta a una dimensión paralela violeta durante unos segundos.",
+            "desc": "El enemigo abre un portal tenebroso, selecciona objetivos según la configuración de target y los transporta a una dimensión paralela violeta durante unos segundos, devolviéndolos al finalizar.",
             "fields": [
                 "activationMode",
                 "activationHPs",
                 "activationIntervalMs",
                 "duration",
                 "cooldown",
+                "targetCount",
+                "targetMode",
+                "targetSphereColor",
                 "startDelay",
                 "castTimeMs",
                 "castInterruptible"

@@ -29,8 +29,4 @@ func activate(player: CharacterBody2D):
 			"summonConfig": { "canSummon": true, "enemyTypes": [], "maxEnemies": 5 }
 		}
 	
-	# Disparar el VFX del portal
-	if player.has_method("play_skill_vfx"):
-		player.play_skill_vfx("STRANGE_DIMENSION_PORTAL", 0.0)
-	
 	super.activate(player)

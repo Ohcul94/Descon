@@ -504,25 +504,12 @@ func activate_strange_dimension(duration: float = 5.0) -> void:
 	velocity = Vector2.ZERO
 	joystick_direction = Vector2.ZERO
 	
-	# Aplicar color violeta tenebroso
-	modulate = Color(0.15, 0.05, 0.35, 1.0)
-	if is_instance_valid(_3d_model):
-		var violet_mat = StandardMaterial3D.new()
-		violet_mat.albedo_color = Color(0.3, 0.1, 0.5, 0.6)
-		violet_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		violet_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		violet_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_apply_material_recursive(_3d_model, violet_mat, true)
-	
 	# Ocultar elementos del mundo normal (compañeros, bosque, etc.)
 	# VFX del portal
 	if has_method("play_skill_vfx"):
 		play_skill_vfx("STRANGE_DIMENSION_PORTAL", duration)
 	
 	print("[PLAYER] Dimensión Extraña activada por ", duration, "s")
-	
-	# Timer para salir de la dimensión
-	get_tree().create_timer(duration).timeout.connect(_exit_strange_dimension)
 
 func _exit_strange_dimension() -> void:
 	# Salir de la Dimensión Extraña
@@ -623,6 +610,9 @@ func _physics_process(p_delta):
 	
 	# ==== DIMENSIÓN EXTRAÑA: Check CC (Crowd Control) ====
 	if strange_dimension_cc:
+		if strange_dimension_timer > 0 and not in_strange_dimension:
+			# Primera detección: activar la dimensión
+			activate_strange_dimension(strange_dimension_timer)
 		strange_dimension_timer -= p_delta
 		if strange_dimension_timer <= 0:
 			strange_dimension_cc = false
@@ -639,7 +629,6 @@ func _physics_process(p_delta):
 				modulate = Color.WHITE
 			print("[PLAYER] Saliendo de la Dimensión Extraña (CC)")
 			_emit_stats()
-			strange_dimension_timer = 0.0
 			return
 		else:
 			in_strange_dimension = true
@@ -1691,7 +1680,9 @@ func _apply_movement():
 		velocity = Vector2.ZERO
 
 	# v901.2: Atracción constante y continua de Bolas de Fuego
-	var em = get_node_or_null("/root/Main/World/EntityManager")
+	var em = get_parent().get_node_or_null("EntityManager") if is_instance_valid(get_parent()) else null
+	if not is_instance_valid(em):
+		em = get_node_or_null("/root/MainGame/EntityManager")
 	if is_instance_valid(em) and em.has_method("get_active_fireball_pull_vector"):
 		var fb_pull: Vector2 = em.get_active_fireball_pull_vector(global_position)
 		if fb_pull != Vector2.ZERO:
