@@ -1,14 +1,15 @@
 extends Node2D
 
-# StrangeDimensionVFX.gd (v902.0)
-# VFX de la Dimensión Extraña — efecto de oscuridad pantalla completa + partículas violetas
-# Se instancia como Node2D con un CanvasLayer hijo para el overlay de pantalla completa.
-# EntityManager lo agrega al árbol de escena cuando el jugador es capturado.
+# StrangeDimensionVFX.gd (v904.0)
+# Domo de Tinieblas y Dimensión Extraña
+# - CanvasModulate: Oscurece las luces del mapa como si fuesen tinieblas profundas
+# - Domo dimensional: Círculo de energía mística violeta alrededor del jugador
+# - Overlay de pantalla: Tinte violeta cósmico y viñeta de tinieblas
+# - 100% nativo sin partículas GPU para compatibilidad absoluta con todas las versiones de Godot
 
-@export var portal_radius: float = 300.0
+@export var dome_radius: float = 480.0
 @export var portal_duration: float = 5.0
-@export var violet_color: Color = Color(0.55, 0.0, 0.85, 1.0)
-@export var dark_overlay_opacity: float = 0.82
+@export var violet_color: Color = Color(0.65, 0.15, 0.95, 1.0)
 @export var fade_out_delay: float = 0.5
 
 var _caster_node: Node2D = null
@@ -16,13 +17,15 @@ var _epicenter_pos: Vector2 = Vector2.ZERO
 var _start_time: float = 0.0
 var _active: bool = false
 
-# Nodos internos
+# Nodos visuales
 var _canvas_layer: CanvasLayer = null
 var _ui_root: Control = null
 var _darkness_overlay: ColorRect = null
-var _violet_tint: ColorRect = null
-var _particles: GPUParticles2D = null
-var _border_ring: Node2D = null
+var _violet_overlay: ColorRect = null
+var _title_label: Label = null
+var _sub_label: Label = null
+var _canvas_modulate: CanvasModulate = null
+var _dome_visual: Node2D = null
 
 func init(caster_node: Node2D, epicenter_pos: Vector2, duration: float = 5.0) -> void:
 	_caster_node = caster_node
@@ -32,104 +35,112 @@ func init(caster_node: Node2D, epicenter_pos: Vector2, duration: float = 5.0) ->
 	_active = true
 	add_to_group("strange_dimension_vfx")
 
-	# --- CanvasLayer propio para overlay de pantalla completa ---
+	# 1. CanvasModulate en el mundo: Oscurece las luces y el mapa a tinieblas
+	_canvas_modulate = CanvasModulate.new()
+	_canvas_modulate.name = "DimensionTinieblasModulate"
+	_canvas_modulate.color = Color(1.0, 1.0, 1.0, 1.0)
+	add_child(_canvas_modulate)
+	
+	var tw_mod = create_tween()
+	# Transición suave hacia oscuridad con tinte violeta tenebroso
+	tw_mod.tween_property(_canvas_modulate, "color", Color(0.08, 0.04, 0.14, 1.0), 0.4)
+
+	# 2. Domo dimensional en el piso (siguiendo al jugador)
+	_dome_visual = Node2D.new()
+	_dome_visual.name = "DimensionDomeCircle"
+	_dome_visual.z_index = 25
+	_dome_visual.global_position = _epicenter_pos
+	add_child(_dome_visual)
+	_dome_visual.draw.connect(_on_dome_draw)
+
+	# 3. CanvasLayer propio para atmósfera en pantalla
 	_canvas_layer = CanvasLayer.new()
 	_canvas_layer.name = "StrangeDimensionCanvas"
-	_canvas_layer.layer = 128  # Por encima de todo el HUD normal
+	_canvas_layer.layer = 95
 	add_child(_canvas_layer)
 
-	# Raíz de Control para los rects full-screen
 	_ui_root = Control.new()
 	_ui_root.name = "SDRoot"
 	_ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_canvas_layer.add_child(_ui_root)
 
-	# 1. Overlay de oscuridad (pantalla completa)
+	# 3a. Overlay de oscuridad de fondo
 	_darkness_overlay = ColorRect.new()
-	_darkness_overlay.name = "DimensionDarkness"
-	_darkness_overlay.color = Color(0.0, 0.0, 0.0, dark_overlay_opacity)
+	_darkness_overlay.name = "DarknessOverlay"
+	_darkness_overlay.color = Color(0.02, 0.01, 0.05, 0.72)
 	_darkness_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_darkness_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_darkness_overlay.modulate = Color(1.0, 1.0, 1.0, 0.0)  # Empieza transparente
+	_darkness_overlay.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	_ui_root.add_child(_darkness_overlay)
 
-	# 2. Tinte violeta pulsante encima
-	_violet_tint = ColorRect.new()
-	_violet_tint.name = "VioletTint"
-	_violet_tint.color = Color(violet_color.r, violet_color.g, violet_color.b, 0.28)
-	_violet_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_violet_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_violet_tint.modulate = Color(1.0, 1.0, 1.0, 0.0)
-	_ui_root.add_child(_violet_tint)
+	# 3b. Tinte violeta cósmico
+	_violet_overlay = ColorRect.new()
+	_violet_overlay.name = "VioletTintOverlay"
+	_violet_overlay.color = Color(violet_color.r, violet_color.g, violet_color.b, 0.18)
+	_violet_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_violet_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_violet_overlay.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	_ui_root.add_child(_violet_overlay)
 
-	# 3. Fade in de los overlays
+	# 3c. Banner superior elegante
+	var banner = VBoxContainer.new()
+	banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	banner.offset_top = 35.0
+	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_root.add_child(banner)
+
+	_title_label = Label.new()
+	_title_label.text = "✦ DIMENSIÓN EXTRAÑA ✦"
+	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_label.add_theme_color_override("font_color", Color(0.9, 0.7, 1.0, 1.0))
+	_title_label.add_theme_color_override("font_shadow_color", Color(0.35, 0.0, 0.65, 0.9))
+	_title_label.add_theme_constant_override("shadow_offset_y", 2)
+	_title_label.add_theme_font_size_override("font_size", 24)
+	_title_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	banner.add_child(_title_label)
+
+	_sub_label = Label.new()
+	_sub_label.text = "Domo de tinieblas — Realidad paralela aislada"
+	_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_sub_label.add_theme_color_override("font_color", Color(0.75, 0.55, 0.95, 0.75))
+	_sub_label.add_theme_font_size_override("font_size", 13)
+	_sub_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	banner.add_child(_sub_label)
+
+	# Fade in de la atmósfera
 	var tw = create_tween().set_parallel(true)
-	tw.tween_property(_darkness_overlay, "modulate:a", 1.0, 0.6)
-	tw.tween_property(_violet_tint, "modulate:a", 1.0, 0.6)
+	tw.tween_property(_darkness_overlay, "modulate:a", 1.0, 0.4)
+	tw.tween_property(_violet_overlay, "modulate:a", 1.0, 0.4)
+	tw.tween_property(_title_label, "modulate:a", 1.0, 0.5)
+	tw.tween_property(_sub_label, "modulate:a", 1.0, 0.5)
 
-	# 4. Partículas espectrales en el mundo (posición lógica del jugador)
-	_spawn_spectral_particles()
-
-	# 5. Anillo de borde pulsante en la posición del jugador
-	_border_ring = Node2D.new()
-	_border_ring.name = "DimBorderRing"
-	_border_ring.global_position = _epicenter_pos
-	_border_ring.z_index = 50
-	add_child(_border_ring)
-
-	# 6. Auto-destruir tras la duración
+	# Failsafe de duración
 	get_tree().create_timer(portal_duration + fade_out_delay).timeout.connect(_fade_out)
 
-func _spawn_spectral_particles() -> void:
-	if not is_inside_tree():
+func _on_dome_draw() -> void:
+	if not _active or not is_instance_valid(_dome_visual):
 		return
-	_particles = GPUParticles2D.new()
-	_particles.name = "SpectralParticles"
-	_particles.amount = 80
-	_particles.lifetime = 2.5
-	_particles.one_shot = false
-	_particles.explosiveness = 0.15
-	_particles.emitting = true
-	_particles.position = _epicenter_pos
-	_particles.z_index = 60
-	_particles.modulate = Color(1.0, 1.0, 1.0, 0.0)
 
-	var proc_mat = ParticleProcessMaterial.new()
-	proc_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_CIRCLE
-	proc_mat.emission_circle_radius = portal_radius * 0.6
-	proc_mat.direction = Vector3(0.0, -1.0, 0.0)
-	proc_mat.spread = 180.0
-	proc_mat.initial_velocity_min = 8.0
-	proc_mat.initial_velocity_max = 35.0
-	proc_mat.gravity = Vector3(0.0, -15.0, 0.0)
-	proc_mat.scale_min = 0.4
-	proc_mat.scale_max = 1.8
+	var t := Time.get_ticks_msec() / 1000.0
+	var pulse := 0.15 * sin(t * 4.0)
+	var current_radius := dome_radius * (1.0 + pulse * 0.03)
 
-	var grad = Gradient.new()
-	grad.set_color(0, Color(violet_color.r, violet_color.g, violet_color.b, 1.0))
-	grad.set_color(1, Color(violet_color.r * 0.6, violet_color.g, violet_color.b * 0.8, 0.0))
-	var grad_tex = GradientTexture1D.new()
-	grad_tex.gradient = grad
-	proc_mat.color_ramp = grad_tex
-	_particles.process_material = proc_mat
+	# Relleno etéreo semitransparente del domo
+	_dome_visual.draw_circle(Vector2.ZERO, current_radius, Color(0.2, 0.05, 0.35, 0.12))
 
-	# Quad simple como sprite de partícula
-	var quad = QuadMesh.new()
-	quad.size = Vector2(10.0, 10.0)
-	var mat = StandardMaterial3D.new()
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = violet_color
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	quad.material = mat
-	_particles.draw_pass_1 = quad
+	# Anillos concéntricos del domo
+	var edge_col = Color(violet_color.r, violet_color.g, violet_color.b, 0.75 + pulse)
+	_dome_visual.draw_arc(Vector2.ZERO, current_radius, 0.0, TAU, 64, edge_col, 3.5, true)
+	_dome_visual.draw_arc(Vector2.ZERO, current_radius * 0.98, 0.0, TAU, 64, Color(0.9, 0.7, 1.0, 0.4), 1.5, true)
+	_dome_visual.draw_arc(Vector2.ZERO, current_radius * 0.75, 0.0, TAU, 48, Color(violet_color.r, violet_color.g, violet_color.b, 0.2), 1.0, true)
 
-	add_child(_particles)
-
-	# Fade in de partículas
-	var tw2 = create_tween()
-	tw2.tween_property(_particles, "modulate:a", 1.0, 0.5)
+	# Runa / marcas cardinales en el borde
+	for i in range(8):
+		var angle := (float(i) / 8.0) * TAU + (t * 0.2)
+		var p1 := Vector2(cos(angle), sin(angle)) * (current_radius - 12.0)
+		var p2 := Vector2(cos(angle), sin(angle)) * (current_radius + 12.0)
+		_dome_visual.draw_line(p1, p2, Color(0.9, 0.7, 1.0, 0.8), 2.0)
 
 func _process(_delta: float) -> void:
 	if not _active:
@@ -139,23 +150,18 @@ func _process(_delta: float) -> void:
 	var t := Time.get_ticks_msec() / 1000.0
 	var elapsed := t - _start_time
 
+	# Seguir al jugador con el domo
+	if is_instance_valid(_caster_node) and is_instance_valid(_dome_visual):
+		_dome_visual.global_position = _caster_node.global_position
+		_dome_visual.queue_redraw()
+
 	# Pulso del tinte violeta
-	if is_instance_valid(_violet_tint) and _violet_tint.modulate.a > 0.5:
-		var pulse := 0.25 + 0.25 * sin(t * 3.5)
-		_violet_tint.modulate.a = clamp(0.75 + pulse * 0.25, 0.0, 1.0)
+	if is_instance_valid(_violet_overlay):
+		var p := 0.15 + 0.1 * sin(t * 3.0)
+		_violet_overlay.modulate.a = clamp(0.75 + p, 0.0, 1.0)
 
-	# Hacer seguir las partículas al jugador si se mueve
-	if is_instance_valid(_caster_node) and is_instance_valid(_particles):
-		_particles.position = _caster_node.global_position
-
-	# Anillo de borde pulsante dibujado vía _draw
-	if is_instance_valid(_border_ring):
-		if is_instance_valid(_caster_node):
-			_border_ring.global_position = _caster_node.global_position
-		_border_ring.queue_redraw()
-
-	# Ocultar automáticamente si ya pasó el tiempo (failsafe)
-	if elapsed >= portal_duration + fade_out_delay + 0.5:
+	# Failsafe
+	if elapsed >= portal_duration + fade_out_delay + 1.0:
 		_fade_out()
 
 func _fade_out() -> void:
@@ -164,24 +170,36 @@ func _fade_out() -> void:
 	_active = false
 	set_process(false)
 
-	# Fade out de overlays y partículas
-	if is_instance_valid(_darkness_overlay):
-		var tw = create_tween()
-		tw.tween_property(_darkness_overlay, "modulate:a", 0.0, 0.6)
-	if is_instance_valid(_violet_tint):
-		var tw2 = create_tween()
-		tw2.tween_property(_violet_tint, "modulate:a", 0.0, 0.5)
-	if is_instance_valid(_particles):
-		_particles.emitting = false
-		var tw3 = create_tween()
-		tw3.tween_property(_particles, "modulate:a", 0.0, 0.4)
+	# Restaurar CanvasModulate (vuelve la iluminación normal del mapa)
+	if is_instance_valid(_canvas_modulate):
+		var tw_m = create_tween()
+		tw_m.tween_property(_canvas_modulate, "color", Color.WHITE, 0.5)
 
-	# Destruir todo tras el fade
+	# Fade out de overlays
+	if is_instance_valid(_darkness_overlay):
+		var tw1 = create_tween()
+		tw1.tween_property(_darkness_overlay, "modulate:a", 0.0, 0.5)
+	if is_instance_valid(_violet_overlay):
+		var tw2 = create_tween()
+		tw2.tween_property(_violet_overlay, "modulate:a", 0.0, 0.5)
+	if is_instance_valid(_title_label):
+		var tw3 = create_tween()
+		tw3.tween_property(_title_label, "modulate:a", 0.0, 0.3)
+	if is_instance_valid(_sub_label):
+		var tw4 = create_tween()
+		tw4.tween_property(_sub_label, "modulate:a", 0.0, 0.3)
+	if is_instance_valid(_dome_visual):
+		var tw5 = create_tween()
+		tw5.tween_property(_dome_visual, "modulate:a", 0.0, 0.4)
+
+	# Destrucción final
 	var tw_kill = create_tween()
-	tw_kill.tween_interval(0.8)
+	tw_kill.tween_interval(0.6)
 	tw_kill.tween_callback(queue_free)
 
 func _exit_tree() -> void:
 	remove_from_group("strange_dimension_vfx")
 	if is_instance_valid(_canvas_layer):
 		_canvas_layer.queue_free()
+	if is_instance_valid(_canvas_modulate):
+		_canvas_modulate.queue_free()

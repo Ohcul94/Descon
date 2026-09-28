@@ -497,15 +497,12 @@ func activate_strange_dimension(duration: float = 5.0) -> void:
 		"summonConfig": { "canSummon": true, "enemyTypes": [], "maxEnemies": 5 }
 	}
 	
-	# Congelar al jugador en la dimensión
-	is_moving = false
-	autopilot_enabled = false
-	target_position = global_position
-	velocity = Vector2.ZERO
-	joystick_direction = Vector2.ZERO
+	# Asegurar visibilidad del jugador en la dimensión
+	visible = true
+	if is_instance_valid(world_root_3d):
+		world_root_3d.visible = true
 	
-	# Ocultar elementos del mundo normal (compañeros, bosque, etc.)
-	# VFX del portal
+	# VFX y tinte etéreo violeta sobre el jugador
 	if has_method("play_skill_vfx"):
 		play_skill_vfx("STRANGE_DIMENSION_PORTAL", duration)
 	
@@ -608,36 +605,15 @@ func _physics_process(p_delta):
 	else:
 		pass
 	
-	# ==== DIMENSIÓN EXTRAÑA: Check CC (Crowd Control) ====
-	if strange_dimension_cc:
-		if strange_dimension_timer > 0 and not in_strange_dimension:
-			# Primera detección: activar la dimensión
-			activate_strange_dimension(strange_dimension_timer)
-		strange_dimension_timer -= p_delta
-		if strange_dimension_timer <= 0:
-			strange_dimension_cc = false
-			strange_dimension_timer = 0.0
-			strange_dimension_config = {}
-			if is_instance_valid(_3d_model):
-				_apply_material_recursive(_3d_model, null, false)
-			if in_strange_dimension:
-				in_strange_dimension = false
-			if has_method("play_skill_vfx"):
-				play_skill_vfx("STRANGE_DIMENSION_EXIT", 0.0)
-			modulate = Color.WHITE
-			if not _has_any_status_color():
-				modulate = Color.WHITE
-			print("[PLAYER] Saliendo de la Dimensión Extraña (CC)")
-			_emit_stats()
-			return
-		else:
-			in_strange_dimension = true
-			if visible:
-				visible = false
-			velocity = Vector2.ZERO
-			is_moving = false
-			autopilot_enabled = false
-			target_position = global_position
+	# ==== DIMENSIÓN EXTRAÑA: Temporizador ====
+	if in_strange_dimension:
+		visible = true
+		if is_instance_valid(world_root_3d):
+			world_root_3d.visible = true
+		if strange_dimension_timer > 0:
+			strange_dimension_timer -= p_delta
+			if strange_dimension_timer <= 0:
+				_exit_strange_dimension()
 	
 	_handle_cooldowns(p_delta)
 	# Remote cast tick

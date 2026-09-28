@@ -22,6 +22,7 @@ var enemy_cast_visuals = {} # Casteo generico enemigo {enemyId: {mId: {visual3D,
 var boss_action_handler: BossActionHandler = null
 var zone_cleanup_timer = 0.0
 const ZONE_CLEANUP_INTERVAL = 1.0
+var is_in_strange_dimension: bool = false
 
 const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
 const SHIP_SCENE = preload("res://scenes/entities/Ship.tscn")
@@ -944,6 +945,12 @@ func _on_player_updated(data):
 		if remote_zone != -1:
 			p.set_meta("zone", remote_zone)
 		p.update_stats(data)
+		if is_in_strange_dimension:
+			p.visible = false
+			if is_instance_valid(p.world_root_3d):
+				p.world_root_3d.visible = false
+			if is_instance_valid(p.get("_ui_wrapper")):
+				p._ui_wrapper.visible = false
 
 func _get_enemy_from_pool() -> Node:
 	for en in enemy_pool:
@@ -974,6 +981,10 @@ func _on_laser_indicator_exited(enemy_id: String):
 func _on_enemy_action(data: Dictionary):
 	var action = data.get("action", "")
 	var enemy_id = str(data.get("id", ""))
+	
+	# Durante la Dimensión Extraña, NO procesar mecánicas normales de afuera
+	if is_in_strange_dimension and action != "strange_dimension_expire":
+		return
 	# v900.0: sonido de mecánica genérico (2D con atenuación)
 	# v901.0: "silent" evita repetir el sonido en los updates de posición/estado (Bola de Fuego Dinámica)
 	if AudioManager and AudioManager.has_method("play_mechanic_sound") and not str(action).is_empty() and not data.get("silent", false):
@@ -1036,19 +1047,32 @@ func _on_enemy_action(data: Dictionary):
 		var target_ids: Array = data.get("targetIds", [])
 
 		# 1. Verificar si el jugador local fue capturado
+		var local_socket := ""
+		if NetworkManager:
+			if "my_socket_id" in NetworkManager and not str(NetworkManager.my_socket_id).is_empty():
+				local_socket = str(NetworkManager.my_socket_id)
+			elif "socket_id" in NetworkManager and not str(NetworkManager.socket_id).is_empty():
+				local_socket = str(NetworkManager.socket_id)
+
 		var local_p = world.local_player if is_instance_valid(world) and "local_player" in world else null
 		var local_captured := false
 		if is_instance_valid(local_p):
-			var local_socket = NetworkManager.socket_id if NetworkManager and "socket_id" in NetworkManager else ""
-			if target_ids.has(local_socket) or target_ids.has(local_p.entity_id) or target_ids.has(str(local_p.entity_id)):
+			var p_eid = str(local_p.entity_id) if "entity_id" in local_p else ""
+			var p_did = str(local_p.db_id) if "db_id" in local_p else ""
+			if target_ids.is_empty():
+				local_captured = true
+			elif (!local_socket.is_empty() and target_ids.has(local_socket)) \
+			  or (!p_eid.is_empty() and target_ids.has(p_eid)) \
+			  or (!p_did.is_empty() and target_ids.has(p_did)):
 				local_captured = true
 
 		if local_captured and is_instance_valid(local_p):
-			# 2. Activar estado interno de dimensión en el jugador (bloqueo CC, skills, etc.)
+			is_in_strange_dimension = true
+			# 2. Activar estado interno de dimensión en el jugador
 			if local_p.has_method("activate_strange_dimension"):
 				local_p.activate_strange_dimension(dur)
 
-			# 3. Lanzar VFX de oscuridad pantalla completa
+			# 3. Lanzar VFX de oscuridad pantalla completa y atmósfera violeta
 			var vfx_script = load("res://scripts/vfx/StrangeDimensionVFX.gd")
 			if vfx_script:
 				var old_vfx = get_tree().get_first_node_in_group("strange_dimension_vfx")
@@ -1066,18 +1090,26 @@ func _on_enemy_action(data: Dictionary):
 			if is_instance_valid(world) and is_instance_valid(world.entities_node):
 				world.entities_node.set_meta("dim_was_visible", world.entities_node.visible)
 				world.entities_node.visible = false
-			# 4b. Enemigos (por si están fuera del entities_node)
+			# 4b. Enemigos (incluyendo modelos 3D y UI)
 			for eid in enemies:
 				var en2 = enemies[eid]
 				if is_instance_valid(en2):
 					en2.set_meta("dim_hidden", en2.visible)
 					en2.visible = false
-			# 4c. Jugadores remotos
+					if is_instance_valid(en2.world_root_3d):
+						en2.world_root_3d.visible = false
+					if is_instance_valid(en2.get("_ui_wrapper")):
+						en2._ui_wrapper.visible = false
+			# 4c. Jugadores remotos (incluyendo modelos 3D y UI)
 			for pid in remote_players:
 				var rp = remote_players[pid]
 				if is_instance_valid(rp):
 					rp.set_meta("dim_hidden", rp.visible)
 					rp.visible = false
+					if is_instance_valid(rp.world_root_3d):
+						rp.world_root_3d.visible = false
+					if is_instance_valid(rp.get("_ui_wrapper")):
+						rp._ui_wrapper.visible = false
 			# 4d. Bolas de fuego activas
 			for fbkey in active_fireballs:
 				var fb = active_fireballs[fbkey]
@@ -1146,6 +1178,7 @@ func _on_enemy_action(data: Dictionary):
 		return
 
 	if action == "strange_dimension_expire":
+		is_in_strange_dimension = false
 		# RESTAURAR ABSOLUTAMENTE TODO lo que se ocultó
 		# a. Entities node
 		if is_instance_valid(world) and is_instance_valid(world.entities_node):
@@ -1157,15 +1190,29 @@ func _on_enemy_action(data: Dictionary):
 		# b. Enemigos
 		for eid in enemies:
 			var en = enemies[eid]
-			if is_instance_valid(en) and en.has_meta("dim_hidden"):
-				en.visible = bool(en.get_meta("dim_hidden", true))
-				en.remove_meta("dim_hidden")
+			if is_instance_valid(en):
+				if en.has_meta("dim_hidden"):
+					en.visible = bool(en.get_meta("dim_hidden", true))
+					en.remove_meta("dim_hidden")
+				else:
+					en.visible = true
+				if is_instance_valid(en.world_root_3d) and not en.is_dead:
+					en.world_root_3d.visible = true
+				if is_instance_valid(en.get("_ui_wrapper")) and not en.is_dead:
+					en._ui_wrapper.visible = true
 		# c. Jugadores remotos
 		for pid in remote_players:
 			var rp = remote_players[pid]
-			if is_instance_valid(rp) and rp.has_meta("dim_hidden"):
-				rp.visible = bool(rp.get_meta("dim_hidden", true))
-				rp.remove_meta("dim_hidden")
+			if is_instance_valid(rp):
+				if rp.has_meta("dim_hidden"):
+					rp.visible = bool(rp.get_meta("dim_hidden", true))
+					rp.remove_meta("dim_hidden")
+				else:
+					rp.visible = true
+				if is_instance_valid(rp.world_root_3d) and not rp.is_dead:
+					rp.world_root_3d.visible = true
+				if is_instance_valid(rp.get("_ui_wrapper")) and not rp.is_dead:
+					rp._ui_wrapper.visible = true
 		# d. Bolas de fuego
 		for fbkey in active_fireballs:
 			var fb = active_fireballs[fbkey]
@@ -2741,7 +2788,13 @@ func _on_enemy_updated(data):
 		eref.update_stats(data)
 		if is_new and eref.has_method("_update_3d_root_sync"):
 			eref._update_3d_root_sync()
-		if not eref.is_burrowed:
+		if is_in_strange_dimension:
+			eref.visible = false
+			if is_instance_valid(eref.world_root_3d):
+				eref.world_root_3d.visible = false
+			if is_instance_valid(eref.get("_ui_wrapper")):
+				eref._ui_wrapper.visible = false
+		elif not eref.is_burrowed:
 			eref.visible = true; eref.show()
 	else:
 		enemies.erase(id)
@@ -3939,6 +3992,7 @@ func _on_player_fired(d):
 					AudioManager.play_sfx_path(sp, pos, linear_to_db(clamp(ammo_pct / 100.0, 0.0001, 1.0)), float(cfg[tier].get("soundMaxDist", 1000.0)))
 
 func _on_enemy_fired(d): 
+	if is_in_strange_dimension: return
 	if is_instance_valid(world) and is_instance_valid(world.combat_system): 
 		world.combat_system.handle_enemy_shoot(d)
 	# v900.0: sonido de mecánica atacante (hybrid)

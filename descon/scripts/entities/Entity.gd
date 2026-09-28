@@ -495,7 +495,9 @@ func _process(delta):
 			
 			# v311.5: Forzar visibilidad correcta al estar en pantalla
 			if is_instance_valid(world_root_3d):
-				if is_burrowed and not _burrow_emerging:
+				if not is_visible_in_tree():
+					world_root_3d.visible = false
+				elif is_burrowed and not _burrow_emerging:
 					world_root_3d.visible = false
 				elif get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
 					world_root_3d.visible = false
@@ -504,7 +506,9 @@ func _process(delta):
 				else:
 					world_root_3d.visible = not is_dead
 			if is_instance_valid(_ui_wrapper):
-				if is_burrowed:
+				if not is_visible_in_tree():
+					_ui_wrapper.visible = false
+				elif is_burrowed:
 					_ui_wrapper.visible = false
 				elif get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
 					_ui_wrapper.visible = false
@@ -1161,7 +1165,7 @@ func _update_3d_root_sync():
 		world_root_3d.position.y = base_y + _burrow_y_offset + _ascension_y_offset
 		
 		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
-		if is_dead:
+		if not is_visible_in_tree() or is_dead:
 			world_root_3d.visible = false
 		elif is_burrowed and not _burrow_emerging:
 			# Durante el viaje subterráneo el enemigo queda oculto; la grieta del BurrowVisual lo sustituye

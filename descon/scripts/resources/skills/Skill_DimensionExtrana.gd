@@ -5,7 +5,7 @@ class_name Skill_DimensionExtrana
 # Mecánica de Defensa: Dimensión Extraña
 # Teletransporta al jugador a una dimensión paralela sombría y tenebrosa,
 # cambiando la estética a tonos violetas/oscuridad, eliminando entidades
-# aliadas y del entorno. Permite crear enemigos dentro de la dimensión.
+# aliadas y del entorno.
 
 func _init():
 	skill_id = "SK-DEF-07"
@@ -19,14 +19,7 @@ func activate(player: CharacterBody2D):
 	if player.has_method("activate_sync_lock"):
 		player.activate_sync_lock(2.0)
 	
-	# Establecer el flag CC para activación automática en _physics_process
-	if player.has_method("strange_dimension_cc"):
-		player.strange_dimension_cc = true
-		player.strange_dimension_timer = power_value
-		player.strange_dimension_config = {
-			"duration": power_value,
-			"targets": { "enemies": true, "bosses": true, "players": false, "allies": false },
-			"summonConfig": { "canSummon": true, "enemyTypes": [], "maxEnemies": 5 }
-		}
+	if player.has_method("activate_strange_dimension"):
+		player.activate_strange_dimension(power_value)
 	
 	super.activate(player)

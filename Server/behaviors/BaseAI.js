@@ -723,6 +723,8 @@ module.exports = class BaseAI {
                     this._handleShieldStealLogic(mech, mId, now, io, players);
                 } else if (mech.type === "life_steal") {
                     this._handleLifeStealLogic(mech, mId, now, io, players);
+                } else if (mech.type === "strange_dimension") {
+                    this._handleStrangeDimensionLogic(mech, mId, now, io, players);
                 } else if (mech.type && mech.type.startsWith("aura_")) {
                     this._handleAuraLogic(mech, mId, now, io, grid, players);
                 }
@@ -753,6 +755,16 @@ module.exports = class BaseAI {
                         id: this.enemy.id, 
                         action: "reflect_end",
                         mId: mId
+                    });
+                }
+                if (mech.type === "strange_dimension" && this.enemy.strangeDimensionState && this.enemy.strangeDimensionState[mId] && this.enemy.strangeDimensionState[mId].isActive) {
+                    this.enemy.strangeDimensionState[mId].isActive = false;
+                    io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
+                        id: this.enemy.id,
+                        mId: mId,
+                        action: "strange_dimension_expire",
+                        type: "strange_dimension",
+                        silent: false
                     });
                 }
             });
@@ -3972,6 +3984,11 @@ module.exports = class BaseAI {
     }
     _handleLifeStealLogic(mech, mId, now, io, players) {
         return stealMechanics._handleLifeStealLogic.call(this, mech, mId, now, io, players);
+    }
+    _handleStrangeDimensionLogic(mech, mId, now, io, players) {
+        const target = this.activeTarget || (this.enemy.lastHitter && players[this.enemy.lastHitter]);
+        const dist = target ? Math.hypot(target.x - this.enemy.x, target.y - this.enemy.y) : 0;
+        return strangeDimensionMechanics._handleStrangeDimensionLogic.call(this, mech, mId, target, dist, now, io, players);
     }
     _onEnemyLifeStealHit(targetId, mech, mId, now, io) {
         return stealMechanics._onEnemyLifeStealHit.call(this, targetId, mech, mId, now, io);
