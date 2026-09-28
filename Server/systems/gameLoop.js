@@ -642,8 +642,8 @@ function startGameLoop(io, state, aiManager) {
                 changed = true;
             }
 
-            // Simular estados de sangrado (Bleed) si recibió daño de radiación recientemente
-            if (p.hazardCooldowns && Object.keys(p.hazardCooldowns).length > 0) {
+            // Simular estados de sangrado (Bleed) si recibió daño de radiación recientemente (desactivado en Dimensión Extraña)
+            if (!p.inStrangeDimension && !p.isInvulnerable && p.hazardCooldowns && Object.keys(p.hazardCooldowns).length > 0) {
                 const hasRecentRad = Object.values(p.hazardCooldowns).some(t => now - t < 1500);
                 if (hasRecentRad && (!p.bleedEndTime || now > p.bleedEndTime)) {
                     p.bleedEndTime = now + 4000;
@@ -1210,11 +1210,11 @@ function startGameLoop(io, state, aiManager) {
                             if (pUid && oUid && state.playerParty[pUid] && state.playerParty[pUid] === state.playerParty[oUid]) is_ally = true;
                         }
 
-                        if (area.type === 'SMOKE' && !is_ally) {
+                        if (area.type === 'SMOKE' && !is_ally && !p.inStrangeDimension && !p.isInvulnerable) {
                             p.isSilenced = true; p.lastSilenceTime = now;
                             if (!p.isBlinded) { p.isBlinded = true; io.to(p.socketId).emit('blindState', { active: true }); }
                             p.lastBlindTime = now;
-                        } else if (area.type === 'ICE' && p.socketId !== area.ownerId) {
+                        } else if (area.type === 'ICE' && p.socketId !== area.ownerId && !p.inStrangeDimension && !p.isInvulnerable) {
                             const iceFilters = area.targetFilters || { allies: false, enemies: true, players: true };
                             const applyIce = is_ally ? !!iceFilters.allies : (!!iceFilters.enemies || !!iceFilters.players);
                             if (applyIce) {

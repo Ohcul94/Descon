@@ -113,9 +113,10 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
 
             // Evaluar jugadores afectados
             const dmg = (Number(mech.damage) || 500) * (this.damageMult || 1);
-            const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead);
+            const zonePlayers = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvulnerable && !p.inStrangeDimension);
             
             zonePlayers.forEach(p => {
+                if (p.isInvulnerable || p.inStrangeDimension) return;
                 const distToEnemy = Math.hypot(p.x - explosionX, p.y - explosionY);
                 if (distToEnemy <= state.fireRange) {
                     const distToSafe = Math.hypot(p.x - state.safeX, p.y - state.safeY);

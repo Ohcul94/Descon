@@ -986,6 +986,7 @@ socket.on('playerFire', (fireData) => {
     socket.on('playerHitByEnemy', (data) => {
         const p = state.players[socket.id];
         if (p && !p.isDead && state.SERVER_CONFIG) {
+            if (p.isInvulnerable || p.inStrangeDimension) return;
             const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
             if (Number(p.zone) === lobbyZoneId) return;
 
@@ -1412,7 +1413,7 @@ socket.on('playerFire', (fireData) => {
                 }
                 attacker.lastPvpHitTimes[data.victimId] = now;
 
-                if (victim.isInvulnerable) {
+                if (victim.isInvulnerable || victim.inStrangeDimension) {
                     // v270.20: Enviar actualización de stats reales correctivas de la víctima a todos en la zona (incluyendo el atacante)
                     // para reajustar/corregir cualquier daño predictivo de 100 local en sus clientes
                     io.to(`zone_${victim.zone}`).emit('playerStatSync', {

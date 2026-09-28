@@ -4,6 +4,7 @@
 const altarDefenseManager = require('../../systems/altarDefenseManager');
 
 function _applyMeteorDebuffs(p, mech, io) {
+    if (!p || p.isInvulnerable || p.inStrangeDimension) return;
     if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
     mech.debuffsList.forEach(d => {
         if (d.type === 'bleed') {
@@ -77,7 +78,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
 
     if (!state.meteorList) state.meteorList = [];
 
-    const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
+    const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible && !p.isInvulnerable && !p.inStrangeDimension);
 
     // 1. Procesar meteoritos activos (impacto)
     for (let i = state.meteorList.length - 1; i >= 0; i--) {
@@ -95,6 +96,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
             });
 
             zonePlayers().forEach(p => {
+                if (p.isInvulnerable || p.inStrangeDimension) return;
                 const playerRadius = Number(p.radius) || 35;
                 const d = Math.hypot(p.x - mt.x, p.y - mt.y);
                 if (d > explosionRadius + playerRadius) return;
@@ -181,6 +183,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
             } else if (now - z.lastTick >= zoneTickMs) {
                 z.lastTick = now;
                 zonePlayers().forEach(p => {
+                    if (p.isInvulnerable || p.inStrangeDimension) return;
                     const playerRadius = Number(p.radius) || 35;
                     const d = Math.hypot(p.x - z.x, p.y - z.y);
                     if (d > explosionRadius + playerRadius) return;

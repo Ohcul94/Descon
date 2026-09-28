@@ -3051,5 +3051,5 @@ function startServer() {
         Logger.system(`+----------------------------------------------+`);
     });
 }
-// v904.0: Nodemon Watcher Trigger Line - Strange Dimension Dome & Darkness.
+// v904.1: Nodemon Watcher Trigger Line - Fix startDelay=0 and activationMode.
 

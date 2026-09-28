@@ -143,7 +143,6 @@ var poly_can_move: bool = false
 var poly_can_use_skills: bool = true
 
 # ==== DIMENSIÓN EXTRAÑA ====
-var in_strange_dimension: bool = false
 var strange_dimension_timer: float = 0.0
 var strange_dimension_config: Dictionary = {}
 var strange_dimension_cc: bool = false  # Trigger CC para activación automática
@@ -223,6 +222,8 @@ func _on_config_updated_recalc(_cfg):
 	_recalculate_stats()
 
 func _on_environment_damaged(data: Dictionary):
+	if in_strange_dimension or is_in_strange_dimension:
+		return
 	var dmg = float(data.get("damage", 0.0))
 	if dmg > 0:
 		# Detenemos la falsa regeneración local avisando a Godot que estamos en combate
@@ -322,6 +323,13 @@ func _stop_sleep_aura() -> void:
 		_sleep_aura = null
 
 func _on_status_effects_sync(data: Dictionary):
+	if in_strange_dimension or is_in_strange_dimension:
+		if data.has("stun") and stun_timer <= 0.0: data.erase("stun")
+		if data.has("slow") and slow_timer <= 0.0: data.erase("slow")
+		if data.has("bleed") and bleed_timer <= 0.0: data.erase("bleed")
+		if data.has("poison") and poison_timer <= 0.0: data.erase("poison")
+		if data.has("poly") and poly_timer <= 0.0: data.erase("poly")
+
 	if is_casting and (data.has("stun") or data.has("slow") or data.has("poly")):
 		# if any CC arrives during cast, cancel
 		if float(data.get("stun", 0)) > 0 or float(data.get("poly", 0)) > 0:
@@ -1356,6 +1364,8 @@ func _recalculate_stats():
 	_emit_stats()
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
+	if is_in_strange_dimension or in_strange_dimension:
+		return
 	if amt <= 0.0:
 		return
 	super.take_damage(amt, attacker_pos, attacker_id)

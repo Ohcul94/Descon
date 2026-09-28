@@ -1275,6 +1275,8 @@ func handle_whip_summon_action(data: Dictionary) -> void:
 		return
 
 func _spawn_persistent_meteor_zone(data: Dictionary) -> void:
+	if em and em.is_in_strange_dimension:
+		return
 	var m_id = str(data.get("mId", ""))
 	if m_id.is_empty() or active_meteor_zones.has(m_id):
 		return

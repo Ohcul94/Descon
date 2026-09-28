@@ -9,6 +9,7 @@ class DamageSkill extends BaseSkill {
         const res = this.getTarget(p, data, state, socket);
         if (!res) return;
         const { target } = res;
+        if (target.isInvulnerable || target.inStrangeDimension) return;
         
         const powerValue = data.powerValue || 0;
         let actual_val = 0;

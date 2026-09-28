@@ -109,6 +109,8 @@ var target_rotation: float = 0.0
 
 var is_dead: bool = false
 var is_god: bool = false
+var in_strange_dimension: bool = false
+var is_in_strange_dimension: bool = false
 var last_combat_time: float = 0
 
 var _last_rendered_hp: float = -1.0
@@ -1738,6 +1740,7 @@ func _resurrect(data: Dictionary):
 	if _ui_wrapper: _ui_wrapper.queue_redraw()
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
+	if is_in_strange_dimension or in_strange_dimension: return
 	# v400.10: Control de PvP y modo combate en mapas tranquilos
 	var target_is_player = is_in_group("player") or is_in_group("remote_players")
 	if target_is_player and attacker_id != "":

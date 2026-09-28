@@ -3283,9 +3283,9 @@
                     "radius": 100,
                     "damage_per_tick": 4,
                     "tick_interval": 990,
-                    "_collapsed": true,
+                    "_collapsed": false,
                     "pullEnabled": true,
-                    "pullRadius": 500,
+                    "pullRadius": 250,
                     "pullStrength": 800,
                     "ray_damage": 2
                 },

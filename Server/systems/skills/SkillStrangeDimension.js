@@ -48,8 +48,9 @@ class SkillStrangeDimension extends BaseSkill {
             return;
         }
 
-        // Marcar al jugador como estar en dimensión extraña
+        // Marcar al jugador como estar en dimensión extraña e invulnerable
         p.inStrangeDimension = true;
+        p.isInvulnerable = true;
         p.strangeDimensionTimer = Date.now() + duration;
         p.strangeDimensionConfig = {
             duration: duration,
@@ -130,6 +131,7 @@ class SkillStrangeDimension extends BaseSkill {
         if (!p) return;
         
         p.inStrangeDimension = false;
+        p.isInvulnerable = false;
         p.strangeDimensionTimer = null;
         p.strangeDimensionConfig = null;
 

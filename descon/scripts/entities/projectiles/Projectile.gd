@@ -1926,7 +1926,7 @@ func _on_body_entered(body):
 	if type == "electron": return
 	
 	if body.has_method("take_damage"):
-		if body.get("is_dead") == true: return
+		if body.get("is_dead") == true or body.get("is_in_strange_dimension") == true or body.get("in_strange_dimension") == true: return
 		var body_eid = ""
 		if "entity_id" in body: body_eid = str(body.entity_id)
 		
@@ -2100,7 +2100,7 @@ func _explode():
 		var targets_hit = []
 		var entities = get_tree().get_nodes_in_group("entities")
 		for ent in entities:
-			if not is_instance_valid(ent) or ent.get("is_dead") == true: continue
+			if not is_instance_valid(ent) or ent.get("is_dead") == true or ent.get("is_in_strange_dimension") == true or ent.get("in_strange_dimension") == true: continue
 			
 			var ent_eid = ""
 			if "entity_id" in ent: ent_eid = str(ent.entity_id)

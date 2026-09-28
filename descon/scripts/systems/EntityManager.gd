@@ -43,6 +43,15 @@ const TEX_ESFERA_VERDE_1 = preload("res://assets/Esferas/EsferaVerde1.png")
 const CONE_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
 const CONE_SPARK_TEX = preload("res://VFX/textures/T_VFX_sparks42.jpg")
 
+func _safe_free_node(target: Variant) -> void:
+	if is_instance_valid(target):
+		target.queue_free()
+
+func _on_blast_area_cleanup(area_key: String, blast_node: Variant) -> void:
+	active_areas.erase(area_key)
+	if is_instance_valid(blast_node):
+		blast_node.queue_free()
+
 # Explosión en 2 fases: 1) llamas se acumulan alrededor del centro/enemigo, 2) estallan hacia los costados hasta el rango
 func _make_circle_fire_burst(r3d: float, has_terrain: bool) -> Node3D:
 	var root = Node3D.new()
@@ -979,11 +988,15 @@ func _on_laser_indicator_exited(enemy_id: String):
 	active_laser_tracking.erase(enemy_id)
 
 func _on_enemy_action(data: Dictionary):
-	var action = data.get("action", "")
+	var action: String = str(data.get("action", ""))
 	var enemy_id = str(data.get("id", ""))
 	
-	# Durante la Dimensión Extraña, NO procesar mecánicas normales de afuera
-	if is_in_strange_dimension and action != "strange_dimension_expire":
+	# Durante la Dimensión Extraña, ignoramos sonidos/VFX nuevos de afuera,
+	# pero SIEMPRE procesamos acciones de finalización/detonación para evitar VFXs congelados.
+	var is_ending_action: bool = action.ends_with("_end") or action.ends_with("_expire") or action.ends_with("_finish") or action.ends_with("_clear") or action.ends_with("_destroy") or action.ends_with("_stop") or action.ends_with("_explode") or action.ends_with("_fire") or action == "spin_ring_finish" or action == "circle_fire" or action == "circle_explosion_end"
+	var is_dimension_action: bool = action.begins_with("strange_dimension")
+	
+	if is_in_strange_dimension and not is_ending_action and not is_dimension_action:
 		return
 	# v900.0: sonido de mecánica genérico (2D con atenuación)
 	# v901.0: "silent" evita repetir el sonido en los updates de posición/estado (Bola de Fuego Dinámica)
@@ -1175,6 +1188,31 @@ func _on_enemy_action(data: Dictionary):
 				if is_instance_valid(ww):
 					ww.set_meta("dim_hidden", ww.visible)
 					ww.visible = false
+			# 4m. Limpieza de indicadores previos de Explosión Circular / Decals
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				for c in world.entities_node.get_children():
+					if is_instance_valid(c) and (c.has_meta("is_circle_indicator") or c.name.begins_with("CircleIndicator_")):
+						var c3d = c.get_meta("circle_3d", null)
+						if is_instance_valid(c3d): c3d.queue_free()
+						c.queue_free()
+			for eid in enemies.keys():
+				var en_obj = enemies[eid]
+				if is_instance_valid(en_obj):
+					for c in en_obj.get_children():
+						if is_instance_valid(c) and (c.has_meta("is_circle_indicator") or c.name.begins_with("CircleIndicator_")):
+							var c3d = c.get_meta("circle_3d", null)
+							if is_instance_valid(c3d): c3d.queue_free()
+							c.queue_free()
+					if is_instance_valid(en_obj.get("world_root_3d")):
+						for c3 in en_obj.world_root_3d.get_children():
+							if is_instance_valid(c3) and (c3.name.begins_with("Circle3D_") or c3.name.begins_with("CircleBlast3D_")):
+								c3.queue_free()
+			# 4n. Limpieza de indicadores previos y tormentas de Tormenta de Hielo (IceStormCharging_ / IceStorm_)
+			var c_map_start = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(c_map_start) and "sub_viewport" in c_map_start and is_instance_valid(c_map_start.sub_viewport):
+				for c in c_map_start.sub_viewport.get_children():
+					if is_instance_valid(c) and (c.name.begins_with("IceStorm_") or c.name.begins_with("IceStormCharging_")):
+						c.queue_free()
 		return
 
 	if action == "strange_dimension_expire":
@@ -1278,6 +1316,31 @@ func _on_enemy_action(data: Dictionary):
 			if is_instance_valid(ww) and ww.has_meta("dim_hidden"):
 				ww.visible = bool(ww.get_meta("dim_hidden", true))
 				ww.remove_meta("dim_hidden")
+		# Limpieza de indicadores y decals de círculos al salir
+		if is_instance_valid(world) and is_instance_valid(world.entities_node):
+			for c in world.entities_node.get_children():
+				if is_instance_valid(c) and (c.has_meta("is_circle_indicator") or c.name.begins_with("CircleIndicator_")):
+					var c3d = c.get_meta("circle_3d", null)
+					if is_instance_valid(c3d): c3d.queue_free()
+					c.queue_free()
+		for eid in enemies.keys():
+			var en_obj = enemies[eid]
+			if is_instance_valid(en_obj):
+				for c in en_obj.get_children():
+					if is_instance_valid(c) and (c.has_meta("is_circle_indicator") or c.name.begins_with("CircleIndicator_")):
+						var c3d = c.get_meta("circle_3d", null)
+						if is_instance_valid(c3d): c3d.queue_free()
+						c.queue_free()
+				if is_instance_valid(en_obj.get("world_root_3d")):
+					for c3 in en_obj.world_root_3d.get_children():
+						if is_instance_valid(c3) and (c3.name.begins_with("Circle3D_") or c3.name.begins_with("CircleBlast3D_")):
+							c3.queue_free()
+		# Limpieza de Tormentas de Hielo al salir (IceStorm_ / IceStormCharging_)
+		var c_map_expire = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(c_map_expire) and "sub_viewport" in c_map_expire and is_instance_valid(c_map_expire.sub_viewport):
+			for c in c_map_expire.sub_viewport.get_children():
+				if is_instance_valid(c) and (c.name.begins_with("IceStorm_") or c.name.begins_with("IceStormCharging_")):
+					c.queue_free()
 		# Salir de la dimensión en el Player
 		var local_p = world.local_player if is_instance_valid(world) and "local_player" in world else null
 		if is_instance_valid(local_p) and local_p.has_method("_exit_strange_dimension"):
@@ -1840,23 +1903,15 @@ func _on_enemy_action(data: Dictionary):
 						ground_fire.emitting = true
 				)
 				tw_gf.tween_interval(1.1)
-				tw_gf.finished.connect(func():
-					if is_instance_valid(ground_fire):
-						ground_fire.queue_free()
-				)
+				tw_gf.finished.connect(_safe_free_node.bind(ground_fire))
 
 				var tw_cleanup = blast_3d.create_tween()
 				tw_cleanup.tween_interval(3.0)
-				tw_cleanup.finished.connect(func():
-					if is_instance_valid(blast_3d): blast_3d.queue_free()
-				)
+				tw_cleanup.tween_callback(blast_3d.queue_free)
 
 				var tw_dummy = blast.create_tween()
 				tw_dummy.tween_interval(0.5)
-				tw_dummy.finished.connect(func():
-					active_areas.erase("blast_" + enemy_id)
-					if is_instance_valid(blast): blast.queue_free()
-				)
+				tw_dummy.finished.connect(_on_blast_area_cleanup.bind("blast_" + enemy_id, blast))
 			else:
 				var poly_fill = Polygon2D.new()
 				poly_fill.polygon = _get_cone_points(range_val, cone_angle)
@@ -1877,14 +1932,13 @@ func _on_enemy_action(data: Dictionary):
 				tw2.tween_interval(0.9)
 				tw2.tween_property(poly_edge, "color:a", 0.0, 0.35)
 				tw2.parallel().tween_property(poly_fill, "color:a", 0.0, 0.4)
-				tw2.finished.connect(func():
-					active_areas.erase("blast_" + enemy_id)
-					if is_instance_valid(blast): blast.queue_free()
-				)
+				tw2.finished.connect(_on_blast_area_cleanup.bind("blast_" + enemy_id, blast))
 
 			active_areas["blast_" + enemy_id] = blast
 
 		elif action == "circle_charging":
+			if is_in_strange_dimension:
+				return
 			var range_val = float(data.get("range", 300.0))
 			var charge_dur = float(data.get("duration", 2000.0)) / 1000.0
 			var lock_dur = float(data.get("lockTimeMs", 800.0)) / 1000.0
@@ -1930,10 +1984,7 @@ func _on_enemy_action(data: Dictionary):
 					# Guardamos decal como circle_3d para que _process y cleanup lo encuentren (duck typing)
 					circle_node.set_meta("circle_3d", decal)
 					circle_node.set_meta("is_decal", true)
-					circle_node.tree_exiting.connect(func():
-						if is_instance_valid(decal):
-							decal.queue_free()
-					)
+					circle_node.tree_exiting.connect(_safe_free_node.bind(decal))
 					# No creamos rings 3D: el decal ya tiene borde, pero mantenemos compatibilidad
 					var dummy_3d = decal
 					dummy_3d.set_meta("outer_r3d", outer_r3d)
@@ -1983,10 +2034,7 @@ func _on_enemy_action(data: Dictionary):
 					circle_node.set_meta("circle_3d", circle_3d)
 					circle_node.set_meta("is_decal", false)
 					circle_node.set_meta("center_2d", en.global_position)
-					circle_node.tree_exiting.connect(func():
-						if is_instance_valid(circle_3d):
-							circle_3d.queue_free()
-					)
+					circle_node.tree_exiting.connect(_safe_free_node.bind(circle_3d))
 				else:
 					# Fallback original plano
 					var circle_3d = Node3D.new()
@@ -2028,21 +2076,29 @@ func _on_enemy_action(data: Dictionary):
 					circle_3d.set_meta("outer_r3d", outer_r3d)
 					circle_3d.set_meta("inner_r3d", inner_r3d)
 					circle_node.set_meta("circle_3d", circle_3d)
-					circle_node.tree_exiting.connect(func():
-						if is_instance_valid(circle_3d):
-							circle_3d.queue_free()
-					)
+					circle_node.tree_exiting.connect(_safe_free_node.bind(circle_3d))
 
 			active_areas["circle_" + enemy_id] = circle_node
 			
 		elif action == "circle_fire":
 			var indicator = en.get_node_or_null("CircleIndicator_" + enemy_id)
 			if is_instance_valid(indicator):
+				var c3d = indicator.get_meta("circle_3d", null)
+				if is_instance_valid(c3d): c3d.queue_free()
 				indicator.queue_free()
 				
 			var root_indicator = world.entities_node.get_node_or_null("CircleIndicator_" + enemy_id) if is_instance_valid(world) and is_instance_valid(world.entities_node) else null
 			if is_instance_valid(root_indicator):
+				var c3d_root = root_indicator.get_meta("circle_3d", null)
+				if is_instance_valid(c3d_root): c3d_root.queue_free()
 				root_indicator.queue_free()
+				
+			if active_areas.has("circle_" + enemy_id):
+				active_areas.erase("circle_" + enemy_id)
+				
+			# Si estamos dentro de la Dimensión Extraña, no generar la explosión visible de afuera
+			if is_in_strange_dimension:
+				return
 				
 			var range_val = float(data.get("range", 300.0))
 			var locked_x = float(data.get("x", en.global_position.x))
@@ -2116,18 +2172,16 @@ func _on_enemy_action(data: Dictionary):
 				var burst = _make_circle_fire_burst(r3d, has_terrain_exp)
 				circle_blast_3d.add_child(burst)
 
-				# Limpiar el contenedor completo cuando mueren las partículas (lifetime máx ~1.05s)
-				var clean_all = func():
-					if is_instance_valid(circle_blast_3d):
-						circle_blast_3d.queue_free()
 				# Fase1 acumula +0.22s, fase2 estalla ~1.05s → limpiar ~1.6s
 				var tw_clean = circle_blast_3d.create_tween()
 				tw_clean.tween_interval(1.6)
-				tw_clean.tween_callback(clean_all)
+				tw_clean.tween_callback(circle_blast_3d.queue_free)
 
 			active_areas.erase("blast_" + enemy_id)
 
 		elif action == "ice_storm_charging":
+			if is_in_strange_dimension:
+				return
 			var range_val = float(data.get("range", 300.0))
 			var target_x = float(data.get("targetX", 0.0))
 			var target_y = float(data.get("targetY", 0.0))
@@ -2188,6 +2242,8 @@ func _on_enemy_action(data: Dictionary):
 				pulse_tw.tween_property(g_mat, "albedo_color:a", 0.12, 0.25).set_trans(Tween.TRANS_SINE)
 
 		elif action == "ice_storm_deploy":
+			if is_in_strange_dimension:
+				return
 			var storm_x = float(data.get("x", en.global_position.x))
 			var storm_y = float(data.get("y", en.global_position.y))
 			var range_val = float(data.get("range", 300.0))
@@ -2336,10 +2392,14 @@ func _on_enemy_action(data: Dictionary):
 			if active_areas.has("icestorm_" + enemy_id):
 				var storm = active_areas["icestorm_" + enemy_id]
 				if is_instance_valid(storm):
-					var fade_tw = create_tween().set_parallel(true)
-					fade_tw.tween_property(storm, "scale", Vector3.ZERO, 0.3)
-					fade_tw.finished.connect(storm.queue_free)
+					storm.queue_free()
 				active_areas.erase("icestorm_" + enemy_id)
+			var c_map_exp = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(c_map_exp) and "sub_viewport" in c_map_exp and is_instance_valid(c_map_exp.sub_viewport):
+				var old_charge = c_map_exp.sub_viewport.get_node_or_null("IceStormCharging_" + enemy_id)
+				if is_instance_valid(old_charge): old_charge.queue_free()
+				var old_storm = c_map_exp.sub_viewport.get_node_or_null("IceStorm_" + enemy_id)
+				if is_instance_valid(old_storm): old_storm.queue_free()
 
 		elif action == "worm_volley":
 			var worms = data.get("worms", [])
