@@ -445,15 +445,6 @@ func _setup_dynamic_3d_map_layout():
 	# Variables locales declaradas al inicio de la función para evitar shadowing / re-declaraciones
 	var plane_mesh: PlaneMesh = null
 	var ground_mat: Material = null
-	var wall_root: Node3D = null
-	var nebula_width: float = 0.0
-	var wall_height: float = 0.0
-	var y_wall: float = 0.0
-	var min_x: float = 0.0
-	var max_x: float = 0.0
-	var min_z: float = 0.0
-	var max_z: float = 0.0
-	var wall_mat: Material = null
 
 	# v500.0: Buscar Ground3D (ya sea directo en viewport o dentro de la escena personalizada del editor)
 	var existing_ground = sub_viewport.find_child("Ground3D", true, false) if is_instance_valid(sub_viewport) else null
@@ -508,7 +499,7 @@ func _setup_dynamic_3d_map_layout():
 	mesh_instance.material_override = ground_mat
 	ground_root.add_child(mesh_instance)
 
-func _resize_existing_ground(ground_root: Node3D, gs_x: float, gs_z: float, cx: float, cz: float, y: float, map_w: float, map_h: float, fog_start: float, fog_end: float):
+func _resize_existing_ground(ground_root: Node3D, gs_x: float, gs_z: float, cx: float, cz: float, y: float, _map_w: float, _map_h: float, fog_start: float, fog_end: float):
 	var mesh_node = ground_root.get_node_or_null("GroundMesh")
 	if is_instance_valid(mesh_node) and mesh_node is MeshInstance3D:
 		var pm = mesh_node.mesh
