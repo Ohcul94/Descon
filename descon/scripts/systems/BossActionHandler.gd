@@ -20,6 +20,7 @@ const METEOR_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg"
 const METEOR_SPARKS_TEX = preload("res://VFX/textures/T_VFX_sparks42.jpg")
 const METEOR_SMOKE_TEX = preload("res://VFX/textures/T_VFX_smoke_1.PNG")
 const FOLLOW_ORB_3D_SCRIPT = preload("res://scripts/entities/projectiles/FollowOrb3D.gd")
+const WHIP_SUMMON_VISUAL_SCRIPT = preload("res://scripts/systems/WhipSummonVisual.gd")
 
 func setup(entity_manager_ref: Node) -> void:
 	em = entity_manager_ref
@@ -1208,6 +1209,51 @@ func handle_meteor_zone_action(data: Dictionary) -> void:
 				return
 
 	_spawn_persistent_meteor_zone(data)
+
+# ==============================================================================
+# 10. LATIGO DOMINANTE (Whip Summon) - VFX del látigo que golpea N veces
+# ==============================================================================
+func handle_whip_summon_action(data: Dictionary) -> void:
+	if not is_instance_valid(em): return
+	var action = str(data.get("action", ""))
+	var enemy_id = str(data.get("id", ""))
+	var target_id = str(data.get("targetId", ""))
+	var hit_index = int(data.get("hitIndex", 0))
+	var total_hits = int(data.get("totalHits", 3))
+	var damage = int(data.get("damage", 50))
+	var cadence = int(data.get("cadence", 300))
+
+	if action == "whip_summon_start":
+		# Crear nodo visual del látigo en el enemigo
+		var enemy_node = em.enemies.get(enemy_id) if em.enemies.has(enemy_id) else null
+		if enemy_node == null or not is_instance_valid(enemy_node):
+			return
+		var map_node = get_tree().get_first_node_in_group("map")
+		if not is_instance_valid(map_node):
+			return
+		var whip_node = WHIP_SUMMON_VISUAL_SCRIPT.new()
+		whip_node.name = "WhipSummon_" + enemy_id
+		whip_node.z_index = 20
+		whip_node.set_as_top_level(true)
+		em.world.entities_node.add_child(whip_node)
+		if whip_node.has_method("setup"):
+			whip_node.setup(data, map_node, enemy_node)
+		em.active_areas["whip_" + enemy_id] = whip_node
+		return
+
+	if action == "whip_summon_hit":
+		# Actualizar el nodo visual para cada golpe
+		var whip_key = "whip_" + enemy_id
+		if em.active_areas.has(whip_key) and is_instance_valid(em.active_areas[whip_key]):
+			var whip_node = em.active_areas[whip_key]
+			if whip_node.has_method("update_hit"):
+				whip_node.update_hit(data)
+		# Si es el último golpe, limpiar
+		if hit_index >= total_hits - 1:
+			if em.active_areas.has(whip_key) and is_instance_valid(em.active_areas[whip_key]):
+				em.active_areas[whip_key].queue_free()
+				em.active_areas.erase(whip_key)
+		return
 
 func _spawn_persistent_meteor_zone(data: Dictionary) -> void:
 	var m_id = str(data.get("mId", ""))

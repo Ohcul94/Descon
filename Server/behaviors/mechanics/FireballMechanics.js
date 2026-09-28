@@ -38,7 +38,7 @@ function _pickWaypoint(state, areaRadius) {
     state.wpTime = Date.now();
 }
 
-function _applyFireballDamage(ai, state, radius, dmg, now, io, players) {
+function _applyFireballDamage(ai, state, radius, dmg, now, io, players, pullCfg) {
     const zonePlayers = Object.values(players || {}).filter(p =>
         String(p.zone) === String(ai.enemy.zone) && !p.isDead && !p.isInvisible);
 
@@ -111,7 +111,12 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
     const radius = Math.max(10, _num(mech.radius, 90));
     const speed = Math.max(0, _num(mech.speed, 180));
     const tickInterval = Math.max(MIN_TICK_INTERVAL, _num(mech.tick_interval, 800));
+    const pullEnabled = mech.pullEnabled === true;
+    const pullRadius = Math.max(0, _num(mech.pullRadius, 250));
+    const pullStrength = Math.max(0, _num(mech.pullStrength, 180));
+    const rayDmg = Math.max(0, _num(mech.ray_damage, 20)) * (ai.damageMult || 1);
     const dmgPerTick = _num(mech.damage_per_tick, 30) * (ai.damageMult || 1);
+    const pullCfg = { enabled: pullEnabled, radius: pullRadius, rayDmg: rayDmg };
     const chargeTime = Math.max(0, _num(mech.castTimeMs, 1200));
     const areaMode = (mech.areaMode === 'target') ? 'target' : 'enemy';
     const zoneRoom = `zone_${ai.enemy.zone}`;
@@ -240,7 +245,25 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
         // Daño por tick
         if (now - (state.lastTick || 0) >= tickInterval) {
             state.lastTick = now;
-            _applyFireballDamage(ai, state, radius, dmgPerTick, now, io, players);
+            _applyFireballDamage(ai, state, radius, dmgPerTick, now, io, players, pullCfg);
+        }
+        // Emisión de atracción cada tick si está habilitada
+        if (pullEnabled) {
+            const zonePlayers = Object.values(players || {}).filter(p =>
+                String(p.zone) === String(ai.enemy.zone) && !p.isDead && !p.isInvisible);
+            zonePlayers.forEach(p => {
+                const d = Math.hypot(p.x - state.x, p.y - state.y);
+                if (d <= pullRadius && d > 0) {
+                    io.to(p.socketId).emit('fireball_pull', {
+                        attackerId: ai.enemy.id,
+                        mId: mId,
+                        ballX: state.x,
+                        ballY: state.y,
+                        pullSpeed: pullStrength,
+                        duration: 600
+                    });
+                }
+            });
         }
     }
 

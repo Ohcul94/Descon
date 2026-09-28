@@ -58,11 +58,16 @@ function renderMechanicsLib() {
         "pushOnHit": "Expulsar al Colisionar",
         // v901.0: Bola de Fuego Dinámica
         "areaRadius": "Radio del Área de Deambulación (px)",
-        "areaMode": "Ubicación del Área"
+        "areaMode": "Ubicación del Área",
+        // v901.1: Atracción hacia la Bola de Fuego
+        "pullEnabled": "Atracción hacia la Bola",
+        "pullRadius": "Rango de Atracción (px)",
+        "pullStrength": "Fuerza de Atracción (px/s)",
+        "ray_damage": "Golpe de Rayos por Tick (pts)"
     };
 
     if (currentMechTab === 'attack') {
-        for(let type in MECHANICS_LIB) {
+        for(let type of Object.keys(MECHANICS_LIB).sort((a,b)=>MECHANICS_LIB[a].label.localeCompare(MECHANICS_LIB[b].label))) {
             const m = MECHANICS_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f) && !JSON.stringify(m).toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
@@ -85,7 +90,7 @@ function renderMechanicsLib() {
             grid.appendChild(card);
         }
     } else if (currentMechTab === 'defense') {
-        for(let type in DEFENSE_LIB) {
+        for(let type of Object.keys(DEFENSE_LIB).sort((a,b)=>DEFENSE_LIB[a].label.localeCompare(DEFENSE_LIB[b].label))) {
             const m = DEFENSE_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f) && !JSON.stringify(m).toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
@@ -108,7 +113,7 @@ function renderMechanicsLib() {
             grid.appendChild(card);
         }
     } else if (currentMechTab === 'ammo') {
-        for(let type in AMMO_MECH_LIB) {
+        for(let type of Object.keys(AMMO_MECH_LIB).sort((a,b)=>AMMO_MECH_LIB[a].label.localeCompare(AMMO_MECH_LIB[b].label))) {
             const m = AMMO_MECH_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
@@ -116,7 +121,7 @@ function renderMechanicsLib() {
             grid.appendChild(card);
         }
     } else if (currentMechTab === 'ambience') {
-        for(let type in AMBIENCE_LIB) {
+        for(let type of Object.keys(AMBIENCE_LIB).sort((a,b)=>AMBIENCE_LIB[a].label.localeCompare(AMBIENCE_LIB[b].label))) {
             const m = AMBIENCE_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
@@ -376,7 +381,7 @@ function renderMechanicsLib() {
         `;
         grid.appendChild(card);
     } else {
-        for(let type in MOVEMENT_LIB) {
+        for(let type of Object.keys(MOVEMENT_LIB).sort((a,b)=>MOVEMENT_LIB[a].label.localeCompare(MOVEMENT_LIB[b].label))) {
             const m = MOVEMENT_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';

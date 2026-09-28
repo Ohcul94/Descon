@@ -11,6 +11,8 @@ const defenseMechanics = require('./mechanics/BossDefenseMechanics');
 const puzzleMechanics = require('./mechanics/BossPuzzleMechanics');
 // v901.0: Bola de Fuego Dinámica
 const fireballMechanics = require('./mechanics/FireballMechanics');
+// v415.0: Latigo Dominante
+const whipSummonMechanics = require('./mechanics/WhipSummonMechanics');
 const { ThreatTable } = require('../systems/ThreatTable');
 
 module.exports = class BaseAI {
@@ -1344,7 +1346,7 @@ module.exports = class BaseAI {
 
     _isGenericCastType(type) {
         // Types with internal cast handling (their own charge) - generic runs in parallel (double bar)
-        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball"];
+        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball","whip_summon"];
         return !internal.includes(type);
     }
     _handleGenericCast(mech, mId, now, io) {
@@ -1473,6 +1475,11 @@ module.exports = class BaseAI {
         // v901.0: Bola de Fuego Dinámica - esfera solar que deambula por un área
         if (mech.type === "fireball") {
             return fireballMechanics._handleFireballLogic.call(this, mech, mId, target, dist, now, io, players);
+        }
+
+        // v415.0: Latigo Dominante
+        if (mech.type === "whip_summon") {
+            return whipSummonMechanics._handleWhipSummonLogic.call(this, mech, mId, target, dist, angle, now, io, players);
         }
 
         if (dist > fireRange && !state.isCharging && !state.isActive && mech.type !== "polymorph") return false;
@@ -3873,6 +3880,11 @@ module.exports = class BaseAI {
                 duration: mech.duration || 5000 
             });
         }
+    }
+
+    // v415.0: LATIGO DOMINANTE (Modularizado en mechanics/WhipSummonMechanics.js)
+    _handleWhipSummonLogic(mech, mId, now, io, players) {
+        return whipSummonMechanics._handleWhipSummonLogic.call(this, mech, mId, now, io, players);
     }
 
     // MECÁNICAS DE PUZZLE Y SUB-INVOCACIONES (Modularizado en mechanics/BossPuzzleMechanics.js)

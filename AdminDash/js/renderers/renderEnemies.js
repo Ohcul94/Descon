@@ -1,5 +1,122 @@
 // AdminDash/js/renderers/renderEnemies.js
 // v900.0: helpers sonido mecanicas hybrid
+const mechSearchState = {};
+
+function getSD(id) { return (mechSearchState[id] || '').toLowerCase(); }
+
+function buildSD(id, currentValue, options, color, cbCode) {
+    const search = getSD(id);
+    const currentOpt = options.find(o => o.value === currentValue);
+    const currentLabel = currentOpt ? `${currentOpt.icon} ${currentOpt.label}` : 'Seleccionar...';
+    const filtered = search ? options.filter(o => o.label.toLowerCase().includes(search) || o.value.toLowerCase().includes(search)) : options;
+    const safeCb = (cbCode || '').replace(/"/g, '&quot;');
+    const safeOpts = JSON.stringify(options).replace(/'/g, "&#39;");
+
+    return `
+    <div class="sd-wrap" id="sd-wrap-${id}" onclick="event.stopPropagation()">
+        <div class="sd-trig" onclick="toggleSD('${id}')" style="border-color:${color}; color:${color};">
+            <span style="display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${currentLabel}</span>
+            <span style="margin-left:auto; font-size:0.65rem; opacity:0.8; flex-shrink:0;">▼</span>
+        </div>
+        <div id="sd-box-${id}" class="sd-box" style="border-color:${color};">
+            <div class="sd-search-box">
+                <input type="text" id="sd-in-${id}" value="${search}" placeholder="🔍 Filtrar por nombre..."
+                    oninput="filterSD('${id}')" 
+                    onclick="event.stopPropagation()"
+                    onkeydown="if(event.key==='Escape'){closeSD('${id}');} else if(event.key==='Enter'){pickFirstSD('${id}','${safeCb}');}">
+            </div>
+            <div id="sd-opts-${id}" class="sd-opts-list" data-opts='${safeOpts}' data-cb="${safeCb}">
+                ${filtered.length === 0 ? '<div class="sd-no-results">Sin resultados</div>' : ''}
+                ${filtered.map(o => {
+                    const isSelected = o.value === currentValue;
+                    return `<div class="sd-o ${isSelected ? 'selected' : ''}" onclick="pickSD('${id}','${o.value}','${safeCb}')">
+                        <span style="font-size:1.1rem; flex-shrink:0;">${o.icon}</span>
+                        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${o.label}</span>
+                        ${isSelected ? `<span style="color:${color}; font-weight:bold; font-size:0.8rem; margin-left:auto;">✓</span>` : ''}
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>
+    </div>`;
+}
+
+function toggleSD(id) {
+    const box = document.getElementById(`sd-box-${id}`);
+    const wrap = document.getElementById(`sd-wrap-${id}`);
+    if (!box) return;
+    const isOpen = box.classList.contains('open');
+    
+    document.querySelectorAll('.sd-box.open').forEach(b => {
+        if (b.id !== `sd-box-${id}`) {
+            b.classList.remove('open');
+            const parentWrap = b.closest('.sd-wrap');
+            if (parentWrap) parentWrap.classList.remove('active');
+        }
+    });
+
+    if (isOpen) { 
+        closeSD(id); 
+    } else { 
+        box.classList.add('open'); 
+        if (wrap) wrap.classList.add('active');
+        const inp = document.getElementById(`sd-in-${id}`); 
+        if (inp) {
+            inp.focus(); 
+            inp.select();
+        }
+    }
+}
+
+function closeSD(id) {
+    const box = document.getElementById(`sd-box-${id}`);
+    const wrap = document.getElementById(`sd-wrap-${id}`);
+    if (box) box.classList.remove('open');
+    if (wrap) wrap.classList.remove('active');
+    mechSearchState[id] = '';
+}
+
+function filterSD(id) {
+    const inp = document.getElementById(`sd-in-${id}`);
+    if (!inp) return;
+    mechSearchState[id] = inp.value;
+    const optsDiv = document.getElementById(`sd-opts-${id}`);
+    if (!optsDiv) return;
+    const search = inp.value.toLowerCase().trim();
+    const rawOpts = optsDiv.getAttribute('data-opts') || '[]';
+    const allOpts = JSON.parse(rawOpts.replace(/&#39;/g, "'"));
+    const cbCode = optsDiv.getAttribute('data-cb') || '';
+    const filtered = search ? allOpts.filter(o => o.label.toLowerCase().includes(search) || o.value.toLowerCase().includes(search)) : allOpts;
+    
+    optsDiv.innerHTML = filtered.length === 0 ? '<div class="sd-no-results">Sin resultados</div>' : '';
+    filtered.forEach(o => {
+        const div = document.createElement('div');
+        div.className = `sd-o ${o.value === getSD(id) ? 'selected' : ''}`;
+        div.innerHTML = `<span style="font-size:1.1rem; flex-shrink:0;">${o.icon}</span><span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${o.label}</span>`;
+        div.onclick = (e) => {
+            e.stopPropagation();
+            pickSD(id, o.value, cbCode);
+        };
+        optsDiv.appendChild(div);
+    });
+}
+
+function pickFirstSD(id, cbCode) {
+    const optsDiv = document.getElementById(`sd-opts-${id}`);
+    if (!optsDiv) return;
+    const firstItem = optsDiv.querySelector('.sd-o');
+    if (firstItem) firstItem.click();
+}
+
+function pickSD(id, value, cbCode) {
+    closeSD(id);
+    try {
+        const f = new Function('value', '"use strict";' + cbCode);
+        f(value);
+    } catch(err) {
+        console.error('Error executing pickSD:', err);
+    }
+    if (typeof renderEnemyDetail === 'function') renderEnemyDetail();
+}
 function mechanicSoundOverrideHtml(enemyId, listName, idx, mech) {
     const libKey = mech.type;
     const MECHANICS_LIB_X = config.mechanicsLib || DEFAULT_MECHANICS_LIB;
@@ -302,9 +419,7 @@ function renderEnemyDetail() {
                             <div class="mech-card-header" onclick="toggleMechCard('${selectedEnemyId}', 'movementPhases', ${idx})">
                                 <span id="mc-chevron-${selectedEnemyId}-movementPhases-${idx}" class="mech-card-chevron ${m._collapsed ? 'collapsed' : ''}" style="color:#eab308;">▶</span>
                                 <div class="field full" style="margin:0; flex:1;">
-                                    <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onclick="event.stopPropagation();" onchange="event.stopPropagation(); updateMovementPhaseType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
-                                        ${Object.keys(MOVEMENT_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MOVEMENT_LIB[type].icon} ${MOVEMENT_LIB[type].label}</option>`).join('')}
-                                    </select>
+                                    ${buildSD('move-'+selectedEnemyId+'-'+idx, m.type, Object.keys(MOVEMENT_LIB).sort((a,b)=>MOVEMENT_LIB[a].label.localeCompare(MOVEMENT_LIB[b].label)).map(type => ({value:type, label:MOVEMENT_LIB[type].label, icon:MOVEMENT_LIB[type].icon})), '#eab308', `updateMovementPhaseType('${selectedEnemyId}', ${idx}, value); renderEnemyDetail();`)}
                                 </div>
                                 <div style="display:flex; gap:10px; flex-shrink:0;">
                                     <button style="background:none; border:none; color:#eab308; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveMovementPhase('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
@@ -379,9 +494,7 @@ function renderEnemyDetail() {
                             <div class="mech-card-header" onclick="toggleMechCard('${selectedEnemyId}', 'mechanics', ${idx})">
                                 <span id="mc-chevron-${selectedEnemyId}-mechanics-${idx}" class="mech-card-chevron ${m._collapsed ? 'collapsed' : ''}" style="color:#ef4444;">▶</span>
                                 <div class="field full" style="margin:0; flex:1;">
-                                    <select style="background:#0f172a; border:none; color:#ef4444; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onclick="event.stopPropagation();" onchange="event.stopPropagation(); updateMechanicType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
-                                        ${Object.keys(MECHANICS_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MECHANICS_LIB[type].icon} ${MECHANICS_LIB[type].label}</option>`).join('')}
-                                    </select>
+                                    ${buildSD('atk-'+selectedEnemyId+'-'+idx, m.type, Object.keys(MECHANICS_LIB).sort((a,b)=>MECHANICS_LIB[a].label.localeCompare(MECHANICS_LIB[b].label)).map(type => ({value:type, label:MECHANICS_LIB[type].label, icon:MECHANICS_LIB[type].icon})), '#ef4444', `updateMechanicType('${selectedEnemyId}', ${idx}, value); renderEnemyDetail();`)}
                                 </div>
                                 <div style="display:flex; gap:10px; flex-shrink:0;">
                                     <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
@@ -800,9 +913,7 @@ if (f === 'targetMode') {
                             <div class="mech-card-header" onclick="toggleMechCard('${selectedEnemyId}', 'defenseMechanics', ${idx})">
                                 <span id="mc-chevron-${selectedEnemyId}-defenseMechanics-${idx}" class="mech-card-chevron ${m._collapsed ? 'collapsed' : ''}" style="color:#3b82f6;">▶</span>
                                 <div class="field full" style="margin:0; flex:1;">
-                                    <select style="background:#0f172a; border:none; color:#3b82f6; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onclick="event.stopPropagation();" onchange="event.stopPropagation(); updateDefenseMechanicType('${selectedEnemyId}', ${idx}, this.value)">
-                                        ${Object.keys(DEFENSE_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${DEFENSE_LIB[type].icon} ${DEFENSE_LIB[type].label}</option>`).join('')}
-                                    </select>
+                                    ${buildSD('def-'+selectedEnemyId+'-'+idx, m.type, Object.keys(DEFENSE_LIB).sort((a,b)=>DEFENSE_LIB[a].label.localeCompare(DEFENSE_LIB[b].label)).map(type => ({value:type, label:DEFENSE_LIB[type].label, icon:DEFENSE_LIB[type].icon})), '#3b82f6', `updateDefenseMechanicType('${selectedEnemyId}', ${idx}, value); renderEnemyDetail();`)}
                                 </div>
                                 <div style="display:flex; gap:10px; flex-shrink:0;">
                                     <button style="background:none; border:none; color:#3b82f6; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); moveDefenseMechanic('${selectedEnemyId}', ${idx}, -1)">SUBIR</button>
@@ -1140,3 +1251,14 @@ if (f === 'targetMode') {
         } catch(e) { console.warn('sound inject', e); }
     }, 0);
 }
+
+// Click outside to close searchable dropdowns
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.sd-wrap')) {
+        document.querySelectorAll('.sd-box.open').forEach(box => {
+            box.classList.remove('open');
+            const wrap = box.closest('.sd-wrap');
+            if (wrap) wrap.classList.remove('active');
+        });
+    }
+});

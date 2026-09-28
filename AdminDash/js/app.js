@@ -979,6 +979,10 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'speed') mech[f] = newType === 'fireball' ? 180 : 400;
             else if (f === 'tick_interval') mech[f] = 800;
             else if (f === 'damage_per_tick') mech[f] = 30;
+            else if (f === 'pullEnabled') mech[f] = false;
+            else if (f === 'pullRadius') mech[f] = 250;
+            else if (f === 'pullStrength') mech[f] = 180;
+            else if (f === 'ray_damage') mech[f] = 20;
             else if (f === 'bombCount') mech[f] = 3;
             else if (f === 'bombDelayMs') mech[f] = 500;
             else if (f === 'fuseTimeMs') mech[f] = 1000;
