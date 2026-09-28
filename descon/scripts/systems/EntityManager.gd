@@ -388,6 +388,7 @@ func setup(world_ref):
 	NetworkManager.beacon_pulse.connect(_on_beacon_pulse)
 	NetworkManager.hook_pulled.connect(_on_hook_pulled)
 	NetworkManager.wind_push.connect(_on_wind_push)
+	NetworkManager.fireball_pull.connect(_on_fireball_pull)
 	NetworkManager.taunt_event.connect(_on_taunt_event)
 	NetworkManager.loot_spawned.connect(_on_loot_spawned)
 	NetworkManager.loot_despawned.connect(_on_loot_despawned)
@@ -1021,6 +1022,25 @@ func _on_enemy_action(data: Dictionary):
 	# v414: Ascensión Telúrica - el enemigo salta y aterriza sobre el área marcada
 	if action == "ascension_cast" or action == "ascension_leap" or action == "ascension_impact":
 		_handle_ascension_action(data)
+		return
+
+	# v415: Látigo Dominante - VFX del látigo que golpea N veces
+	if action == "whip_summon_start" or action == "whip_summon_hit":
+		boss_action_handler.handle_whip_summon_action(data)
+		return
+
+	# v900.0: Dimensión Extraña - portal y efecto sombrío
+	if action == "strange_dimension_start":
+		if enemies.has(enemy_id):
+			var en = enemies[enemy_id]
+			if is_instance_valid(en) and en.has_method("play_skill_vfx"):
+				en.play_skill_vfx("STRANGE_DIMENSION_PORTAL", float(data.get("duration", 5.0)))
+		return
+	if action == "strange_dimension_expire":
+		if enemies.has(enemy_id):
+			var en = enemies[enemy_id]
+			if is_instance_valid(en) and en.has_method("play_skill_vfx"):
+				en.play_skill_vfx("STRANGE_DIMENSION_EXIT", 0.0)
 		return
 
 	if enemies.has(enemy_id):
@@ -2338,11 +2358,6 @@ func _handle_meteor_action(data: Dictionary):
 func _handle_meteor_zone_action(data: Dictionary) -> void:
 	if boss_action_handler: boss_action_handler.handle_meteor_zone_action(data)
 
-# ==============================================================================
-# v901.0: BOLA DE FUEGO DINÁMICA (esfera solar que deambula por un área)
-# El servidor es el dueño de la verdad: posición, daño, duración y cooldown.
-# Aquí solo se construye/actualiza/libera el VFX según los eventos serverEnemyAction.
-# ==============================================================================
 func _handle_fireball_action(data: Dictionary) -> void:
 	var action := str(data.get("action", ""))
 	var enemy_id := str(data.get("id", ""))
@@ -2715,6 +2730,26 @@ func _on_wind_push(data: Dictionary):
 	var duration: float = clamp(distance / push_speed, 0.15, 0.6)
 	var tw = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(victim_node, "global_position", target_pos, duration)
+
+# v901.2: Cálculo de fuerza de atracción gravitacional continua de Bolas de Fuego
+func get_active_fireball_pull_vector(for_position: Vector2) -> Vector2:
+	var total_pull := Vector2.ZERO
+	for key in active_fireballs:
+		var fb = active_fireballs[key]
+		if is_instance_valid(fb) and fb.get("pull_enabled") == true:
+			var pull_r: float = float(fb.get("pull_radius"))
+			var pull_s: float = float(fb.get("pull_strength"))
+			var ball_pos: Vector2 = fb.global_position
+			var diff := ball_pos - for_position
+			var d := diff.length()
+			var hit_r: float = float(fb.get("_radius")) if "_radius" in fb else 90.0
+			if d > (hit_r + 15.0) and d <= pull_r:
+				# Vector de fuerza continua hacia el centro de la bola
+				total_pull += diff.normalized() * pull_s
+	return total_pull
+
+func _on_fireball_pull(_data: Dictionary) -> void:
+	pass
 
 func route_chat_bubble(data: Dictionary):
 	var sid = str(data.get("senderId", ""))

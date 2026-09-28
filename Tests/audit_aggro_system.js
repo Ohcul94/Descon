@@ -385,6 +385,141 @@ const offDmg = dynTable.addDamageThreat("sock_tester", 500, pTester);
 assert(offDmg === 0 && dynTable.entries.size === 0, `Cambio dinámico enabled = false: Desactiva por completo la generación de amenaza`);
 mockState.SERVER_CONFIG.aggroConfig.enabled = true; // restaurar
 
+section("11. AUDITORÍA DE SELECCIÓN DE TARGET EN MECÁNICAS (MÁS AGRO / MENOS AGRO / DEFAULT)");
+
+// Setup para pruebas de selección de mecánicas
+const testEnemyForMech = {
+    id: "mob_mech_test",
+    type: 1,
+    zone: 2,
+    x: 1000,
+    y: 1000,
+    hp: 10000,
+    maxHp: 10000,
+    shield: 0,
+    maxShield: 0,
+    fireRange: 800,
+    visionRange: 1000,
+    mechState: {},
+    config: {
+        fireRange: 800,
+        visionRange: 1000
+    }
+};
+
+const testStateForMech = {
+    SERVER_CONFIG: {
+        aggroConfig: { ...DEFAULT_AGGRO_CONFIG, enabled: true },
+        enemyModels: {}
+    },
+    players: {},
+    enemies: { "mob_mech_test": testEnemyForMech }
+};
+
+const aiInstance = new BaseAI(testEnemyForMech, testStateForMech);
+const aiThreatTable = aiInstance.threatTable;
+
+// 3 Jugadores a distintas distancias y con distinto agro
+const pHighThreat = { socketId: "p_high", id: "p_high", zone: 2, x: 1000, y: 1400, hp: 500, maxHp: 1000, shield: 100 }; // 400px
+const pMidThreat = { socketId: "p_mid", id: "p_mid", zone: 2, x: 1000, y: 1200, hp: 500, maxHp: 1000, shield: 100 };   // 200px
+const pLowThreat = { socketId: "p_low", id: "p_low", zone: 2, x: 1000, y: 1100, hp: 500, maxHp: 1000, shield: 100 };   // 100px
+
+const mechPlayersMap = {
+    "p_high": pHighThreat,
+    "p_mid": pMidThreat,
+    "p_low": pLowThreat
+};
+
+// Cargar amenazas en la ThreatTable
+aiThreatTable.entries.set("p_high", { threat: 5000, damageThreat: 5000, healThreat: 0, tankThreat: 0, lastActionTime: Date.now() });
+aiThreatTable.entries.set("p_mid", { threat: 2000, damageThreat: 2000, healThreat: 0, tankThreat: 0, lastActionTime: Date.now() });
+aiThreatTable.entries.set("p_low", { threat: 200, damageThreat: 200, healThreat: 0, tankThreat: 0, lastActionTime: Date.now() });
+
+// 1. Sin configurar targetMode (undefined) -> Debe elegir al jugador con Más Agro (p_high)
+const defaultSelected = aiInstance._selectTargets(mechPlayersMap, 800, 1, undefined, {});
+assert(defaultSelected.length === 1 && defaultSelected[0].socketId === "p_high",
+    "Mecánica sin configurar targetMode (undefined) -> Apunta por DEFECTO al jugador con Más Agro (p_high)");
+
+// 2. targetMode explícito 'highest_threat'
+const highestSelected = aiInstance._selectTargets(mechPlayersMap, 800, 1, "highest_threat", {});
+assert(highestSelected.length === 1 && highestSelected[0].socketId === "p_high",
+    "Mecánica con targetMode: 'highest_threat' -> Apunta al jugador con Más Agro (p_high)");
+
+// 3. targetMode explícito 'more_aggro' (alias)
+const moreAggroSelected = aiInstance._selectTargets(mechPlayersMap, 800, 1, "more_aggro", {});
+assert(moreAggroSelected.length === 1 && moreAggroSelected[0].socketId === "p_high",
+    "Mecánica con alias targetMode: 'more_aggro' -> Apunta al jugador con Más Agro (p_high)");
+
+// 4. targetMode explícito 'lowest_threat'
+const lowestSelected = aiInstance._selectTargets(mechPlayersMap, 800, 1, "lowest_threat", {});
+assert(lowestSelected.length === 1 && lowestSelected[0].socketId === "p_low",
+    "Mecánica con targetMode: 'lowest_threat' -> Apunta al jugador con Menos Agro (p_low)");
+
+// 5. targetMode explícito 'less_aggro' (alias)
+const lessAggroSelected = aiInstance._selectTargets(mechPlayersMap, 800, 1, "less_aggro", {});
+assert(lessAggroSelected.length === 1 && lessAggroSelected[0].socketId === "p_low",
+    "Mecánica con alias targetMode: 'less_aggro' -> Apunta al jugador con Menos Agro (p_low)");
+
+// 6. Multi-target con Más Agro (count: 2) -> Debe retornar [p_high, p_mid]
+const multiHigh = aiInstance._selectTargets(mechPlayersMap, 800, 2, "highest_threat", {});
+assert(multiHigh.length === 2 && multiHigh[0].socketId === "p_high" && multiHigh[1].socketId === "p_mid",
+    "Mecánica multi-objetivo Más Agro (count: 2) -> Retorna [p_high (5000), p_mid (2000)] en orden descendente");
+
+// 7. Multi-target con Menos Agro (count: 2) -> Debe retornar [p_low, p_mid]
+const multiLow = aiInstance._selectTargets(mechPlayersMap, 800, 2, "lowest_threat", {});
+assert(multiLow.length === 2 && multiLow[0].socketId === "p_low" && multiLow[1].socketId === "p_mid",
+    "Mecánica multi-objetivo Menos Agro (count: 2) -> Retorna [p_low (200), p_mid (2000)] en orden ascendente");
+
+// 8. Desempate por proximidad cuando dos jugadores tienen el mismo nivel de agro
+const pTieNear = { socketId: "p_near", id: "p_near", zone: 2, x: 1000, y: 1150, hp: 500, maxHp: 1000, shield: 100 }; // 150px
+const pTieFar = { socketId: "p_far", id: "p_far", zone: 2, x: 1000, y: 1350, hp: 500, maxHp: 1000, shield: 100 };   // 350px
+const tiePlayersMap = { "p_near": pTieNear, "p_far": pTieFar };
+aiThreatTable.entries.set("p_near", { threat: 3000, damageThreat: 3000, healThreat: 0, tankThreat: 0, lastActionTime: Date.now() });
+aiThreatTable.entries.set("p_far", { threat: 3000, damageThreat: 3000, healThreat: 0, tankThreat: 0, lastActionTime: Date.now() });
+
+const tieSelected = aiInstance._selectTargets(tiePlayersMap, 800, 1, "highest_threat", {});
+assert(tieSelected.length === 1 && tieSelected[0].socketId === "p_near",
+    "Empate de agro entre 2 jugadores -> Desempata correctamente priorizando proximidad (p_near a 150px)");
+
+// 9. Provocación (Taunt): Jugador con Menos Agro aplica Taunt -> Pasa a ser el objetivo #1 de Más Agro
+aiThreatTable.applyTaunt("p_low", 5000);
+const tauntedSelected = aiInstance._selectTargets(mechPlayersMap, 800, 1, "highest_threat", {});
+assert(tauntedSelected.length === 1 && tauntedSelected[0].socketId === "p_low",
+    "Taunt activo en p_low -> Otorga prioridad absoluta en mecánicas de Más Agro");
+aiThreatTable.tauntTargetId = null;
+aiThreatTable.tauntEndTime = 0;
+// Restaurar valores base de amenaza para p_low
+aiThreatTable.entries.set("p_high", { threat: 5000, damageThreat: 5000, healThreat: 0, tankThreat: 0, lastActionTime: Date.now() });
+aiThreatTable.entries.set("p_mid", { threat: 2000, damageThreat: 2000, healThreat: 0, tankThreat: 0, lastActionTime: Date.now() });
+aiThreatTable.entries.set("p_low", { threat: 200, damageThreat: 200, healThreat: 0, tankThreat: 0, lastActionTime: Date.now() });
+
+// 10 a 18. Verificación de cada una de las mecánicas del juego con selección de target
+const allMechanicsToVerify = [
+    { type: "sleep", name: "Sueño Inducido (Sleep)" },
+    { type: "burrow", name: "Zambullida Telúrica (Burrow)" },
+    { type: "polymorph", name: "Polimorfia (Polymorph)" },
+    { type: "meteor", name: "Lluvia de Meteoritos (Meteor)" },
+    { type: "execution", name: "Ejecución Directa (Execution)" },
+    { type: "ascension", name: "Ascensión Telúrica (Ascension)" },
+    { type: "whip_summon", name: "Látigo Dominante (Whip)" },
+    { type: "shield_steal", name: "Robador de Escudo (Shield Steal)" },
+    { type: "life_steal", name: "Robador de Vida (Life Steal)" }
+];
+
+allMechanicsToVerify.forEach(mechDef => {
+    // Si la mecánica no tiene targetMode configurado, debe ir por defecto a p_high (Más Agro)
+    const emptyMech = { type: mechDef.type };
+    const sel = aiInstance._selectTargets(mechPlayersMap, 800, 1, emptyMech.targetMode, emptyMech);
+    assert(sel.length === 1 && sel[0].socketId === "p_high",
+        `Mecánica '${mechDef.name}' sin targetMode -> Apunta por DEFECTO al jugador con Más Agro`);
+
+    // Si la mecánica se configura con Menos Agro, debe ir a p_low
+    const lessMech = { type: mechDef.type, targetMode: "lowest_threat" };
+    const selLess = aiInstance._selectTargets(mechPlayersMap, 800, 1, lessMech.targetMode, lessMech);
+    assert(selLess.length === 1 && selLess[0].socketId === "p_low",
+        `Mecánica '${mechDef.name}' con targetMode: 'lowest_threat' -> Apunta correctamente al jugador con Menos Agro`);
+});
+
 section("RESUMEN DE AUDITORÍA");
 console.log(`\n  Total de Pruebas: ${passed + failed}`);
 console.log(`  ${COLORS.green}Aprobadas: ${passed}${COLORS.reset}`);

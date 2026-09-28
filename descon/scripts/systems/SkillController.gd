@@ -533,7 +533,7 @@ func _draw():
 		var origin_local = to_local(origin_vis) if use_perspective else Vector2.ZERO
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas
-		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and current_skill.id != "electron" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO":
+		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and s_name != "DIMENSIÓN EXTRAÑA" and current_skill.id != "mine" and current_skill.id != "electron" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO":
 			draw_line(origin_local, end_proj, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
 		if current_skill.id == "emp":

@@ -21,6 +21,7 @@ const VFX_FlareTexture = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
 const VFX_GlowTexture = preload("res://VFX/textures/T_VFX_Glo31.png")
 const VFX_FireBallTexture = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
 const VFX_SmokePuffTexture = preload("res://VFX/textures/T_VFX_smoke_1.PNG")
+const VoidAuraShader = preload("res://resources/shaders/void_aura.gdshader")
 const VFX_WaterNormalTexture = preload("res://VFX/textures/T_GW_WaterNormal_01_b.PNG")
 # Propulsión 3D: precargados para no construir resources en runtime (FPS)
 const PropProcMaterial = preload("res://assets/VFX/Propulsion/propulsion_material.tres")
@@ -161,7 +162,6 @@ var _hit_flash_material_3d: StandardMaterial3D = null
 var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
 var _selection_outline_material: StandardMaterial3D = null # Outline dorado para target
 var _stealth_material: StandardMaterial3D = null
-var _status_material: StandardMaterial3D = null
 var _debuff_overlay_material: StandardMaterial3D = null
 var _current_applied_overlay: Material = null
 var _current_applied_next_pass: Material = null
@@ -2974,6 +2974,42 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			var tw = create_tween()
 			tw.tween_property(self, "modulate", Color(2.5, 2.0, 1.2, 1.0), 0.0)
 			tw.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.15)
+		"STRANGE_DIMENSION_PORTAL":
+			# v900.0: Efecto Dimensión Extraña — Portal violeta/tenebroso
+			modulate = Color(0.3, 0.1, 0.5, 1.0)
+			if is_instance_valid(_3d_model):
+				_3d_model.visible = true
+				# Crear material violeta para el overlay
+				var violet_mat = StandardMaterial3D.new()
+				violet_mat.albedo_color = Color(0.3, 0.1, 0.5, 0.6)
+				violet_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				violet_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+				violet_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				_apply_material_recursive(_3d_model, violet_mat, true)
+			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
+			# Spawnear VFX del portal
+			if is_instance_valid(world_root_3d):
+				_spawn_strange_dimension_vfx()
+			# Iniciar tween de entrada a dimensión
+			var tw = create_tween()
+			tw.tween_property(self, "modulate", Color(0.15, 0.05, 0.35, 1.0), 1.0)
+			tw.tween_callback(func():
+				if is_instance_valid(self) and self.has_meta("strange_dimension_active"):
+					self.modulate = Color(0.1, 0.03, 0.25, 1.0)
+			)
+		"STRANGE_DIMENSION_EXIT":
+			# Salir de la dimensión extraña — restaurar colores normales
+			modulate = Color.WHITE
+			if is_instance_valid(_3d_model):
+				_apply_material_recursive(_3d_model, null, false)
+			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
+			if is_instance_valid(_3d_model): _3d_model.visible = true
+			var tw = create_tween()
+			tw.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.5)
+			tw.tween_callback(func():
+				if is_instance_valid(self):
+					self.modulate = Color.WHITE
+			)
 
 
 # ==============================================================================
@@ -5076,6 +5112,96 @@ func _prevent_terrain_mountain_crossing_enemy(_delta: float = -1.0) -> void:
 				return
 		# Bloqueo total: frenar avance en seco contra la pared montañosa
 		target_position = global_position
+
+# ==============================================================================
+# DIMENSIÓN EXTRAÑA - Métodos de Activación y VFX
+# ==============================================================================
+
+func activate_strange_dimension(duration: float = 5.0) -> void:
+	# Activar el estado de dimensión extraña en el entity
+	set_meta("strange_dimension_active", true)
+	set_meta("strange_dimension_start", Time.get_ticks_msec() / 1000.0)
+	set_meta("strange_dimension_duration", duration)
+	
+	# Emitir señal para que el sistema maneje el estado
+	if has_signal("strange_dimension_activated"):
+		emit_signal("strange_dimension_activated", duration)
+	
+	print("[STRANGE_DIMENSION] Dimensión activada por ", duration, "s")
+
+func _spawn_strange_dimension_vfx() -> void:
+	# Spawnear el VFX del portal en la posición actual del entity
+	if not is_instance_valid(_3d_model) and not is_instance_valid(world_root_3d):
+		return
+	
+	var map_node = _get_map_node()
+	if not is_instance_valid(map_node):
+		return
+	
+	var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+	var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
+	
+	var pos_3d = Vector3(global_position.x * s_factor, 0.5, global_position.y * s_factor * correction_z)
+	
+	# Crear portal 3D en el SubViewport
+	if is_instance_valid(map_node.get("sub_viewport")):
+		var vp = map_node.sub_viewport
+		var portal_3d = Node3D.new()
+		portal_3d.name = "StrangeDimensionPortal"
+		portal_3d.position = pos_3d
+		vp.add_child(portal_3d)
+		
+		# Núcleo del portal (esfera violeta)
+		var core = MeshInstance3D.new()
+		core.name = "PortalCore"
+		var core_mesh = SphereMesh.new()
+		core_mesh.radius = 1.5
+		core_mesh.radial_segments = 32
+		core_mesh.rings = 32
+		core.mesh = core_mesh
+		
+		var core_mat = ShaderMaterial.new()
+		core_mat.shader = VoidAuraShader
+		core_mat.set_shader_parameter("core_color", Color(0.6, 0.1, 0.9))
+		core_mat.set_shader_parameter("mid_color", Color(0.4, 0.0, 0.6))
+		core_mat.set_shader_parameter("rim_color", Color(0.8, 0.2, 1.0))
+		core_mat.set_shader_parameter("intensity", 2.0)
+		core.material_override = core_mat
+		portal_3d.add_child(core)
+		
+		# Anillo exterior del portal
+		var ring = MeshInstance3D.new()
+		ring.name = "PortalRing"
+		var ring_mesh = TorusMesh.new()
+		ring_mesh.inner_radius = 1.8
+		ring_mesh.outer_radius = 2.0
+		ring.mesh = ring_mesh
+		
+		var ring_mat = StandardMaterial3D.new()
+		ring_mat.albedo_color = Color(0.6, 0.1, 0.9, 0.7)
+		ring_mat.emission_enabled = true
+		ring_mat.emission = Color(0.6, 0.1, 0.9)
+		ring_mat.emission_energy_multiplier = 3.0
+		ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		ring.material_override = ring_mat
+		portal_3d.add_child(ring)
+		
+		# Luz violeta
+		var light = OmniLight3D.new()
+		light.light_color = Color(0.6, 0.1, 0.9)
+		light.light_energy = 8.0
+		light.omni_range = 10.0
+		portal_3d.add_child(light)
+		
+		# Auto-destruir el portal después de la duración
+		var duration = get_meta("strange_dimension_duration", 5.0)
+		get_tree().create_timer(duration + 1.0).timeout.connect(func():
+			if is_instance_valid(portal_3d):
+				portal_3d.queue_free()
+		)
+
+# ==============================================================================
 
 func _ensure_outside_terrain_wall() -> void:
 	var map_node = _get_map_node()

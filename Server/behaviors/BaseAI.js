@@ -13,6 +13,8 @@ const puzzleMechanics = require('./mechanics/BossPuzzleMechanics');
 const fireballMechanics = require('./mechanics/FireballMechanics');
 // v415.0: Latigo Dominante
 const whipSummonMechanics = require('./mechanics/WhipSummonMechanics');
+// v900.0: Dimensión Extraña
+const strangeDimensionMechanics = require('./mechanics/StrangeDimensionMechanics');
 const { ThreatTable } = require('../systems/ThreatTable');
 
 module.exports = class BaseAI {
@@ -1346,7 +1348,7 @@ module.exports = class BaseAI {
 
     _isGenericCastType(type) {
         // Types with internal cast handling (their own charge) - generic runs in parallel (double bar)
-        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball","whip_summon"];
+        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball","whip_summon","strange_dimension"];
         return !internal.includes(type);
     }
     _handleGenericCast(mech, mId, now, io) {
@@ -1482,6 +1484,11 @@ module.exports = class BaseAI {
             return whipSummonMechanics._handleWhipSummonLogic.call(this, mech, mId, target, dist, angle, now, io, players);
         }
 
+        // v900.0: Dimensión Extraña
+        if (mech.type === "strange_dimension") {
+            return strangeDimensionMechanics._handleStrangeDimensionLogic.call(this, mech, mId, target, dist, now, io, players);
+        }
+
         if (dist > fireRange && !state.isCharging && !state.isActive && mech.type !== "polymorph") return false;
 
         // Mecánica de Sueño Inducido (Sleep)
@@ -1490,7 +1497,7 @@ module.exports = class BaseAI {
             if (now > state.nextShotTime) {
                 const range = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
                 const targetCount = mech.targetCount || 1;
-                const targetMode = mech.targetMode || "proximity";
+                const targetMode = mech.targetMode || "highest_threat";
                 const sleepDuration = mech.duration || 5000;
                 const slowPct = mech.slowPercentage !== undefined ? mech.slowPercentage : 60;
                 const slowDur = mech.slowDuration !== undefined ? mech.slowDuration : 1500;
@@ -2945,7 +2952,7 @@ module.exports = class BaseAI {
             const zoneTickMs = mech.zoneTickMs !== undefined ? Number(mech.zoneTickMs) : 1000;
             const warnTimeMs = mech.warnTimeMs !== undefined ? Number(mech.warnTimeMs) : 1200;
             const undergroundMs = mech.undergroundMs !== undefined ? Number(mech.undergroundMs) : 2500;
-            const targetMode = mech.targetMode || "proximity";
+            const targetMode = mech.targetMode || "highest_threat";
             const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
 
             const applyBurrowDebuffs = (p) => {
@@ -3341,7 +3348,7 @@ module.exports = class BaseAI {
             // (targetMode: proximidad/aleatorio/más esferas/color de esfera... + targetCount)
             let polyTargets = null;
             if (mech.type === "polymorph") {
-                polyTargets = this._selectTargets(players, (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange, mech.targetCount || 1, mech.targetMode || "proximity", mech);
+                polyTargets = this._selectTargets(players, (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange, mech.targetCount || 1, mech.targetMode || "highest_threat", mech);
                 if (!polyTargets || polyTargets.length === 0) {
                     state.shotsInBurst = 0;
                     state.nextShotTime = now + (this._getRawInterval(mech) > 0 ? this._getRawInterval(mech) : (mech.cooldown || 20000));
@@ -3456,7 +3463,8 @@ module.exports = class BaseAI {
     // El color (targetSphereColor) SOLO se aplica cuando el modo es "sphere_color".
     _selectTargets(players, fireRange, count, mode, mech) {
         const mechCfg = mech || {};
-        const selMode = mode || "proximity";
+        // v416.0: Por defecto la autoridad de mecánicas apunta al player con Más Agro ("highest_threat")
+        const selMode = mode || "highest_threat";
         const selCount = Math.max(1, parseInt(count, 10) || 1);
         const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
         const effFireRange = (fireRange !== undefined && Number(fireRange) > 0) ? Number(fireRange) : enemyFireRange;
@@ -3464,6 +3472,22 @@ module.exports = class BaseAI {
         let pool = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
         pool = pool.filter(p => Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= effFireRange);
         if (pool.length === 0) return [];
+
+        // Helper autoritativo para consultar el nivel de agro/amenaza del jugador frente a este enemigo
+        const getThreat = (p) => {
+            if (!p || !p.socketId) return 0;
+            const tt = this.threatTable || (this.enemy && this.enemy.threatTable);
+            if (!tt) return 0;
+            // Si el jugador provocó con Taunt activo, su prioridad de agro es máxima absoluta
+            if (tt.tauntTargetId && p.socketId === tt.tauntTargetId && Date.now() < (tt.tauntEndTime || 0)) {
+                return Infinity;
+            }
+            if (typeof tt.getThreat === 'function') {
+                return tt.getThreat(p.socketId);
+            }
+            const entry = tt.entries && tt.entries.get(p.socketId);
+            return (entry && typeof entry.threat === 'number') ? entry.threat : 0;
+        };
 
         // v410.6: Modo "Por Color de Esfera": solo jugadores con esferas del color elegido,
         // priorizando al que tenga MÁS esferas de ese color (ej: el que más esferas verdes tiene)
@@ -3475,10 +3499,26 @@ module.exports = class BaseAI {
                 pool.sort((a, b) => this._playerSphereColorCount(b, sphereColor) - this._playerSphereColorCount(a, sphereColor));
                 return pool.slice(0, Math.min(selCount, pool.length));
             }
-            // Sin color configurado -> cae a proximidad
+            // Sin color configurado -> cae a Más Agro (fallback)
         }
 
-        if (selMode === "random") {
+        if (selMode === "highest_threat" || selMode === "more_aggro") {
+            // Más Agro: mayor amenaza acumulada; desempate por proximidad
+            pool.sort((a, b) => {
+                const diff = getThreat(b) - getThreat(a);
+                if (diff !== 0) return diff;
+                return Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y);
+            });
+        } else if (selMode === "lowest_threat" || selMode === "less_aggro") {
+            // Menos Agro: menor amenaza acumulada; desempate por proximidad
+            pool.sort((a, b) => {
+                const diff = getThreat(a) - getThreat(b);
+                if (diff !== 0) return diff;
+                return Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y);
+            });
+        } else if (selMode === "proximity" || selMode === "nearest") {
+            pool.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
+        } else if (selMode === "random") {
             for (let i = pool.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -3500,8 +3540,13 @@ module.exports = class BaseAI {
             pool.sort((a, b) => (b.healingDoneTotal || 0) - (a.healingDoneTotal || 0));
         } else if (selMode === "highest_shield") {
             pool.sort((a, b) => (b.shield || 0) - (a.shield || 0));
-        } else { // proximidad
-            pool.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
+        } else { 
+            // Fallback por defecto: Si nunca se configuró nada, SIEMPRE al player con Más Agro
+            pool.sort((a, b) => {
+                const diff = getThreat(b) - getThreat(a);
+                if (diff !== 0) return diff;
+                return Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y);
+            });
         }
         return pool.slice(0, Math.min(selCount, pool.length));
     }

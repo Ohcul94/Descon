@@ -1,5 +1,5 @@
 // Server/behaviors/mechanics/WhipSummonMechanics.js
-// Latigo Dominante - Golpea a un objetivo N veces a una cadencia dada
+// Látigo Dominante - Golpea a un objetivo N veces a una cadencia dada
 
 function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players) {
     if (!io) return false;
@@ -7,8 +7,10 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
         nextShotTime: 0,
         hitsDone: 0,
         isCharging: false,
+        isStriking: false,
         isLocked: false,
-        currentTarget: null
+        currentTarget: null,
+        nextHitTime: 0
     };
     this.enemy.mechState[mId] = state;
 
@@ -19,24 +21,24 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
     const cadence = Number(mech.cadence) || 300;
     const damage = (mech.damage !== undefined ? Number(mech.damage) : 50) * (this.damageMult || 1);
     const targetCount = Math.max(1, parseInt(mech.targetCount, 10) || 1);
-    const targetMode = mech.targetMode || "nearest";
+    const targetMode = mech.targetMode || "highest_threat";
     const warnTimeMs = Math.max(0, Number(mech.castTimeMs || 500));
-    const radius = Number(mech.radius || 50);
 
     const zoneStr = `zone_${this.enemy.zone}`;
 
     // Generic cast gate (parallel, internal type)
-    if (warnTimeMs > 0) {
+    if (warnTimeMs > 0 && !state.isStriking) {
         const isBusy = this._handleGenericCast(mech, mId, now, io);
         if (isBusy && this._isGenericCastType(mech.type)) {
             return true;
         }
     }
 
-    // 1) Si está bloqueado post-ataque (cooldown entre ciclos de látigo)
+    // 1) Cooldown post-ataque
     if (state.isLocked) {
         if (now < state.lockEndTime) return false;
         state.isLocked = false;
+        state.isStriking = false;
         state.hitsDone = 0;
         state.currentTarget = null;
         state.nextShotTime = now + cooldown;
@@ -44,8 +46,8 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
         return false;
     }
 
-    // 2) Gate de activación (solo cuando no está cargando)
-    if (!state.isCharging) {
+    // 2) Gate de activación (cuando no está cargando ni realizando la serie de golpes)
+    if (!state.isCharging && !state.isStriking) {
         if (now < (state.nextShotTime || 0)) return false;
         if (dist > fireRange) return false;
         if (!this._passesActivationGate(mech, state, now, (this.enemy.hp / this.enemy.maxHp) * 100)) return false;
@@ -53,16 +55,17 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
 
     // 3) Seleccionar objetivos
     const targets = this._selectTargets(players, fireRange, targetCount, targetMode, mech);
-    if (targets.length === 0) {
+    if (targets.length === 0 && !state.isStriking) {
         state.nextShotTime = now + 1000;
         this.enemy.mechState[mId] = state;
         return false;
     }
 
-    const selectedTarget = targets[0];
+    const selectedTarget = (targets.length > 0) ? targets[0] : state.currentTarget;
+    if (!selectedTarget) return false;
 
     // 4) Iniciar casteo (warnTimeMs)
-    if (!state.isCharging) {
+    if (!state.isCharging && !state.isStriking) {
         state.isCharging = true;
         state.castEndTime = now + warnTimeMs;
         state.currentTarget = selectedTarget;
@@ -79,7 +82,7 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
             hits: hits,
             cadence: cadence,
             damage: Math.round(damage),
-            range: radius
+            range: fireRange
         });
 
         io.to(zoneStr).emit('enemyCastStart', {
@@ -95,76 +98,89 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
         return true;
     }
 
-    // 5) Durante el casteo: esperar a que termine
+    // 5) Durante el casteo: esperar a que termine el tiempo de advertencia
     if (state.isCharging && now < state.castEndTime) {
         return true;
     }
 
-    // 6) Cast terminado: disparar los N golpes
-    state.isCharging = false;
-    state.isLocked = true;
-    state.lockEndTime = now + (hits * cadence);
-    state.hitsDone = 0;
-    state.currentTarget = selectedTarget;
-
-    io.to(zoneStr).emit('enemyCastEnd', {
-        id: this.enemy.id,
-        mId: mId,
-        type: "whip_summon"
-    });
-
-    // Emitir todos los golpes del látigo (server-authoritative)
-    const enemyId = this.enemy.id;
-    const enemyType = this.enemy.type;
-    const ex = this.enemy.x;
-    const ey = this.enemy.y;
-    const shotAngle = Math.atan2(selectedTarget.y - ey, selectedTarget.x - ex);
-
-    for (let i = 0; i < hits; i++) {
-        io.to(zoneStr).emit('serverEnemyFire', {
-            enemyId: enemyId,
-            targetId: selectedTarget.socketId,
-            enemyType: enemyType,
-            x: ex, y: ey,
-            angle: shotAngle,
-            bulletSpeed: 1500,
-            bulletType: "whip",
-            damage: Math.round(damage),
-            hitIndex: i,
-            totalHits: hits,
-            targetX: selectedTarget.x,
-            targetY: selectedTarget.y,
-            range: 300
-        });
+    // 6) Transición de casteo a ráfaga de golpes
+    if (state.isCharging && now >= state.castEndTime) {
+        state.isCharging = false;
+        state.isStriking = true;
+        state.hitsDone = 0;
+        state.nextHitTime = now;
     }
 
-    // Aplicar daño server-authoritative a todos los targets
-    const allTargets = Array.isArray(targets) ? targets : [targets];
-    allTargets.forEach(t => {
-        if (t && !t.isDead && !t.isInvisible) {
-            if (t.shield >= damage) {
-                t.shield -= damage;
-            } else {
-                t.hp -= (damage - t.shield);
-                t.shield = 0;
-            }
-            if (t.hp < 0) t.hp = 0;
-            if (t.hp <= 0 && !t.isDead) {
-                t.isDead = true;
-            }
-            t.lastCombatTime = Date.now();
-            io.to(t.socketId).emit('environmentDamage', { damage: Math.round(damage) });
-            io.to(t.socketId).emit('playerStatSync', {
-                id: t.socketId,
-                hp: Math.ceil(t.hp),
-                shield: Math.ceil(t.shield),
-                isDead: t.isDead
-            });
-        }
-    });
+    // 7) Ejecutar golpes sucesivos a la cadencia correspondiente
+    if (state.isStriking) {
+        if (now >= state.nextHitTime && state.hitsDone < hits) {
+            state.hitsDone++;
+            state.nextHitTime = now + cadence;
 
-    this.enemy.mechState[mId] = state;
-    return true;
+            const curTarget = (targets.length > 0) ? targets[0] : state.currentTarget;
+            const targetX = curTarget ? curTarget.x : this.enemy.x;
+            const targetY = curTarget ? curTarget.y : this.enemy.y;
+            const targetId = curTarget ? curTarget.socketId : null;
+
+            // Emitir evento visual de golpe
+            io.to(zoneStr).emit('serverEnemyAction', {
+                id: this.enemy.id,
+                action: "whip_summon_hit",
+                mId: mId,
+                hitIndex: state.hitsDone - 1,
+                totalHits: hits,
+                targetId: targetId,
+                targetX: targetX,
+                targetY: targetY,
+                x: this.enemy.x,
+                y: this.enemy.y,
+                damage: Math.round(damage)
+            });
+
+            // Aplicar daño server-authoritative
+            const allTargets = (targets.length > 0) ? targets : (state.currentTarget ? [state.currentTarget] : []);
+            allTargets.forEach(t => {
+                if (t && !t.isDead && !t.isInvisible) {
+                    if (t.shield >= damage) {
+                        t.shield -= damage;
+                    } else {
+                        t.hp -= (damage - t.shield);
+                        t.shield = 0;
+                    }
+                    if (t.hp < 0) t.hp = 0;
+                    if (t.hp <= 0 && !t.isDead) {
+                        t.isDead = true;
+                    }
+                    t.lastCombatTime = Date.now();
+                    io.to(t.socketId).emit('environmentDamage', { damage: Math.round(damage) });
+                    io.to(t.socketId).emit('playerStatSync', {
+                        id: t.socketId,
+                        hp: Math.ceil(t.hp),
+                        shield: Math.ceil(t.shield),
+                        isDead: t.isDead
+                    });
+                }
+            });
+
+            // Si se completaron todos los golpes, finalizar ataque
+            if (state.hitsDone >= hits) {
+                state.isStriking = false;
+                state.isLocked = true;
+                state.lockEndTime = now + cooldown;
+                state.nextShotTime = now + cooldown;
+
+                io.to(zoneStr).emit('enemyCastEnd', {
+                    id: this.enemy.id,
+                    mId: mId,
+                    type: "whip_summon"
+                });
+            }
+        }
+        this.enemy.mechState[mId] = state;
+        return true;
+    }
+
+    return false;
 }
 
 module.exports = {

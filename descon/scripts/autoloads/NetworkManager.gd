@@ -361,7 +361,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"castRejected": cast_rejected.emit(e_data)
 		"castCancelled": cast_cancelled.emit(e_data)
 		"hookPulled": hook_pulled.emit(e_data)
-		"fireball_pull": fireball_pull.emit(e_data)
+		"fireball_pull", "fireballPull": fireball_pull.emit(e_data)
 		"windPush": wind_push.emit(e_data)
 		"statusEffectsSync": status_effects_sync.emit(e_data)
 		"gameNotification": game_notification.emit(e_data)

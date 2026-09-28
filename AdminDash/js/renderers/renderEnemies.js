@@ -430,7 +430,7 @@ function renderEnemyDetail() {
                             <div id="mc-body-${selectedEnemyId}-movementPhases-${idx}" class="mech-card-body ${m._collapsed ? 'collapsed' : ''}">
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${(MOVEMENT_LIB[m.type] || MOVEMENT_LIB['chase']).fields.map(f => {
-                                    const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso Inicio (ms)", explodeOnDeath: "Explotar al morir", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "Afectar a otros Enemigos", affectsBosses: "Afectar a Bosses", patrolRange: "Rango de Patrulla (px)", changeInterval: "Frecuencia del Cambio (ms / px)", amplitude: "Amplitud (px)", frequency: "Frecuencia (Hz)", visionRange: "Rango de Visión (px)", targetPriority: "Prioridad de Objetivo" };
+                                    const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Distancia de Frenado (px)", idealDist:"Distancia Segura (px)", orbitRadius:"Radio de Órbita (px)", chargeCooldown: "Recarga de Embestida (ms)", activationHP: "Activación por HP (%)", explosionDamage: "Daño de Explosión (pts)", duration: "Duración Total (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso de Inicio (ms)", explodeOnDeath: "¿Explotar al Morir? (Sí/No)", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "¿Afectar a otros Enemigos? (Sí/No)", affectsBosses: "¿Afectar a Bosses? (Sí/No)", patrolRange: "Rango de Patrulla (px)", changeInterval: "Frecuencia del Cambio (ms / px)", amplitude: "Amplitud de Onda (px)", frequency: "Frecuencia de Onda (Hz)", visionRange: "Rango de Visión (px)", targetPriority: "Prioridad de Objetivo" };
                                     if (f === 'changeTrigger') {
                                         const val = m[f] || 'time';
                                         return `<div class="field"><label>Criterio de Cambio</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].changeTrigger = this.value; renderEnemyDetail();">
@@ -506,130 +506,136 @@ function renderEnemyDetail() {
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${(MECHANICS_LIB[m.type] || MECHANICS_LIB['laser']).fields.map(f => {
 const fieldLabelsMap = { 
-                                           bulletDamage: m.type === 'melee_slash' ? "Daño del Hachazo (pts)" : (m.type === 'bomb' ? "Daño de Explosión (pts)" : (m.type === 'worm_boomerang' ? "Daño de Ida (pts)" : (m.type === 'wind_wall' ? "Daño al Arrollar (pts)" : (m.type === 'burrow' ? "Daño al Emerger (pts)" : (m.type === 'meteor' ? "Daño del Meteorito (pts)" : (m.type === 'ascension' ? "Daño al Aterrizar (pts)" : "Daño (pts)")))))), 
-                                           bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Vel. Pared de Viento (px/s)" : (m.type === 'burrow' ? "Vel. de Zambullida (px/s)" : (m.type === 'mine' ? "Vel. de la Mina (px/s)" : "Vel. Bala (px/s)"))), 
-                                           fireRange: m.type === 'melee_slash' ? "Alcance del Golpe (px)" : (m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : (m.type === 'wind_wall' ? "Alcance de la Pared (px)" : (m.type === 'burrow' ? "Alcance de Selección de Objetivo (px)" : "Alcance (px)")))))),
-                                           arcAngle: "Ángulo del Arco (° grados)",
+                                           bulletDamage: m.type === 'melee_slash' ? "Daño del Hachazo (pts)" : (m.type === 'bomb' ? "Daño de Explosión (pts)" : (m.type === 'worm_boomerang' ? "Daño de Ida (pts)" : (m.type === 'wind_wall' ? "Daño al Arrollar (pts)" : (m.type === 'burrow' ? "Daño al Emerger (pts)" : (m.type === 'meteor' ? "Daño del Meteorito (pts)" : (m.type === 'ascension' ? "Daño al Aterrizar (pts)" : "Daño del Proyectil (pts)")))))), 
+                                           bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Velocidad Pared de Viento (px/s)" : (m.type === 'burrow' ? "Velocidad de Zambullida (px/s)" : (m.type === 'mine' ? "Velocidad de la Mina (px/s)" : "Velocidad del Proyectil (px/s)"))), 
+                                           fireRange: m.type === 'melee_slash' ? "Alcance del Golpe (px)" : (m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : (m.type === 'wind_wall' ? "Alcance de la Pared (px)" : (m.type === 'burrow' ? "Alcance de Selección de Objetivo (px)" : "Alcance / Rango (px)")))))),
+                                           arcAngle: "Ángulo del Arco Melee (grados)",
                                            fullCircle: "¿Giro Completo 360°? (Sí/No)",
-                                          fireRate: "Cadencia (ms)", 
-                                      burstShots: "Proyectiles por Ráfaga (uds)", 
-                                          slowAmount: "Ralentización (pts)", 
-                                          slowDuration: "Duración de Ralentización (ms)", 
-                                          startDelay: "Retraso Inicio (ms)", 
-                                          lifetimeMs: "Combustible (ms)", 
-                                          turnSpeed: "Agilidad de Giro (rad/s)", 
-                                          chargeTimeMs: "Tiempo de Carga (ms)", 
-                                          lockTimeMs: m.type === 'circle_cast' ? "Tiempo Fijo / Estático (ms)" : "Tiempo de Bloqueo (ms)", 
-                                          isHoming: "Seguimiento (Homing)",
-                                          orbitSpeed: "Vel. de Giro (rad/s)",
-                                          circleCount: "Cant. de Círculos (uds)",
-                                          orbitRadius: "Radio de Órbita (px)",
-                                          orbitDuration: "Tiempo de Giro (ms)",
-                                          staticTime: "Tiempo Estático (ms)",
-                                           radius: m.type === 'fireball' ? "Tamaño de la Bola de Fuego (px / radio de daño)" : (m.type === 'spin_ring' ? "Radio del Círculo (px)" : (m.type === 'bomb' ? "Radio de Explosión (px)" : (m.type === 'wall_dome' ? "Radio del Domo (px)" : (m.type === 'burrow' ? "Radio del Círculo de Daño (px)" : (m.type === 'ascension' ? "Radio del Área de Caída (px)" : "Radio del Aura (px)"))))),
+                                           fireRate: "Cadencia de Disparo (ms)", 
+                                           burstShots: "Proyectiles por Ráfaga (uds)", 
+                                           slowAmount: "Cantidad de Ralentización (px/s)", 
+                                           slowDuration: "Duración de Ralentización (ms)", 
+                                           startDelay: "Retraso de Inicio (ms)", 
+                                           lifetimeMs: "Tiempo de Vida / Combustible (ms)", 
+                                           turnSpeed: "Agilidad de Giro (rad/s)", 
+                                           chargeTimeMs: "Tiempo de Carga (ms)", 
+                                           lockTimeMs: m.type === 'circle_cast' ? "Tiempo Fijo / Estático (ms)" : "Tiempo de Bloqueo (ms)", 
+                                           isHoming: "Seguimiento (Homing) (Sí/No)",
+                                           orbitSpeed: "Velocidad de Giro (rad/s)",
+                                           circleCount: "Cantidad de Círculos (uds)",
+                                           orbitRadius: "Radio de Órbita (px)",
+                                           orbitDuration: "Tiempo de Giro (ms)",
+                                           staticTime: "Tiempo Estático (ms)",
+                                           radius: m.type === 'fireball' ? "Tamaño / Radio de la Bola (px)" : (m.type === 'spin_ring' ? "Radio del Círculo (px)" : (m.type === 'bomb' ? "Radio de Explosión (px)" : (m.type === 'wall_dome' ? "Radio del Domo (px)" : (m.type === 'burrow' ? "Radio del Círculo de Daño (px)" : (m.type === 'ascension' ? "Radio del Área de Caída (px)" : "Radio del Aura (px)"))))),
                                            // v901.0: Bola de Fuego Dinámica
                                            areaRadius: m.type === 'fireball' ? "Radio del Área de Deambulación (px)" : "Radio del Área (px)",
-                                           areaMode: m.type === 'fireball' ? "Ubicación del Área" : "Modo de Área",
+                                           areaMode: m.type === 'fireball' ? "Ubicación del Área ('enemy' o 'target')" : "Modo de Área",
                                            speed: m.type === 'fireball' ? "Velocidad de la Bola (px/s)" : "Velocidad (px/s)",
-                                          damage: m.type === 'survival_dome' ? "Daño de la Explosión (pts)" : "Daño (pts)",
-                                          intervalMs: "Intervalo de Tick (ms)",
-                                          duration: m.type === 'sleep' ? "Duración del Sueño (ms)" : (m.type === 'reflect' ? "Duración del Escudo (ms)" : "Duración Total (ms)"),
-                                          cooldown: "Enfriamiento (CD) (ms)",
-                                          pullSpeed: "Vel. Atracción (px/s)",
-                                          stunDuration: "Duración de Stun (ms)",
+                                           damage: m.type === 'survival_dome' ? "Daño de la Explosión (pts)" : "Daño (pts)",
+                                           intervalMs: "Intervalo de Tick (ms)",
+                                           duration: m.type === 'sleep' ? "Duración del Sueño (ms)" : (m.type === 'reflect' ? "Duración del Escudo (ms)" : "Duración Total (ms)"),
+                                           cooldown: "Enfriamiento (CD) (ms)",
+                                           pullSpeed: "Velocidad de Atracción (px/s)",
+                                           stunDuration: "Duración de Parálisis (ms)",
                                            safeRadius: "Radio del Domo Seguro (px)",
                                            maxOffset: "Radio Máximo de Dispersión (px)",
-                                            castTimeMs: "Casteo (ms)",
+                                           castTimeMs: "Tiempo de Casteo (ms)",
                                            postCastWaitMs: "Espera Post-Explosión del Enemigo (ms)",
-                                          applyBleed: "Aplicar Debuff: Sangrado",
-                                          bleedDurationMs: "Duración del Sangrado (ms)",
-                                          bleedDps: "Daño por Segundo de Sangrado (pts/s)",
-                                          applyStun: "Aplicar Debuff: Parálisis",
-                                          stunDurationMs: "Duración de la Parálisis (ms)",
-                                          applyPoison: "Aplicar Debuff: Veneno",
-                                          poisonDurationMs: "Duración del Veneno (ms)",
-                                          poisonDps: "Daño por Segundo de Veneno (pts/s)",
-                                          postHookWaitMs: "Espera Post-Gancho (ms)",
-                                          hookMissWaitMs: "Espera por Fallo (ms)",
+                                           applyBleed: "Aplicar Debuff: Sangrado (Sí/No)",
+                                           bleedDurationMs: "Duración del Sangrado (ms)",
+                                           bleedDps: "Daño por Segundo de Sangrado (pts/s)",
+                                           applyStun: "Aplicar Debuff: Parálisis (Sí/No)",
+                                           stunDurationMs: "Duración de la Parálisis (ms)",
+                                           applyPoison: "Aplicar Debuff: Veneno (Sí/No)",
+                                           poisonDurationMs: "Duración del Veneno (ms)",
+                                           poisonDps: "Daño por Segundo de Veneno (pts/s)",
+                                           postHookWaitMs: "Espera Post-Gancho (ms)",
+                                           hookMissWaitMs: "Espera por Fallo (ms)",
                                            bulletCount: m.type === 'polymorph' ? "Cantidad de Cubos (uds)" : "Cantidad de Proyectiles (uds)",
-                                           isPointAndClick: m.type === 'polymorph' ? "Apuntado y Disparado (Sí/No)" : "Apuntado y Disparado",
+                                           isPointAndClick: m.type === 'polymorph' ? "¿Apuntado Directo Inesquivable? (Sí/No)" : "¿Apuntado Directo? (Sí/No)",
                                            polyDuration: "Duración del Polimorfismo (ms)",
-                                           canMove: "Puede Moverse (Sí/No)",
-                                           canUseSkills: "Puede Usar Habilidades (Sí/No)",
-                                           meteorCount: m.type === 'meteor' ? "Cantidad de Meteoritos (uds)" : "Cantidad de Meteoritos (uds)",
+                                           canMove: "¿Puede Moverse? (Sí/No)",
+                                           canUseSkills: "¿Puede Usar Habilidades? (Sí/No)",
+                                           meteorCount: "Cantidad de Meteoritos (uds)",
                                            fallHeight: "Altura de Caída (px)",
                                            fallSpeed: "Velocidad de Caída (px/s)",
                                            meteorSize: "Tamaño del Meteorito (px)",
                                            explosionRadius: m.type === 'mine' ? "Radio de Explosión de Mina (px)" : "Radio de Explosión (px)",
-                                            warnTimeMs: m.type === 'burrow' ? "Duración del Círculo de Aviso (ms)" : (m.type === 'meteor' ? "Tiempo de Aviso en el Piso (ms)" : (m.type === 'ascension' ? "Tiempo Marcando el Área de Caída (ms)" : "Tiempo de Aviso (ms)")),
-                                            persistentZone: m.type === 'meteor' ? "¿Dejar Zona Persistente en el Piso? (Sí/No)" : "¿Zona Persistente? (Sí/No)",
+                                           warnTimeMs: m.type === 'burrow' ? "Duración del Círculo de Aviso (ms)" : (m.type === 'meteor' ? "Tiempo de Aviso en el Piso (ms)" : (m.type === 'ascension' ? "Tiempo Marcando el Área de Caída (ms)" : "Tiempo de Aviso (ms)")),
+                                           persistentZone: m.type === 'meteor' ? "¿Dejar Zona Persistente en el Piso? (Sí/No)" : "¿Zona Persistente? (Sí/No)",
                                            zoneDamage: "Daño por Tick de Zona (pts)",
                                            zoneTickMs: "Intervalo de Tick de Zona (ms)",
-                                            zoneDuration: "Duración de la Zona en el Piso (ms)",
-                                            targetCount: "Cantidad de Players Objetivo (uds)",
-                                            airTimeMs: "Tiempo en el Aire (ms)",
-                                            warnDelayMs: "Tiempo de Espera del Área de Caída (ms)",
-                                            bulletSpeed: "Vel. Calavera (px/s)",
-                                            targetMode: "Modo de Selección de Objetivo",
-                                            targetSphereColor: "Color de Esfera (apunta al que m�s tenga de ese color)",
-                                            stealAmount: "Cantidad Robada (pts)",
-                                            stealIntervalMs: "Intervalo de Robo (ms)",
-                                            stealMode: "Modo de Robo",
-                                            giveToEnemy: "¿Transferir al Enemigo? (Sí/No)",
-                                            activationHP: "Activación por HP (%)",
-                                          reductionPercentage: "Reducción de Daño (%)",
-                                          shieldRegen: "Regen. de Escudo (pts/s)",
+                                           zoneDuration: "Duración de la Zona en el Piso (ms)",
+                                           targetCount: "Cantidad de Objetivos (uds)",
+                                           airTimeMs: "Tiempo en el Aire (ms)",
+                                           warnDelayMs: "Tiempo de Espera del Área de Caída (ms)",
+                                           bulletSpeed: "Velocidad de Calavera (px/s)",
+                                           targetMode: "Criterio de Selección de Objetivo",
+                                           targetSphereColor: "Color de Esfera (apunta al que más tenga de ese color)",
+                                           stealAmount: "Cantidad Robada (pts o %)",
+                                           stealIntervalMs: "Intervalo de Robo (ms)",
+                                           stealMode: "Modo de Robo ('flat' o 'percent')",
+                                           giveToEnemy: "¿Transferir al Enemigo? (Sí/No)",
+                                           activationHP: "Activación por HP (%)",
+                                           reductionPercentage: "Reducción de Daño (%)",
+                                           shieldRegen: "Regeneración de Escudo (pts/s)",
                                            healAmount: "Curación por Pulso (pts)",
                                            speedBonus: "Bono de Velocidad (px/s)",
                                            explosionDamage: "Daño de Explosión (pts)",
                                            deceleration: "Desaceleración (x)",
-                                            castTimeMs: "Casteo (ms)",
                                            castSpeed: "Velocidad de Casteo (x)",
-                                          coneAngle: "Ángulo del Cono (grados)",
-                                          coneFollow: "Seguimiento Dinámico (Homing)",
-                                          lockTimeMs: m.type === 'circle_cast' ? "Tiempo Fijo / Estático (ms)" : "Tiempo de Bloqueo (ms)",
-                                          aimDelayMs: "Espera de Apuntado (ms)",
-                                          bombCount: "Cantidad de Bombas (uds)",
-                                          bombDelayMs: "Espera entre Bombas (ms)",
-                                          fuseTimeMs: "Retardo de Explosión (ms)",
-                                          targetCount: "Cantidad de Objetivos (uds)",
-                                          slowPercentage: m.slowIsPercentage ? "Porcentaje de Ralentización (%)" : "Ralentización Fija (pts)",
-                                          damagePerSecond: "Daño por Segundo (pts/s)",
-                                          nightmareMultiplier: "Multiplicador de Pesadilla (x)",
-                                          wakeOnDamage: "Despierta al Recibir Daño (Sí/No)",
-                                          reflect_mult: "Multiplicador de Reflejo (x)",
-                                          spinSpeed: "Velocidad de Giro (rad/s)",
-                                          speedBuffAmount: "Bono Velocidad Movimiento Dueño (px/s)",
-                                          speedBuffDuration: "Duración Bono Velocidad Dueño (ms)",
-                                          applySlow: "Aplicar Ralentización al Enemigo",
-                                          slowIsPercentage: "Ralentización es Porcentual (si no, es Fija)",
-                                          slowDuration: "Duración de Ralentización (ms)",
-                                          activationMode: "Modo de Activación",
-                                          activationHPs: "Activadores de Vida (%)",
-                                          activationIntervalMs: "Tiempo en Combate para Activar (ms)",
-                                          summonCount: "Cantidad de Invocaciones (uds)",
-                                          spawnRadius: "Radio de Invocación (px)",
-                                          summonDurationMode: "Modo de Duración de Invocación",
-                                          summonDurationMs: "Tiempo de Vida de Invocación (ms)",
+                                           coneAngle: "Ángulo del Cono (grados)",
+                                           coneFollow: "Seguimiento Dinámico (Homing) (Sí/No)",
+                                           aimDelayMs: "Espera de Apuntado (ms)",
+                                           bombCount: "Cantidad de Bombas (uds)",
+                                           bombDelayMs: "Espera entre Bombas (ms)",
+                                           fuseTimeMs: "Retardo de Explosión (ms)",
+                                           slowPercentage: m.slowIsPercentage ? "Porcentaje de Ralentización (%)" : "Ralentización Fija (px/s)",
+                                           damagePerSecond: "Daño por Segundo (pts/s)",
+                                           nightmareMultiplier: "Multiplicador de Pesadilla (x)",
+                                           wakeOnDamage: "¿Despierta al Recibir Daño? (Sí/No)",
+                                           reflect_mult: "Multiplicador de Reflejo (x)",
+                                           spinSpeed: "Velocidad de Giro (rad/s)",
+                                           speedBuffAmount: "Bono Velocidad Movimiento Dueño (px/s)",
+                                           speedBuffDuration: "Duración Bono Velocidad Dueño (ms)",
+                                           applySlow: "Aplicar Ralentización al Enemigo (Sí/No)",
+                                           slowIsPercentage: "¿Ralentización Porcentual? (Sí/No)",
+                                           slowDuration: "Duración de Ralentización (ms)",
+                                           activationMode: "Modo de Activación",
+                                           activationHPs: "Activadores de Vida (%)",
+                                           activationIntervalMs: "Tiempo en Combate para Activar (ms)",
+                                           summonCount: "Cantidad de Invocaciones (uds)",
+                                           spawnRadius: "Radio de Invocación (px)",
+                                           summonDurationMode: "Modo de Duración de Invocación",
+                                           summonDurationMs: "Tiempo de Vida de Invocación (ms)",
                                            summonsList: "Lista de Esbirros Invocados",
-                                            tick_interval: "Intervalo de Tick (ms)",
-                                            damage_per_tick: "Daño por Tick (pts)",
-                                            slow_amount: "Ralentización",
-                                            projectileCount: "Cantidad de Gusanos (uds)",
-                                            spreadAngle: "Ángulo del Abanico (grados)",
-                                            parkTimeMs: "Tiempo Quieto en el Extremo (ms)",
-                                            returnDamage: "Daño de Vuelta (pts)",
-                                             wallWidth: "Ancho de la Pared (px)",
-                                             beamWidth: "Ancho del Rayo (px)",
-                                             wallStartOffset: "Spawn Adelante del Enemigo (px)",
-                                             pushForce: "Distancia de Expulsión (px)",
-                                             burrowSpeed: "Vel. Viaje Subterráneo (px/s)",
-                                             undergroundMs: "Tiempo Bajo Tierra en el Destino (ms)",
-                                             burstMode: "Modo del Círculo de Daño",
-                                             zoneDuration: "Duración de Zona Persistente (ms)",
-                                             zoneTickMs: "Intervalo de Tick de Zona (ms)",
-                                             zoneDamage: "Daño por Tick de Zona (pts)"
-                                        };
+                                           tick_interval: m.type === 'fireball' ? "Intervalo entre Ticks de Contacto (ms)" : "Intervalo de Tick (ms)",
+                                           damage_per_tick: m.type === 'fireball' ? "Daño por Tick de Contacto (pts)" : "Daño por Tick (pts)",
+                                           slow_amount: "Ralentización (px/s o %)",
+                                           projectileCount: "Cantidad de Gusanos (uds)",
+                                           spreadAngle: "Ángulo del Abanico (grados)",
+                                           parkTimeMs: "Tiempo Quieto en el Extremo (ms)",
+                                           returnDamage: "Daño de Vuelta (pts)",
+                                           wallWidth: "Ancho de la Pared (px)",
+                                           beamWidth: "Ancho del Rayo (px)",
+                                           wallStartOffset: "Spawn Adelante del Enemigo (px)",
+                                           pushForce: "Fuerza / Distancia de Expulsión (px)",
+                                           burrowSpeed: "Velocidad de Viaje Subterráneo (px/s)",
+                                           undergroundMs: "Tiempo Bajo Tierra en el Destino (ms)",
+                                           burstMode: "Modo del Círculo de Daño",
+                                           zoneDuration: "Duración de Zona Persistente (ms)",
+                                           zoneTickMs: "Intervalo de Tick de Zona (ms)",
+                                           zoneDamage: "Daño por Tick de Zona (pts)",
+                                           hits: "Cantidad de Azotes (golpes)",
+                                           cadence: "Cadencia entre Latigazos (ms)",
+                                           range: "Distancia de Embestida (px)",
+                                           pushOnHit: "¿Empujar al Impactar? (Sí/No)",
+                                           // v901.1: Campos de atracción de la bola de fuego
+                                           pullEnabled: "Activar Atracción de Rayos",
+                                           pullRadius: "Radio de Atracción de Rayos (px)",
+                                           pullStrength: "Fuerza de Atracción (px/s)",
+                                           ray_damage: "Daño por Tick de Rayos (pts)"
+                                         };
                                      if (f === 'activationMode') {
                                          const mode = m.activationMode || 'time';
                                          // Normalizar defaults al seleccionar modo para mantener estética y no romper HP fix
@@ -836,32 +842,29 @@ if (f === 'slowIsPercentage') return '';
                                       }
                                      
 if (f === 'targetMode') {
-                                          const val = m[f] || 'proximity';
-                                          if (m.type === 'burrow' || m.type === 'meteor') {
-                                              return `<div class="field"><label>${m.type === 'meteor' ? 'Criterio de Selección de Objetivos' : 'Selección de Objetivo'}</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
-                                              <option value="proximity" ${val === 'proximity' ? 'selected' : ''}>📏 Proximidad (Más cercano)</option>
-                                              <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
-                                              <option value="farthest" ${val === 'farthest' ? 'selected' : ''}>📐 Más Lejano</option>
-                                              <option value="lowest_hp" ${val === 'lowest_hp' ? 'selected' : ''}>❤️ Menos Vida</option>
-                                              <option value="highest_hp" ${val === 'highest_hp' ? 'selected' : ''}>💪 Más Vida</option>
-                                              <option value="highest_damage" ${val === 'highest_damage' ? 'selected' : ''}>⚔️ Mayor Daño Causado</option>
-                                              <option value="highest_heal" ${val === 'highest_heal' ? 'selected' : ''}>💚 Mayor Curación</option>
-                                              <option value="sphere_color" ${val === 'sphere_color' ? 'selected' : ''}>🔮 Mayor Cantidad de Esferas de un Color</option>
-                                          </select></div>`;
-                                          }
-                                         return `<div class="field"><label>Criterio de Selección</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
-                                             <option value="proximity" ${val === 'proximity' ? 'selected' : ''}>📏 Proximidad (Más cercano)</option>
-                                             <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
-                                             <option value="max_hp" ${val === 'max_hp' ? 'selected' : ''}>❤️ Vida Máxima Mayor</option>
-                                             <option value="missing_hp" ${val === 'missing_hp' ? 'selected' : ''}>💔 Vida Faltante Mayor</option>
-                                             <option value="sphere_color" ${val === 'sphere_color' ? 'selected' : ''}>🔮 Mayor Cantidad de Esferas de un Color</option>
-                                         </select></div>`;
-                                      }
+                                           const val = m[f] || 'highest_threat';
+                                           const labelText = m.type === 'meteor' ? 'Criterio de Selección de Objetivos' : 'Selección de Objetivo';
+                                           return `<div class="field"><label>${labelText}</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
+                                               <option value="highest_threat" ${val === 'highest_threat' ? 'selected' : ''}>👑 Más Agro (Por Defecto)</option>
+                                               <option value="lowest_threat" ${val === 'lowest_threat' ? 'selected' : ''}>🤫 Menos Agro</option>
+                                               <option value="proximity" ${val === 'proximity' ? 'selected' : ''}>📏 Proximidad (Más cercano)</option>
+                                               <option value="farthest" ${val === 'farthest' ? 'selected' : ''}>📐 Más Lejano</option>
+                                               <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
+                                               <option value="lowest_hp" ${val === 'lowest_hp' ? 'selected' : ''}>❤️ Menos Vida</option>
+                                               <option value="highest_hp" ${val === 'highest_hp' ? 'selected' : ''}>💪 Más Vida</option>
+                                               <option value="max_hp" ${val === 'max_hp' ? 'selected' : ''}>❤️ Vida Máxima Mayor</option>
+                                               <option value="missing_hp" ${val === 'missing_hp' ? 'selected' : ''}>💔 Vida Faltante Mayor</option>
+                                               <option value="highest_damage" ${val === 'highest_damage' ? 'selected' : ''}>⚔️ Mayor Daño Causado</option>
+                                               <option value="highest_heal" ${val === 'highest_heal' ? 'selected' : ''}>💚 Mayor Curación</option>
+                                               <option value="highest_shield" ${val === 'highest_shield' ? 'selected' : ''}>💠 Mayor Escudo</option>
+                                               <option value="sphere_color" ${val === 'sphere_color' ? 'selected' : ''}>🔮 Mayor Cantidad de Esferas de un Color</option>
+                                           </select></div>`;
+                                       }
                                       if (f === 'targetSphereColor') {
                                           // Solo se muestra si el criterio es "Por Color de Esfera"
-                                          if ((m.targetMode || 'proximity') !== 'sphere_color') return '';
+                                          if ((m.targetMode || 'highest_threat') !== 'sphere_color') return '';
                                           const cval = m[f] || '';
-                                          return `<div class="field"><label>Color de Esfera (apunta al que m�s tenga de ese color)</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetSphereColor = this.value; renderEnemyDetail();">
+                                          return `<div class="field"><label>Color de Esfera (apunta al que más tenga de ese color)</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetSphereColor = this.value; renderEnemyDetail();">
                                               <option value="" ${cval === '' || cval === 'any' ? 'selected' : ''}>🌈 Cualquier Color</option>
                                               <option value="roja" ${cval === 'roja' ? 'selected' : ''}>🔴 Roja (Ataque)</option>
                                               <option value="azul" ${cval === 'azul' ? 'selected' : ''}>🔵 Azul (Defensa)</option>
@@ -877,6 +880,12 @@ if (f === 'targetMode') {
                                          </select></div>`;
                                      }
                                       if (f === 'turnSpeed' && m.type !== 'execution') return '';
+                                       if (f === 'pullEnabled') {
+                                            return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(239,68,68,0.08); padding:10px; border-radius:8px; margin-top:10px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].pullEnabled = this.checked; if (this.checked) { if (config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].pullRadius === undefined) config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].pullRadius = 400; if (config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].pullStrength === undefined) config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].pullStrength = 180; if (config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].ray_damage === undefined) config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].ray_damage = 25; } renderEnemyDetail();"><label style="margin:0; cursor:pointer; font-weight:bold; color:#ef4444;">Activar Atracción de Rayos</label></div>`;
+                                        }
+                                        if (['pullRadius', 'pullStrength', 'ray_damage'].includes(f)) {
+                                           if (!m.pullEnabled) return '';
+                                       }
                                        if (f === 'areaMode') {
                                            const amVal = m[f] || 'enemy';
                                            return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].areaMode = this.value; renderEnemyDetail();">
@@ -925,37 +934,37 @@ if (f === 'targetMode') {
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${(DEFENSE_LIB[m.type] || DEFENSE_LIB['basic_defense']).fields.map(f => {
                                     const defLabels = { 
-                                        reductionPercentage: "Reducción (%)", 
-                                        shieldRegen: "Regen. Escudo (pts/s)", 
-                                        duration: "Duración (ms)", 
+                                        reductionPercentage: "Reducción de Daño (%)", 
+                                        shieldRegen: "Regeneración de Escudo (pts/s)", 
+                                        duration: "Duración Total (ms)", 
                                         cooldown: "Enfriamiento (CD) (ms)", 
-                                        startDelay: "Retraso Inicio (ms)",
+                                        startDelay: "Retraso de Inicio (ms)",
                                         reflect_mult: "Multiplicador de Reflejo (x)",
                                         activationMode: "Modo de Activación",
                                         activationHPs: "Activadores de Vida (%)",
                                         activationIntervalMs: "Tiempo en Combate para Activar (ms)",
                                         radius: m.type === 'wall_dome' ? "Radio del Domo (px)" : "Radio del Aura (px)",
-                                        healAmount: "Cura por Pulso (pts)",
+                                        healAmount: "Curación por Pulso (pts)",
                                         intervalMs: "Intervalo de Tick (ms)",
                                         activationHP: "Activación por HP (%)",
-                                        affectsEnemies: "Afectar a otros Enemigos", 
-                                        affectsBosses: "Afectar a Bosses",
+                                        affectsEnemies: "¿Afectar a otros Enemigos? (Sí/No)", 
+                                        affectsBosses: "¿Afectar a Bosses? (Sí/No)",
                                         pillarCount: "Cantidad de Pilares (uds)",
                                         pillarType: "Tipo de Pilar (ID)",
                                         pillarHp: "Vida del Pilar (pts)",
                                         pillarShield: "Escudo del Pilar (pts)",
                                         pillarName: "Nombre del Pilar",
-                                        spawnRadius: "Distancia de Spawn (px)",
-                                        healIntervalMs: "Intervalo Curación (ms)",
+                                        spawnRadius: "Distancia de Invocación (px)",
+                                        healIntervalMs: "Intervalo de Curación (ms)",
                                         healPercentPerTick: "Curación por Tick (%)",
                                         healPercentPerPillarOnExpiry: "Curación por Pilar Restante (%)",
                                         orbCount: "Cantidad de Orbes (uds)",
                                         orbSpeed: "Velocidad de Orbes (px/s)",
-                                        playerDamage: "Daño al Jugador (HP)",
+                                        playerDamage: "Daño al Jugador (pts)",
                                         bossHealPercent: "Curación al Boss por Orbe (%)",
                                         invisType: "Tipo de Ocultamiento",
-                                        keepAttacking: "Ataca Invisible",
-                                        changeSpeed: "Modificar Velocidad",
+                                        keepAttacking: "¿Ataca Mientras es Invisible? (Sí/No)",
+                                        changeSpeed: "¿Modificar Velocidad al Ocultarse? (Sí/No)",
                                         invisSpeedMultiplier: "Multiplicador de Velocidad (x)",
                                         cloneCount: "Cantidad de Clones (uds)",
                                         cloneHp: "Vida de Clones (pts)",
@@ -963,17 +972,19 @@ if (f === 'targetMode') {
                                         cloneSpeed: "Velocidad de Clones (px/s)",
                                         cloneDuration: "Duración de Clones (ms)",
                                         cloneExplosionDamage: "Daño de Explosión (pts)",
-                                        cloneHealAmount: "Curación al original (pts)",
-                                        cloneExplodeOnExpiry: "Perseguir y explotar al expirar",
+                                        cloneHealAmount: "Curación al Original (pts)",
+                                        cloneExplodeOnExpiry: "¿Perseguir y Explotar al Expirar? (Sí/No)",
                                         fireRange: "Distancia de Disparo (px)",
                                         bulletSpeed: "Velocidad del Proyectil (px/s)",
                                         bulletDamage: "Daño del Proyectil (pts)",
-                                        stealMode: "Modo de Robo",
-                                        stealAmount: "Cantidad de Robo",
+                                        stealMode: "Modo de Robo ('flat' o 'percent')",
+                                        stealAmount: "Cantidad de Robo (pts o %)",
                                         stealIntervalMs: "Intervalo de Robo (ms)",
-                                        targetMode: "Selección del Objetivo",
-                                        targetSphereColor: "Color de Esfera (apunta al que m�s tenga de ese color)",
-                                        giveToEnemy: m.type === 'life_steal' ? "Transferir Vida Robada al Enemigo" : "Transferir Escudo Robado al Enemigo"
+                                        targetMode: "Criterio de Selección de Objetivo",
+                                        targetSphereColor: "Color de Esfera (apunta al que más tenga de ese color)",
+                                        giveToEnemy: m.type === 'life_steal' ? "¿Transferir Vida Robada al Enemigo? (Sí/No)" : "¿Transferir Escudo Robado al Enemigo? (Sí/No)",
+                                        castTimeMs: "Tiempo de Casteo (ms)",
+                                        castInterruptible: "¿Se Interrumpe con CC? (Sí/No)"
                                     };
                                     if (f === 'invisType') {
                                         const type = m.invisType || 'invisibility';
@@ -1094,16 +1105,20 @@ if (f === 'targetMode') {
                                         `;
                                     }
                                     if (f === 'targetMode') {
-                                        const tmode = m.targetMode || 'proximity';
+                                        const tmode = m.targetMode || 'highest_threat';
                                         return `
                                             <div class="field" style="grid-column: 1 / -1;"><label>Selección del Objetivo</label>
                                                 <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
+                                                    <option value="highest_threat" ${tmode === 'highest_threat' ? 'selected' : ''}>👑 Más Agro (Por Defecto)</option>
+                                                    <option value="lowest_threat" ${tmode === 'lowest_threat' ? 'selected' : ''}>🤫 Menos Agro</option>
                                                     <option value="proximity" ${tmode === 'proximity' ? 'selected' : ''}>📍 Más Cercano</option>
+                                                    <option value="farthest" ${tmode === 'farthest' ? 'selected' : ''}>📐 Más Lejano</option>
                                                     <option value="random" ${tmode === 'random' ? 'selected' : ''}>🎲 Aleatorio</option>
                                                     <option value="lowest_hp" ${tmode === 'lowest_hp' ? 'selected' : ''}>🥶 Menor Vida (%)</option>
                                                     <option value="highest_hp" ${tmode === 'highest_hp' ? 'selected' : ''}>🫀 Mayor Vida (%)</option>
                                                     <option value="highest_shield" ${tmode === 'highest_shield' ? 'selected' : ''}>💠 Mayor Escudo</option>
                                                     <option value="highest_damage" ${tmode === 'highest_damage' ? 'selected' : ''}>⚔️ Mayor Daño Causado</option>
+                                                    <option value="highest_heal" ${tmode === 'highest_heal' ? 'selected' : ''}>💚 Mayor Curación</option>
                                                     <option value="sphere_color" ${tmode === 'sphere_color' ? 'selected' : ''}>🔮 Mayor Cantidad de Esferas de un Color</option>
                                                 </select>
                                             </div>
@@ -1111,10 +1126,10 @@ if (f === 'targetMode') {
                                     }
                                     if (f === 'targetSphereColor') {
                                         // Solo se muestra si el criterio es "Por Color de Esfera"
-                                        if ((m.targetMode || 'proximity') !== 'sphere_color') return '';
+                                        if ((m.targetMode || 'highest_threat') !== 'sphere_color') return '';
                                         const cval = m.targetSphereColor || '';
                                         return `
-                                            <div class="field" style="grid-column: 1 / -1;"><label>Color de Esfera (apunta al que m�s tenga de ese color)</label>
+                                            <div class="field" style="grid-column: 1 / -1;"><label>Color de Esfera (apunta al que más tenga de ese color)</label>
                                                 <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].targetSphereColor = this.value; renderEnemyDetail();">
                                                     <option value="" ${cval === '' || cval === 'any' ? 'selected' : ''}>🌈 Cualquier Color</option>
                                                     <option value="roja" ${cval === 'roja' ? 'selected' : ''}>🔴 Roja (Ataque)</option>

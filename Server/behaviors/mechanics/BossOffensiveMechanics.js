@@ -16,7 +16,7 @@ function _handleExecutionLogic(mech, mId, now, io, players) {
         }
     }
     const targetCount = Math.max(1, parseInt(mech.targetCount, 10) || 1);
-    const targetMode = mech.targetMode || "proximity";
+    const targetMode = mech.targetMode || "highest_threat";
     const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 12000;
     const intervalMsRaw = mech.activationIntervalMs !== undefined ? Number(mech.activationIntervalMs) : 8000;
     const intervalMs = intervalMsRaw > 0 ? intervalMsRaw : cooldown;
@@ -132,7 +132,7 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
         }
     }
     const targetCount = Math.max(1, parseInt(mech.targetCount, 10) || 1);
-    const targetMode = mech.targetMode || "proximity";
+    const targetMode = mech.targetMode || "highest_threat";
     const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 12000;
     const intervalMsRaw = mech.activationIntervalMs !== undefined ? Number(mech.activationIntervalMs) : 8000;
     const intervalMs = intervalMsRaw > 0 ? intervalMsRaw : cooldown;

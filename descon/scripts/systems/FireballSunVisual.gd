@@ -33,6 +33,12 @@ var _speed := 180.0 # px/s (informativo: la posición la manda el servidor)
 
 var _specs: Array = [] # semilla por rayo: ángulo, longitud, ancho, velocidad, fase
 
+var pull_enabled: bool = false
+var pull_radius: float = 400.0
+var pull_strength: float = 180.0
+var ray_damage: float = 20.0
+var _tether_lines: Dictionary = {} # {instance_id: Line2D}
+
 var _target_pos := Vector2.ZERO
 var _elapsed := 0.0
 var _charge_elapsed := 0.0
@@ -105,6 +111,7 @@ func finish() -> void:
 	tw.finished.connect(_free_all)
 
 func _free_all() -> void:
+	_clear_all_tethers()
 	if is_instance_valid(root_3d):
 		root_3d.queue_free()
 	queue_free()
@@ -117,6 +124,10 @@ func _read_params(p_data: Dictionary) -> void:
 	)
 	_duration = maxf(0.5, float(p_data.get("duration", 6000.0)) / 1000.0)
 	_speed = maxf(0.0, float(p_data.get("speed", 180.0)))
+	pull_enabled = bool(p_data.get("pullEnabled", false))
+	pull_radius = maxf(0.0, float(p_data.get("pullRadius", 400.0)))
+	pull_strength = maxf(0.0, float(p_data.get("pullStrength", 180.0)))
+	ray_damage = maxf(0.0, float(p_data.get("ray_damage", 20.0)))
 	_gen_specs()
 
 func _resolve_map_scale() -> void:
@@ -131,6 +142,7 @@ func _resolve_map_scale() -> void:
 func _connect_cleanup() -> void:
 	# El Node2D no libera su copia 3D al morir: hay que hacerlo a mano
 	tree_exiting.connect(func():
+		_clear_all_tethers()
 		if is_instance_valid(root_3d):
 			root_3d.queue_free()
 	)
@@ -183,14 +195,14 @@ func _build_sun_3d() -> void:
 		var dir := _ray_direction(spec)
 		if dir.length_squared() < 0.0001:
 			dir = Vector3.UP
-		var wrap := Node3D.new()
-		wrap.quaternion = Quaternion(Vector3.UP, dir.normalized())
-		ray_root.add_child(wrap)
+		var ray_wrap := Node3D.new()
+		ray_wrap.quaternion = Quaternion(Vector3.UP, dir.normalized())
+		ray_root.add_child(ray_wrap)
 		var mi := MeshInstance3D.new()
 		mi.mesh = _make_bolt_mesh(r3d * float(spec.len), r3d * float(spec.wid) * 0.5, float(spec.phase))
 		mi.material_override = ray_mat
-		wrap.add_child(mi)
-		_ray_nodes.append({"node": wrap, "spec": spec})
+		ray_wrap.add_child(mi)
+		_ray_nodes.append({"node": ray_wrap, "spec": spec})
 
 	# 2. Disco de fuego circular (billboard): es la silueta redonda de la bola.
 	#    Es un sprite radial, NO una malla esférica.
@@ -432,6 +444,7 @@ func _process(delta: float) -> void:
 
 	_animate_sun(delta, grow)
 	_sync_sun_3d()
+	_update_pull_tethers(delta)
 	if not _is_3d:
 		queue_redraw()
 
@@ -476,6 +489,86 @@ func _animate_sun(delta: float, grow: float) -> void:
 		_light.light_energy = grow * (3.4 + 1.5 * sin(t * 8.5)) * charge_boost
 	if is_instance_valid(_flares):
 		_flares.emitting = grow > 0.15
+
+# ------------------------------------------------------------------------------
+# VFX de Rayos de Atracción Continuos hacia la Nave
+# ------------------------------------------------------------------------------
+func _update_pull_tethers(_delta: float) -> void:
+	if not pull_enabled or _finishing or _mode != "sun":
+		_clear_all_tethers()
+		return
+	
+	var em = get_node_or_null("/root/Main/World/EntityManager")
+	if not is_instance_valid(em):
+		return
+	
+	var world_node = em.world if "world" in em and is_instance_valid(em.world) else null
+	if not is_instance_valid(world_node):
+		return
+	
+	var targets_in_range: Array[Node2D] = []
+	if is_instance_valid(world_node.local_player):
+		var lp: Node2D = world_node.local_player
+		var d = global_position.distance_to(lp.global_position)
+		if d <= pull_radius and d > (_radius + 15.0):
+			targets_in_range.append(lp)
+	
+	# Actualizar o crear Line2D crepitante para cada objetivo en rango
+	var active_ids: Array[int] = []
+	for tgt in targets_in_range:
+		var tid = tgt.get_instance_id()
+		active_ids.append(tid)
+		var line: Line2D = _tether_lines.get(tid)
+		if not is_instance_valid(line):
+			line = Line2D.new()
+			line.name = "FireballRay_" + str(tid)
+			line.width = 5.0
+			line.default_color = Color(1.0, 0.85, 0.25, 0.95)
+			line.joint_mode = Line2D.LINE_JOINT_ROUND
+			line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+			line.end_cap_mode = Line2D.LINE_CAP_ROUND
+			line.z_index = 8
+			if is_instance_valid(world_node.entities_node):
+				world_node.entities_node.add_child(line)
+			else:
+				add_child(line)
+			_tether_lines[tid] = line
+		
+		# Zigzag vibrante de rayo eléctrico
+		var p_start = global_position
+		var p_end = tgt.global_position
+		var segs = 7
+		var pts := PackedVector2Array()
+		var dir = p_end - p_start
+		var perp = Vector2(-dir.y, dir.x).normalized()
+		var t_seed = _elapsed * 25.0
+		for i in range(segs + 1):
+			var frac = float(i) / float(segs)
+			var pt = p_start.lerp(p_end, frac)
+			if i > 0 and i < segs:
+				var jitter = sin(t_seed + i * 2.8) * 16.0
+				pt += perp * jitter
+			pts.append(pt)
+		line.points = pts
+		line.width = 4.0 + 2.0 * sin(_elapsed * 18.0)
+	
+	# Limpiar tethers de objetivos que salieron del rango
+	var to_remove: Array = []
+	for tid in _tether_lines:
+		if not active_ids.has(tid):
+			to_remove.append(tid)
+	for tid in to_remove:
+		var l: Line2D = _tether_lines[tid]
+		if is_instance_valid(l):
+			l.queue_free()
+		_tether_lines.erase(tid)
+
+func _clear_all_tethers() -> void:
+	for tid in _tether_lines:
+		var l: Line2D = _tether_lines[tid]
+		if is_instance_valid(l):
+			l.queue_free()
+	_tether_lines.clear()
 
 # ------------------------------------------------------------------------------
 # Fallback 2D (mapas sin sub_viewport): disco circular + rayos eléctricos

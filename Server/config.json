@@ -1529,6 +1529,24 @@
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
+        },
+        "strange_dimension": {
+            "label": "Dimensión Extraña",
+            "icon": "🌌",
+            "desc": "El enemigo activa un portal tenebroso que lo transporta a una dimensión paralela violeta durante unos segundos.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "duration",
+                "cooldown",
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
+            ],
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 1200
         }
     },
     "enemyModels": {
@@ -2114,7 +2132,6 @@
                     "targetCount": 1,
                     "targetMode": "nearest",
                     "bulletSpeed": 1500,
-                    "radius": 50,
                     "warnTimeMs": 500,
                     "type": "whip_summon"
                 }
@@ -3102,6 +3119,21 @@
                     "spawnRadius": 1000,
                     "startDelay": 0,
                     "type": "boss_water_orbs"
+                },
+                {
+                    "type": "strange_dimension",
+                    "castTimeMs": 0,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 5000,
+                    "cooldown": 10000,
+                    "startDelay": 0
                 }
             ],
             "fireRange": 1500,
@@ -3240,13 +3272,40 @@
                     "fireRate": 1000,
                     "startDelay": 3000,
                     "cooldown": 7000,
-                    "duration": 5000,
-                    "areaRadius": 350,
+                    "duration": 10000,
+                    "areaRadius": 800,
                     "areaMode": "enemy",
                     "speed": 250,
                     "radius": 100,
                     "damage_per_tick": 4,
                     "tick_interval": 990,
+                    "_collapsed": true,
+                    "pullEnabled": true,
+                    "pullRadius": 500,
+                    "pullStrength": 800,
+                    "ray_damage": 2
+                },
+                {
+                    "type": "whip_summon",
+                    "castTimeMs": 1000,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 900,
+                    "fireRate": 1000,
+                    "startDelay": 2000,
+                    "cooldown": 6000,
+                    "hits": 3,
+                    "cadence": 0,
+                    "damage": 10,
+                    "targetCount": 1,
+                    "targetMode": "highest_threat",
+                    "targetSphereColor": "",
                     "_collapsed": true
                 }
             ],
@@ -9839,6 +9898,48 @@
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
+        },
+        "whip_summon": {
+            "label": "Látigo Dominante (Whip)",
+            "icon": "🪢",
+            "desc": "El enemigo canaliza un látigo místico que azota N veces consecutivas al objetivo a una cadencia configurable.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible",
+                "fireRange",
+                "hits",
+                "cadence",
+                "damage",
+                "targetCount",
+                "targetMode",
+                "targetSphereColor"
+            ],
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 1200
+        },
+        "strange_dimension": {
+            "label": "Dimensión Extraña",
+            "icon": "🌌",
+            "desc": "El enemigo activa un portal tenebroso que lo transporta a una dimensión paralela violeta durante unos segundos.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "duration",
+                "cooldown",
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
+            ],
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 1200
         }
     },
     "movementLib": {
@@ -10958,8 +11059,8 @@
             "electron": [
                 {
                     "bulletSpeed": 600,
-                    "castTimeMs": 0,
-                    "cooldown": 5000,
+                    "castTimeMs": 100,
+                    "cooldown": 4000,
                     "explosionRadius": 100,
                     "id": "am_el1",
                     "mechanics": [],
@@ -11081,8 +11182,8 @@
             "emp": [
                 {
                     "bulletSpeed": 700,
-                    "castTimeMs": 0,
-                    "cooldown": 8000,
+                    "castTimeMs": 100,
+                    "cooldown": 4000,
                     "id": "am_e1",
                     "mechanics": [],
                     "name": "EMP Pulse T1",
@@ -11181,8 +11282,8 @@
             "heal": [
                 {
                     "bulletSpeed": 900,
-                    "castTimeMs": 0,
-                    "cooldown": 6000,
+                    "castTimeMs": 100,
+                    "cooldown": 5000,
                     "healPctAttackerPvP": 25,
                     "healPctVictimPvP": 30,
                     "id": "am_h1",
@@ -11370,8 +11471,8 @@
             "melee": [
                 {
                     "bulletSpeed": 2500,
-                    "castTimeMs": 0,
-                    "cooldown": 6000,
+                    "castTimeMs": 50,
+                    "cooldown": 3000,
                     "id": "am_me1",
                     "mechanics": [],
                     "name": "Plasma Claw T1",
@@ -11501,8 +11602,8 @@
             "mine": [
                 {
                     "bulletSpeed": 1200,
-                    "castTimeMs": 0,
-                    "cooldown": 5000,
+                    "castTimeMs": 300,
+                    "cooldown": 4000,
                     "deceleration": 2,
                     "explosionRadius": 150,
                     "id": "am_n1",
@@ -11606,7 +11707,7 @@
             "missile": [
                 {
                     "bulletSpeed": 500,
-                    "castTimeMs": 350,
+                    "castTimeMs": 250,
                     "cooldown": 3000,
                     "id": "am_m1",
                     "mechanics": [],
@@ -11695,8 +11796,8 @@
             "siphon": [
                 {
                     "bulletSpeed": 600,
-                    "castTimeMs": 0,
-                    "cooldown": 6000,
+                    "castTimeMs": 100,
+                    "cooldown": 4000,
                     "id": "am_s1",
                     "mechanics": [],
                     "name": "Vampire Beam T1",

@@ -199,7 +199,8 @@ func _build_skill_from_data(real_equipped) -> Resource:
 		"PROVOCACION": "res://scripts/resources/skills/Skill_Provocacion.gd",
 		"RESURRECCIÓN": "res://scripts/resources/skills/Skill_Resurreccion.gd",
 		"ESFERA DE TERROR": "res://scripts/resources/skills/Skill_FearSphere.gd",
-		"HOOKSHOT": "res://scripts/resources/skills/Skill_Hookshot.gd"
+		"HOOKSHOT": "res://scripts/resources/skills/Skill_Hookshot.gd",
+		"DIMENSIÓN EXTRAÑA": "res://scripts/resources/skills/Skill_DimensionExtrana.gd"
 	}
 	
 	var s_class = null

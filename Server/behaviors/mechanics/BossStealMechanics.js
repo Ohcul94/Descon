@@ -52,7 +52,7 @@ function _handleShieldStealLogic(mech, mId, now, io, players) {
     const stealIntervalMs = (mech.stealIntervalMs !== undefined ? Number(mech.stealIntervalMs) : 1000);
     const linkDuration = (mech.duration !== undefined ? Number(mech.duration) : 5000);
     const speedValue = mech.bulletSpeed || 700;
-    const targetMode = mech.targetMode || "proximity";
+    const targetMode = mech.targetMode || "highest_threat";
 
     // Si el proyectil ya se disparó pero nunca impactó (escapó / murió / se fue de rango),
     // liberar el estado para volver a intentarlo tras el cooldown.
@@ -265,7 +265,7 @@ function _handleLifeStealLogic(mech, mId, now, io, players) {
     const stealIntervalMs = (mech.stealIntervalMs !== undefined ? Number(mech.stealIntervalMs) : 1000);
     const linkDuration = (mech.duration !== undefined ? Number(mech.duration) : 5000);
     const speedValue = mech.bulletSpeed || 700;
-    const targetMode = mech.targetMode || "proximity";
+    const targetMode = mech.targetMode || "highest_threat";
 
     // Si el proyectil ya se disparó pero nunca impactó, liberar estado
     if (state.fired && !state.isActive && state.firedShotTime) {

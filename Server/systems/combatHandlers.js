@@ -21,6 +21,7 @@ const ProvocacionSkill = require('./skills/ProvocacionSkill');
 const ResurreccionSkill = require('./skills/ResurreccionSkill');
 const FearSphereSkill = require('./skills/FearSphereSkill');
 const HookshotSkill = require('./skills/HookshotSkill');
+const SkillStrangeDimension = require('./skills/SkillStrangeDimension');
 const combatTracker = require('./combatTracker');
 const { checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento (munición)
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
@@ -43,6 +44,7 @@ SkillManager.registerSkill(new ProvocacionSkill());
 SkillManager.registerSkill(new ResurreccionSkill());
 SkillManager.registerSkill(new FearSphereSkill());
 SkillManager.registerSkill(new HookshotSkill());
+SkillManager.registerSkill(new SkillStrangeDimension());
 
 
 // Habilidades de Curación/Soporte

@@ -31,7 +31,10 @@ const DEFAULT_MECHANICS_LIB = {
     "choque_devastador": { label: "Choque Devastador", icon: "💥", desc: "El enemigo carga en línea recta dañando todo lo que embiste. Muestra un marcador direccional en el piso antes de cargar.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "damage", "range", "castTimeMs", "castInterruptible", "speed", "duration", "radius", "pushOnHit", "pushForce", "warnTimeMs", "startDelay"], sound: "", soundVolumePercent: 50, soundMaxDist: 1400 },
     // v901.0: Bola de Fuego Dinámica - esfera solar que deambula por un área y daña por ticks
     // v901.1: atracción hacia la bola (check pullEnabled que despliega pullRadius/pullStrength/ray_damage)
-    "fireball": { label: "Bola de Fuego Dinámica", icon: "☀️", desc: "Invoca una esfera de fuego tipo sol que comienza a moverse dentro de un área determinada, dañando a todo lo que toca durante su duración. Tamaño, área, daño, cadencia, duración y enfriamiento los define el Admin. Opcionalmente atrae a los jugadores que estén en su rango y les pega golpes de rayos por tick.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "startDelay", "castTimeMs", "castInterruptible", "fireRange", "cooldown", "duration", "areaRadius", "areaMode", "speed", "radius", "damage_per_tick", "tick_interval", "pullEnabled", "pullRadius", "pullStrength", "ray_damage"], sound: "", soundVolumePercent: 50, soundMaxDist: 1600 }
+    "fireball": { label: "Bola de Fuego Dinámica", icon: "☀️", desc: "Invoca una esfera de fuego tipo sol que comienza a moverse dentro de un área determinada, dañando a todo lo que toca durante su duración. Tamaño, área, daño, cadencia, duración y enfriamiento los define el Admin. Opcionalmente atrae a los jugadores que estén en su rango y les pega golpes de rayos por tick.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "startDelay", "castTimeMs", "castInterruptible", "fireRange", "cooldown", "duration", "areaRadius", "areaMode", "speed", "radius", "damage_per_tick", "tick_interval", "pullEnabled", "pullRadius", "pullStrength", "ray_damage"], sound: "", soundVolumePercent: 50, soundMaxDist: 1600 },
+    // v415.0: Látigo Dominante (Whip)
+    "whip_summon": { label: "Látigo Dominante (Whip)", icon: "🪢", desc: "El enemigo canaliza un látigo místico que azota N veces consecutivas al objetivo a una cadencia configurable.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "startDelay", "castTimeMs", "castInterruptible", "fireRange", "hits", "cadence", "damage", "targetCount", "targetMode", "targetSphereColor"], sound: "", soundVolumePercent: 50, soundMaxDist: 1200 },
+    "strange_dimension": { label: "Dimensión Extraña", icon: "🌌", desc: "El enemigo activa un portal tenebroso que lo transporta a una dimensión paralela violeta durante unos segundos.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "startDelay", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 1200 }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)
@@ -89,6 +92,13 @@ const DEFAULT_DEFENSE_LIB = {
         desc: "Igual que el Robador de Escudo pero roba VIDA al jugador por ticks y se la transfiere al enemigo. Aros y números en verde.", 
         fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "fireRange", "bulletSpeed", "duration", "startDelay", "stealMode", "stealAmount", "stealIntervalMs", "targetMode", "targetSphereColor", "giveToEnemy", "bulletDamage", "isPointAndClick", "castTimeMs", "castInterruptible"],
         sound: "", soundVolumePercent: 50, soundMaxDist: 1200
+    },
+    "strange_dimension": { 
+        label: "Dimensión Extraña", 
+        icon: "🌌", 
+        desc: "El enemigo abre un portal tenebroso, selecciona objetivos según la configuración de target y los transporta a una dimensión paralela violeta durante unos segundos, devolviéndolos al finalizar.", 
+        fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "targetCount", "targetMode", "targetSphereColor", "teleportDistance", "startDelay", "castTimeMs", "castInterruptible"], 
+        sound: "", soundVolumePercent: 50, soundMaxDist: 1200 
     }
 };
 
@@ -246,9 +256,4 @@ const DEFAULT_RANKING_CONFIG = {
             resetInterval: "never",
             rewards: [
                 { rank: 1, hubs: 200000, ohcu: 500, exp: 50000, bpExp: 25000, items: [] },
-                { rank: 2, hubs: 100000, ohcu: 250, exp: 25000, bpExp: 10000, items: [] },
-                { rank: 3, hubs: 50000, ohcu: 100, exp: 10000, bpExp: 5000, items: [] }
-            ]
-        }
-    ]
-};
+                { rank: 2, hubs: 100000, ohcu: 250, exp: 25000, 

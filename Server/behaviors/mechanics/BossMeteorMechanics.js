@@ -67,7 +67,7 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
     const meteorSize = mech.meteorSize || 60;
     const explosionRadius = mech.explosionRadius || 150;
     const bulletDamage = (mech.bulletDamage || 200) * (this.damageMult || 1);
-    const targetMode = mech.targetMode || "proximity";
+    const targetMode = mech.targetMode || "highest_threat";
     const cooldown = mech.cooldown || 10000;
     const fallTimeMs = (fallHeight / Math.max(1, fallSpeed)) * 1000;
     const persistentZone = !!mech.persistentZone;

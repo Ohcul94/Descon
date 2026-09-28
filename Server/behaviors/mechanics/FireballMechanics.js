@@ -38,62 +38,58 @@ function _pickWaypoint(state, areaRadius) {
     state.wpTime = Date.now();
 }
 
-function _applyFireballDamage(ai, state, radius, dmg, now, io, players, pullCfg) {
-    const zonePlayers = Object.values(players || {}).filter(p =>
-        String(p.zone) === String(ai.enemy.zone) && !p.isDead && !p.isInvisible);
+/**
+ * Aplica daño autoritativo a un jugador impactado por la bola o por sus rayos.
+ */
+function _dealDirectDamage(ai, p, dmg, now, io, source = "fireball") {
+    if (!p || p.isDead || p.isInvulnerable || dmg <= 0) return;
 
-    zonePlayers.forEach(p => {
-        const d = Math.hypot(p.x - state.x, p.y - state.y);
-        if (d > radius) return;
+    recordPlayerCombat(p, ai.state, now);
+    p.lastCombatTime = now;
 
-        recordPlayerCombat(p, ai.state, now);
+    // Reparto escudo -> casco (autoritativo)
+    const initialShield = p.shield || 0;
+    if (initialShield >= dmg) {
+        p.shield -= dmg;
+    } else {
+        p.hp -= (dmg - initialShield);
+        p.shield = 0;
+    }
+    if (p.hp < 0) p.hp = 0;
 
-        if (p.isInvulnerable) return;
+    // Sistema de Agro: registrar daño recibido por tanque / jugador
+    if (ai.enemy && ai.enemy.threatTable) {
+        ai.enemy.threatTable.addTankingThreat(p.socketId, dmg, p);
+    }
 
-        // Reparto escudo -> casco (autoritativo)
-        if (p.shield >= dmg) {
-            p.shield -= dmg;
-        } else {
-            p.hp -= (dmg - p.shield);
-            p.shield = 0;
-        }
-        if (p.hp < 0) p.hp = 0;
-        if (p.hp <= 0) ai._killPlayer(p, io);
+    if (p.hp <= 0) {
+        ai._killPlayer(p, io);
+    }
 
-        // Reflejo autoritativo
-        if (p.reflectActive) {
-            const reflectMult = 0.8;
-            const reflectedDmg = Math.round(dmg * reflectMult);
-            if (reflectedDmg > 0) {
-                if (ai.enemy.shield >= reflectedDmg) ai.enemy.shield -= reflectedDmg;
-                else { ai.enemy.hp -= (reflectedDmg - ai.enemy.shield); ai.enemy.shield = 0; }
-                if (ai.enemy.hp < 0) ai.enemy.hp = 0;
-                io.to(`zone_${ai.enemy.zone}`).emit('enemyDamaged', {
-                    id: ai.enemy.id, hp: Math.max(0, ai.enemy.hp), shield: ai.enemy.shield
-                });
-            }
-        }
-
-        io.to(p.socketId).emit('environmentDamage', { damage: dmg });
-        io.to(`zone_${p.zone}`).emit('playerStatSync', {
-            id: p.socketId,
-            hp: Math.ceil(p.hp),
-            shield: Math.ceil(p.shield),
-            isDead: p.isDead,
-            isInvulnerable: p.isInvulnerable,
-            isInvisible: p.isInvisible
-        });
-    });
-
-    // Daño al Altar (modo defensa) si cae dentro del radio de la bola
-    const altarState = ai.state.altarState;
-    if (altarState && altarState.hp > 0 && String(altarState.zone) === String(ai.enemy.zone)) {
-        const altarX = Number(altarState.x) || 5000;
-        const altarY = Number(altarState.y) || 5000;
-        if (Math.hypot(altarX - state.x, altarY - state.y) <= radius) {
-            altarDefenseManager.applyDamageToAltar(dmg, ai.enemy.zone);
+    // Reflejo autoritativo
+    if (p.reflectActive && !p.isInvulnerable) {
+        const reflectMult = 0.8;
+        const reflectedDmg = Math.round(dmg * reflectMult);
+        if (reflectedDmg > 0 && ai.enemy) {
+            if (ai.enemy.shield >= reflectedDmg) ai.enemy.shield -= reflectedDmg;
+            else { ai.enemy.hp -= (reflectedDmg - (ai.enemy.shield || 0)); ai.enemy.shield = 0; }
+            if (ai.enemy.hp < 0) ai.enemy.hp = 0;
+            io.to(`zone_${ai.enemy.zone}`).emit('enemyDamaged', {
+                id: ai.enemy.id, hp: Math.max(0, ai.enemy.hp), shield: ai.enemy.shield
+            });
         }
     }
+
+    io.to(p.socketId).emit('environmentDamage', { damage: dmg, source: source });
+    io.to(`zone_${p.zone}`).emit('playerStatSync', {
+        id: p.socketId,
+        hp: Math.ceil(p.hp),
+        shield: Math.ceil(p.shield),
+        isDead: p.isDead,
+        isInvulnerable: p.isInvulnerable,
+        isInvisible: p.isInvisible,
+        spheres: p.spheres || []
+    });
 }
 
 function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
@@ -111,12 +107,15 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
     const radius = Math.max(10, _num(mech.radius, 90));
     const speed = Math.max(0, _num(mech.speed, 180));
     const tickInterval = Math.max(MIN_TICK_INTERVAL, _num(mech.tick_interval, 800));
-    const pullEnabled = mech.pullEnabled === true;
-    const pullRadius = Math.max(0, _num(mech.pullRadius, 250));
+    const pullEnabled = mech.pullEnabled === true || mech.pullEnabled === 'true' || mech.pullEnabled === 1;
+    const pullRadius = Math.max(0, _num(mech.pullRadius, 400));
     const pullStrength = Math.max(0, _num(mech.pullStrength, 180));
     const rayDmg = Math.max(0, _num(mech.ray_damage, 20)) * (ai.damageMult || 1);
-    const dmgPerTick = _num(mech.damage_per_tick, 30) * (ai.damageMult || 1);
-    const pullCfg = { enabled: pullEnabled, radius: pullRadius, rayDmg: rayDmg };
+    
+    // Soporte inteligente de daño: damage_per_tick > damage > bulletDamage > default 30
+    const rawDamage = _num(mech.damage_per_tick, _num(mech.damage, _num(mech.bulletDamage, 30)));
+    const dmgPerTick = Math.max(1, rawDamage) * (ai.damageMult || 1);
+
     const chargeTime = Math.max(0, _num(mech.castTimeMs, 1200));
     const areaMode = (mech.areaMode === 'target') ? 'target' : 'enemy';
     const zoneRoom = `zone_${ai.enemy.zone}`;
@@ -129,7 +128,9 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
         state.y = state.areaY;
         state.lastSim = spawnNow;
         state.lastEmit = spawnNow;
-        state.lastTick = spawnNow;
+        state.playerLastDamage = {};
+        state.playerLastRayDamage = {};
+        state.lastAltarTick = 0;
         _pickWaypoint(state, areaRadius);
 
         io.to(zoneRoom).emit('serverEnemyAction', {
@@ -144,7 +145,11 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
             areaRadius: areaRadius,
             radius: radius,
             speed: speed,
-            duration: duration
+            duration: duration,
+            pullEnabled: pullEnabled,
+            pullRadius: pullRadius,
+            pullStrength: pullStrength,
+            ray_damage: rayDmg
         });
     };
 
@@ -189,7 +194,7 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
         return true;
     }
 
-    // FASE 3: BOLA ACTIVA (movimiento + daño por ticks)
+    // FASE 3: BOLA ACTIVA (movimiento + detección continua de daño por ticks)
     if (state.isActive) {
         if (now >= state.activeEnd) {
             // FASE 4: EXPIRACIÓN
@@ -228,7 +233,7 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
             _pickWaypoint(state, areaRadius);
         }
 
-        // Sincronización de posición (silenciosa para no repetir el sonido de la mecánica)
+        // Sincronización de posición hacia los clientes
         if (now - (state.lastEmit || 0) >= POS_SYNC_INTERVAL) {
             state.lastEmit = now;
             io.to(zoneRoom).emit('serverEnemyAction', {
@@ -242,28 +247,54 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
             });
         }
 
-        // Daño por tick
-        if (now - (state.lastTick || 0) >= tickInterval) {
-            state.lastTick = now;
-            _applyFireballDamage(ai, state, radius, dmgPerTick, now, io, players, pullCfg);
-        }
-        // Emisión de atracción cada tick si está habilitada
-        if (pullEnabled) {
-            const zonePlayers = Object.values(players || {}).filter(p =>
-                String(p.zone) === String(ai.enemy.zone) && !p.isDead && !p.isInvisible);
-            zonePlayers.forEach(p => {
-                const d = Math.hypot(p.x - state.x, p.y - state.y);
-                if (d <= pullRadius && d > 0) {
-                    io.to(p.socketId).emit('fireball_pull', {
-                        attackerId: ai.enemy.id,
-                        mId: mId,
-                        ballX: state.x,
-                        ballY: state.y,
-                        pullSpeed: pullStrength,
-                        duration: 600
-                    });
+        // Inicializar mapas de daño por jugador si no existen
+        if (!state.playerLastDamage) state.playerLastDamage = {};
+        if (!state.playerLastRayDamage) state.playerLastRayDamage = {};
+
+        // Chequeo continuo de daño por contacto con la bola
+        const zonePlayers = Object.values(players || {}).filter(p =>
+            String(p.zone) === String(ai.enemy.zone) && !p.isDead && !p.isInvisible);
+
+        zonePlayers.forEach(p => {
+            const d = Math.hypot(p.x - state.x, p.y - state.y);
+            const playerRadius = Number(p.radius || 35);
+            const hitRadius = radius + playerRadius;
+
+            // 1. Daño directo por contacto con la esfera solar:
+            // Al hacer contacto, el primer impacto es INMEDIATO, luego sigue cada tickInterval
+            if (d <= hitRadius) {
+                const lastHit = state.playerLastDamage[p.socketId] || 0;
+                if (now - lastHit >= tickInterval) {
+                    state.playerLastDamage[p.socketId] = now;
+                    _dealDirectDamage(ai, p, dmgPerTick, now, io, "fireball");
                 }
-            });
+            }
+
+            // 2. Daño periódico por rayos si pullEnabled está activo y está en el rango
+            if (pullEnabled && pullRadius > 0 && d <= pullRadius) {
+                if (rayDmg > 0) {
+                    state.playerLastRayDamage = state.playerLastRayDamage || {};
+                    const lastRay = state.playerLastRayDamage[p.socketId] || 0;
+                    if (now - lastRay >= tickInterval) {
+                        state.playerLastRayDamage[p.socketId] = now;
+                        _dealDirectDamage(ai, p, rayDmg, now, io, "fireball_ray");
+                    }
+                }
+            }
+        });
+
+        // 3. Daño al Altar si cae dentro del radio de la bola
+        const altarState = ai.state.altarState;
+        if (altarState && altarState.hp > 0 && String(altarState.zone) === String(ai.enemy.zone)) {
+            const altarX = Number(altarState.x) || 5000;
+            const altarY = Number(altarState.y) || 5000;
+            if (Math.hypot(altarX - state.x, altarY - state.y) <= (radius + 60)) {
+                const lastAltar = state.lastAltarTick || 0;
+                if (now - lastAltar >= tickInterval) {
+                    state.lastAltarTick = now;
+                    altarDefenseManager.applyDamageToAltar(dmgPerTick, ai.enemy.zone);
+                }
+            }
         }
     }
 

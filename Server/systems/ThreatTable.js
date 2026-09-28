@@ -502,6 +502,16 @@ class ThreatTable {
             entries: list
         };
     }
+
+    /**
+     * Retorna la amenaza acumulada de un socketId específico (aplicando decay previo)
+     */
+    getThreat(socketId) {
+        if (!socketId) return 0;
+        this.decay(Date.now());
+        const entry = this.entries.get(socketId);
+        return (entry && typeof entry.threat === 'number') ? entry.threat : 0;
+    }
 }
 
 module.exports = {

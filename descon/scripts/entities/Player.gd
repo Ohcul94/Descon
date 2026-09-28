@@ -142,6 +142,12 @@ var poly_timer: float = 0.0
 var poly_can_move: bool = false
 var poly_can_use_skills: bool = true
 
+# ==== DIMENSIÓN EXTRAÑA ====
+var in_strange_dimension: bool = false
+var strange_dimension_timer: float = 0.0
+var strange_dimension_config: Dictionary = {}
+var strange_dimension_cc: bool = false  # Trigger CC para activación automática
+
 func _ready():
 	load_ammo_slots_local()
 	super._ready() 
@@ -481,6 +487,62 @@ func _setup_skill_controller():
 		_skill_controller.name = "SkillController"
 		add_child(_skill_controller)
 
+func activate_strange_dimension(duration: float = 5.0) -> void:
+	# Activar la Dimensión Extraña
+	in_strange_dimension = true
+	strange_dimension_timer = duration
+	strange_dimension_config = {
+		"duration": duration,
+		"targets": { "enemies": true, "bosses": true, "players": false, "allies": false },
+		"summonConfig": { "canSummon": true, "enemyTypes": [], "maxEnemies": 5 }
+	}
+	
+	# Congelar al jugador en la dimensión
+	is_moving = false
+	autopilot_enabled = false
+	target_position = global_position
+	velocity = Vector2.ZERO
+	joystick_direction = Vector2.ZERO
+	
+	# Aplicar color violeta tenebroso
+	modulate = Color(0.15, 0.05, 0.35, 1.0)
+	if is_instance_valid(_3d_model):
+		var violet_mat = StandardMaterial3D.new()
+		violet_mat.albedo_color = Color(0.3, 0.1, 0.5, 0.6)
+		violet_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		violet_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		violet_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_apply_material_recursive(_3d_model, violet_mat, true)
+	
+	# Ocultar elementos del mundo normal (compañeros, bosque, etc.)
+	# VFX del portal
+	if has_method("play_skill_vfx"):
+		play_skill_vfx("STRANGE_DIMENSION_PORTAL", duration)
+	
+	print("[PLAYER] Dimensión Extraña activada por ", duration, "s")
+	
+	# Timer para salir de la dimensión
+	get_tree().create_timer(duration).timeout.connect(_exit_strange_dimension)
+
+func _exit_strange_dimension() -> void:
+	# Salir de la Dimensión Extraña
+	in_strange_dimension = false
+	strange_dimension_timer = 0.0
+	strange_dimension_config = {}
+	
+	# Restaurar apariencia normal
+	if not _has_any_status_color():
+		modulate = Color.WHITE
+	if is_instance_valid(_3d_model):
+		_apply_material_recursive(_3d_model, null, false)
+	
+	# VFX de salida
+	if has_method("play_skill_vfx"):
+		play_skill_vfx("STRANGE_DIMENSION_EXIT", 0.0)
+	
+	print("[PLAYER] Saliendo de la Dimensión Extraña")
+	_emit_stats()
+
 func _unhandled_input(event):
 	if is_casting and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		_cancel_cast("manual")
@@ -558,7 +620,36 @@ func _physics_process(p_delta):
 		return
 	else:
 		pass
-
+	
+	# ==== DIMENSIÓN EXTRAÑA: Check CC (Crowd Control) ====
+	if strange_dimension_cc:
+		strange_dimension_timer -= p_delta
+		if strange_dimension_timer <= 0:
+			strange_dimension_cc = false
+			strange_dimension_timer = 0.0
+			strange_dimension_config = {}
+			if is_instance_valid(_3d_model):
+				_apply_material_recursive(_3d_model, null, false)
+			if in_strange_dimension:
+				in_strange_dimension = false
+			if has_method("play_skill_vfx"):
+				play_skill_vfx("STRANGE_DIMENSION_EXIT", 0.0)
+			modulate = Color.WHITE
+			if not _has_any_status_color():
+				modulate = Color.WHITE
+			print("[PLAYER] Saliendo de la Dimensión Extraña (CC)")
+			_emit_stats()
+			strange_dimension_timer = 0.0
+			return
+		else:
+			in_strange_dimension = true
+			if visible:
+				visible = false
+			velocity = Vector2.ZERO
+			is_moving = false
+			autopilot_enabled = false
+			target_position = global_position
+	
 	_handle_cooldowns(p_delta)
 	# Remote cast tick
 	if _remote_cast_active:
@@ -673,6 +764,9 @@ func _physics_process(p_delta):
 enum Skill_Type { DIRECTIONAL, POINT_CLICK, AREA, INSTANT }
 
 func _handle_input():
+	# ==== DIMENSIÓN EXTRAÑA: Bloquear uso de habilidades (CC check) ====
+	if strange_dimension_cc:
+		return
 	# v260.90: Sistema de 7 Slots Unificados (Láser, Misil, Mina + 4 Esferas)
 	_handle_slot_input("slot_1", ammo_slots[0], -1)
 	_handle_slot_input("slot_2", ammo_slots[1], -1)
@@ -718,6 +812,10 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 		return
 	# v410: Bloqueo de habilidades por Polimorfia
 	if is_polymorphed and not poly_can_use_skills:
+		return
+	
+	# ==== DIMENSIÓN EXTRAÑA: Bloquear uso de habilidades normales (CC check) ====
+	if strange_dimension_cc:
 		return
 	
 	# v268.30: Bloqueo por Interferencia Ambiental
@@ -801,7 +899,7 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 								s_type = 0 # Apuntable (Directional)
 							elif s_name in ["RESURRECCIÓN", "BALIZA DE CURACION", "REGENERACIÓN ALFA"]:
 								s_type = 2 # Area
-							elif s_name in ["PROVOCACION", "SMOKE-BOMB", "STEALTH", "FROST-TRAIL", "INVULNERABILIDAD", "HYPER-DASH", "TURBO-IMPULSO"]:
+							elif s_name in ["PROVOCACION", "SMOKE-BOMB", "STEALTH", "FROST-TRAIL", "INVULNERABILIDAD", "HYPER-DASH", "TURBO-IMPULSO", "DIMENSIÓN EXTRAÑA"]:
 								s_type = 3 # Instant
 							elif s_name in ["REFLECT-OMEGA", "REFLECT", "ESCUDO CELULAR", "AUTO-REPARACIÓN", "NANO-REGENERACIÓN", "VÍNCULO VITAL"] or s_data.get("canTargetOthers", false):
 								if s_data.get("canTargetOthers", false):
@@ -1591,6 +1689,13 @@ func _apply_movement():
 			velocity = Vector2.ZERO
 	else:
 		velocity = Vector2.ZERO
+
+	# v901.2: Atracción constante y continua de Bolas de Fuego
+	var em = get_node_or_null("/root/Main/World/EntityManager")
+	if is_instance_valid(em) and em.has_method("get_active_fireball_pull_vector"):
+		var fb_pull: Vector2 = em.get_active_fireball_pull_vector(global_position)
+		if fb_pull != Vector2.ZERO:
+			velocity += fb_pull
 
 	# Feedback Visual
 	if is_polymorphed:
