@@ -7,7 +7,7 @@
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_303il"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7bc5u"]
 albedo_color = Color(0.05, 0.08, 0.15, 1)
 metallic = 0.3
 roughness = 0.8
@@ -113,10 +113,20 @@ normal_texture = ExtResource("3_7bc5u")
 mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_jqspa")])
 texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_d0lf8")])
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t7ar1"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_d0lf8"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
 [node name="MapEditor3D" type="Node3D" unique_id=941587839]
 script = ExtResource("1_editor_script")
 zone_id = "3"
-json_to_import = "[]"
+json_to_import = "[{\"assetPath\":\"res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb\",\"colHeight\":730.43,\"colOffsetX\":-457.89,\"colOffsetY\":-119.86,\"colType\":\"rect\",\"colWidth\":510.04,\"colliders\":[{\"height\":730.43,\"offsetX\":-457.89,\"offsetY\":-119.86,\"rot\":-2.1,\"type\":\"rect\",\"width\":510.04},{\"height\":544.8,\"offsetX\":454.3,\"offsetY\":-19.97,\"rot\":8.0,\"type\":\"rect\",\"width\":454.17}],\"label\":\"CuevaCalaberas\",\"rotY\":43.0,\"scale\":40.0,\"type\":\"wall\",\"x\":-875.21,\"y\":-3666.38,\"yOffset\":0.0}]"
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=770567274]
 transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
@@ -144,7 +154,7 @@ shape = SubResource("WorldBoundaryShape3D_1")
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1711100493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 visible = false
-material_override = SubResource("StandardMaterial3D_303il")
+material_override = SubResource("StandardMaterial3D_7bc5u")
 mesh = SubResource("PlaneMesh_1")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=798809310]
@@ -156,21 +166,28 @@ material = SubResource("Terrain3DMaterial_mvx5v")
 assets = SubResource("Terrain3DAssets_d7lmv")
 free_editor_textures = false
 top_level = true
+metadata/_edit_lock_ = true
 
-[node name="CuevaCalaberas" parent="." unique_id=828808755 instance=ExtResource("4_7bc5u")]
-transform = Transform3D(29.248796, 0, 27.285667, 0, 40, 0, -27.285667, 0, 29.248796, -17.504284, 3.814697e-06, -103.70088)
+[node name="CuevaCalaberas" type="Node3D" parent="." unique_id=828808755 instance=ExtResource("4_7bc5u")]
+transform = Transform3D(29.254148, 0, 27.279934, 0, 40, 0, -27.279934, 0, 29.254148, -17.5042, 0, -103.70089)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb"
-metadata/label = &"CuevaCalaberas"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+metadata/label = "CuevaCalaberas"
+metadata/scale_2d = 40.0
+metadata/rot_y_deg = 43.0
 metadata/editor_only = true
+metadata/colType = "rect"
+metadata/colWidth = 510.04
+metadata/colHeight = 730.43
+metadata/colOffsetX = -457.89
+metadata/colOffsetY = -119.86
 
-[node name="CSGBox3D" type="CSGBox3D" parent="CuevaCalaberas" unique_id=185616863]
-transform = Transform3D(0.99932027, 0, -0.0368872, 0, 1, 0, 0.0368872, 0, 0.99932027, -0.22894728, 0.03049245, -0.084756136)
-size = Vector3(0.25502014, 0.001, 0.5164962)
+[node name="Collider1" type="CSGBox3D" parent="CuevaCalaberas" unique_id=312516490]
+transform = Transform3D(0.9993284, 0, -0.036643706, 0, 1, 0, 0.036643706, 0, 0.9993284, -9.1578, 0.0025, -3.3901527)
+size = Vector3(10.2008, 0.005, 20.65968)
+material = SubResource("StandardMaterial3D_t7ar1")
 
-[node name="CSGBox3D2" type="CSGBox3D" parent="CuevaCalaberas" unique_id=41561848]
-transform = Transform3D(0.99032795, 0, 0.138753, 0, 1, 0, -0.138753, 0, 0.99032795, 0.22714889, 0.03049245, -0.0141198635)
-size = Vector3(0.22708511, 0.001, 0.38522756)
-
+[node name="Collider2" type="CSGBox3D" parent="CuevaCalaberas" unique_id=1563418456]
+transform = Transform3D(0.99026805, 0, 0.1391731, 0, 1, 0, -0.1391731, 0, 0.99026805, 9.086, 0.0025, -0.5648369)
+size = Vector3(9.0834, 0.005, 15.409271)
+material = SubResource("StandardMaterial3D_d0lf8")

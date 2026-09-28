@@ -2972,6 +2972,8 @@ func _setup_target_frame():
 	_target_frame.position = Vector2(540, 80)
 
 func set_target(entity):
+	if is_instance_valid(entity) and (entity.get("in_strange_dimension") == true or entity.get("is_in_strange_dimension") == true):
+		return
 	if _target_entity == entity: return
 	
 	# Limpiar selección anterior
@@ -3017,7 +3019,7 @@ func _update_target_frame():
 		return
 	
 	if not _target_frame.visible: return
-	if not is_instance_valid(_target_entity) or _target_entity.is_dead or not _target_entity.visible:
+	if not is_instance_valid(_target_entity) or _target_entity.is_dead or not _target_entity.visible or _target_entity.get("in_strange_dimension") == true or _target_entity.get("is_in_strange_dimension") == true:
 		clear_target()
 		return
 		

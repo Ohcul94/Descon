@@ -585,7 +585,7 @@ socket.on('playerFire', (fireData) => {
         const { enemyId, bulletId, damage } = data;
         const enemy = state.enemies[enemyId];
         const p = state.players[socket.id];
-        if (!enemy || !p || !state.SERVER_CONFIG || p.isDead) return;
+        if (!enemy || !p || !state.SERVER_CONFIG || p.isDead || p.inStrangeDimension) return;
 
         // v314.0: Rate Limiting de Impactos (Anti-Cheat Damager)
         const now = Date.now();
@@ -1413,7 +1413,7 @@ socket.on('playerFire', (fireData) => {
                 }
                 attacker.lastPvpHitTimes[data.victimId] = now;
 
-                if (victim.isInvulnerable || victim.inStrangeDimension) {
+                if (victim.isInvulnerable || victim.inStrangeDimension || attacker.inStrangeDimension) {
                     // v270.20: Enviar actualización de stats reales correctivas de la víctima a todos en la zona (incluyendo el atacante)
                     // para reajustar/corregir cualquier daño predictivo de 100 local en sus clientes
                     io.to(`zone_${victim.zone}`).emit('playerStatSync', {

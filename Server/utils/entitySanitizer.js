@@ -42,6 +42,7 @@ const getCleanPlayerData = (p, id) => {
             clanTag: p.clanTag || "",
             clanId: p.clanId || null,
             currentShipId: p.currentShipId || 1,
+            speed: Number(p.speed) || 300,
             pvpEnabled: !!p.pvpEnabled,
             isInvulnerable: !!p.isInvulnerable,
             isDead: !!p.isDead

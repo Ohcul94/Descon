@@ -593,6 +593,7 @@ function startGameLoop(io, state, aiManager) {
 
             // Daño por Debuffs de Sangrado y Veneno con ticks dinámicos (v268.830)
             let debuffDmg = 0;
+            let debuffType = null;
             if (p.bleedEndTime && now < p.bleedEndTime && p.bleedDps) {
                 const interval = p.bleedInterval || 1000;
                 const lastTick = p.lastBleedTick || (now - 1000);
@@ -601,6 +602,7 @@ function startGameLoop(io, state, aiManager) {
                     const ticks = Math.floor(elapsed / interval);
                     debuffDmg += p.bleedDps * ticks;
                     p.lastBleedTick = lastTick + (ticks * interval);
+                    debuffType = 'bleed';
                 }
             } else if (p.bleedEndTime && now >= p.bleedEndTime) {
                 p.bleedEndTime = 0;
@@ -616,6 +618,7 @@ function startGameLoop(io, state, aiManager) {
                     const ticks = Math.floor(elapsed / interval);
                     debuffDmg += p.poisonDps * ticks;
                     p.lastPoisonTick = lastTick + (ticks * interval);
+                    debuffType = debuffType ? 'mixed' : 'poison';
                 }
             } else if (p.poisonEndTime && now >= p.poisonEndTime) {
                 p.poisonEndTime = 0;
@@ -638,7 +641,7 @@ function startGameLoop(io, state, aiManager) {
                 }
                 combatTracker.trackDamageTaken(p.socketId, 'debuff', debuffDmg, 'debuff', state);
 
-                io.to(p.socketId).emit('environmentDamage', { damage: debuffDmg, source: 'debuff', isDebuff: true });
+                io.to(p.socketId).emit('environmentDamage', { damage: debuffDmg, source: 'debuff', isDebuff: true, debuffType: debuffType || 'bleed' });
                 changed = true;
             }
 
@@ -648,6 +651,9 @@ function startGameLoop(io, state, aiManager) {
                 if (hasRecentRad && (!p.bleedEndTime || now > p.bleedEndTime)) {
                     p.bleedEndTime = now + 4000;
                     p.bleedDps = 25; // DPS default de radiacion
+                    p.bleedInterval = 1000;
+                    p.lastBleedTick = now;
+                    p.isBleeding = true;
                 }
             }
             // Sincronizar estados activos al cliente para el visualizador del HUD
@@ -655,6 +661,9 @@ function startGameLoop(io, state, aiManager) {
             if (p.isAsleep && p.sleepDmgPerSecond > 0) {
                 p.poisonEndTime = p.sleepEndTime;
                 p.poisonDps = p.sleepDmgPerSecond;
+                p.poisonInterval = 1000;
+                if (!p.lastPoisonTick) p.lastPoisonTick = now;
+                p.isPoisoned = true;
             } else if (!p.isAsleep && (!p.poisonEndTime || now >= p.poisonEndTime)) {
                 p.poisonEndTime = 0;
                 p.poisonDps = 0;
@@ -748,17 +757,24 @@ function startGameLoop(io, state, aiManager) {
 
             // Sync obligatorio solo si hubo cambios por ambiente o regen o sueño
             if (changed) {
-                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                const statPayload = {
                     id: p.socketId, 
                     hp: Math.ceil(p.hp), 
                     shield: Math.ceil(p.shield),
                     maxHp: p.maxHp, 
                     maxShield: p.maxShield,
+                    speed: p.speed || 300,
                     isInvisible: p.isInvisible,
                     isSlowed: !!p.isSlowed,
                     isBleeding: !!p.isBleeding,
                     isPoisoned: !!p.isPoisoned
-                });
+                };
+                if (debuffDmg > 0) {
+                    statPayload.debuffDamage = debuffDmg;
+                    statPayload.debuffType = debuffType || 'bleed';
+                    statPayload.suppressDamagePopup = true;
+                }
+                io.to(`zone_${p.zone}`).emit('playerStatSync', statPayload);
             }
         });
         combatTracker.broadcastCombatMeterUpdates(io, state);

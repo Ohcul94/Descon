@@ -8,7 +8,6 @@ const SLEEP_ZZ_SCRIPT = preload("res://scripts/systems/SleepZZVisual.gd")
 # Player.gd (Controlador Maestro v69.45 - FULL STABILITY RECOVERY)
 # Saneado y corregido para evitar errores de parseo y autodaño.
 
-@export var speed: float = 300.0
 @export var acceleration: float = 1200.0
 @export var friction: float = 800.0
 
@@ -260,9 +259,12 @@ func _on_environment_damaged(data: Dictionary):
 		elif is_debuff:
 			# Daño periódico por debuff (Veneno o Hemorragia):
 			# Popup de daño coloreado según el debuff activo, sin sacudida fuerte ni hit-flash blanco para no despintar
-			var is_poison = poison_timer > 0.0 or debuffs.has("poison") or status_effects.get("poisoned", false)
+			_last_debuff_popup_time = Time.get_ticks_msec()
+			var dtype = str(data.get("debuffType", ""))
+			var is_poison = dtype == "poison" or poison_timer > 0.0 or debuffs.has("poison") or status_effects.get("poisoned", false)
 			var debuff_color = Color(0.4, 0.95, 0.4) if is_poison else Color(0.95, 0.25, 0.25)
-			_spawn_damage_text(str(int(dmg)), debuff_color)
+			var display_dmg = max(1, int(round(dmg)))
+			_spawn_damage_text(str(display_dmg), debuff_color)
 		else:
 			# Daño normal de impacto
 			_spawn_damage_text(str(int(dmg)), Color.RED)
@@ -498,12 +500,20 @@ func _setup_skill_controller():
 func activate_strange_dimension(duration: float = 5.0) -> void:
 	# Activar la Dimensión Extraña
 	in_strange_dimension = true
+	is_in_strange_dimension = true
+	set_meta("strange_dimension_active", true)
 	strange_dimension_timer = duration
 	strange_dimension_config = {
 		"duration": duration,
 		"targets": { "enemies": true, "bosses": true, "players": false, "allies": false },
 		"summonConfig": { "canSummon": true, "enemyTypes": [], "maxEnemies": 5 }
 	}
+	
+	# v905: Ocultar o eliminar escudo visual activo (ej: esfera amarilla) sin perder invulnerabilidad
+	if is_instance_valid(_active_shield_vfx):
+		_active_shield_vfx.queue_free()
+		_active_shield_vfx = null
+		_active_shield_type = ""
 	
 	# Asegurar visibilidad del jugador en la dimensión
 	visible = true
@@ -519,14 +529,27 @@ func activate_strange_dimension(duration: float = 5.0) -> void:
 func _exit_strange_dimension() -> void:
 	# Salir de la Dimensión Extraña
 	in_strange_dimension = false
+	is_in_strange_dimension = false
 	strange_dimension_timer = 0.0
 	strange_dimension_config = {}
+	if has_meta("strange_dimension_active"):
+		remove_meta("strange_dimension_active")
 	
 	# Restaurar apariencia normal
 	if not _has_any_status_color():
 		modulate = Color.WHITE
+		if is_instance_valid(sprite):
+			sprite.modulate = Color.WHITE
 	if is_instance_valid(_3d_model):
 		_apply_material_recursive(_3d_model, null, false)
+		_apply_material_recursive(_3d_model, null, true)
+	for s in _3d_spheres:
+		if is_instance_valid(s):
+			_apply_material_recursive(s, null, false)
+			_apply_material_recursive(s, null, true)
+	_current_applied_overlay = null
+	_current_applied_next_pass = null
+	_restore_default_overlay()
 	
 	# VFX de salida
 	if has_method("play_skill_vfx"):

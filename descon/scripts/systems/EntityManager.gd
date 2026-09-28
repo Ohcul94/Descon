@@ -52,6 +52,16 @@ func _on_blast_area_cleanup(area_key: String, blast_node: Variant) -> void:
 	if is_instance_valid(blast_node):
 		blast_node.queue_free()
 
+func _find_remote_player_by_id(target_id: String) -> Node2D:
+	if target_id.is_empty(): return null
+	if remote_players.has(target_id):
+		return remote_players[target_id]
+	for rp in remote_players.values():
+		if is_instance_valid(rp):
+			if str(rp.get("entity_id")) == target_id or str(rp.get("db_id")) == target_id or str(rp.get_meta("socket_id", "")) == target_id:
+				return rp
+	return null
+
 # Explosión en 2 fases: 1) llamas se acumulan alrededor del centro/enemigo, 2) estallan hacia los costados hasta el rango
 func _make_circle_fire_burst(r3d: float, has_terrain: bool) -> Node3D:
 	var root = Node3D.new()
@@ -960,6 +970,9 @@ func _on_player_updated(data):
 				p.world_root_3d.visible = false
 			if is_instance_valid(p.get("_ui_wrapper")):
 				p._ui_wrapper.visible = false
+		elif p.in_strange_dimension or p.is_in_strange_dimension:
+			if p.has_method("_update_strange_dimension_visuals"):
+				p._update_strange_dimension_visuals(true)
 
 func _get_enemy_from_pool() -> Node:
 	for en in enemy_pool:
@@ -1213,10 +1226,37 @@ func _on_enemy_action(data: Dictionary):
 				for c in c_map_start.sub_viewport.get_children():
 					if is_instance_valid(c) and (c.name.begins_with("IceStorm_") or c.name.begins_with("IceStormCharging_")):
 						c.queue_free()
+
+		# 5. Para los jugadores remotos que fueron capturados a la Dimensión Extraña (se ven como fantasma violeta sin UI):
+		for tid in target_ids:
+			var tid_str = str(tid)
+			var is_me = false
+			if is_instance_valid(local_p):
+				var p_eid = str(local_p.entity_id) if "entity_id" in local_p else ""
+				var p_did = str(local_p.db_id) if "db_id" in local_p else ""
+				if tid_str == local_socket or tid_str == p_eid or tid_str == p_did:
+					is_me = true
+			if not is_me:
+				var rp = _find_remote_player_by_id(tid_str)
+				if is_instance_valid(rp):
+					if rp.has_method("_update_strange_dimension_visuals"):
+						rp._update_strange_dimension_visuals(true)
+					else:
+						rp.in_strange_dimension = true
+						rp.is_in_strange_dimension = true
 		return
 
 	if action == "strange_dimension_expire":
 		is_in_strange_dimension = false
+		# Restaurar a cualquier jugador remoto que haya estado en la dimensión
+		for pid in remote_players:
+			var rp = remote_players[pid]
+			if is_instance_valid(rp) and (rp.in_strange_dimension or rp.is_in_strange_dimension):
+				if rp.has_method("_update_strange_dimension_visuals"):
+					rp._update_strange_dimension_visuals(false)
+				else:
+					rp.in_strange_dimension = false
+					rp.is_in_strange_dimension = false
 		# RESTAURAR ABSOLUTAMENTE TODO lo que se ocultó
 		# a. Entities node
 		if is_instance_valid(world) and is_instance_valid(world.entities_node):

@@ -522,7 +522,8 @@ function registerInventoryHandlers(socket, io, state) {
                 io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                     id: socket.id, 
                     hp: p.hp, shield: p.shield, 
-                    maxHp: p.maxHp, maxShield: p.maxShield 
+                    maxHp: p.maxHp, maxShield: p.maxShield,
+                    speed: p.speed || 300
                 });
             }
 
@@ -578,7 +579,7 @@ function registerInventoryHandlers(socket, io, state) {
                 calculateFinalStats(p, state.SERVER_CONFIG);
                 p.hp = p.maxHp; p.shield = p.maxShield;
 
-                io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield });
+                io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield, speed: p.speed || 300 });
                 
                 // v315.0: Emitir el payload completo de presentación a la zona para evitar desincronías y el bug de UNKNOWN
                 const shipUpdatePayload = {
@@ -671,7 +672,8 @@ function registerInventoryHandlers(socket, io, state) {
                 io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                     id: socket.id, 
                     hp: p.hp, shield: p.shield, 
-                    maxHp: p.maxHp, maxShield: p.maxShield 
+                    maxHp: p.maxHp, maxShield: p.maxShield,
+                    speed: p.speed || 300
                 });
             }
 

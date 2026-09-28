@@ -152,11 +152,14 @@ func _get_active_hud_target() -> Node2D:
 	if is_instance_valid(main_hud) and is_instance_valid(main_hud.get("_target_entity")):
 		var t = main_hud._target_entity
 		if is_instance_valid(t) and not t.is_dead and t.visible:
+			if t.get("in_strange_dimension") == true or t.get("is_in_strange_dimension") == true:
+				return null
 			return t
 	return null
 
 func _is_target_valid_for_skill(target: Node2D) -> bool:
 	if not is_instance_valid(target) or target.is_dead: return false
+	if target.get("in_strange_dimension") == true or target.get("is_in_strange_dimension") == true: return false
 	var s_name = current_skill.get("skill_name", "")
 	var filters = current_skill.get("filters", {})
 	var parent_entity = get_parent()

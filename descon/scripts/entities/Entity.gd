@@ -104,6 +104,9 @@ var _display_shield: float = 1000 # v190.85: Interpolación visual de escudo
 var status_effects: Dictionary = {} # v268.68: Almacén de estados (Stun, Frozen, etc.)
 var hp_regen: float = 5.0; var sh_regen: float = 15.0
 var current_ship_id: int = 1
+@export var speed: float = 300.0
+var _last_prop_pos: Vector2 = Vector2.ZERO
+var _last_debuff_popup_time: int = 0
 var target_position: Vector2 = Vector2.ZERO
 var target_rotation: float = 0.0
 
@@ -164,6 +167,7 @@ var _hit_flash_material_3d: StandardMaterial3D = null
 var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
 var _selection_outline_material: StandardMaterial3D = null # Outline dorado para target
 var _stealth_material: StandardMaterial3D = null
+var _strange_dimension_material: StandardMaterial3D = null
 var _debuff_overlay_material: StandardMaterial3D = null
 var _current_applied_overlay: Material = null
 var _current_applied_next_pass: Material = null
@@ -298,6 +302,7 @@ func _ready():
 		show()
 	target_position = global_position
 	target_rotation = rotation
+	_last_prop_pos = global_position
 	
 	_collision_shape = CollisionShape2D.new()
 	var circle = CircleShape2D.new()
@@ -541,7 +546,10 @@ func _process(delta):
 		if is_in_group("enemies") and not is_dead:
 			_prevent_terrain_mountain_crossing_enemy(delta)
 			
+		var prev_pos = global_position
 		global_position = global_position.lerp(target_position, weight)
+		if delta > 0.0:
+			velocity = (global_position - prev_pos) / delta
 		
 		# Verificación de seguridad post-lerp para impedir micro-incrustaciones
 		if is_in_group("enemies") and not is_dead:
@@ -743,7 +751,18 @@ func _process(delta):
 					if child.name != "PolymorphCube":
 						child.visible = true
 				
-				if _is_currently_invisible or _is_currently_camouflaged:
+				if in_strange_dimension and not is_in_group("player"):
+					if not _strange_dimension_material:
+						_strange_dimension_material = StandardMaterial3D.new()
+						_strange_dimension_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+						_strange_dimension_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+						_strange_dimension_material.albedo_color = Color(0.68, 0.2, 0.98, 0.28)
+						_strange_dimension_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+					_apply_material_recursive(_3d_model, _strange_dimension_material, false)
+					if is_instance_valid(name_tag): name_tag.visible = false
+					if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
+					_apply_material_recursive(_3d_model, null, true)
+				elif _is_currently_invisible or _is_currently_camouflaged:
 					if not _stealth_material:
 						_stealth_material = StandardMaterial3D.new()
 						_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
@@ -891,7 +910,17 @@ func _process(delta):
 		# - El "encendido" (alfa) depende de la velocidad REAL de movimiento
 		# - El COLOR depende solo del speed de STATS (no de slows ni desaceleración)
 		if is_instance_valid(_3d_propulsion):
-			var spd = velocity.length()
+			var spd := 0.0
+			if is_in_group("player"):
+				spd = velocity.length()
+			else:
+				var dist = _last_prop_pos.distance_to(global_position)
+				if delta > 0.0 and dist < 2000.0:
+					spd = dist / delta
+				elif velocity.length() > 0.0:
+					spd = velocity.length()
+				_last_prop_pos = global_position
+			
 			var intensity = 0.0 if is_dead else clamp(spd / PROPULSION_RAMP_SPEED, 0.0, 1.0)
 			intensity = smoothstep(0.0, 1.0, intensity)
 			_prop_ignition = lerp(_prop_ignition, intensity, 1.0 - exp(-9.0 * delta))
@@ -1236,6 +1265,10 @@ func update_stats(data):
 		status_effects["bleeding"] = bool(data.isBleeding)
 	if data.has("isPoisoned"):
 		status_effects["poisoned"] = bool(data.isPoisoned)
+	if data.has("inStrangeDimension"):
+		var in_sd = bool(data.inStrangeDimension)
+		if in_strange_dimension != in_sd:
+			_update_strange_dimension_visuals(in_sd)
 	
 	# v268.87: Capturar posición desde el paquete de stats para evitar rubber-banding
 	if data.has("x"): target_position.x = _safe_float(data.x, target_position.x)
@@ -1284,6 +1317,9 @@ func update_stats(data):
 		max_hp = _safe_float(data.get("maxHp"), max_hp)
 	if (data.has("maxShield") or data.has("maxSh")) and not is_in_group("player"):
 		max_shield = _safe_float(data.get("maxShield", data.get("maxSh")), max_shield)
+	
+	if data.has("speed"):
+		speed = _safe_float(data.speed, speed)
 	
 	if data.has("currentShipId") and not is_in_group("enemies"):
 		var sid = int(data.currentShipId)
@@ -1348,6 +1384,17 @@ func update_stats(data):
 	var damage_taken = old_total - new_total
 	
 	var suppress_popup = bool(data.get("suppressDamagePopup", false))
+
+	# Popups de daño por Debuffs (Veneno: Verde, Hemorragia: Rojo Sangre)
+	if data.has("debuffDamage"):
+		var debuff_dmg = roundi(float(data.debuffDamage))
+		if debuff_dmg > 0 and (not is_in_group("player") or Time.get_ticks_msec() - _last_debuff_popup_time > 300):
+			_last_debuff_popup_time = Time.get_ticks_msec()
+			var dtype = str(data.get("debuffType", ""))
+			var is_p = dtype == "poison" or (dtype == "" and (status_effects.get("poisoned", false) or debuffs.has("poison") or poison_timer > 0.0))
+			var clr = Color(0.4, 0.95, 0.4) if is_p else Color(0.95, 0.25, 0.25)
+			_spawn_damage_text(str(debuff_dmg), clr)
+		suppress_popup = true
 
 	# v240.69: Solo emitir daño visual en el sync si es un daño no predicho GRANDE (Evitar falsos sangrados por regen)
 	# v410: suppressDamagePopup -> el robo de escudo ya muestra su popup celeste via environmentDamage
@@ -2995,6 +3042,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			tw.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.15)
 		"STRANGE_DIMENSION_PORTAL":
 			# v900.0: Efecto Dimensión Extraña — Portal violeta/tenebroso
+			set_meta("strange_dimension_active", true)
 			modulate = Color(0.3, 0.1, 0.5, 1.0)
 			if is_instance_valid(_3d_model):
 				_3d_model.visible = true
@@ -3004,6 +3052,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				violet_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				violet_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 				violet_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				_current_applied_overlay = violet_mat
 				_apply_material_recursive(_3d_model, violet_mat, true)
 			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
 			# Spawnear VFX del portal
@@ -3013,21 +3062,37 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			var tw = create_tween()
 			tw.tween_property(self, "modulate", Color(0.15, 0.05, 0.35, 1.0), 1.0)
 			tw.tween_callback(func():
-				if is_instance_valid(self) and self.has_meta("strange_dimension_active"):
+				if is_instance_valid(self) and (in_strange_dimension or is_in_strange_dimension or self.has_meta("strange_dimension_active")):
 					self.modulate = Color(0.1, 0.03, 0.25, 1.0)
 			)
 		"STRANGE_DIMENSION_EXIT":
 			# Salir de la dimensión extraña — restaurar colores normales
+			if has_meta("strange_dimension_active"):
+				remove_meta("strange_dimension_active")
 			modulate = Color.WHITE
+			if is_instance_valid(sprite) and not _has_any_status_color():
+				sprite.modulate = Color.WHITE
 			if is_instance_valid(_3d_model):
 				_apply_material_recursive(_3d_model, null, false)
+				_apply_material_recursive(_3d_model, null, true)
+			for s in _3d_spheres:
+				if is_instance_valid(s):
+					_apply_material_recursive(s, null, false)
+					_apply_material_recursive(s, null, true)
+			_current_applied_overlay = null
+			_current_applied_next_pass = null
+			_restore_default_overlay()
 			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
 			if is_instance_valid(_3d_model): _3d_model.visible = true
 			var tw = create_tween()
-			tw.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.5)
+			tw.tween_property(self, "modulate", Color.WHITE, 0.2)
 			tw.tween_callback(func():
 				if is_instance_valid(self):
 					self.modulate = Color.WHITE
+					if is_instance_valid(self._3d_model):
+						_apply_material_recursive(self._3d_model, null, false)
+						_apply_material_recursive(self._3d_model, null, true)
+					self._restore_default_overlay()
 			)
 
 
@@ -3858,7 +3923,8 @@ func _update_3d_shield(delta: float):
 
 	# Determinar el tipo de escudo activo prioritario
 	var target_type = ""
-	if (invulnerable_timer > 0 or is_invulnerable) and entity_type != 201 and entity_type != 200:
+	var is_in_sd: bool = in_strange_dimension or is_in_strange_dimension or has_meta("strange_dimension_active")
+	if (invulnerable_timer > 0 or is_invulnerable) and entity_type != 201 and entity_type != 200 and not is_in_sd:
 		target_type = "invulnerable"
 	elif reflect_timer > 0:
 		target_type = "reflect"
@@ -4345,6 +4411,109 @@ func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
 		if is_instance_valid(_ui_wrapper): 
 			_ui_wrapper.visible = true
 			_ui_wrapper.modulate.a = 1.0
+
+func _update_strange_dimension_visuals(active: bool) -> void:
+	in_strange_dimension = active
+	is_in_strange_dimension = active
+	if active:
+		set_meta("strange_dimension_active", true)
+	elif has_meta("strange_dimension_active"):
+		remove_meta("strange_dimension_active")
+	
+	# Para el jugador local, su pantalla y cámara se manejan con activate_strange_dimension
+	if is_in_group("player"):
+		if not active:
+			if is_instance_valid(_3d_model):
+				_apply_material_recursive(_3d_model, null, false)
+				_apply_material_recursive(_3d_model, null, true)
+			for s in _3d_spheres:
+				if is_instance_valid(s):
+					_apply_material_recursive(s, null, false)
+					_apply_material_recursive(s, null, true)
+			_current_applied_overlay = null
+			_current_applied_next_pass = null
+			_restore_default_overlay()
+		return
+		
+	if active:
+		# Fantasma en la gama de los violetas (estilo Stealth pero violeta cósmico)
+		# Solo el asset, sin tag ni barra de vida, e ininteractuable
+		visible = true
+		modulate = Color(0.75, 0.25, 1.0, 0.35)
+		
+		if is_instance_valid(sprite):
+			sprite.visible = true
+			sprite.modulate = Color(0.75, 0.25, 1.0, 0.35)
+			
+		if is_instance_valid(world_root_3d):
+			world_root_3d.visible = true
+			
+		if not _strange_dimension_material:
+			_strange_dimension_material = StandardMaterial3D.new()
+			_strange_dimension_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+			_strange_dimension_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			_strange_dimension_material.albedo_color = Color(0.68, 0.2, 0.98, 0.28)
+			_strange_dimension_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+			
+		if is_instance_valid(_3d_model):
+			_apply_material_recursive(_3d_model, _strange_dimension_material, false)
+			_apply_material_recursive(_3d_model, null, true)
+			
+		for s in _3d_spheres:
+			if is_instance_valid(s):
+				_apply_material_recursive(s, _strange_dimension_material, false)
+				_apply_material_recursive(s, null, true)
+				
+		# SIN su tag ni vida ni nada, solo el asset
+		if is_instance_valid(name_tag): name_tag.visible = false
+		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
+		
+		# Limpiar selección y hover
+		is_selected = false
+		is_hovered = false
+		_current_applied_overlay = null
+		_current_applied_next_pass = null
+		_apply_overlay_if_needed(null)
+		
+		# Deshabilitar colisiones para que sea totalmente ininteractuable (físicas, clics, proyectiles)
+		for child in get_children():
+			if child is CollisionShape2D or child is CollisionPolygon2D:
+				child.set_deferred("disabled", true)
+	else:
+		# Restaurar estado normal
+		visible = true
+		modulate = Color(1.0, 1.0, 1.0, 1.0)
+		
+		var is_single = get_meta("is_single_world", false)
+		if is_instance_valid(sprite):
+			sprite.visible = not is_single
+			sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+			
+		if is_instance_valid(world_root_3d):
+			world_root_3d.visible = true
+			
+		if is_instance_valid(_3d_model):
+			_apply_material_recursive(_3d_model, null, false)
+			_apply_material_recursive(_3d_model, null, true)
+			
+		for s in _3d_spheres:
+			if is_instance_valid(s):
+				_apply_material_recursive(s, null, false)
+				_apply_material_recursive(s, null, true)
+				
+		_current_applied_overlay = null
+		_current_applied_next_pass = null
+				
+		if is_instance_valid(name_tag): name_tag.visible = true
+		if is_instance_valid(_ui_wrapper):
+			_ui_wrapper.visible = true
+			_ui_wrapper.modulate.a = 1.0
+			
+		for child in get_children():
+			if child is CollisionShape2D or child is CollisionPolygon2D:
+				child.set_deferred("disabled", false)
+				
+		_restore_default_overlay()
 func _ensure_selection_outline_material() -> void:
 	if not _selection_outline_material:
 		_selection_outline_material = StandardMaterial3D.new()
@@ -4376,6 +4545,9 @@ func _apply_overlay_if_needed(p_mat: Material) -> void:
 
 func _restore_default_overlay() -> void:
 	if not is_instance_valid(_3d_model): return
+	if in_strange_dimension and not is_in_group("player"):
+		_apply_overlay_if_needed(null)
+		return
 
 	# 1. Si hay un flash de daño activo (0.15s), prioridad para el flash
 	if _flash_timer > 0.01 and _hit_flash_material_3d:

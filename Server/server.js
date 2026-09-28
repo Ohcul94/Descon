@@ -2446,6 +2446,7 @@ io.on('connection', (socket) => {
             zone:           p.zone,
             clanTag:        p.clanTag || '',
             currentShipId:  p.currentShipId || 1,
+            speed:          p.speed || 300,
             isInvisible:    !!p.isInvisible,
             isInvulnerable: !!p.isInvulnerable,
             isDead:         !!p.isDead,

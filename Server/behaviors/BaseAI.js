@@ -2915,6 +2915,14 @@ module.exports = class BaseAI {
                                 p.bleedInterval = Number(d.tickInterval) || 1000;
                                 p.lastBleedTick = Date.now();
                                 io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
+                            } else if (d.type === 'poison') {
+                                const poisonDur = Number(d.duration) || 4000;
+                                p.isPoisoned = true;
+                                p.poisonEndTime = Date.now() + poisonDur;
+                                p.poisonDps = Number(d.dps) || 20;
+                                p.poisonInterval = Number(d.tickInterval) || 1000;
+                                p.lastPoisonTick = Date.now();
+                                io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
                             } else if (d.type === 'stun') {
                                 p.isStunned = true;
                                 p.stunEndTime = Date.now() + (Number(d.duration) || 1500);

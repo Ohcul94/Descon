@@ -76,6 +76,7 @@ function registerMovementHandlers(socket, io, state) {
         sh: Math.ceil(p.shield || 0),
         maxHp: p.maxHp || 0,
         maxShield: p.maxShield || 0,
+        speed: p.speed || 300,
         zone: p.zone,
         clanTag: p.clanTag || "",
         currentShipId: p.currentShipId || 1,
@@ -93,6 +94,7 @@ function registerMovementHandlers(socket, io, state) {
         rotation: Math.round((p.rotation || 0) * 100) / 100,
         hp: Math.ceil(p.hp || 0),
         sh: Math.ceil(p.shield || 0),
+        speed: p.speed || 300,
         zone: p.zone,
         status_effects: Object.assign(getStatusEffects(p), p.status_effects || {})
     });
