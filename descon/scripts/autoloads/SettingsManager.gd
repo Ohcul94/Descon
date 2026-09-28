@@ -46,7 +46,7 @@ var mobile_camera_edit_enabled: int = 0  # v420.600: 0=Fija, 1=Libre Editable, 2
 var mobile_camera_sensitivity: float = 1.0  # v420.600: Sensibilidad de órbita táctil
 var pc_camera_sensitivity: float = 1.0      # Sensibilidad de rotación con mouse en PC
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
-var show_stars: bool = false            # Activar estrellas en el cielo (desactivado por defecto)
+var show_stars: bool = true             # Activar estrellas en el cielo (activado por defecto)
 var minimap_rotate: bool = false        # Minimapa rotatorio (gira con la nave)
 var window_mode: int = 0                 # 0: Ventana, 1: Pantalla Completa, 2: Ventana sin Bordes
 var screen_resolution: String = "1280x720"
@@ -89,6 +89,10 @@ var show_player_bars: bool = true
 var show_enemy_bars: bool = true
 var show_player_stats: bool = true
 var show_enemy_stats: bool = true
+
+# Visibilidad de esferas orbitales
+var show_own_spheres: bool = true
+var show_other_spheres: bool = true
 
 var bold_font: SystemFont = null
 
@@ -185,6 +189,8 @@ func reset_to_factory():
 	show_enemy_bars = true
 	show_player_stats = true
 	show_enemy_stats = true
+	show_own_spheres = true
+	show_other_spheres = true
 	window_mode = 0
 	screen_resolution = "1280x720"
 	render_scale_3d = 0.75 if is_mobile_platform() else 1.0
@@ -263,6 +269,8 @@ func save_settings():
 	config_file.set_value("interface", "show_enemy_bars", show_enemy_bars)
 	config_file.set_value("interface", "show_player_stats", show_player_stats)
 	config_file.set_value("interface", "show_enemy_stats", show_enemy_stats)
+	config_file.set_value("interface", "show_own_spheres", show_own_spheres)
+	config_file.set_value("interface", "show_other_spheres", show_other_spheres)
 	
 	config_file.set_value("controls_mapping", "move_btn", control_move_btn)
 	config_file.set_value("controls_mapping", "cam_rotate_btn", control_cam_rotate_btn)
@@ -297,7 +305,7 @@ func load_settings():
 		graphics_quality = config_file.get_value("graphics", "quality", 1)
 		fps_limit = config_file.get_value("graphics", "fps_limit", 60)
 		camera_use_orthogonal = config_file.get_value("graphics", "camera_use_orthogonal", false)
-		show_stars = config_file.get_value("graphics", "show_stars", false)
+		show_stars = config_file.get_value("graphics", "show_stars", true)
 		minimap_rotate = config_file.get_value("graphics", "minimap_rotate", false)
 		window_mode = config_file.get_value("graphics", "window_mode", 0)
 		screen_resolution = config_file.get_value("graphics", "screen_resolution", "1280x720")
@@ -349,6 +357,8 @@ func load_settings():
 		show_enemy_bars = config_file.get_value("interface", "show_enemy_bars", true)
 		show_player_stats = config_file.get_value("interface", "show_player_stats", true)
 		show_enemy_stats = config_file.get_value("interface", "show_enemy_stats", true)
+		show_own_spheres = config_file.get_value("interface", "show_own_spheres", true)
+		show_other_spheres = config_file.get_value("interface", "show_other_spheres", true)
 		
 		control_move_btn = config_file.get_value("controls_mapping", "move_btn", "RMB")
 		control_cam_rotate_btn = config_file.get_value("controls_mapping", "cam_rotate_btn", "LMB")
@@ -397,6 +407,8 @@ func load_settings():
 		show_enemy_bars = true
 		show_player_stats = true
 		show_enemy_stats = true
+		show_own_spheres = true
+		show_other_spheres = true
 		
 		control_move_btn = "RMB"
 		control_cam_rotate_btn = "LMB"
@@ -514,6 +526,11 @@ func update_entity_hud_live():
 	for ent in get_tree().get_nodes_in_group("entities"):
 		if is_instance_valid(ent) and is_instance_valid(ent._ui_wrapper):
 			ent._ui_wrapper.queue_redraw()
+
+func update_entity_spheres_live():
+	for ent in get_tree().get_nodes_in_group("entities"):
+		if is_instance_valid(ent) and ent.has_method("_force_update_spheres"):
+			ent._force_update_spheres()
 
 func apply_menu_fonts_live():
 	var roots = []

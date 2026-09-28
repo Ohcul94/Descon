@@ -942,7 +942,14 @@ func _process(delta):
 					else:
 						is_equipped = false # Si no existe la configuración para esta esfera, no se muestra
 				
-				s_node.visible = visible and not is_auth and is_equipped
+				# LÓGICA DE VISIBILIDAD DE ESFERAS (respectar configuración del usuario)
+				var show_spheres = false
+				if is_in_group("player"):
+					show_spheres = SettingsManager.show_own_spheres
+				else:
+					show_spheres = SettingsManager.show_other_spheres
+				
+				s_node.visible = visible and not is_auth and is_equipped and show_spheres
 		
 		# --- MODO INSPECCIÓN (Rotación manual con Numpad) ---
 		# v220.71: Solo permitir rotación en jugador local y persistir en memoria RAM
@@ -1421,6 +1428,11 @@ func _force_update_tags():
 	_last_rendered_clan_tag = "__FORCE__"
 	_last_rendered_party_role = "__FORCE__"
 	_update_tags()
+
+func _force_update_spheres():
+	# Forzar redraw para que _proces recalcule la visibilidad de esferas
+	# basada en la nueva configuración de SettingsManager.show_own_spheres / show_other_spheres
+	queue_redraw()
 
 func _update_tags():
 	if not name_tag: return

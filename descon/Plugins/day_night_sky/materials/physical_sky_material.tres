@@ -1,0 +1,65 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://bdukdmilyrojj"]
+
+[ext_resource type="Shader" uid="uid://cs4yoeuqyxbs6" path="res://day_night_sky/shaders/physical_sky_shader.gdshader" id="1_vin43"]
+[ext_resource type="Texture2D" uid="uid://b68ebphaawbs2" path="res://day_night_sky/textures/moon_texture_1k.jpg" id="2_g562n"]
+[ext_resource type="Texture2D" uid="uid://b6t7ypedalqw5" path="res://day_night_sky/textures/DefaultCloudMap.png" id="2_q65kg"]
+[ext_resource type="Texture2D" uid="uid://dhs1tgh60oa18" path="res://day_night_sky/textures/CloudMapRED.jpg" id="3_18485"]
+[ext_resource type="Texture2D" uid="uid://brk2c3xf846ab" path="res://day_night_sky/textures/earth_june_2k.jpg" id="3_cerpx"]
+[ext_resource type="Texture2D" uid="uid://c3dyw6jnnnrnm" path="res://day_night_sky/textures/CloudMapGREEN.jpg" id="4_shilw"]
+[ext_resource type="Texture2D" uid="uid://bbybkaafm3tdk" path="res://day_night_sky/textures/CloudMapBLUE.jpg" id="5_iisjj"]
+[ext_resource type="Texture2D" uid="uid://b2o6c30v4q7ga" path="res://day_night_sky/textures/CloudMapALPHA.jpg" id="6_bdmqc"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_cerpx"]
+load_path = "res://.godot/imported/star_map_texture_2k.jpg-24ea325f138f33f88857d185d79f9438.s3tc.ctex"
+
+[resource]
+shader = ExtResource("1_vin43")
+shader_parameter/rayleigh = 2.0
+shader_parameter/rayleigh_color = Color(0.3, 0.405, 0.6, 1)
+shader_parameter/mie = 0.005
+shader_parameter/mie_eccentricity = 0.8000000855
+shader_parameter/mie_color = Color(0.69, 0.729, 0.812, 1)
+shader_parameter/turbidity = 10.0
+shader_parameter/exposure = 1.0
+shader_parameter/sun_scale = 1.0
+shader_parameter/sun_intensity = 10.0
+shader_parameter/sun_emission = 2.0
+shader_parameter/moon_texture = ExtResource("2_g562n")
+shader_parameter/moon_texture_offset = Vector2(-90, 100)
+shader_parameter/moon_scale = 10.0
+shader_parameter/moon_emission = 200.00000298024
+shader_parameter/moon_emission_sharpness = 1.0
+shader_parameter/moon_matrix = Basis(0.8041405, -0.5615279, 0.19505002, -0.38595602, -0.24364786, 0.8897605, -0.45210183, -0.7907731, -0.41265213)
+shader_parameter/planet_texture = ExtResource("3_cerpx")
+shader_parameter/ground_color = Color(0, 0, 0, 1)
+shader_parameter/ground_color_influence = 0.75
+shader_parameter/max_ground_color_influence_altitude = 100000.0
+shader_parameter/latitude = 14.10194
+shader_parameter/longitude = -87.30695
+shader_parameter/altitude = 990.0
+shader_parameter/stars_texture = SubResource("CompressedTexture2D_cerpx")
+shader_parameter/stars_texture_offset = Vector2(0, 90)
+shader_parameter/stars_matrix = Basis(-0.7213147, 0.6809697, -0.12641485, -0.5751, -0.6905887, -0.43857166, -0.385956, -0.24364784, 0.8897605)
+shader_parameter/stars_intensity = 0.10000000475
+shader_parameter/stars_threshold = 0.0
+shader_parameter/show_clouds = true
+shader_parameter/separate_clouds_layers = true
+shader_parameter/clouds_texture = ExtResource("2_q65kg")
+shader_parameter/clouds_texture_1 = ExtResource("3_18485")
+shader_parameter/clouds_texture_2 = ExtResource("4_shilw")
+shader_parameter/clouds_texture_3 = ExtResource("5_iisjj")
+shader_parameter/clouds_texture_4 = ExtResource("6_bdmqc")
+shader_parameter/clouds_opacity = 1.0
+shader_parameter/clouds_r_opacity = 1.0
+shader_parameter/clouds_g_opacity = 0.0
+shader_parameter/clouds_b_opacity = 0.0
+shader_parameter/clouds_a_opacity = 0.0
+shader_parameter/clouds_rotation = 0.0
+shader_parameter/clouds_color = Color(1, 1, 1, 1)
+shader_parameter/use_ray_marching = true
+shader_parameter/rm_num_steps = 8
+shader_parameter/rm_step_size = 100.0
+shader_parameter/num_light_steps = 2
+shader_parameter/light_step_size = 100.0
+shader_parameter/light_absorb = 5.000000074506
+shader_parameter/darkness_threshold = 0.00999999977648

@@ -1,0 +1,93 @@
+[gd_scene format=3 uid="uid://uk55kx2d8gf1"]
+
+[ext_resource type="Script" uid="uid://qatnbfwfjl6j" path="res://sky/scripts/day_night_sky.gd" id="1_35u73"]
+[ext_resource type="Script" uid="uid://7ebfvol7g7jd" path="res://sky/scripts/celestial_bodies_controller.gd" id="2_aglpy"]
+[ext_resource type="Texture2D" uid="uid://b6t7ypedalqw5" path="res://sky/textures/DefaultCloudMap.png" id="2_c76by"]
+[ext_resource type="Script" uid="uid://byd3grj0qcvjq" path="res://sky/scripts/light_emission.gd" id="2_xsefw"]
+[ext_resource type="Texture2D" uid="uid://dhs1tgh60oa18" path="res://sky/textures/CloudMapRED.jpg" id="3_6laag"]
+[ext_resource type="Gradient" uid="uid://5mj0nkodlakl" path="res://sky/gradients/light_temperature.tres" id="3_c76by"]
+[ext_resource type="Script" uid="uid://xsb7g0pdytw0" path="res://sky/scripts/shader_controller.gd" id="3_xsefw"]
+[ext_resource type="Material" uid="uid://bdukdmilyrojj" path="res://sky/materials/physical_sky_material.tres" id="4_c76by"]
+[ext_resource type="Texture2D" uid="uid://c3dyw6jnnnrnm" path="res://sky/textures/CloudMapGREEN.jpg" id="4_rmjtr"]
+[ext_resource type="Texture2D" uid="uid://bbybkaafm3tdk" path="res://sky/textures/CloudMapBLUE.jpg" id="5_qqt3w"]
+[ext_resource type="Texture2D" uid="uid://b2o6c30v4q7ga" path="res://sky/textures/CloudMapALPHA.jpg" id="6_vkfh7"]
+
+[sub_resource type="Sky" id="Sky_1bvp3"]
+sky_material = ExtResource("4_c76by")
+
+[sub_resource type="Environment" id="Environment_lquwl"]
+background_mode = 2
+sky = SubResource("Sky_1bvp3")
+ambient_light_source = 3
+reflected_light_source = 2
+tonemap_mode = 3
+glow_enabled = true
+glow_normalized = true
+glow_intensity = 1.0
+volumetric_fog_density = 0.001
+
+[node name="Sky" type="Node" unique_id=1705140734 node_paths=PackedStringArray("current_camera")]
+script = ExtResource("1_35u73")
+current_camera = NodePath("../../../../../../../../@Node3DEditor@9983/@HSplitContainer@9388/@HSplitContainer@9390/@VSplitContainer@9392/@Node3DEditorViewportContainer@9393/@Node3DEditorViewport@9448/@SubViewportContainer@9394/@SubViewport@9395/@Camera3D@9397")
+update_interval = 0.01
+sun_scale = 5.0
+moon_scale = 5.0
+lunar_shadow_scale = 0.75
+clouds_layer = true
+clouds_texture = ExtResource("2_c76by")
+separated_clouds_layer = true
+clouds_texture_1 = ExtResource("3_6laag")
+clouds_texture_2 = ExtResource("4_rmjtr")
+clouds_texture_3 = ExtResource("5_qqt3w")
+clouds_texture_4 = ExtResource("6_vkfh7")
+clouds_ray_marching = true
+
+[node name="World" type="Node3D" parent="." unique_id=2047927629]
+transform = Transform3D(-0.7172649, -0.5801445, -0.385956, 0.6857964, -0.68579715, -0.24364784, -0.12333641, -0.43944776, 0.8897605, 0, 0, 0)
+
+[node name="Sun" type="Node3D" parent="World" unique_id=1711238991]
+
+[node name="SunLight" type="DirectionalLight3D" parent="World/Sun" unique_id=1042173559]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, -1, 0)
+light_color = Color(1, 0.97358096, 0.96491224, 1)
+shadow_enabled = true
+script = ExtResource("2_xsefw")
+temperature = ExtResource("3_c76by")
+
+[node name="Moon" type="Node3D" parent="World" unique_id=935809873]
+transform = Transform3D(-0.98081446, 0.19494338, 0, -0.19494338, -0.98081446, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="MoonLight" type="DirectionalLight3D" parent="World/Moon" unique_id=925242933]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, -1, 0)
+light_color = Color(1, 0.9729221, 0.9640371, 1)
+light_energy = 0.024769232
+shadow_enabled = true
+script = ExtResource("2_xsefw")
+temperature = ExtResource("3_c76by")
+kelvin = 6495.011688271085
+intensity = 32200.0
+intensity_multiplier = 0.1
+
+[node name="Stars" type="Node3D" parent="World" unique_id=497462124]
+transform = Transform3D(0.99997455, -0.00701242, 0, 0.00701242, 0.99997455, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="CelestialBodiesController" type="Node" parent="." unique_id=1896381442 node_paths=PackedStringArray("day_night_sky", "world", "sun", "sun_light", "moon", "moon_light", "stars")]
+script = ExtResource("2_aglpy")
+day_night_sky = NodePath("..")
+world = NodePath("../World")
+sun = NodePath("../World/Sun")
+sun_light = NodePath("../World/Sun/SunLight")
+moon = NodePath("../World/Moon")
+moon_light = NodePath("../World/Moon/MoonLight")
+stars = NodePath("../World/Stars")
+use_lunar_eclipse = true
+_lunar_shadow_scale = 0.75
+
+[node name="ShaderController" type="Node" parent="." unique_id=843293448 node_paths=PackedStringArray("day_night_sky", "celestial_bodies")]
+script = ExtResource("3_xsefw")
+sky_material = ExtResource("4_c76by")
+day_night_sky = NodePath("..")
+celestial_bodies = NodePath("../CelestialBodiesController")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1200924487]
+environment = SubResource("Environment_lquwl")

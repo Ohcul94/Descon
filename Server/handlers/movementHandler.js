@@ -1,5 +1,6 @@
 const Logger = require('../utils/logger');
 const { checkCombatLock, sendInventoryData } = require('../systems/inventoryHandlers');
+const { getCleanEnemyData } = require('../utils/entitySanitizer');
 
 const { normalizeZone } = require('../utils/zoneUtils');
 
@@ -487,9 +488,9 @@ function registerMovementHandlers(socket, io, state) {
 
                 const cleanEnemiesInZone = {};
                 Object.values(enemies).forEach(e => {
-                    if (String(e.zone) === String(targetZone)) {
-                        const { ai, ...data } = e;
-                        cleanEnemiesInZone[e.id] = data;
+                    if (String(e.zone) === String(targetZone) && !e.isDead && e.hp > 0) {
+                        const cleanE = getCleanEnemyData(e, e.id);
+                        if (cleanE) cleanEnemiesInZone[e.id] = cleanE;
                     }
                 });
                 

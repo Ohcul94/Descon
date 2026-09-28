@@ -807,11 +807,8 @@ func _setup_ui():
 	minimap_lbl.text = "MINIMAPA ROTATORIO (GIRA CON LA NAVE)"
 	row_minimap.add_child(minimap_lbl)
 
-	gfx_vbox.add_child(HSeparator.new())
-
-	# --- VISIBILIDAD DE ELEMENTOS DE ENTIDADES ---
 	var vis_title = Label.new()
-	vis_title.text = "VISIBILIDAD DE ETIQUETAS Y BARRAS:"
+	vis_title.text = "Visibilidad:"
 	vis_title.add_theme_color_override("font_color", Color.CYAN)
 	gfx_vbox.add_child(vis_title)
 
@@ -848,6 +845,50 @@ func _setup_ui():
 	make_entity_check.call("NÚMEROS VIDA/ESCUDO JUGADORES", "show_player_stats")
 	make_entity_check.call("NÚMEROS VIDA/ESCUDO ENEMIGOS", "show_enemy_stats")
 
+	# VISIBILIDAD DE ESFERAS ORBITALES
+	var row_spheres_own = HBoxContainer.new()
+	row_spheres_own.add_theme_constant_override("separation", 10)
+	gfx_vbox.add_child(row_spheres_own)
+
+	var own_spheres_check = CheckBox.new()
+	own_spheres_check.text = ""
+	own_spheres_check.add_theme_stylebox_override("normal", check_style)
+	own_spheres_check.add_theme_stylebox_override("pressed", check_style)
+	own_spheres_check.add_theme_stylebox_override("hover", check_style)
+	if get_node_or_null("/root/SettingsManager"):
+		own_spheres_check.button_pressed = SettingsManager.show_own_spheres
+	own_spheres_check.toggled.connect(func(val):
+		SettingsManager.show_own_spheres = val
+		SettingsManager.save_settings()
+		SettingsManager.update_entity_spheres_live()
+	)
+	row_spheres_own.add_child(own_spheres_check)
+
+	var own_spheres_lbl = Label.new()
+	own_spheres_lbl.text = "VER ESFERAS PROPIAS"
+	row_spheres_own.add_child(own_spheres_lbl)
+
+	var row_spheres_other = HBoxContainer.new()
+	row_spheres_other.add_theme_constant_override("separation", 10)
+	gfx_vbox.add_child(row_spheres_other)
+
+	var other_spheres_check = CheckBox.new()
+	other_spheres_check.text = ""
+	other_spheres_check.add_theme_stylebox_override("normal", check_style)
+	other_spheres_check.add_theme_stylebox_override("pressed", check_style)
+	other_spheres_check.add_theme_stylebox_override("hover", check_style)
+	if get_node_or_null("/root/SettingsManager"):
+		other_spheres_check.button_pressed = SettingsManager.show_other_spheres
+	other_spheres_check.toggled.connect(func(val):
+		SettingsManager.show_other_spheres = val
+		SettingsManager.save_settings()
+		SettingsManager.update_entity_spheres_live()
+	)
+	row_spheres_other.add_child(other_spheres_check)
+
+	var other_spheres_lbl = Label.new()
+	other_spheres_lbl.text = "VER ESFERAS DE OTROS JUGADORES"
+	row_spheres_other.add_child(other_spheres_lbl)
 	# Bottom spacer para forzar scroll en cualquier pantalla
 	var bot_spacer = Control.new()
 	bot_spacer.custom_minimum_size.y = 200

@@ -949,8 +949,11 @@ func load_from_server():
 	# ─── ZONA NORMAL: importar mapsConfig.objects directamente ────────────
 	if not is_extraction_zone and not is_altar_zone:
 		if not skip_import:
-			json_to_import = JSON.stringify(objects)
-			import_from_json()
+			if objects.size() > 0:
+				json_to_import = JSON.stringify(objects)
+				import_from_json()
+			else:
+				print("MapEditor3D: ℹ️ objects vacío en el servidor para zona ", zone_id, ". Se preservan los objetos existentes en la escena local.")
 
 	# ─── ZONA DE EXTRACCIÓN ───────────────────────────────────────────────
 	if is_extraction_zone:
@@ -1289,40 +1292,10 @@ func _spawn_altar_defense_markers(ad_cfg: Dictionary):
 	# 	_create_marker_disc(Vector2(x, y), radius, Color(1, 0.2, 0.2), "👾 " + label, root)
 	pass
 
-func update_map_boundary(width_2d: float, height_2d: float):
+func update_map_boundary(_width_2d: float, _height_2d: float):
 	var old_b = get_node_or_null("MapBoundaryVisual")
 	if is_instance_valid(old_b):
 		old_b.queue_free()
-		
-	var boundary_visual = Node3D.new()
-	boundary_visual.name = "MapBoundaryVisual"
-	add_child(boundary_visual)
-		
-	var w_3d = width_2d * scale_factor
-	var h_3d = height_2d * scale_factor * correction_z
-	
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.5, 0.1, 0.8, 0.25)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.emission_enabled = true
-	mat.emission = Color(0.4, 0.1, 0.7)
-	mat.emission_energy_multiplier = 1.2
-	
-	# 4 Paredes translúcidas para encerrar los límites exactos del mapa
-	_create_boundary_wall(boundary_visual, Vector3(w_3d, 10.0, 0.2), Vector3(w_3d / 2.0, 5.0, 0.0), mat)
-	_create_boundary_wall(boundary_visual, Vector3(w_3d, 10.0, 0.2), Vector3(w_3d / 2.0, 5.0, h_3d), mat)
-	_create_boundary_wall(boundary_visual, Vector3(0.2, 10.0, h_3d), Vector3(0.0, 5.0, h_3d / 2.0), mat)
-	_create_boundary_wall(boundary_visual, Vector3(0.2, 10.0, h_3d), Vector3(w_3d, 5.0, h_3d / 2.0), mat)
-
-func _create_boundary_wall(parent: Node3D, box_size: Vector3, pos: Vector3, mat: Material):
-	var box = BoxMesh.new()
-	box.size = box_size
-	var mi = MeshInstance3D.new()
-	mi.mesh = box
-	mi.material_override = mat
-	mi.position = pos
-	parent.add_child(mi)
 
 func save_to_server():
 	var file_path = "res://../Server/config.json"

@@ -21,67 +21,7 @@ const clearPlayerStatusEffects = (p) => {
     p.forcedTarget = null; p.tauntEndTime = 0;
 };
 
-const getStatusEffects = (ent) => {
-    const now = Date.now();
-    return {
-        slowed: !!(ent.isSlowed || (ent.slowEndTime && now < ent.slowEndTime)),
-        stunned: !!(ent.isStunned || (ent.stunEndTime && now < ent.stunEndTime)),
-        bleeding: !!(ent.isBleeding || (ent.bleedEndTime && now < ent.bleedEndTime)),
-        poisoned: !!(ent.isPoisoned || (ent.poisonEndTime && now < ent.poisonEndTime)),
-        frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
-        feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime)),
-        provoked: !!(ent.forcedTarget && ent.tauntEndTime && now < ent.tauntEndTime),
-        polymorphed: !!(ent.isPolymorphed || (ent.polyEndTime && now < ent.polyEndTime))
-    };
-};
-
-// v268.75: Sanitización de datos para evitar Circular References y Crash de Terminal
-const getCleanPlayerData = (p, id) => {
-    if (!p) return null;
-    try {
-        // v268.80: Deep clone total para eliminar referencias circulares y evitar el crash de terminal
-        return JSON.parse(JSON.stringify({
-            id: id,
-            user: p.user || 'Unknown',
-            x: p.x || 0,
-            y: p.y || 0,
-            hp: p.hp || 0,
-            maxHp: p.maxHp || 0,
-            sh: (p.sh !== undefined) ? p.sh : (p.shield || 0),
-            maxSh: (p.maxSh !== undefined) ? p.maxSh : (p.maxShield || 0),
-            zone: p.zone,
-            spheres: p.spheres || [],
-            status_effects: Object.assign(getStatusEffects(p), p.status_effects || {}),
-            clanTag: p.clanTag || "",
-            currentShipId: p.currentShipId || 1,
-            pvpEnabled: !!p.pvpEnabled,
-            isInvulnerable: !!p.isInvulnerable
-        }));
-    } catch (e) {
-        console.error("Error sanitizing player data:", e);
-        return null;
-    }
-};
-
-// v268.80: Helper para limpiar datos de enemigos
-const getCleanEnemyData = (e, id) => {
-    try {
-        return JSON.parse(JSON.stringify({
-            id: id,
-            type: e.type,
-            x: e.x,
-            y: e.y,
-            hp: e.hp,
-            maxHp: e.maxHp,
-            sh: e.sh || e.shield,
-            status_effects: Object.assign(getStatusEffects(e), e.status_effects || {}),
-            isDead: !!e.isDead,
-            isInvulnerable: !!e.isInvulnerable
-        }));
-    } catch (err) {
-        return null;
-    }
-};
+const { getStatusEffects, getCleanPlayerData, getCleanEnemyData } = require('../utils/entitySanitizer');
 
 const { normalizeZone } = require('../utils/zoneUtils');
 

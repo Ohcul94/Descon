@@ -19,19 +19,29 @@ const { ThreatTable } = require('../systems/ThreatTable');
 
 module.exports = class BaseAI {
     constructor(enemy, config, state) {
-        this.enemy = enemy;
+        Object.defineProperty(this, 'enemy', { value: enemy, enumerable: false, writable: true, configurable: true });
+        Object.defineProperty(this, 'state', { value: state, enumerable: false, writable: true, configurable: true });
         this.config = config;
-        this.state = state;
         this.lastAction = 0;
         this._isDefenseSkillActive = false; // v269.195: Flag interno único para IA
         this._currentPhaseIndex = 0; // v500.0: Índice de fase dinámica activa
         this._lastMovementType = null; // v500.0: Último tipo de movimiento asignado
         this.baseConfig = { ...config }; // v500.1: Guardar copia de configuración base
         if (!this.enemy.threatTable) {
-            this.enemy.threatTable = new ThreatTable(this.enemy, this.state);
+            const table = new ThreatTable(this.enemy, this.state);
+            Object.defineProperty(this.enemy, 'threatTable', {
+                value: table,
+                enumerable: false,
+                writable: true,
+                configurable: true
+            });
         }
         this.threatTable = this.enemy.threatTable;
         this.activeTarget = null;
+    }
+
+    toJSON() {
+        return undefined; // Previene serialización accidental y referencias circulares
     }
 
     // v_fix_dead: Helper centralizado para matar jugadores desde IA de bosses

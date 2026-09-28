@@ -2121,22 +2121,6 @@
                     "slowAmount": 0,
                     "slowDuration": 0,
                     "type": "laser"
-                },
-                {
-                    "activationIntervalMs": 10000,
-                    "activationMode": "time",
-                    "castInterruptible": true,
-                    "castTimeMs": 500,
-                    "cooldown": 15000,
-                    "hits": 3,
-                    "cadence": 300,
-                    "damage": 60,
-                    "range": 500,
-                    "targetCount": 1,
-                    "targetMode": "nearest",
-                    "bulletSpeed": 1500,
-                    "warnTimeMs": 500,
-                    "type": "whip_summon"
                 }
             ],
             "movementPhases": [
@@ -7939,7 +7923,41 @@
                 "volumePercent": 60
             },
             "name": "Mapa 3",
-            "objects": [],
+            "objects": [
+                {
+                    "assetPath": "res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb",
+                    "label": "CuevaCalaberas",
+                    "rotY": 43,
+                    "scale": 40,
+                    "type": "wall",
+                    "x": -875.21,
+                    "y": -3666.38,
+                    "yOffset": 0,
+                    "colType": "rect",
+                    "colWidth": 510.04,
+                    "colHeight": 730.43,
+                    "colOffsetX": -457.89,
+                    "colOffsetY": -119.86,
+                    "colliders": [
+                        {
+                            "type": "rect",
+                            "width": 510.04,
+                            "height": 730.43,
+                            "offsetX": -457.89,
+                            "offsetY": -119.86,
+                            "rot": -2.1
+                        },
+                        {
+                            "type": "rect",
+                            "width": 454.17,
+                            "height": 544.8,
+                            "offsetX": 454.3,
+                            "offsetY": -19.97,
+                            "rot": 8
+                        }
+                    ]
+                }
+            ],
             "spawnX": 2000,
             "spawnY": 200,
             "spawns": [

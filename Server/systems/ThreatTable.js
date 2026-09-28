@@ -39,13 +39,17 @@ const DEFAULT_AGGRO_CONFIG = {
 
 class ThreatTable {
     constructor(enemy, state) {
-        this.enemy = enemy;
-        this.state = state;
+        Object.defineProperty(this, 'enemy', { value: enemy, enumerable: false, writable: true, configurable: true });
+        Object.defineProperty(this, 'state', { value: state, enumerable: false, writable: true, configurable: true });
         this.entries = new Map(); // socketId -> { threat, damageThreat, healThreat, tankThreat, lastActionTime, name }
         this.currentTargetId = null;
         this.tauntTargetId = null;
         this.tauntEndTime = 0;
         this.lastDecayTime = Date.now();
+    }
+
+    toJSON() {
+        return undefined; // Previene serialización accidental y referencias circulares
     }
 
     /**

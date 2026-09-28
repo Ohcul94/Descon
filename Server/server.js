@@ -161,6 +161,7 @@ const { registerRankingHandlers } = require('./systems/rankingHandlers');
 const visibilityGuard = require('./systems/visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 const { registerMarketHandlers, initMarketSystem } = require('./systems/marketHandlers'); // v500.0: Casa de Subastas
 const { registerFogHandlers } = require('./systems/fogHandlers'); // v800.0: Niebla de Guerra persistente
+const { getCleanPlayerData, getCleanEnemyData } = require('./utils/entitySanitizer');
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
@@ -814,26 +815,21 @@ const handleUserLogin = async (socket, user, username) => {
     const currentPlayersInZone = {};
     Object.keys(players).forEach(pId => {
         const p = players[pId];
-        if (p.zone === userZone) {
-            currentPlayersInZone[pId] = {
-                ...p,
-                id: pId,
-                maxHp: p.maxHp || 2000,
-                maxShield: p.maxShield || 1000,
-                spheres: p.spheres
-            };
+        if (p.zone === userZone && pId !== socket.id) {
+            const cleanP = getCleanPlayerData(p, pId);
+            if (cleanP) currentPlayersInZone[pId] = cleanP;
         }
     });
 
     const cleanEnemiesInZone = {};
     Object.values(enemies).forEach(e => {
-        if (e.zone === userZone) {
-            const { ai, _hookSafetyTimeout, ...data } = e;
-            cleanEnemiesInZone[e.id] = data;
+        if (e.zone === userZone && !e.isDead && e.hp > 0) {
+            const cleanE = getCleanEnemyData(e, e.id);
+            if (cleanE) cleanEnemiesInZone[e.id] = cleanE;
         }
     });
 
-    const playerSpawnData = { ...players[socket.id], id: socket.id };
+    const playerSpawnData = getCleanPlayerData(players[socket.id], socket.id);
     setTimeout(() => {
         socket.emit('currentPlayers', currentPlayersInZone);
         socket.emit('currentEnemies', cleanEnemiesInZone);
@@ -854,7 +850,9 @@ const handleUserLogin = async (socket, user, username) => {
             });
         }
         
-        socket.broadcast.to(`zone_${userZone}`).emit('newPlayer', { ...playerSpawnData, spheres: p_ref.spheres });
+        if (playerSpawnData) {
+            socket.broadcast.to(`zone_${userZone}`).emit('newPlayer', playerSpawnData);
+        }
         io.emit('onlineCount', Object.keys(players).length);
     }, 100);
 
@@ -2536,17 +2534,18 @@ io.on('connection', (socket) => {
             memP.y = 1000;
 
             s.to(`zone_${oldZone}`).emit('playerDisconnected', s.id);
-            s.to(`zone_${dungeonZoneId}`).emit('newPlayer', { ...memP, spheres: memP.spheres });
+            const cleanDungeonP = getCleanPlayerData(memP, s.id);
+            if (cleanDungeonP) s.to(`zone_${dungeonZoneId}`).emit('newPlayer', cleanDungeonP);
 
-            // Forzar actualizaci├│n total al cliente
+            // Forzar actualización total al cliente
             s.emit('changeZoneDone', dungeonZoneId); // Opcional, por si el cliente lo necesita
 
             // Mandarle el estado de los enemigos (El Boss que acabamos de spawnear)
             const zoneEnemies = {};
             Object.keys(enemies).forEach(id => {
                 if (enemies[id].zone === dungeonZoneId) {
-                    const { ai, ...cleanData } = enemies[id];
-                    zoneEnemies[id] = cleanData;
+                    const cleanData = getCleanEnemyData(enemies[id], id);
+                    if (cleanData) zoneEnemies[id] = cleanData;
                 }
             });
             s.emit('currentEnemies', zoneEnemies);

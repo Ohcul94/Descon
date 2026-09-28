@@ -3442,11 +3442,15 @@ func _update_perf_diag(delta: float):
 func _perf_toggle_fog():
 	var map = get_tree().get_first_node_in_group("map")
 	var is_on = true
-	if is_instance_valid(map) and is_instance_valid(map.camera_3d):
-		var quad = map.camera_3d.get_node_or_null("FogOfWarQuad")
-		if is_instance_valid(quad):
-			quad.visible = !quad.visible
-			is_on = quad.visible
+	if is_instance_valid(map):
+		if is_instance_valid(map.fog_of_war) and is_instance_valid(map.fog_of_war.post_process_quad):
+			map.fog_of_war.post_process_quad.visible = !map.fog_of_war.post_process_quad.visible
+			is_on = map.fog_of_war.post_process_quad.visible
+		elif is_instance_valid(map.camera_3d):
+			var quad = map.camera_3d.get_node_or_null("FogOfWarQuad")
+			if is_instance_valid(quad):
+				quad.visible = !quad.visible
+				is_on = quad.visible
 	# v906.0: Sincronizar con el Minimapa (apaga 3D y Radar a la vez)
 	MinimapScript.fog_rendering_enabled = is_on
 	var mm = get_node_or_null("RadarWindow/Minimap")

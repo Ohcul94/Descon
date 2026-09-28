@@ -191,20 +191,36 @@ func _create_viewports():
 func _setup_post_process_quad():
 	if not is_instance_valid(parent_map) or not is_instance_valid(parent_map.camera_3d):
 		return
+	
 	var camera = parent_map.camera_3d
-	var old_quad = camera.get_node_or_null("FogOfWarQuad")
-	if is_instance_valid(old_quad):
-		old_quad.queue_free()
+	
+	# Limpiar quad anterior si existe
+	if is_instance_valid(post_process_quad):
+		post_process_quad.queue_free()
+		post_process_quad = null
+	
+	var old_cam_quad = camera.get_node_or_null("FogOfWarQuad")
+	if is_instance_valid(old_cam_quad):
+		old_cam_quad.queue_free()
+	
+	if is_instance_valid(parent_map.sub_viewport):
+		var old_vol = parent_map.sub_viewport.get_node_or_null("FogOfWarVolume3D")
+		if is_instance_valid(old_vol):
+			old_vol.queue_free()
+	
 	post_process_quad = MeshInstance3D.new()
 	post_process_quad.name = "FogOfWarQuad"
 	post_process_quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	post_process_quad.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	
 	var quad_mesh = QuadMesh.new()
 	quad_mesh.size = Vector2(2.0, 2.0)
 	post_process_quad.mesh = quad_mesh
+	
 	shader_mat = ShaderMaterial.new()
 	shader_mat.shader = FOG_SHADER
 	shader_mat.render_priority = -128
+	
 	var map_size_3d = Vector2(
 		parent_map.world_size * parent_map.scale_factor,
 		parent_map.map_height * parent_map.scale_factor * parent_map.correction_z
@@ -213,23 +229,22 @@ func _setup_post_process_quad():
 		(parent_map.map_min_x if "map_min_x" in parent_map else 0.0) * parent_map.scale_factor,
 		(parent_map.map_min_y if "map_min_y" in parent_map else 0.0) * parent_map.scale_factor * parent_map.correction_z
 	)
+
 	shader_mat.set_shader_parameter("map_offset_3d", map_offset_3d)
 	shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
 	shader_mat.set_shader_parameter("vision_texture", vision_viewport.get_texture())
 	shader_mat.set_shader_parameter("history_texture", history_viewport.get_texture())
 	shader_mat.set_shader_parameter("noise_texture", TEXTURE_NOISE_21D)
-	# En Godot 4 las coordenadas UV de SubViewport son idénticas en todas las plataformas (PC y móviles).
-	# flip_y debe mantenerse en false para que la niebla y la visión de las naves coincidan perfectamente con el mundo 3D.
 	shader_mat.set_shader_parameter("flip_y", false)
-	# v920.0 NIEBLA ATMOSFÉRICA TIPO AUTOPISTA (Nubes, jirones, partículas en suspensión y degradés orgánicos)
+	
 	shader_mat.set_shader_parameter("fog_opacity", 0.96)
 	shader_mat.set_shader_parameter("shroud_opacity", 0.44)
-	shader_mat.set_shader_parameter("fog_color_dark", Vector3(0.14, 0.16, 0.18))
-	shader_mat.set_shader_parameter("fog_color_mid", Vector3(0.36, 0.38, 0.42))
-	shader_mat.set_shader_parameter("fog_color_light", Vector3(0.65, 0.67, 0.70))
-	shader_mat.set_shader_parameter("swamp_tint", Vector3(0.28, 0.33, 0.27))
-	shader_mat.set_shader_parameter("swamp_mix", 0.18)
-	shader_mat.set_shader_parameter("fog_desaturate", 0.72)
+	shader_mat.set_shader_parameter("fog_color_dark", Vector3(0.09, 0.10, 0.12))
+	shader_mat.set_shader_parameter("fog_color_mid", Vector3(0.13, 0.145, 0.17))
+	shader_mat.set_shader_parameter("fog_color_light", Vector3(0.17, 0.19, 0.22))
+	shader_mat.set_shader_parameter("swamp_tint", Vector3(0.13, 0.145, 0.17))
+	shader_mat.set_shader_parameter("swamp_mix", 0.0)
+	shader_mat.set_shader_parameter("fog_desaturate", 0.35)
 	shader_mat.set_shader_parameter("cloud_scale1", 0.0075)
 	shader_mat.set_shader_parameter("cloud_scale2", 0.016)
 	shader_mat.set_shader_parameter("cloud_speed1", 0.012)
@@ -241,9 +256,15 @@ func _setup_post_process_quad():
 	shader_mat.set_shader_parameter("fog_height", 25.0)
 	shader_mat.set_shader_parameter("fog_density", 1.25)
 	shader_mat.set_shader_parameter("fog_vertical_fade", 1.2)
+	
 	post_process_quad.material_override = shader_mat
 	post_process_quad.extra_cull_margin = 16384.0
 	camera.add_child(post_process_quad)
+
+func _exit_tree():
+	if is_instance_valid(post_process_quad):
+		post_process_quad.queue_free()
+		post_process_quad = null
 
 var _cached_providers: Array = []
 var _provider_update_timer: float = 0.0
@@ -400,7 +421,9 @@ func _process(_delta):
 			if is_instance_valid(shader_mat):
 				shader_mat.set_shader_parameter("map_offset_3d", map_offset_3d)
 				shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
-
+		
+		if is_instance_valid(parent_map.camera_3d) and (not is_instance_valid(post_process_quad) or post_process_quad.get_parent() != parent_map.camera_3d):
+			_setup_post_process_quad()
 	
 	if _initial_draw_frames > 0:
 		_initial_draw_frames -= 1

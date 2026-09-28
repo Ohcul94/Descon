@@ -10,6 +10,7 @@ const Logger = require('../utils/logger');
 const { calculateFinalStats } = require('./statCalculator');
 const { awardBattlePassExpServer } = require('./battlePassHandlers');
 const spawnValidator = require('../utils/spawnValidator');
+const { getCleanPlayerData, getCleanEnemyData } = require('../utils/entitySanitizer');
 
 class ExtractionManager {
     constructor() {
@@ -416,9 +417,9 @@ class ExtractionManager {
         // --- SYNC: Recopilar enemigos en la misma Raid ---
         const zoneEnemies = {};
         Object.keys(this.state.enemies).forEach(id => {
-            if (this.state.enemies[id].zone === matchId) {
-                const { ai, ...cleanData } = this.state.enemies[id];
-                zoneEnemies[id] = cleanData;
+            if (this.state.enemies[id].zone === matchId && !this.state.enemies[id].isDead) {
+                const cleanData = getCleanEnemyData(this.state.enemies[id], id);
+                if (cleanData) zoneEnemies[id] = cleanData;
             }
         });
 
@@ -432,7 +433,8 @@ class ExtractionManager {
         }, 300);
 
         // Notificar a todos los otros pilotos de la Raid
-        socket.to(`zone_${matchId}`).emit('newPlayer', { ...p, id: socketId });
+        const cleanP = getCleanPlayerData(p, socketId);
+        if (cleanP) socket.to(`zone_${matchId}`).emit('newPlayer', cleanP);
 
         Logger.info('EXTRACT', `Piloto [${p.user}] entró a la Raid ${matchId} en Pos [${p.x}, ${p.y}]`);
         return { success: true };
@@ -694,9 +696,9 @@ class ExtractionManager {
 
             const zoneEnemies = {};
             Object.keys(this.state.enemies).forEach(id => {
-                if (Number(this.state.enemies[id].zone) === 1) {
-                    const { ai, ...cleanData } = this.state.enemies[id];
-                    zoneEnemies[id] = cleanData;
+                if (Number(this.state.enemies[id].zone) === 1 && !this.state.enemies[id].isDead) {
+                    const cleanData = getCleanEnemyData(this.state.enemies[id], id);
+                    if (cleanData) zoneEnemies[id] = cleanData;
                 }
             });
             socket.emit('currentEnemies', zoneEnemies);
@@ -704,7 +706,8 @@ class ExtractionManager {
             // Re-sincronizar stats finales
             calculateFinalStats(p, this.state.SERVER_CONFIG);
             
-            this.io.to(`zone_1`).emit('newPlayer', { ...p, id: socketId });
+            const cleanP = getCleanPlayerData(p, socketId);
+            if (cleanP) this.io.to(`zone_1`).emit('newPlayer', cleanP);
         }
     }
 

@@ -1,0 +1,6 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://c2bmlm04l5s47"]
+
+[ext_resource type="Shader" uid="uid://brhvveu27ioqy" path="res://sky/visual_shaders/sky_shader.tres" id="1_wfkko"]
+
+[resource]
+shader = ExtResource("1_wfkko")
