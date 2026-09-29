@@ -182,12 +182,12 @@ metadata/colHeight = 730.43
 metadata/colOffsetX = -457.89
 metadata/colOffsetY = -119.86
 
-[node name="Collider1" type="CSGBox3D" parent="CuevaCalaberas" unique_id=312516490]
+[node name="Collider1" type="CSGBox3D" parent="CuevaCalaberas" unique_id=523287330]
 transform = Transform3D(0.9993284, 0, -0.036643706, 0, 1, 0, 0.036643706, 0, 0.9993284, -9.1578, 0.0025, -3.3901527)
 size = Vector3(10.2008, 0.005, 20.65968)
 material = SubResource("StandardMaterial3D_t7ar1")
 
-[node name="Collider2" type="CSGBox3D" parent="CuevaCalaberas" unique_id=1563418456]
+[node name="Collider2" type="CSGBox3D" parent="CuevaCalaberas" unique_id=1291386632]
 transform = Transform3D(0.99026805, 0, 0.1391731, 0, 1, 0, -0.1391731, 0, 0.99026805, 9.086, 0.0025, -0.5648369)
 size = Vector3(9.0834, 0.005, 15.409271)
 material = SubResource("StandardMaterial3D_d0lf8")
