@@ -905,11 +905,8 @@ func _process(delta):
 			_3d_model.rotation.x = abs(_bank_current) * 0.12
 			_3d_model.rotation.z = -_bank_current * 0.4
 		
-		# Propulsión 3D: encendido tipo soplete/calefactor
-		# - Densidad de partículas SIEMPRE plena (continua, sin discontinuidad tipo Roblox)
-		# - El "encendido" (alfa) depende de la velocidad REAL de movimiento
-		# - El COLOR depende solo del speed de STATS (no de slows ni desaceleración)
-		if is_instance_valid(_3d_propulsion):
+		# Propulsión 3D: encendido tipo soplete/calefactor (Solo naves de jugadores, nunca enemigos/bosses)
+		if not is_in_group("enemies") and is_instance_valid(_3d_propulsion):
 			var spd := 0.0
 			if is_in_group("player"):
 				spd = velocity.length()
@@ -3644,8 +3641,9 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 		# v390.0: Parche de sombreado plano para todos los modelos 3D (naves y enemigos) (evita que se oscurezcan al girar)
 		_make_materials_unshaded(model)
 
-		# v380.0: Inyectar partículas de propulsión 3D optimizadas
-		_setup_propulsion_particles(control_node)
+		# v380.0: Inyectar partículas de propulsión 3D optimizadas (solo a naves de jugadores)
+		if not is_in_group("enemies"):
+			_setup_propulsion_particles(control_node)
 	
 	# 4. Cámara de Perspectiva con iluminación profesional (Sólo si es Viewport local)
 	if not is_single_world:
@@ -3695,6 +3693,8 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 	# print("[3D] Visualizacion configurada correctamente.")
 
 func _setup_propulsion_particles(parent: Node3D):
+	if is_in_group("enemies"):
+		return
 	_3d_propulsion = null
 	_prop_proc_mat = null
 	_prop_sparks = null
