@@ -1372,7 +1372,7 @@ module.exports = class BaseAI {
 
     _isGenericCastType(type) {
         // Types with internal cast handling (their own charge) - generic runs in parallel (double bar)
-        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball","whip_summon","strange_dimension"];
+        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball","whip_summon","strange_dimension","mega_laser"];
         return !internal.includes(type);
     }
     _handleGenericCast(mech, mId, now, io) {
@@ -1461,7 +1461,7 @@ module.exports = class BaseAI {
         }
 
         // Generic cast gate (per mechanic, default 0 = instant)
-        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && mech.type !== "whip_summon") {
             const isBusy = this._handleGenericCast(mech, mId, now, io);
             if (isBusy && this._isGenericCastType(mech.type)) {
                 return true;

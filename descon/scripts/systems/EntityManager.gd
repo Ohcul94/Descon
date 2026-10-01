@@ -739,38 +739,186 @@ func _attack_vfx_base_y() -> float:
 		return pl.world_root_3d.position.y
 	return 1.0
 
+func _clean_mechanic_label_text(raw_text: String) -> String:
+	var s = raw_text.strip_edges()
+	# Eliminar cualquier aclaración entre paréntesis (ej: "Lluvia de Meteoros (Aviso 2s)" -> "Lluvia de Meteoros")
+	var p_open = s.find("(")
+	if p_open != -1:
+		s = s.substr(0, p_open).strip_edges()
+	var b_open = s.find("[")
+	if b_open != -1:
+		s = s.substr(0, b_open).strip_edges()
+	return s
+
+func _get_mechanic_display_name(mech_type: String, raw_data: Dictionary = {}) -> String:
+	# 1. Nombre explícito desde el paquete si existe
+	var explicit_name = str(raw_data.get("name", raw_data.get("mechanicName", raw_data.get("label", "")))).strip_edges()
+	if explicit_name != "":
+		return _clean_mechanic_label_text(explicit_name)
+		
+	var t = mech_type.to_lower()
+	
+	# 2. Librería de mecánicas del cliente si contiene label
+	if "MECHANICS_LIB" in GameConstants and typeof(GameConstants.MECHANICS_LIB) == TYPE_DICTIONARY:
+		if GameConstants.MECHANICS_LIB.has(t):
+			var m_entry = GameConstants.MECHANICS_LIB[t]
+			if typeof(m_entry) == TYPE_DICTIONARY:
+				var m_label = str(m_entry.get("label", m_entry.get("name", ""))).strip_edges()
+				if m_label != "":
+					return _clean_mechanic_label_text(m_label)
+
+	# 3. Mapeo de traducciones estandarizadas sin paréntesis
+	var name_map = {
+		"whip_summon": "Invocación de Látigo",
+		"whip": "Invocación de Látigo",
+		"mega_laser": "Mega Láser",
+		"strange_dimension": "Dimensión Extraña",
+		"cone_cast": "Ataque en Cono",
+		"circle_cast": "Explosión Circular",
+		"ice_storm": "Tormenta de Hielo",
+		"survival_dome": "Domo de Supervivencia",
+		"choque_devastador": "Choque Devastador",
+		"fireball": "Bola de Fuego Dinámica",
+		"laser": "Rayo Láser",
+		"missile": "Misil Rastreador",
+		"ice_missile": "Misil de Hielo",
+		"mine": "Mina de Proximidad",
+		"orbital_strike": "Ataque Orbital",
+		"aura_damage": "Aura de Vacío",
+		"hook": "Gancho Abisal",
+		"bomb": "Lanzador de Bombas",
+		"spin_ring": "Giro de Lillia",
+		"worm_boomerang": "Gusanos Bumerán",
+		"execution": "Ejecución Directa",
+		"melee_slash": "Hachazo Melee",
+		"polymorph": "Polimorfia",
+		"life_steal": "Robo de Vida",
+		"shield_steal": "Robo de Escudo",
+		"wind_wall": "Muro de Viento",
+		"burrow": "Emboscada Subterránea",
+		"sleep": "Inducir Sueño",
+		"ascension": "Ascensión Telúrica",
+		"darkness": "Oscuridad",
+		"meteor": "Lluvia de Meteoros",
+		"taunt": "Provocación",
+		"charge": "Carga",
+		"electric_strike": "Impacto Eléctrico",
+		"fire_strike": "Impacto Ígneo",
+		"clone_summon": "Clonación",
+		"reflect": "Escudo Reflectante",
+		"invulnerability": "Invulnerabilidad",
+		"invisibility": "Invisibilidad",
+		"boss_pillars": "Pilares del Boss",
+		"boss_colors": "Mecánica de Colores",
+		"boss_water_orbs": "Orbes de Agua",
+		"duplicado": "Duplicación Defensiva",
+		"wall_dome": "Muro de Energía",
+		"basic_defense": "Defensa Estándar",
+		"aura_heal": "Aura Curativa",
+		"boss_offensive": "Ataque Pesado",
+		"boss_puzzle": "Mecánica Central",
+		"boss_defensive": "Escudo Táctico"
+	}
+	
+	if name_map.has(t):
+		return _clean_mechanic_label_text(name_map[t])
+	
+	if t.is_empty():
+		return "Casteando..."
+		
+	return _clean_mechanic_label_text(t.replace("_", " ").capitalize())
+
 func _get_enemy_cast_color(mech_type: String, mId: String) -> Color:
 	var t = mech_type.to_lower()
 	var mid = mId.to_lower()
 	
-	# Curación
-	if "life_steal" in t or "heal" in t or "heal" in mid or "curacion" in mid:
-		return Color(0.15, 0.95, 0.15) # Verde curación
-	# Defensa
-	elif "shield_steal" in t or "wind_wall" in t or "burrow" in t or "shield" in mid or "barrier" in mid:
-		return Color(0.3, 0.65, 0.9) # Azul defensa
-	# Utilidad / CC / Movimiento
-	elif "sleep" in t or "ascension" in t or "stun" in mid or "slow" in mid:
-		return Color(0.95, 0.9, 0.35) # Amarillo utilidad
-	# Ataque por defecto
+	# Mecánicas Defensivas / Místicas -> Azul Neón / Cian Elegante (AAA)
+	if mid.begins_with("def_") or "defense" in t or "defensive" in t or "shield" in t or "wind_wall" in t or "barrier" in t or "escudo" in t or "defensa" in t or "burrow" in t or "shield_steal" in t or "strange_dimension" in t or "dimension" in t or "wall_dome" in t or "reflect" in t or "invulnerab" in t or "defensive" in mid or "shield" in mid or "barrier" in mid:
+		return Color(0.12, 0.65, 1.0)
+	# Curación / Vitalidad -> Verde Esmeralda
+	elif "heal" in t or "life_steal" in t or "curacion" in t or "vamp" in t or "heal" in mid:
+		return Color(0.15, 0.95, 0.4)
+	# Utilidad / CC -> Amarillo Dorado
+	elif "sleep" in t or "stun" in t or "slow" in t or "ascension" in t or "sueño" in t or "stun" in mid:
+		return Color(1.0, 0.85, 0.15)
+	# Mecánicas Ofensivas y Ataques -> Naranja Neón Intenso por defecto
 	else:
-		return Color(0.95, 0.15, 0.15) # Rojo/Naranja de ataque
+		return Color(1.0, 0.48, 0.0)
 
-func _create_enemy_cast_visual(enemy: Node, mId: String, castTimeMs: float, mech_type: String = ""):
+func _clear_all_enemy_cast_visuals_for(eid: String):
+	if enemy_cast_visuals.has(eid):
+		var mDict = enemy_cast_visuals[eid]
+		for mId in mDict.keys():
+			var d = mDict[mId]
+			var vis = d.get("visual")
+			if is_instance_valid(vis): vis.queue_free()
+			var vis2 = d.get("visual2D")
+			if is_instance_valid(vis2): vis2.queue_free()
+		enemy_cast_visuals.erase(eid)
+
+func _is_enemy_boss(enemy: Node) -> bool:
+	if not is_instance_valid(enemy): return false
+	if "entity_type" in enemy and enemy.entity_type != null and int(enemy.entity_type) >= 101:
+		return true
+	if enemy.has_method("get") and enemy.get("entity_type") != null and int(enemy.get("entity_type")) >= 101:
+		return true
+	if enemy.has_meta("is_boss") and bool(enemy.get_meta("is_boss")) == true:
+		return true
+	if enemy.has_method("get") and enemy.get("is_boss") == true:
+		return true
+	if "username" in enemy and str(enemy.username).to_lower().contains("titan"):
+		return true
+	return false
+
+func get_enemy_id_by_node(enemy_node: Node) -> String:
+	if not is_instance_valid(enemy_node): return ""
+	for eid in enemies.keys():
+		if enemies[eid] == enemy_node:
+			return str(eid)
+	if "entity_id" in enemy_node:
+		var eid_val = enemy_node.get("entity_id")
+		if eid_val != null and str(eid_val) != "":
+			return str(eid_val)
+	if enemy_node.has_meta("entity_id"):
+		var m_val = enemy_node.get_meta("entity_id")
+		if m_val != null and str(m_val) != "":
+			return str(m_val)
+	return str(enemy_node.name)
+
+func _create_enemy_cast_visual(enemy: Node, mId: String, castTimeMs: float, mech_type: String = "", raw_data: Dictionary = {}):
 	if not is_instance_valid(enemy):
 		return
 	var wr3d = enemy.get("world_root_3d") if "world_root_3d" in enemy else null
 	if not is_instance_valid(wr3d):
 		wr3d = enemy.get_node_or_null("WorldRoot3D")
 		
-	var eid = str(enemy.get("entity_id")) if "entity_id" in enemy else str(enemy.name)
+	var eid = get_enemy_id_by_node(enemy)
 	if not enemy_cast_visuals.has(eid):
 		enemy_cast_visuals[eid] = {}
+		
+	# Limpieza preventiva de casteo previo con la misma clave mId para evitar barras/etiquetas duplicadas colgadas
+	if enemy_cast_visuals[eid].has(mId):
+		var old_d = enemy_cast_visuals[eid][mId]
+		var old_v = old_d.get("visual")
+		if is_instance_valid(old_v): old_v.queue_free()
+		var old_v2 = old_d.get("visual2D")
+		if is_instance_valid(old_v2): old_v2.queue_free()
+		enemy_cast_visuals[eid].erase(mId)
+		
+	var ui = enemy.get_node_or_null("HUD_Layer_Final")
+	if not is_instance_valid(ui):
+		ui = enemy.get("_ui_wrapper") if "_ui_wrapper" in enemy else null
+		
+	if is_instance_valid(ui):
+		var old_c = ui.get_node_or_null("EnemyCastBar2D_" + mId)
+		if is_instance_valid(old_c):
+			old_c.queue_free()
+			
 	var count = enemy_cast_visuals[eid].size()
-	
 	var cast_color = _get_enemy_cast_color(mech_type, mId)
+	var display_name = _get_mechanic_display_name(mech_type, raw_data)
 	
-	# Guardamos el estado inicial en el diccionario sin el visual 3D
+	# Guardamos el estado inicial en el diccionario
 	enemy_cast_visuals[eid][mId] = {
 		"visual": null,
 		"bg": null,
@@ -782,65 +930,169 @@ func _create_enemy_cast_visual(enemy: Node, mId: String, castTimeMs: float, mech
 	}
 	
 	# Creación de la barra de casteo 2D en el HUD de la entidad
-	var ui = enemy.get_node_or_null("HUD_Layer_Final")
-	if not is_instance_valid(ui):
-		ui = enemy.get("_ui_wrapper") if "_ui_wrapper" in enemy else null
 	if is_instance_valid(ui):
-		var base_y = -70.0
-		var et = enemy.get("entity_type")
-		if et != null and et >= 101:
-			base_y = -220.0
-		
+		var is_boss = _is_enemy_boss(enemy)
 		var is_projected = enemy.get_meta("is_single_world", false) and is_instance_valid(wr3d)
+		
+		var base_y = -70.0
+		if is_boss:
+			base_y = -220.0
 		if is_projected:
 			base_y = 0.0
 			
+		var bar_w = 120.0 if is_boss else 88.0
+		var bar_h = 14.0
+		var gap = 3.0
+		
 		var container = Control.new()
 		container.name = "EnemyCastBar2D_" + mId
 		container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Ancho 44 (mismo de la barra de vida), alto 2 (mitad de 4)
-		container.custom_minimum_size = Vector2(44, 2)
-		container.size = Vector2(44, 2)
-		# Centrada horizontalmente (-22) y debajo de la barra de vida (base_y + 2.0)
-		container.position = Vector2(-22, base_y + 2.0 + count * 3.0)
+		container.custom_minimum_size = Vector2(bar_w, bar_h)
+		container.size = Vector2(bar_w, bar_h)
+		# Centrada horizontalmente y apilada verticalmente según el índice activo
+		container.position = Vector2(-bar_w / 2.0, base_y + 4.0 + count * (bar_h + gap))
 		container.z_index = 10
 		
-		var bg2 = ColorRect.new()
-		bg2.name = "BG"
-		bg2.color = Color(0.08, 0.08, 0.1, 0.75)
-		bg2.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		container.add_child(bg2)
+		# 1. Fondo estético con marco negro
+		var bg_panel = Panel.new()
+		bg_panel.name = "BG_Panel"
+		bg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		
+		var style_bg = StyleBoxFlat.new()
+		style_bg.bg_color = Color(0.05, 0.05, 0.08, 0.85)
+		style_bg.border_width_left = 1
+		style_bg.border_width_top = 1
+		style_bg.border_width_right = 1
+		style_bg.border_width_bottom = 1
+		style_bg.border_color = Color(0.0, 0.0, 0.0, 0.95)
+		style_bg.corner_radius_top_left = 3
+		style_bg.corner_radius_top_right = 3
+		style_bg.corner_radius_bottom_left = 3
+		style_bg.corner_radius_bottom_right = 3
+		style_bg.shadow_color = Color(0, 0, 0, 0.5)
+		style_bg.shadow_size = 2
+		bg_panel.add_theme_stylebox_override("panel", style_bg)
+		container.add_child(bg_panel)
+		
+		# 2. Contenedor de recorte para el relleno
+		var fill_clip = Control.new()
+		fill_clip.name = "FillClip"
+		fill_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fill_clip.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		fill_clip.clip_contents = true
+		container.add_child(fill_clip)
+		
+		# 3. Relleno de color según tipo de mecánica (se va pintando conforme castea)
 		var fg2 = ColorRect.new()
 		fg2.name = "FG"
+		fg2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fg2.color = cast_color
 		fg2.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		fg2.anchor_right = 0
-		# Sin offsets para que ocupe todo el espacio alto de 2px
-		fg2.offset_left = 0
-		fg2.offset_right = 0
-		fg2.offset_top = 0
-		fg2.offset_bottom = 0
-		container.add_child(fg2)
+		fg2.offset_left = 1
+		fg2.offset_top = 1
+		fg2.offset_right = -1
+		fg2.offset_bottom = -1
+		fill_clip.add_child(fg2)
+		
+		# 4. Texto con el nombre limpio de la mecánica al medio (blanco con borde negro de 2px)
+		var label = Label.new()
+		label.name = "CastLabel"
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.text = display_name
+		label.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VerticalAlignment.VERTICAL_ALIGNMENT_CENTER
+		label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+		label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
+		label.add_theme_constant_override("outline_size", 2)
+		label.add_theme_font_size_override("font_size", 9 if not is_boss else 10)
+		container.add_child(label)
 		
 		ui.add_child(container)
 		enemy_cast_visuals[eid][mId]["visual2D"] = container
 
-func _update_enemy_cast_visuals(_delta: float):
+func _update_enemy_cast_visuals(delta: float):
+	var now = Time.get_ticks_msec()
+	var eids_to_remove = []
+	
 	for eid in enemy_cast_visuals.keys():
+		var enemy = enemies.get(eid)
+		# 1. Si el enemigo ya no existe, no está en árbol, está muerto o en pool, limpiar sus barras de casteo
+		if not is_instance_valid(enemy) or not enemy.is_inside_tree() or enemy.get("is_dead") == true or enemy.get_meta("is_pooled", false):
+			eids_to_remove.append(eid)
+			continue
+			
 		var mDict = enemy_cast_visuals[eid]
+		var mids_to_erase = []
+		var active_entries = []
+		
+		# 2. Evaluar expiración y actualizar progreso de cada casteo activo
 		for mId in mDict.keys():
 			var data = mDict[mId]
 			var dur = float(data.get("duration", 1000))
 			var start = int(data.get("startTime", 0))
-			var elapsed = Time.get_ticks_msec() - start
-			var prog = clamp(float(elapsed) / max(1.0, dur), 0.0, 1.0)
+			var elapsed = now - start
 			
+			# Auto-limpieza si expiró la duración + 300ms de margen de red
+			if elapsed > (dur + 300.0):
+				mids_to_erase.append(mId)
+				continue
+				
+			var prog = clamp(float(elapsed) / max(1.0, dur), 0.0, 1.0)
 			var c2d = data.get("visual2D")
 			if is_instance_valid(c2d):
-				var fg2 = c2d.get_node_or_null("FG")
+				var fg2 = c2d.get_node_or_null("FillClip/FG")
+				if not is_instance_valid(fg2):
+					fg2 = c2d.get_node_or_null("FG")
 				if is_instance_valid(fg2):
 					fg2.anchor_right = prog
+				active_entries.append({"mId": mId, "container": c2d, "startTime": start})
+			else:
+				mids_to_erase.append(mId)
+		
+		# Eliminar mecánicas expiradas o sin UI válida
+		for mId in mids_to_erase:
+			if mDict.has(mId):
+				var d = mDict[mId]
+				var vis = d.get("visual")
+				if is_instance_valid(vis): vis.queue_free()
+				var vis2 = d.get("visual2D")
+				if is_instance_valid(vis2): vis2.queue_free()
+				mDict.erase(mId)
+				
+		if mDict.is_empty():
+			eids_to_remove.append(eid)
+			continue
+			
+		# 3. Reorganización AAA y Stacking vertical suave (lerp)
+		active_entries.sort_custom(func(a, b): return a["startTime"] < b["startTime"])
+		
+		var is_boss = _is_enemy_boss(enemy)
+		var wr3d = enemy.get("world_root_3d") if "world_root_3d" in enemy else null
+		var is_projected = enemy.get_meta("is_single_world", false) and is_instance_valid(wr3d)
+		
+		var base_y = -70.0
+		if is_boss:
+			base_y = -220.0
+		if is_projected:
+			base_y = 0.0
+			
+		var bar_w = 120.0 if is_boss else 88.0
+		var bar_h = 14.0
+		var gap = 3.0
+		
+		for idx in range(active_entries.size()):
+			var item = active_entries[idx]
+			var container: Control = item["container"]
+			if is_instance_valid(container):
+				var target_pos = Vector2(-bar_w / 2.0, base_y + 4.0 + idx * (bar_h + gap))
+				container.position = container.position.lerp(target_pos, min(1.0, delta * 16.0))
+
+	# Limpiar enemigos sin casteos activos o destruidos
+	for eid in eids_to_remove:
+		_clear_all_enemy_cast_visuals_for(eid)
 
 func _on_enemy_cast_started(data: Dictionary):
 	var eid = str(data.get("id", ""))
@@ -851,7 +1103,7 @@ func _on_enemy_cast_started(data: Dictionary):
 	var enemy = enemies.get(eid)
 	if not is_instance_valid(enemy):
 		return
-	_create_enemy_cast_visual(enemy, mId, castMs, data.get("type", ""))
+	_create_enemy_cast_visual(enemy, mId, castMs, data.get("type", data.get("mechType", "")), data)
 	# v2025: Setear is_casting meta para animación de ataque durante casteo
 	enemy.set_meta("is_casting", true)
 	var t = Timer.new()
@@ -878,14 +1130,8 @@ func _on_enemy_cast_ended(data: Dictionary):
 		if mDict.is_empty():
 			enemy_cast_visuals.erase(eid)
 	else:
-		# clear all for this enemy
-		for k in mDict.keys():
-			var d2 = mDict[k]
-			var v = d2.get("visual")
-			if is_instance_valid(v): v.queue_free()
-			var v2 = d2.get("visual2D")
-			if is_instance_valid(v2): v2.queue_free()
-		enemy_cast_visuals.erase(eid)
+		# Si no viene mId o mId no coincide, limpiar todo el casteo del enemigo
+		_clear_all_enemy_cast_visuals_for(eid)
 
 func _on_enemy_cast_cancelled(data: Dictionary):
 	_on_enemy_cast_ended(data)
@@ -2964,6 +3210,7 @@ func clear_remote_players():
 func _on_enemy_dead(data: Dictionary):
 	var id = str(data.get("id", ""))
 	if id == "": return
+	_clear_all_enemy_cast_visuals_for(id)
 	var enemy = enemies.get(id)
 	if is_instance_valid(enemy):
 		var indicator = enemy.get_node_or_null("ConeIndicator_" + id)

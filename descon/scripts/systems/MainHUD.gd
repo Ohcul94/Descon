@@ -2542,6 +2542,7 @@ var _target_frame: Control = null
 var _target_vbox: VBoxContainer = null
 var _target_name_lbl: Label = null
 var _target_debuff_hbox: HBoxContainer = null
+var _target_casts_vbox: VBoxContainer = null
 var _target_hp_bar: ColorRect = null
 var _target_hp_bg: ColorRect = null
 var _target_hp_lbl: Label = null
@@ -2818,7 +2819,7 @@ func _setup_target_frame():
 	
 	_target_frame = PanelContainer.new()
 	_target_frame.name = "TargetFrame"
-	_target_frame.custom_minimum_size = Vector2(250, 75)
+	_target_frame.custom_minimum_size = Vector2(250, 0)
 	_target_frame.pivot_offset = Vector2(125, 37.5)
 	
 	var sb = StyleBoxFlat.new()
@@ -2829,11 +2830,17 @@ func _setup_target_frame():
 	sb.set_corner_radius_all(6)
 	_target_frame.add_theme_stylebox_override("panel", sb)
 	
+	# Contenedor Vertical Exterior: arriba avatar + barras de vida/escudo, abajo barras de casteo dinámicas
+	var outer_vbox = VBoxContainer.new()
+	outer_vbox.name = "OuterVBox"
+	outer_vbox.add_theme_constant_override("separation", 3)
+	_target_frame.add_child(outer_vbox)
+
 	# HBoxContainer principal para separar preview e información
 	var main_hbox = HBoxContainer.new()
 	main_hbox.name = "MainHBox"
 	main_hbox.add_theme_constant_override("separation", 6)
-	_target_frame.add_child(main_hbox)
+	outer_vbox.add_child(main_hbox)
 	
 	# 1. Viewport 3D directo (a la izquierda, sin contenedor de fondo)
 	_target_viewport_container = SubViewportContainer.new()
@@ -2961,11 +2968,18 @@ func _setup_target_frame():
 	hp_container.add_child(_target_hp_lbl)
 	_target_hp_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
-	# Debuff icons row
+	# Debuff icons row (debajo de HP bar)
 	_target_debuff_hbox = HBoxContainer.new()
 	_target_debuff_hbox.add_theme_constant_override("separation", 3)
 	_target_debuff_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	_target_vbox.add_child(_target_debuff_hbox)
+	
+	# Cast bars container (a todo el ancho en outer_vbox, se expande hacia abajo dinámicamente)
+	_target_casts_vbox = VBoxContainer.new()
+	_target_casts_vbox.name = "TargetCastsVBox"
+	_target_casts_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_target_casts_vbox.add_theme_constant_override("separation", 2)
+	outer_vbox.add_child(_target_casts_vbox)
 	
 	add_child(_target_frame)
 	_target_frame.top_level = true
@@ -3006,6 +3020,9 @@ func clear_target():
 		_target_entity.is_selected = false
 	_target_entity = null
 	if _target_frame: _target_frame.visible = false
+	if is_instance_valid(_target_casts_vbox):
+		for child in _target_casts_vbox.get_children():
+			child.free()
 	_clear_3d_target_preview()
 	_last_previewed_glb = ""
 
@@ -3066,7 +3083,148 @@ func _update_target_frame():
 	_target_sh_bar.offset_right = 0.0
 	_target_sh_lbl.text = "%d" % sh_text
 	
+	_update_target_casts()
 	_update_target_debuffs()
+
+func _update_target_casts():
+	if not is_instance_valid(_target_casts_vbox): return
+	
+	if not is_instance_valid(_target_entity) or _target_entity.get("is_dead") == true:
+		for child in _target_casts_vbox.get_children():
+			child.free()
+		return
+		
+	var em = null
+	if is_instance_valid(get_tree().current_scene):
+		em = get_tree().current_scene.get_node_or_null("EntityManager")
+	if not is_instance_valid(em):
+		em = get_node_or_null("/root/MainGame/EntityManager")
+	if not is_instance_valid(em):
+		em = get_tree().root.find_child("EntityManager", true, false)
+	if not is_instance_valid(em):
+		for child in _target_casts_vbox.get_children():
+			child.free()
+		return
+	
+	var eid = em.get_enemy_id_by_node(_target_entity) if em.has_method("get_enemy_id_by_node") else ""
+	if eid == "":
+		if "entity_id" in _target_entity:
+			eid = str(_target_entity.get("entity_id"))
+		elif "id" in _target_entity:
+			eid = str(_target_entity.get("id"))
+		else:
+			eid = str(_target_entity.name)
+
+	var mDict = {}
+	if eid != "" and em.enemy_cast_visuals.has(eid):
+		mDict = em.enemy_cast_visuals[eid]
+	else:
+		# Fallback robusto por coincidencia de nodo de entidad o meta en enemy_cast_visuals
+		for k in em.enemy_cast_visuals.keys():
+			var dict_cand = em.enemy_cast_visuals[k]
+			for mid_k in dict_cand.keys():
+				var entry = dict_cand[mid_k]
+				if entry.get("enemy") == _target_entity or (is_instance_valid(entry.get("enemy")) and entry.get("enemy").name == _target_entity.name):
+					mDict = dict_cand
+					break
+			if not mDict.is_empty():
+				break
+	
+	if mDict.is_empty():
+		for child in _target_casts_vbox.get_children():
+			child.free()
+		return
+		
+	var now = Time.get_ticks_msec()
+	var active_mids = []
+	
+	for mId in mDict.keys():
+		var data = mDict[mId]
+		var dur = float(data.get("duration", 1000))
+		var start = int(data.get("startTime", 0))
+		var elapsed = now - start
+		if elapsed > (dur + 300.0):
+			continue
+			
+		active_mids.append(mId)
+		var prog = clamp(float(elapsed) / max(1.0, dur), 0.0, 1.0)
+		var mech_type = str(data.get("type", data.get("mechType", "")))
+		var cast_color = em._get_enemy_cast_color(mech_type, mId) if em.has_method("_get_enemy_cast_color") else Color(1.0, 0.48, 0.0)
+		var display_name = em._get_mechanic_display_name(mech_type, data) if em.has_method("_get_mechanic_display_name") else "Casteando..."
+		
+		var bar_node_name = "TargetCastBar_" + str(mId)
+		var bar_container: Control = _target_casts_vbox.get_node_or_null(bar_node_name)
+		
+		if not is_instance_valid(bar_container):
+			bar_container = Control.new()
+			bar_container.name = bar_node_name
+			bar_container.custom_minimum_size = Vector2(0, 16)
+			bar_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			bar_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			
+			var bg_panel = Panel.new()
+			bg_panel.name = "BG"
+			bg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			bg_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			var style_bg = StyleBoxFlat.new()
+			style_bg.bg_color = Color(0.03, 0.03, 0.06, 0.95)
+			style_bg.border_width_left = 1; style_bg.border_width_top = 1
+			style_bg.border_width_right = 1; style_bg.border_width_bottom = 1
+			style_bg.border_color = Color(0.0, 0.0, 0.0, 1.0)
+			style_bg.corner_radius_top_left = 3; style_bg.corner_radius_top_right = 3
+			style_bg.corner_radius_bottom_left = 3; style_bg.corner_radius_bottom_right = 3
+			bg_panel.add_theme_stylebox_override("panel", style_bg)
+			bar_container.add_child(bg_panel)
+			
+			var fill_clip = Control.new()
+			fill_clip.name = "FillClip"
+			fill_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			fill_clip.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			fill_clip.clip_contents = true
+			bar_container.add_child(fill_clip)
+			
+			var fg = ColorRect.new()
+			fg.name = "FG"
+			fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			fg.color = cast_color
+			fg.anchor_left = 0.0
+			fg.anchor_top = 0.0
+			fg.anchor_bottom = 1.0
+			fg.anchor_right = prog
+			fg.offset_left = 0.0
+			fg.offset_top = 0.0
+			fg.offset_right = 0.0
+			fg.offset_bottom = 0.0
+			fill_clip.add_child(fg)
+			
+			var lbl = Label.new()
+			lbl.name = "Label"
+			lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			lbl.text = display_name
+			lbl.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+			lbl.vertical_alignment = VerticalAlignment.VERTICAL_ALIGNMENT_CENTER
+			lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			lbl.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+			lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+			lbl.add_theme_constant_override("outline_size", 2)
+			lbl.add_theme_font_size_override("font_size", 10)
+			bar_container.add_child(lbl)
+			
+			_target_casts_vbox.add_child(bar_container)
+		else:
+			var fg: ColorRect = bar_container.get_node_or_null("FillClip/FG")
+			if is_instance_valid(fg):
+				fg.anchor_right = prog
+				fg.offset_right = 0.0
+				fg.color = cast_color
+			var lbl: Label = bar_container.get_node_or_null("Label")
+			if is_instance_valid(lbl):
+				lbl.text = display_name
+	
+	for child in _target_casts_vbox.get_children():
+		var child_mid = child.name.trim_prefix("TargetCastBar_")
+		if not child_mid in active_mids:
+			child.free()
 
 func _update_target_debuffs():
 	if not is_instance_valid(_target_entity) or not _target_debuff_hbox: return

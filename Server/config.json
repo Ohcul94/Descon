@@ -1457,7 +1457,7 @@
                 "castInterruptible"
             ],
             "icon": "💚",
-            "label": "Robador de Vida (Life Steal)",
+            "label": "Robador de Vida",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
@@ -1475,7 +1475,7 @@
                 "startDelay"
             ],
             "icon": "🛡️",
-            "label": "Escudo Reflectante (Reflect)",
+            "label": "Escudo Reflectante",
             "sound": "",
             "soundMaxDist": 800,
             "soundVolumeDb": 0,
@@ -1504,7 +1504,7 @@
                 "castInterruptible"
             ],
             "icon": "💠",
-            "label": "Robador de Escudo (Shield Steal)",
+            "label": "Robador de Escudo",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
@@ -1524,7 +1524,7 @@
                 "castInterruptible"
             ],
             "icon": "🛡️",
-            "label": "Muro de Energía (Wall Dome)",
+            "label": "Muro de Energía",
             "sound": "",
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
@@ -3115,7 +3115,7 @@
                     "activationHPs": [
                         50
                     ],
-                    "activationIntervalMs": 0,
+                    "activationIntervalMs": 35000,
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "duration": 5000,
@@ -3267,7 +3267,7 @@
                     "radius": 100,
                     "damage_per_tick": 4,
                     "tick_interval": 990,
-                    "_collapsed": false,
+                    "_collapsed": true,
                     "pullEnabled": true,
                     "pullRadius": 250,
                     "pullStrength": 800,
@@ -9251,7 +9251,7 @@
                 "warnTimeMs"
             ],
             "icon": "🎈",
-            "label": "Ascensión Telúrica (Ascension)",
+            "label": "Ascensión Telúrica",
             "sound": "",
             "soundMaxDist": 1500,
             "soundVolumeDb": 0,
@@ -9273,7 +9273,7 @@
                 "castInterruptible"
             ],
             "icon": "🔥",
-            "label": "Aura de Vacío (Daño)",
+            "label": "Aura de Vacío",
             "sound": "",
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
@@ -9426,7 +9426,7 @@
                 "turnSpeed"
             ],
             "icon": "💀",
-            "label": "Ejecución Directa (Execution)",
+            "label": "Ejecución Directa",
             "sound": "",
             "soundMaxDist": 1500,
             "soundVolumeDb": 0,
@@ -9743,7 +9743,7 @@
                 "castInterruptible"
             ],
             "icon": "🗺️",
-            "label": "Polimorfia (Cubito)",
+            "label": "Polimorfia",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
@@ -9763,7 +9763,7 @@
                 "castInterruptible"
             ],
             "icon": "🛡️",
-            "label": "Escudo Reflectante (Reflect)",
+            "label": "Escudo Reflectante",
             "sound": "",
             "soundMaxDist": 800,
             "soundVolumeDb": 0,
@@ -9791,7 +9791,7 @@
                 "castInterruptible"
             ],
             "icon": "💤",
-            "label": "Sueño Inducido (Sleep)",
+            "label": "Sueño Inducido",
             "sound": "",
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
@@ -9842,7 +9842,7 @@
                 "castInterruptible"
             ],
             "icon": "🧟",
-            "label": "Invocación (Summoning)",
+            "label": "Invocación",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
@@ -9866,7 +9866,7 @@
                 "debuffsList"
             ],
             "icon": "🔮",
-            "label": "Domo de Supervivencia (Survival Dome)",
+            "label": "Domo de Supervivencia",
             "sound": "",
             "soundMaxDist": 1500,
             "soundVolumeDb": 0,
@@ -9922,7 +9922,7 @@
             "soundVolumePercent": 50
         },
         "whip_summon": {
-            "label": "Látigo Dominante (Whip)",
+            "label": "Látigo Dominante",
             "icon": "🪢",
             "desc": "El enemigo canaliza un látigo místico que azota N veces consecutivas al objetivo a una cadencia configurable.",
             "fields": [

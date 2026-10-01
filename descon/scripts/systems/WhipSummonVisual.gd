@@ -50,7 +50,7 @@ func setup(p_data: Dictionary, p_map: Node, p_enemy: Node = null) -> void:
 	enemy_node = p_enemy
 	_hits_done = 0
 	_total_hits = int(p_data.get("hits", p_data.get("totalHits", 3)))
-	_cadence = int(p_data.get("cadence", 300))
+	_cadence = max(100, int(p_data.get("cadence", 300)))
 	_damage = int(p_data.get("damage", 50))
 	_cast_time = maxf(float(p_data.get("castTimeMs", 500.0)) / 1000.0, 0.1)
 	_target_id = str(p_data.get("targetId", ""))
@@ -95,7 +95,13 @@ func _build_root_3d() -> void:
 
 func _resolve_target_node() -> void:
 	if _target_id.is_empty(): return
-	var em = get_node_or_null("/root/Main/World/EntityManager")
+	var em = null
+	if is_instance_valid(get_tree().current_scene):
+		em = get_tree().current_scene.get_node_or_null("EntityManager")
+	if not is_instance_valid(em):
+		em = get_node_or_null("/root/MainGame/EntityManager")
+	if not is_instance_valid(em):
+		em = get_tree().root.find_child("EntityManager", true, false)
 	if not is_instance_valid(em): return
 	if "world" in em and is_instance_valid(em.world) and "player" in em.world and is_instance_valid(em.world.player):
 		var pid = str(em.world.player.get("id", ""))

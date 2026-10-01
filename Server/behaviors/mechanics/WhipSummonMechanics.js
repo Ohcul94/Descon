@@ -26,14 +26,6 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
 
     const zoneStr = `zone_${this.enemy.zone}`;
 
-    // Generic cast gate (parallel, internal type)
-    if (warnTimeMs > 0 && !state.isStriking) {
-        const isBusy = this._handleGenericCast(mech, mId, now, io);
-        if (isBusy && this._isGenericCastType(mech.type)) {
-            return true;
-        }
-    }
-
     // 1) Cooldown post-ataque
     if (state.isLocked) {
         if (now < state.lockEndTime) return false;
@@ -71,6 +63,8 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
         state.currentTarget = selectedTarget;
         state.hitsDone = 0;
 
+        const totalCastTimeMs = warnTimeMs + (hits * cadence);
+
         io.to(zoneStr).emit('serverEnemyAction', {
             id: this.enemy.id,
             action: "whip_summon_start",
@@ -89,7 +83,7 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
             id: this.enemy.id,
             mId: mId,
             type: "whip_summon",
-            castTimeMs: warnTimeMs,
+            castTimeMs: totalCastTimeMs,
             x: this.enemy.x,
             y: this.enemy.y
         });
