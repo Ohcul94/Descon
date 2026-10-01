@@ -5078,7 +5078,8 @@ func _project_3d_pos_to_2d(pos_3d: Vector3) -> Vector2:
 				var container = current_map.viewport_container
 				if is_instance_valid(container):
 					sv_pixel *= Vector2(container.size) / Vector2(sub_vp.size)
-					sv_pixel += container.global_position
+					# v1001.0: unidades locales del contenedor -> unidades de contenido
+					sv_pixel = container.global_position + sv_pixel * Vector2(container.scale)
 				else:
 					var main_size = Vector2(get_viewport().get_visible_rect().size)
 					sv_pixel *= main_size / Vector2(sub_vp.size)

@@ -437,6 +437,10 @@ func _screen_to_subvp(screen_pos: Vector2) -> Vector2:
 	var sub_sz = Vector2(sub_viewport.size)
 	var cont_sz = Vector2(viewport_container.size)
 	var local_pos = screen_pos - coffset
+	# v1001.0: unidades de contenido -> unidades locales del contenedor
+	var cont_scale = Vector2(viewport_container.scale)
+	if cont_scale.x != 0.0 and cont_scale.y != 0.0:
+		local_pos /= cont_scale
 	if sub_sz.x > 0 and cont_sz.x > 0 and sub_sz != cont_sz:
 		local_pos *= sub_sz / cont_sz
 	return local_pos

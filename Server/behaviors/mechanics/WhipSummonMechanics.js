@@ -140,7 +140,7 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
             // Aplicar daño server-authoritative
             const allTargets = (targets.length > 0) ? targets : (state.currentTarget ? [state.currentTarget] : []);
             allTargets.forEach(t => {
-                if (t && !t.isDead && !t.isInvisible) {
+                if (t && !t.isDead && !t.isInvisible && !t.inStrangeDimension && !t.isInvulnerable) {
                     if (t.shield >= damage) {
                         t.shield -= damage;
                     } else {

@@ -543,7 +543,7 @@ socket.on('playerFire', (fireData) => {
 
         const targetId = data.enemyId || data.victimId;
         const target = state.enemies[targetId] || state.players[targetId];
-        if (!target || target.hp <= 0) return;
+        if (!target || target.hp <= 0 || target.isInvulnerable || target.inStrangeDimension) return;
 
         // 1. Aplicar daño
         const damage = Number(data.damage) || 500;
@@ -931,7 +931,7 @@ socket.on('playerFire', (fireData) => {
             if (enemy.reflectActive) {
                 const reflectMult = enemy.reflectMult !== undefined ? enemy.reflectMult : 0.8;
                 const reflectedDmg = Math.round(finalDamage * reflectMult);
-                if (reflectedDmg > 0 && !p.isInvulnerable) {
+                if (reflectedDmg > 0 && !p.isInvulnerable && !p.inStrangeDimension) {
                     if (p.shield >= reflectedDmg) p.shield -= reflectedDmg;
                     else { p.hp -= (reflectedDmg - p.shield); p.shield = 0; }
                     if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
@@ -1354,7 +1354,7 @@ socket.on('playerFire', (fireData) => {
                 io.to(p.socketId).emit('gameNotification', { msg: "💥 ¡PESADILLA! Te despertás abruptamente tras recibir daño extra.", type: "warning" });
             }
 
-            if (p.isInvulnerable) dmg = 0;
+            if (p.isInvulnerable || p.inStrangeDimension) dmg = 0;
 
             const dmgTakenFinal = dmg;
             if (p.shield >= dmg) p.shield -= dmg;

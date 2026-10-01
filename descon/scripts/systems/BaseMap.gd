@@ -774,6 +774,16 @@ func _setup_3d_dynamic():
 			viewport_container.stretch = true
 			viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			# v1001.0: Desacople UI/3D. El contenedor crece en unidades locales por
+			# display/window/stretch/scale y se dibuja a esa misma escala, de modo que
+			# el SubViewport sigue renderizando a resolucion plena (1920x1080) mientras
+			# la UI vive en el espacio de contenido reducido (1422x800).
+			var ui_scale_3d := float(ProjectSettings.get_setting("display/window/stretch/scale", 1.0))
+			if ui_scale_3d > 0.0 and ui_scale_3d != 1.0:
+				viewport_container.anchor_right *= ui_scale_3d
+				viewport_container.anchor_bottom *= ui_scale_3d
+				viewport_container.pivot_offset = Vector2.ZERO
+				viewport_container.scale = Vector2.ONE / ui_scale_3d
 			sub_viewport = viewport_container.get_node_or_null("SubViewport")
 			if is_instance_valid(sub_viewport):
 				sub_viewport.transparent_bg = true
@@ -841,6 +851,13 @@ func _setup_3d_dynamic():
 	viewport_container.stretch = true
 	canvas.add_child(viewport_container)
 	viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# v1001.0: Desacople UI/3D (ver comentario en el path de canvas existente).
+	var ui_scale_3d := float(ProjectSettings.get_setting("display/window/stretch/scale", 1.0))
+	if ui_scale_3d > 0.0 and ui_scale_3d != 1.0:
+		viewport_container.anchor_right *= ui_scale_3d
+		viewport_container.anchor_bottom *= ui_scale_3d
+		viewport_container.pivot_offset = Vector2.ZERO
+		viewport_container.scale = Vector2.ONE / ui_scale_3d
 	
 	sub_viewport = SubViewport.new()
 	sub_viewport.name = "SubViewport"
@@ -1334,6 +1351,11 @@ func _get_subvp_mouse_pos() -> Vector2:
 	var cont_sz = Vector2(viewport_container.size)
 	var sub_sz = Vector2(sub_viewport.size)
 	var local = mouse - offset
+	# v1001.0: el contenedor puede escalar (desacople UI/3D), pasar de unidades de
+	# contenido a unidades locales del contenedor antes de mapear al SubViewport.
+	var cont_scale = Vector2(viewport_container.scale)
+	if cont_scale.x != 0.0 and cont_scale.y != 0.0:
+		local /= cont_scale
 	if sub_sz.x > 0 and cont_sz.x > 0 and sub_sz != cont_sz:
 		local *= sub_sz / cont_sz
 	return local

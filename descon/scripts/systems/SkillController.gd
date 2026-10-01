@@ -136,6 +136,11 @@ func _screen_to_world_pos(screen_pos: Vector2) -> Vector2:
 			var sub_size = Vector2(sub_vp.size) if sub_vp.size.x > 0 else Vector2.ZERO
 			var container_size = Vector2(container.size) if is_instance_valid(container) and container.size.x > 0 else Vector2.ZERO
 			var local_screen = screen_pos - container_offset
+			# v1001.0: unidades de contenido -> unidades locales del contenedor
+			if is_instance_valid(container):
+				var cont_scale = Vector2(container.scale)
+				if cont_scale.x != 0.0 and cont_scale.y != 0.0:
+					local_screen /= cont_scale
 			if container_size.x > 0 and sub_size.x > 0:
 				local_screen *= sub_size / container_size
 			var ray_from = cam3d.project_ray_origin(local_screen)
@@ -420,7 +425,10 @@ func _draw():
 		var container_offset = Vector2.ZERO
 		if is_instance_valid(container):
 			container_offset = container.global_position
-		sv_px += container_offset
+			# v1001.0: unidades locales del contenedor -> unidades de contenido
+			sv_px = container_offset + sv_px * Vector2(container.scale)
+		else:
+			sv_px += container_offset
 		var world_2d_vis = get_viewport().get_canvas_transform().affine_inverse() * sv_px
 		return to_local(world_2d_vis)
 

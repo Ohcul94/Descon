@@ -1292,7 +1292,7 @@ function startGameLoop(io, state, aiManager) {
                             }
                         }
                         // v267.800: EFECTO FÍSICO DEL VÓRTICE AMBIENTAL SINCRO 1:1
-                        if (area.type === 'VORTEX_HAZARD') {
+                        if (area.type === 'VORTEX_HAZARD' && !p.inStrangeDimension && !p.isInvulnerable) {
                             // 1. Succión Literal (Fuerza en PX/S)
                             const pullBase = (area.pullForce || 400); 
                             const proximityMult = 1.0 + (1.0 - dist / area.radius);

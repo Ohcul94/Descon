@@ -3511,7 +3511,7 @@ module.exports = class BaseAI {
         const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
         const effFireRange = (fireRange !== undefined && Number(fireRange) > 0) ? Number(fireRange) : enemyFireRange;
 
-        let pool = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
+        let pool = Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible && !p.inStrangeDimension && !p.isInvulnerable);
         pool = pool.filter(p => Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= effFireRange);
         if (pool.length === 0) return [];
 

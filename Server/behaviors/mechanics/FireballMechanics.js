@@ -42,7 +42,7 @@ function _pickWaypoint(state, areaRadius) {
  * Aplica daño autoritativo a un jugador impactado por la bola o por sus rayos.
  */
 function _dealDirectDamage(ai, p, dmg, now, io, source = "fireball") {
-    if (!p || p.isDead || p.isInvulnerable || dmg <= 0) return;
+    if (!p || p.isDead || p.isInvulnerable || p.inStrangeDimension || dmg <= 0) return;
 
     recordPlayerCombat(p, ai.state, now);
     p.lastCombatTime = now;

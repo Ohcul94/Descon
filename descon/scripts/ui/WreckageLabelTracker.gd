@@ -26,7 +26,8 @@ func _update_position():
 		var container = map.viewport_container
 		if is_instance_valid(container) and sub_vp.size.x > 0:
 			sv_pixel *= Vector2(container.size) / Vector2(sub_vp.size)
-			sv_pixel += container.global_position
+			# v1001.0: unidades locales del contenedor -> unidades de contenido
+			sv_pixel = container.global_position + sv_pixel * Vector2(container.scale)
 		else:
 			if sub_vp.size.x > 0 and sub_vp.size.y > 0:
 				var main_size = Vector2(get_viewport().get_visible_rect().size)

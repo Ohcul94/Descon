@@ -28,7 +28,7 @@ function executeEnemyExplosion(enemy, io, state) {
     });
 
     Object.values(state.players).forEach(p => {
-        if (p.zone !== enemy.zone || p.isDead) return;
+        if (p.zone !== enemy.zone || p.isDead || p.isInvulnerable || p.inStrangeDimension) return;
         const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
         if (dist <= radius) {
             if (p.shield >= damage) p.shield -= damage;

@@ -143,7 +143,7 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
     const radius = mech.radius || 250;
     const landingDamage = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 150) * (this.damageMult || 1);
 
-    const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible);
+    const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible && !p.isInvulnerable && !p.inStrangeDimension);
 
     // 1) Procesar saltos activos
     for (let i = state.jumps.length - 1; i >= 0; i--) {
@@ -172,6 +172,7 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
 
             // Aplicar daño de aterrizaje a los jugadores dentro del área
             zonePlayers().forEach(p => {
+                if (p.isInvulnerable || p.inStrangeDimension) return;
                 const d = Math.hypot(p.x - jp.endX, p.y - jp.endY);
                 if (d > radius) return;
                 p.lastCombatTime = Date.now();
@@ -440,6 +441,7 @@ function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, p
         const halfWidth = width / 2;
 
         for (const p of zonePlayers) {
+            if (p.isInvulnerable || p.inStrangeDimension) continue;
             if (state.hitPlayers.includes(p.socketId)) continue;
 
             const dx = p.x - this.enemy.x;

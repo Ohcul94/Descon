@@ -431,7 +431,7 @@ function _handleBossWaterOrbsLogic(mech, mId, now, io, grid, players) {
 
             const { players: nearbyPlayers } = grid.getNearbyEntities(orb.x, orb.y, this.enemy.zone);
             for (const p of nearbyPlayers) {
-                if (String(p.zone) === String(this.enemy.zone) && !p.isDead) {
+                if (String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvulnerable && !p.inStrangeDimension) {
                     const distToP = Math.hypot(p.x - orb.x, p.y - orb.y);
                     if (distToP <= 60) {
                         p.lastCombatTime = Date.now();

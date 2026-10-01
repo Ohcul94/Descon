@@ -68,8 +68,8 @@ function _handleShieldStealLogic(mech, mId, now, io, players) {
     if (state.isActive && state.targetId) {
         const target = players ? players[state.targetId] : null;
 
-        // Expirar si el jugador no existe, está muerto, se fue de la zona o pasó el tiempo
-        if (!target || target.isDead || String(target.zone) !== String(this.enemy.zone) || now >= state.endTime) {
+        // Expirar si el jugador no existe, está muerto, en Dimensión Extraña, invulnerable, se fue de la zona o pasó el tiempo
+        if (!target || target.isDead || target.inStrangeDimension || target.isInvulnerable || String(target.zone) !== String(this.enemy.zone) || now >= state.endTime) {
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
                 id: this.enemy.id, action: "shield_steal_end", mId: mId, targetId: state.targetId
             });
@@ -280,7 +280,7 @@ function _handleLifeStealLogic(mech, mId, now, io, players) {
     if (state.isActive && state.targetId) {
         const target = players ? players[state.targetId] : null;
 
-        if (!target || target.isDead || String(target.zone) !== String(this.enemy.zone) || now >= state.endTime) {
+        if (!target || target.isDead || target.inStrangeDimension || target.isInvulnerable || String(target.zone) !== String(this.enemy.zone) || now >= state.endTime) {
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
                 id: this.enemy.id, action: "life_steal_end", mId: mId, targetId: state.targetId
             });
