@@ -26,7 +26,7 @@ function registerVaultHandlers(socket, io, state) {
             if (!user) return;
 
             // Seguridad: El baúl solo está accesible físicamente en el Lobby (Zona 1)
-            if (p.zone !== 1) {
+            if (parseInt(p.zone) !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: El baúl solo está disponible en el Lobby.', type: 'error' });
             }
 
@@ -81,7 +81,7 @@ function registerVaultHandlers(socket, io, state) {
             const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
-            if (p.zone !== 1) {
+            if (parseInt(p.zone) !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: El baúl solo está disponible en el Lobby.', type: 'error' });
             }
 
@@ -157,7 +157,7 @@ function registerVaultHandlers(socket, io, state) {
             const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
-            if (p.zone !== 1) {
+            if (parseInt(p.zone) !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: El baúl solo está disponible en el Lobby.', type: 'error' });
             }
 
@@ -224,7 +224,7 @@ function registerVaultHandlers(socket, io, state) {
             const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
-            if (p.zone !== 1) {
+            if (parseInt(p.zone) !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: El baúl solo está disponible en el Lobby.', type: 'error' });
             }
 
@@ -301,7 +301,7 @@ function registerVaultHandlers(socket, io, state) {
             const user = getPlayerRAMAdapter(p);
             if (!user) return;
  
-            if (p.zone !== 1) {
+            if (parseInt(p.zone) !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: Solo puedes desbloquear slots en el Lobby.', type: 'error' });
             }
  

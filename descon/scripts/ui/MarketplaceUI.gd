@@ -333,32 +333,49 @@ func open_market():
 	_refresh_all()
 
 func _open():
+	visible = true
 	is_open = true
-	overlay.visible = true
-	control_root.visible = true
-	overlay.modulate.a = 0.0
-	control_root.modulate.a = 0.0
+	if is_instance_valid(overlay):
+		overlay.visible = true
+		overlay.modulate.a = 0.0
+	if is_instance_valid(control_root):
+		control_root.visible = true
+		control_root.modulate.a = 0.0
 	var tw = create_tween()
-	tw.tween_property(overlay, "modulate:a", 1.0, 0.15)
-	tw.parallel().tween_property(control_root, "modulate:a", 1.0, 0.15)
+	if is_instance_valid(overlay):
+		tw.tween_property(overlay, "modulate:a", 1.0, 0.15)
+	if is_instance_valid(control_root):
+		tw.parallel().tween_property(control_root, "modulate:a", 1.0, 0.15)
 	# Arrancar auto-refresh cada 30 seg (listings en vivo)
 	if is_instance_valid(_auto_refresh_timer) and _auto_refresh_timer.is_stopped():
 		_auto_refresh_timer.start()
 
 func close_market():
-	if not is_open: return
+	if not is_open:
+		_hide_modal()
+		if is_instance_valid(overlay): overlay.visible = false
+		if is_instance_valid(control_root): control_root.visible = false
+		return
 	is_open = false
 	_hide_modal()
 	# Detener auto-refresh al cerrar
 	if is_instance_valid(_auto_refresh_timer):
 		_auto_refresh_timer.stop()
 	var tw = create_tween()
-	tw.tween_property(overlay, "modulate:a", 0.0, 0.12)
-	tw.parallel().tween_property(control_root, "modulate:a", 0.0, 0.12)
+	if is_instance_valid(overlay):
+		tw.tween_property(overlay, "modulate:a", 0.0, 0.12)
+	if is_instance_valid(control_root):
+		tw.parallel().tween_property(control_root, "modulate:a", 0.0, 0.12)
 	tw.tween_callback(func():
-		overlay.visible = false
-		control_root.visible = false
+		if is_instance_valid(overlay): overlay.visible = false
+		if is_instance_valid(control_root): control_root.visible = false
 	)
+
+func close_modal():
+	close_market()
+
+func close():
+	close_market()
 
 func _refresh_all():
 	if NetworkManager:

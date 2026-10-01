@@ -163,39 +163,59 @@ func _ready():
 	hbox_btns.add_child(btn_wait)
 
 func open_modal():
+	visible = true
 	local_player = get_tree().get_first_node_in_group("player")
 	countdown_ms = 120000.0
 	timer_active = true
 	is_open = true
 	
-	overlay.visible = true
-	control_root.visible = true
-	btn_lobby.visible = true
-	btn_wait.visible = true
-	label_timer.visible = true
-	label_status.text = "Selecciona una opción antes del auto-retorno al Lobby."
+	if is_instance_valid(overlay):
+		overlay.visible = true
+		overlay.modulate.a = 0.0
+	if is_instance_valid(control_root):
+		control_root.visible = true
+	if is_instance_valid(btn_lobby):
+		btn_lobby.visible = true
+	if is_instance_valid(btn_wait):
+		btn_wait.visible = true
+	if is_instance_valid(label_timer):
+		label_timer.visible = true
+	if is_instance_valid(label_status):
+		label_status.text = "Selecciona una opción antes del auto-retorno al Lobby."
 	
 	# Efecto de pulsación/entrada suave
-	panel_container.scale = Vector2(0.85, 0.85)
-	overlay.modulate.a = 0.0
+	if is_instance_valid(panel_container):
+		panel_container.scale = Vector2(0.85, 0.85)
 	
 	var tw = create_tween().set_parallel(true)
-	tw.tween_property(overlay, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(panel_container, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if is_instance_valid(overlay):
+		tw.tween_property(overlay, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE)
+	if is_instance_valid(panel_container):
+		tw.tween_property(panel_container, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func close_modal():
 	if is_open:
 		is_open = false
 		timer_active = false
 		
-		var tw = create_tween().set_parallel(true)
-		tw.tween_property(overlay, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE)
-		tw.tween_property(panel_container, "scale", Vector2(0.85, 0.85), 0.2).set_trans(Tween.TRANS_SINE)
-		
-		await tw.finished
-		if not is_open:
-			overlay.visible = false
-			control_root.visible = false
+		if is_instance_valid(overlay) and is_instance_valid(panel_container):
+			var tw = create_tween().set_parallel(true)
+			tw.tween_property(overlay, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE)
+			tw.tween_property(panel_container, "scale", Vector2(0.85, 0.85), 0.2).set_trans(Tween.TRANS_SINE)
+			
+			await tw.finished
+			if not is_open:
+				if is_instance_valid(overlay): overlay.visible = false
+				if is_instance_valid(control_root): control_root.visible = false
+		else:
+			if is_instance_valid(overlay): overlay.visible = false
+			if is_instance_valid(control_root): control_root.visible = false
+	else:
+		if is_instance_valid(overlay): overlay.visible = false
+		if is_instance_valid(control_root): control_root.visible = false
+
+func close():
+	close_modal()
 
 func _process(delta):
 	if is_open and timer_active:

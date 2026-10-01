@@ -2379,14 +2379,14 @@ func _is_menu_open() -> bool:
 		for node in get_tree().get_nodes_in_group(group):
 			if not is_instance_valid(node):
 				continue
-			if node is CanvasItem and node.visible:
+			if "is_open" in node and node.get("is_open"):
 				return true
-			if node is Control:
-				var overlay = node.get_node_or_null("overlay")
-				if is_instance_valid(overlay) and overlay.visible:
-					return true
-				if "is_open" in node and node.get("is_open"):
-					return true
+			var ctrl_root = node.get_node_or_null("control_root")
+			if is_instance_valid(ctrl_root) and ctrl_root.visible:
+				return true
+			var overlay = node.get_node_or_null("overlay")
+			if is_instance_valid(overlay) and overlay.visible and overlay.modulate.a > 0.1:
+				return true
 	return false
 
 func _set_portal_icon(type: String):

@@ -135,6 +135,7 @@ func _on_register_btn_pressed():
 	NetworkManager.connect_to_server(target_ip, target_port, u, p, true)
 
 func _on_auth_success(_data):
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_show_status("Bienvenido!", Color.GREEN)
 	var bg = get_node_or_null("FondoNegro")
 	if bg: bg.visible = false
@@ -144,6 +145,8 @@ func _on_auth_success(_data):
 
 func _on_auth_fail(msg):
 	visible = true
+	modulate.a = 1.0
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	show()
 	var bg = get_node_or_null("FondoNegro")

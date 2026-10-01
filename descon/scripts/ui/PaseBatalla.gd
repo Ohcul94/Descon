@@ -53,6 +53,21 @@ func toggle():
 
 	queue_redraw()
 
+func close():
+	if is_open:
+		is_open = false
+		visible = false
+		z_index = 0
+		for m in active_modales:
+			if is_instance_valid(m):
+				m.queue_free()
+		active_modales.clear()
+		modal_active = false
+		queue_redraw()
+
+func close_modal():
+	close()
+
 func _input(event):
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		while active_modales.size() > 0:

@@ -149,6 +149,17 @@ func _process(delta):
 		sprite.position.y = 0.0
 	_update_3d_position()
 	
+	# Failsafe continuo de proximidad con el jugador
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player):
+		var dist_to_player = global_position.distance_to(player.global_position)
+		if dist_to_player <= 160.0:
+			if not is_interactable:
+				_on_body_entered(player)
+		elif dist_to_player > 185.0:
+			if is_interactable:
+				_on_body_exited(player)
+
 	var mouse_pos = get_global_mouse_position()
 	var dist_to_mouse = global_position.distance_to(mouse_pos)
 	is_hovered = (dist_to_mouse <= 55.0)
@@ -171,6 +182,9 @@ func _update_3d_position():
 func _exit_tree():
 	if is_single_world and is_instance_valid(world_root_3d):
 		world_root_3d.queue_free()
+	var map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(map) and map.has_method("unregister_market_interaction") and map.get("active_market_node") == self:
+		map.unregister_market_interaction()
 
 func _check_initial_overlap():
 	if not is_instance_valid(self):
@@ -178,7 +192,10 @@ func _check_initial_overlap():
 	for body in get_overlapping_bodies():
 		if body.is_in_group("player"):
 			_on_body_entered(body)
-			break
+			return
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player) and global_position.distance_to(player.global_position) <= 160.0:
+		_on_body_entered(player)
 
 func _on_body_entered(body):
 	if body.is_in_group("player"):

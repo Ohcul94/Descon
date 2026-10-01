@@ -2,11 +2,9 @@ extends CanvasLayer
 
 # VaultUI.gd (v1.0 - Interfaz AAA de Almacenamiento Personal)
 # Interfaz de doble panel de alta gama para almacenar y retirar ítems en el lobby.
-# v761.0: Estética igualada al Inventario F1 (marco táctico HUDFrame) + sección de
-# efectos de esferas + tooltip con stats compartidas (ItemInfoHelper).
+# v761.0: Estética igualada al Inventario F1 (marco táctico HUDFrame) + tooltip con stats compartidas (ItemInfoHelper).
 
 const ItemInfoHelper = preload("res://scripts/ui/inventory/ItemInfoHelper.gd")
-const VaultTacticalFrameScript = preload("res://scripts/ui/VaultTacticalFrame.gd")
 
 var is_open: bool = false
 var vault_items: Array = []
@@ -20,7 +18,7 @@ var player_ohcu: int = 0
 # Referencias a nodos UI
 var control_root: Control = null
 var overlay: ColorRect = null
-var frame: Control = null
+var hbox_container: HBoxContainer = null
 var tab_bar: TabBar = null
 var vault_grid: GridContainer = null
 var inv_container: GridContainer = null
@@ -30,7 +28,6 @@ var lbl_ohcu: Label = null
 var lbl_slots_info: Label = null
 var lbl_inv_slots: Label = null
 var btn_expand_inv: Button = null
-var lbl_sphere_effects: Label = null
 var inventory_max_slots: int = 30
 var inventory_config: Dictionary = {}
 
@@ -47,7 +44,7 @@ func _ready():
 	
 	# 1. Overlay oscuro de fondo
 	overlay = ColorRect.new()
-	overlay.color = Color(0.0, 0.0, 0.0, 0.6)
+	overlay.color = Color(0.0, 0.0, 0.0, 0.72)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)
@@ -62,21 +59,13 @@ func _ready():
 	overlay.modulate.a = 0.0
 	control_root.visible = false
 	
-	# 2b. v761.0: Marco exterior táctico (misma estética que el Inventario F1)
-	frame = Control.new()
-	frame.name = "TacticalFrame"
-	frame.set_script(VaultTacticalFrameScript)
-	frame.position = Vector2(-444, -292)
-	frame.size = Vector2(889, 584)
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	control_root.add_child(frame)
-	
 	# 3. Diseñar panel de doble panel (HBoxContainer)
 	var hbox = HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 25)
 	hbox.custom_minimum_size = Vector2(865, 560)
 	hbox.position = Vector2(-432, -280) # Centrar en pantalla
 	control_root.add_child(hbox)
+	hbox_container = hbox
 	
 	# A) PANEL IZQUIERDO: EL BAÚL DE SEGURIDAD (paleta obsidiana/cian = Inventario F1)
 	var panel_vault = PanelContainer.new()
@@ -125,7 +114,8 @@ func _ready():
 	
 	# Scroll para el Grid de Slots
 	var scroll_vault = ScrollContainer.new()
-	scroll_vault.custom_minimum_size = Vector2(0, 300)
+	scroll_vault.custom_minimum_size = Vector2(0, 430)
+	scroll_vault.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll_vault.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vbox_vault.add_child(scroll_vault)
 	
@@ -236,7 +226,8 @@ func _ready():
 	
 	# Scroll para lista de ítems de inventario
 	var scroll_inv = ScrollContainer.new()
-	scroll_inv.custom_minimum_size = Vector2(0, 260)
+	scroll_inv.custom_minimum_size = Vector2(0, 410)
+	scroll_inv.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll_inv.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vbox_inv.add_child(scroll_inv)
 	
@@ -282,27 +273,28 @@ func _ready():
 	btn_expand_inv.pressed.connect(_on_expand_inv_pressed)
 	hbox_slots_inv.add_child(btn_expand_inv)
 	
-	# v761.0: Sección de efectos que ofrecen las esferas instaladas (nuevo)
-	var sph_sep = HSeparator.new()
-	vbox_inv.add_child(sph_sep)
-	
-	var sph_title = Label.new()
-	sph_title.text = "🔮 EFECTOS DE ESFERAS"
-	sph_title.add_theme_font_size_override("font_size", 10)
-	sph_title.add_theme_color_override("font_color", Color(0.85, 0.45, 1.0))
-	vbox_inv.add_child(sph_title)
-	
-	lbl_sphere_effects = Label.new()
-	lbl_sphere_effects.text = ItemInfoHelper.sphere_summary_text()
-	lbl_sphere_effects.add_theme_font_size_override("font_size", 9)
-	lbl_sphere_effects.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lbl_sphere_effects.add_theme_color_override("font_color", Color(0.75, 0.9, 1.0, 0.9))
-	vbox_inv.add_child(lbl_sphere_effects)
-	
 	# Botón de Cerrar general
 	var btn_close = Button.new()
 	btn_close.text = "CERRAR BAÚL"
-	btn_close.custom_minimum_size = Vector2(0, 32)
+	btn_close.custom_minimum_size = Vector2(0, 34)
+	btn_close.add_theme_font_size_override("font_size", 11)
+	
+	var btn_close_style = StyleBoxFlat.new()
+	btn_close_style.bg_color = Color(0.04, 0.08, 0.12, 0.8)
+	btn_close_style.border_width_left = 1
+	btn_close_style.border_width_top = 1
+	btn_close_style.border_width_right = 1
+	btn_close_style.border_width_bottom = 1
+	btn_close_style.border_color = Color(0.0, 0.82, 0.96, 0.6)
+	btn_close_style.set_corner_radius_all(4)
+	btn_close.add_theme_stylebox_override("normal", btn_close_style)
+	
+	var btn_close_hover = btn_close_style.duplicate()
+	btn_close_hover.bg_color = Color(0.08, 0.18, 0.28, 0.9)
+	btn_close_hover.border_color = Color(0.0, 0.9, 1.0, 1.0)
+	btn_close.add_theme_stylebox_override("hover", btn_close_hover)
+	btn_close.add_theme_color_override("font_color", Color(0.9, 0.96, 1.0))
+	
 	btn_close.pressed.connect(close_vault)
 	vbox_inv.add_child(btn_close)
 	
@@ -380,21 +372,14 @@ func _input(event):
 				_tip_rect = info_panel.get_global_rect()
 			_hide_info_panel()
 
-			# v761.0: Hit-test de la X dibujada del marco táctico (paridad Inventario F1)
-			if is_instance_valid(frame):
-				var x_rect = Rect2(frame.global_position + Vector2(frame.size.x - 55, 6), Vector2(44, 24))
-				if x_rect.has_point(event.position):
+			if is_instance_valid(hbox_container):
+				var root_rect = hbox_container.get_global_rect()
+				if not root_rect.has_point(event.position):
 					close_vault()
 					get_viewport().set_input_as_handled()
-					return
-
-			var root_rect = Rect2(control_root.global_position + control_root.get_child(0).position, control_root.get_child(0).size)
-			if not root_rect.has_point(event.position):
-				close_vault()
-				get_viewport().set_input_as_handled()
-			elif _tip_visible and not _tip_rect.has_point(event.position):
-				# Click afuera del tooltip pero dentro del Baúl: ya se ocultó arriba
-				pass
+				elif _tip_visible and not _tip_rect.has_point(event.position):
+					# Click afuera del tooltip pero dentro del Baúl: ya se ocultó arriba
+					pass
 
 func _on_vault_data_received(data: Dictionary):
 	vault_items = data.get("items", [])
@@ -429,7 +414,6 @@ func _on_vault_updated_received(data: Dictionary):
 	
 	_refresh_vault()
 	_refresh_inventory()
-	_update_sphere_effects()
 
 func _on_inventory_received(data: Dictionary):
 	var gd = data
@@ -470,16 +454,16 @@ func _on_inventory_received(data: Dictionary):
 			lbl_hubs.text = "Hubs: " + _format_number(player_hubs)
 		if lbl_ohcu:
 			lbl_ohcu.text = "Ohcu: " + _format_number(player_ohcu)
-		_update_sphere_effects()
-		_update_frame_badges()
 
 func open_vault():
-	if not is_open:
-		is_open = true
+	visible = true
+	if is_instance_valid(overlay):
 		overlay.visible = true
+	if is_instance_valid(control_root):
 		control_root.visible = true
 		
-		# Animación de entrada fluida (escala + fade)
+	if not is_open:
+		is_open = true
 		control_root.scale = Vector2(0.85, 0.85)
 		control_root.pivot_offset = Vector2.ZERO # Centro
 		overlay.modulate.a = 0.0
@@ -487,6 +471,9 @@ func open_vault():
 		var tw = create_tween().set_parallel(true)
 		tw.tween_property(overlay, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE)
 		tw.tween_property(control_root, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	else:
+		if is_instance_valid(overlay): overlay.modulate.a = 1.0
+		if is_instance_valid(control_root): control_root.scale = Vector2.ONE
 	
 	# Forzar consistencia con el Player real local antes de dibujar
 	var player = get_tree().get_first_node_in_group("player")
@@ -499,36 +486,37 @@ func open_vault():
 		lbl_hubs.text = "Hubs: " + _format_number(player_hubs)
 	if lbl_ohcu:
 		lbl_ohcu.text = "Ohcu: " + _format_number(player_ohcu)
-	_update_frame_badges()
 		
 	_refresh_vault()
 	_refresh_inventory()
 	_update_unlock_tab_button()
-	_update_sphere_effects()
-
-func _update_frame_badges():
-	if is_instance_valid(frame) and "hubs_str" in frame:
-		frame.hubs_str = _format_number(player_hubs)
-		frame.ohcu_str = _format_number(player_ohcu)
-		frame.queue_redraw()
-
-func _update_sphere_effects():
-	if is_instance_valid(lbl_sphere_effects):
-		lbl_sphere_effects.text = ItemInfoHelper.sphere_summary_text()
 
 func close_vault():
 	_hide_info_panel()
 	if is_open:
 		is_open = false
 		
-		var tw = create_tween().set_parallel(true)
-		tw.tween_property(overlay, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE)
-		tw.tween_property(control_root, "scale", Vector2(0.85, 0.85), 0.2).set_trans(Tween.TRANS_SINE)
-		
-		await tw.finished
-		if not is_open:
-			overlay.visible = false
-			control_root.visible = false
+		if is_instance_valid(overlay) and is_instance_valid(control_root):
+			var tw = create_tween().set_parallel(true)
+			tw.tween_property(overlay, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE)
+			tw.tween_property(control_root, "scale", Vector2(0.85, 0.85), 0.2).set_trans(Tween.TRANS_SINE)
+			
+			await tw.finished
+			if not is_open:
+				overlay.visible = false
+				control_root.visible = false
+		else:
+			if is_instance_valid(overlay): overlay.visible = false
+			if is_instance_valid(control_root): control_root.visible = false
+	else:
+		if is_instance_valid(overlay): overlay.visible = false
+		if is_instance_valid(control_root): control_root.visible = false
+
+func close_modal():
+	close_vault()
+
+func close():
+	close_vault()
 
 func _on_tab_changed(index):
 	current_tab = index

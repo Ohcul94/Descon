@@ -457,11 +457,28 @@ func _process(delta):
 					for menu_name in ["LootUI", "VaultUI", "MarketplaceUI", "DeathModalUI", "PaseBatalla"]:
 						var menu = hud_node.get_node_or_null(menu_name)
 						if is_instance_valid(menu):
-							menu.visible = false
-							if menu.has_method("close_modal"):
+							if menu.has_method("close_vault"):
+								menu.close_vault()
+							elif menu.has_method("close_market"):
+								menu.close_market()
+							elif menu.has_method("close_modal"):
 								menu.close_modal()
 							elif menu.has_method("close"):
 								menu.close()
+							if "is_open" in menu:
+								menu.is_open = false
+							var m_overlay = menu.get_node_or_null("overlay")
+							if is_instance_valid(m_overlay):
+								m_overlay.visible = false
+							var ctrl_root = menu.get_node_or_null("control_root")
+							if is_instance_valid(ctrl_root):
+								ctrl_root.visible = false
+							if menu is Control:
+								menu.visible = false
+					if is_instance_valid(ui_inventory) and ui_inventory.visible:
+						ui_inventory.visible = false
+						if "is_open" in ui_inventory:
+							ui_inventory.is_open = false
 								
 				# C. Limpiar entidades de escena
 				if is_instance_valid(entity_manager):

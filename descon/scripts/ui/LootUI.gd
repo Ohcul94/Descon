@@ -192,12 +192,12 @@ func open_modal(loot_id: String, items: Array):
 	# Habilitar o deshabilitar botón de recoger todo
 	btn_claim_all.disabled = (items.size() == 0)
 	
+	visible = true
 	if not is_open:
 		is_open = true
 		overlay.visible = true
 		control_root.visible = true
 
-		
 		# Animación de entrada premium (Fade-in + escala progresiva)
 		control_root.scale = Vector2(0.85, 0.85)
 		control_root.pivot_offset = Vector2.ZERO # Centrado
@@ -206,6 +206,13 @@ func open_modal(loot_id: String, items: Array):
 		var tw = create_tween().set_parallel(true)
 		tw.tween_property(overlay, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE)
 		tw.tween_property(control_root, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	else:
+		if is_instance_valid(overlay):
+			overlay.visible = true
+			overlay.modulate.a = 1.0
+		if is_instance_valid(control_root):
+			control_root.visible = true
+			control_root.scale = Vector2.ONE
 
 func _create_item_row(item: Dictionary):
 	var row = HBoxContainer.new()
@@ -310,6 +317,9 @@ func close_modal():
 		control_root.visible = false
 		current_loot_id = ""
 		items_list.clear()
+
+func close():
+	close_modal()
 
 func _on_claim_all_pressed():
 	if current_loot_id != "" and NetworkManager:
