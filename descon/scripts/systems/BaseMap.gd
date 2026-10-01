@@ -765,6 +765,7 @@ func _setup_3d_dynamic():
 			z_id_str = str(int(z_float))
 	var scene_3d_path = _resolve_map_editor_path(z_id_str)
 	_has_custom_3d_scene = ResourceLoader.exists(scene_3d_path)
+	var ui_scale_3d := float(ProjectSettings.get_setting("display/window/stretch/scale", 1.0))
 
 	# Si ya existe ViewportCanvas en la escena (como en Map_Extraction), vincular referencias y retornar
 	var existing_canvas = get_node_or_null("ViewportCanvas")
@@ -778,7 +779,6 @@ func _setup_3d_dynamic():
 			# display/window/stretch/scale y se dibuja a esa misma escala, de modo que
 			# el SubViewport sigue renderizando a resolucion plena (1920x1080) mientras
 			# la UI vive en el espacio de contenido reducido (1422x800).
-			var ui_scale_3d := float(ProjectSettings.get_setting("display/window/stretch/scale", 1.0))
 			if ui_scale_3d > 0.0 and ui_scale_3d != 1.0:
 				viewport_container.anchor_right *= ui_scale_3d
 				viewport_container.anchor_bottom *= ui_scale_3d
@@ -852,7 +852,6 @@ func _setup_3d_dynamic():
 	canvas.add_child(viewport_container)
 	viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# v1001.0: Desacople UI/3D (ver comentario en el path de canvas existente).
-	var ui_scale_3d := float(ProjectSettings.get_setting("display/window/stretch/scale", 1.0))
 	if ui_scale_3d > 0.0 and ui_scale_3d != 1.0:
 		viewport_container.anchor_right *= ui_scale_3d
 		viewport_container.anchor_bottom *= ui_scale_3d

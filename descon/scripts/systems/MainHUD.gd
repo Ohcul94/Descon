@@ -2828,12 +2828,16 @@ func _setup_target_frame():
 	sb.border_width_right = 1; sb.border_width_bottom = 1
 	sb.border_color = Color(0.0, 0.85, 1.0, 0.35)
 	sb.set_corner_radius_all(6)
+	sb.content_margin_left = 8
+	sb.content_margin_top = 6
+	sb.content_margin_right = 8
+	sb.content_margin_bottom = 10
 	_target_frame.add_theme_stylebox_override("panel", sb)
 	
 	# Contenedor Vertical Exterior: arriba avatar + barras de vida/escudo, abajo barras de casteo dinámicas
 	var outer_vbox = VBoxContainer.new()
 	outer_vbox.name = "OuterVBox"
-	outer_vbox.add_theme_constant_override("separation", 3)
+	outer_vbox.add_theme_constant_override("separation", 5)
 	_target_frame.add_child(outer_vbox)
 
 	# HBoxContainer principal para separar preview e información
@@ -2978,7 +2982,7 @@ func _setup_target_frame():
 	_target_casts_vbox = VBoxContainer.new()
 	_target_casts_vbox.name = "TargetCastsVBox"
 	_target_casts_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_target_casts_vbox.add_theme_constant_override("separation", 2)
+	_target_casts_vbox.add_theme_constant_override("separation", 4)
 	outer_vbox.add_child(_target_casts_vbox)
 	
 	add_child(_target_frame)
@@ -3149,8 +3153,13 @@ func _update_target_casts():
 		active_mids.append(mId)
 		var prog = clamp(float(elapsed) / max(1.0, dur), 0.0, 1.0)
 		var mech_type = str(data.get("type", data.get("mechType", "")))
-		var cast_color = em._get_enemy_cast_color(mech_type, mId) if em.has_method("_get_enemy_cast_color") else Color(1.0, 0.48, 0.0)
-		var display_name = em._get_mechanic_display_name(mech_type, data) if em.has_method("_get_mechanic_display_name") else "Casteando..."
+		var cast_color = data.get("cast_color", em._get_enemy_cast_color(mech_type, mId) if em.has_method("_get_enemy_cast_color") else Color(1.0, 0.48, 0.0))
+		var display_name = str(data.get("displayName", "")).strip_edges()
+		if display_name == "" or display_name.to_lower() == "<null>" or display_name.to_lower() == "null":
+			var raw_d = data.get("raw_data", {})
+			display_name = em._get_mechanic_display_name(mech_type, raw_d if typeof(raw_d) == TYPE_DICTIONARY else {}) if em.has_method("_get_mechanic_display_name") else ""
+		if display_name == "" or display_name.to_lower() == "<null>" or display_name.to_lower() == "null":
+			display_name = mech_type.replace("_", " ").capitalize() if mech_type != "" else "Casteando..."
 		
 		var bar_node_name = "TargetCastBar_" + str(mId)
 		var bar_container: Control = _target_casts_vbox.get_node_or_null(bar_node_name)

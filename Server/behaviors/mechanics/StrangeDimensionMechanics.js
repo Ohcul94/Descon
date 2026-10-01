@@ -10,6 +10,7 @@ module.exports = {
         let state = this.enemy.strangeDimensionState[mId];
 
         const startDelay = Number(mech.startDelay || 0);
+        const activationIntervalMs = Number(mech.activationIntervalMs || 0);
         const cd = Number(mech.cooldown !== undefined ? mech.cooldown : 25000);
         const castMs = Number(mech.castTimeMs !== undefined ? mech.castTimeMs : 1000);
         const rawDur = Number(mech.duration !== undefined ? mech.duration : 5000);
@@ -27,12 +28,22 @@ module.exports = {
                 isActive: false,
                 chargeEndTime: 0,
                 activeEndTime: 0,
-                nextShotTime: (mech.activationMode === "hp") ? 0 : (now + startDelay),
+                nextShotTime: 0,
                 triggeredHPs: {},
-                combatStartTime: now,
+                pendingHpTrigger: false,
+                combatStartTime: null,
                 capturedTargets: []
             };
             this.enemy.strangeDimensionState[mId] = state;
+        }
+
+        // Si acaba de entrar en combate o no tiene inicio registrado
+        if (!state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time" || !mech.activationMode) {
+                const initialWait = activationIntervalMs > 0 ? (activationIntervalMs + startDelay) : startDelay;
+                state.nextShotTime = now + initialWait;
+            }
         }
 
         const clearTargetsDimension = (targetIds) => {
@@ -68,15 +79,37 @@ module.exports = {
                     });
                 }
             }
-            state.isCharging = false;
+            if (state.isCharging) {
+                state.isCharging = false;
+                this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                if (io) {
+                    io.to(roomName).emit('enemyCastCancel', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: 'strange_dimension'
+                    });
+                }
+            }
+            state.combatStartTime = null;
             state.triggeredHPs = {};
-            state.nextShotTime = (mech.activationMode === "hp") ? 0 : (now + startDelay);
+            state.pendingHpTrigger = false;
+            state.nextShotTime = 0;
             return false;
         }
 
         // Chequeo de interrupción por CC (Control de Masas)
         if (castInterruptible && (state.isCharging || state.isActive)) {
             if (this.enemy.isStunned || this.enemy.isFeared || this.enemy.isPolymorphed || this.enemy.isAsleep) {
+                if (state.isCharging) {
+                    this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                    if (io) {
+                        io.to(roomName).emit('enemyCastCancel', {
+                            id: this.enemy.id,
+                            mId: mId,
+                            type: 'strange_dimension'
+                        });
+                    }
+                }
                 state.isCharging = false;
                 state.isActive = false;
                 clearTargetsDimension(state.capturedTargets);
@@ -97,10 +130,21 @@ module.exports = {
         }
 
         const activateDimension = () => {
+            if (state.isCharging && castMs > 0) {
+                this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+            }
             state.isCharging = false;
             state.isActive = true;
             state.activeEndTime = now + durationMs;
             state.nextShotTime = state.activeEndTime + cd;
+
+            if (io) {
+                io.to(roomName).emit('enemyCastEnd', {
+                    id: this.enemy.id,
+                    mId: mId,
+                    type: 'strange_dimension'
+                });
+            }
 
             let targets = this._selectTargets(players, fireRange, targetCount, targetMode, mech);
             if ((!targets || targets.length === 0) && target) {
@@ -184,29 +228,45 @@ module.exports = {
                 thresholds = [50];
             }
             if (!state.triggeredHPs) state.triggeredHPs = {};
-            let passesHP = false;
-            let triggeredVal = null;
             for (const hpVal of thresholds) {
-                if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
-                    passesHP = true;
-                    triggeredVal = hpVal;
-                    break;
+                if (hpPercent > hpVal && state.triggeredHPs[hpVal]) state.triggeredHPs[hpVal] = false;
+            }
+            if (!state.pendingHpTrigger) {
+                if (now < state.nextShotTime) return false;
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        state.triggeredHPs[hpVal] = true;
+                        state.pendingHpTrigger = true;
+                        state.nextShotTime = now + startDelay;
+                        break;
+                    }
                 }
             }
-            if (!passesHP) return false;
-
-            // Al pasar el umbral de HP por primera vez:
-            state.triggeredHPs[triggeredVal] = true;
-            state.nextShotTime = now + startDelay;
+            if (!state.pendingHpTrigger) return false;
+        } else {
+            // Modo tiempo: respetar nextShotTime (initialWait y recarga posterior)
+            if (now < state.nextShotTime) return false;
         }
 
-        // Evaluación de disparo (startDelay transcurrido o cooldown finalizado)
+        // Evaluación de disparo (startDelay/activationIntervalMs transcurrido o cooldown finalizado)
         if (now >= state.nextShotTime) {
+            if (mech.activationMode === "hp") {
+                state.pendingHpTrigger = false;
+            }
             if (castMs > 0) {
                 state.isCharging = true;
                 state.chargeEndTime = now + castMs;
+                this.enemy._castFreezeCount = (this.enemy._castFreezeCount || 0) + 1;
 
                 if (io) {
+                    io.to(roomName).emit('enemyCastStart', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: 'strange_dimension',
+                        castTimeMs: castMs,
+                        x: this.enemy.x,
+                        y: this.enemy.y
+                    });
                     io.to(roomName).emit('serverEnemyAction', {
                         id: this.enemy.id,
                         mId: mId,

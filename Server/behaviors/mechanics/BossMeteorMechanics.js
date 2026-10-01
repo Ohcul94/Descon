@@ -55,9 +55,9 @@ function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {
     const fireRange = enemyVisionRange;
 
     // Generic cast gate (per mechanic, default 0 = instant)
-    if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+    if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && this._isGenericCastType(mech.type)) {
         const isBusy = this._handleGenericCast(mech, mId, now, io);
-        if (isBusy && this._isGenericCastType(mech.type)) {
+        if (isBusy) {
             return true;
         }
     }

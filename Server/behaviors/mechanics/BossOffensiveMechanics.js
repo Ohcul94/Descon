@@ -8,10 +8,10 @@ function _handleExecutionLogic(mech, mId, now, io, players) {
 
     const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
     const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
-    // Generic cast gate (per mechanic, default 0 = instant)
-    if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+    // Generic cast gate (per mechanic, default 0 = instant) - solo para mecánicas genéricas
+    if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && this._isGenericCastType(mech.type)) {
         const isBusy = this._handleGenericCast(mech, mId, now, io);
-        if (isBusy && this._isGenericCastType(mech.type)) {
+        if (isBusy) {
             return true;
         }
     }
@@ -35,6 +35,14 @@ function _handleExecutionLogic(mech, mId, now, io, players) {
     if (state.casting) {
         if (now >= state.castEndTime) {
             state.casting = false;
+            if (castTimeMs > 0) {
+                this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                io.to(`zone_${this.enemy.zone}`).emit('enemyCastEnd', {
+                    id: this.enemy.id,
+                    mId: mId,
+                    type: mech.type
+                });
+            }
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                 id: this.enemy.id,
                 action: "death_cast_end",
@@ -100,6 +108,17 @@ function _handleExecutionLogic(mech, mId, now, io, players) {
     state.casting = true;
     state.castEndTime = now + castTimeMs;
     state.castTargets = targets;
+    if (castTimeMs > 0) {
+        this.enemy._castFreezeCount = (this.enemy._castFreezeCount || 0) + 1;
+        io.to(`zone_${this.enemy.zone}`).emit('enemyCastStart', {
+            id: this.enemy.id,
+            mId: mId,
+            type: mech.type,
+            castTimeMs: castTimeMs,
+            x: this.enemy.x,
+            y: this.enemy.y
+        });
+    }
     io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
         id: this.enemy.id,
         action: "death_cast_start",
@@ -124,10 +143,10 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
 
     const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
     const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
-    // Generic cast gate (per mechanic, default 0 = instant)
-    if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+    // Generic cast gate (per mechanic, default 0 = instant) - solo para mecánicas genéricas
+    if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && this._isGenericCastType(mech.type)) {
         const isBusy = this._handleGenericCast(mech, mId, now, io);
-        if (isBusy && this._isGenericCastType(mech.type)) {
+        if (isBusy) {
             return true;
         }
     }
@@ -221,6 +240,14 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
             state.casting = false;
             state.isCharging = false;
             state.ascensionCast = false;
+            if (castTimeMs > 0) {
+                this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                io.to(`zone_${this.enemy.zone}`).emit('enemyCastEnd', {
+                    id: this.enemy.id,
+                    mId: mId,
+                    type: mech.type
+                });
+            }
             state.castTargets.forEach(t => {
                 const jumpId = Date.now() + "_" + Math.floor(Math.random() * 1000);
                 const landTime = now + airTimeMs;
@@ -294,6 +321,17 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
             state.ascensionCast = true;
             state.castEndTime = now + castTimeMs;
             state.castTargets = targets;
+            if (castTimeMs > 0) {
+                this.enemy._castFreezeCount = (this.enemy._castFreezeCount || 0) + 1;
+                io.to(`zone_${this.enemy.zone}`).emit('enemyCastStart', {
+                    id: this.enemy.id,
+                    mId: mId,
+                    type: mech.type,
+                    castTimeMs: castTimeMs,
+                    x: this.enemy.x,
+                    y: this.enemy.y
+                });
+            }
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                 id: this.enemy.id,
                 action: "ascension_cast",
@@ -334,10 +372,10 @@ function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, p
     const pushForce = Number(mech.pushForce) || 200;
     const castTimeMs = Math.max(0, Number(mech.castTimeMs || 0));
 
-    // Generic cast gate (parallel, internal type)
-    if (castTimeMs > 0) {
+    // Generic cast gate (only for generic cast types)
+    if (castTimeMs > 0 && this._isGenericCastType(mech.type)) {
         const isBusy = this._handleGenericCast(mech, mId, now, io);
-        if (isBusy && this._isGenericCastType(mech.type)) {
+        if (isBusy) {
             return true;
         }
     }

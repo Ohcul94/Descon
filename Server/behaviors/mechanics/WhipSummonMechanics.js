@@ -18,7 +18,7 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
     const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
     const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 12000;
     const hits = Math.max(1, parseInt(mech.hits, 10) || 3);
-    const cadence = Number(mech.cadence) || 300;
+    const cadence = Math.max(100, Number(mech.cadence) || 300);
     const damage = (mech.damage !== undefined ? Number(mech.damage) : 50) * (this.damageMult || 1);
     const targetCount = Math.max(1, parseInt(mech.targetCount, 10) || 1);
     const targetMode = mech.targetMode || "highest_threat";
@@ -108,10 +108,24 @@ function _handleWhipSummonLogic(mech, mId, target, dist, angle, now, io, players
     // 7) Ejecutar golpes sucesivos a la cadencia correspondiente
     if (state.isStriking) {
         if (now >= state.nextHitTime && state.hitsDone < hits) {
+            const curTarget = (targets.length > 0) ? targets[0] : state.currentTarget;
+            if (!curTarget || curTarget.isDead || (curTarget.socketId && !players[curTarget.socketId])) {
+                state.isStriking = false;
+                state.isLocked = true;
+                state.lockEndTime = now + cooldown;
+                state.nextShotTime = now + cooldown;
+                io.to(zoneStr).emit('enemyCastEnd', {
+                    id: this.enemy.id,
+                    mId: mId,
+                    type: "whip_summon"
+                });
+                this.enemy.mechState[mId] = state;
+                return false;
+            }
+
             state.hitsDone++;
             state.nextHitTime = now + cadence;
 
-            const curTarget = (targets.length > 0) ? targets[0] : state.currentTarget;
             const targetX = curTarget ? curTarget.x : this.enemy.x;
             const targetY = curTarget ? curTarget.y : this.enemy.y;
             const targetId = curTarget ? curTarget.socketId : null;

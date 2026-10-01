@@ -680,9 +680,11 @@ module.exports = class BaseAI {
                         // Validaciones previas para evitar casteo si no cumple condiciones de activación (cooldown, HP, etc)
                         if (!this.enemy.defState) this.enemy.defState = {};
                         let state = this.enemy.defState[mId];
+                        const interval = this._getEffectiveInterval(mech);
                         const startDelay = Number(mech.startDelay || 0);
+                        const initialWait = interval > 0 ? (interval + startDelay) : startDelay;
                         if (!state) {
-                            state = { nextReadyTime: (mech.activationMode === "hp") ? 0 : (now + startDelay), isActive: false, endTime: 0, triggeredHPs: {}, combatStartTime: now, type: mech.type };
+                            state = { nextReadyTime: (mech.activationMode === "hp") ? 0 : (now + initialWait), isActive: false, endTime: 0, triggeredHPs: {}, combatStartTime: now, type: mech.type };
                             this.enemy.defState[mId] = state;
                         }
                         if (state.isActive) return;
@@ -769,17 +771,43 @@ module.exports = class BaseAI {
                         mId: mId
                     });
                 }
-                if (mech.type === "strange_dimension" && this.enemy.strangeDimensionState && this.enemy.strangeDimensionState[mId] && this.enemy.strangeDimensionState[mId].isActive) {
-                    this.enemy.strangeDimensionState[mId].isActive = false;
-                    io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
-                        id: this.enemy.id,
-                        mId: mId,
-                        action: "strange_dimension_expire",
-                        type: "strange_dimension",
-                        silent: false
-                    });
+                if (mech.type === "strange_dimension" && this.enemy.strangeDimensionState && this.enemy.strangeDimensionState[mId]) {
+                    const st = this.enemy.strangeDimensionState[mId];
+                    if (st.isActive) {
+                        st.isActive = false;
+                        io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
+                            id: this.enemy.id,
+                            mId: mId,
+                            action: "strange_dimension_expire",
+                            type: "strange_dimension",
+                            silent: false
+                        });
+                    }
+                    if (st.isCharging) {
+                        st.isCharging = false;
+                        io.to(`zone_${this.enemy.zone}`).emit("enemyCastCancel", {
+                            id: this.enemy.id,
+                            mId: mId,
+                            type: "strange_dimension"
+                        });
+                    }
+                    st.combatStartTime = null;
+                    st.nextShotTime = 0;
+                    st.triggeredHPs = {};
+                    st.pendingHpTrigger = false;
                 }
             });
+            // Resetear defState genéricos para que startDelay se renueve al volver a entrar en combate
+            if (this.enemy.defState) {
+                for (const dId in this.enemy.defState) {
+                    const dst = this.enemy.defState[dId];
+                    if (dst) {
+                        dst.combatStartTime = null;
+                        dst.nextReadyTime = 0;
+                        dst.triggeredHPs = {};
+                    }
+                }
+            }
         }
 
         // v3.0: PROCESAR REGRESO AL SPAWN
@@ -1152,15 +1180,18 @@ module.exports = class BaseAI {
             const st = this.enemy.mechState[mId];
             if (!st) continue;
             const isBusy = st.isCharging || st.isLocked || st.isFiring || st.isActive
+                || st.isStriking
                 || (st.activeBombsList && st.activeBombsList.length > 0)
                 || (st.activeWorms && st.activeWorms.length > 0)
                 || st.activeWindWall;
             if (!isBusy) continue;
 
+            const wasCasting = st.isCharging || st.isLocked || st.isStriking;
             st.isCharging = false;
             st.isLocked = false;
             st.isFiring = false;
             st.isActive = false;
+            st.isStriking = false;
             if (st.activeBombsList) st.activeBombsList = [];
             if (st.activeWorms) st.activeWorms = [];
             if (st.activeWindWall) { st.activeWindWall = null; }
@@ -1168,6 +1199,13 @@ module.exports = class BaseAI {
             if (st.isCasting !== undefined) st.isCasting = false;
             if (mId.startsWith('mech_')) {
                 // No tocar `mechState[mech_<i>]` para burrow (se maneja sola); resto a visual limpio
+            }
+
+            if (wasCasting) {
+                io.to(zoneStr).emit('enemyCastCancel', {
+                    id: this.enemy.id,
+                    mId: mId
+                });
             }
 
             io.to(zoneStr).emit('serverEnemyAction', {
@@ -1182,6 +1220,42 @@ module.exports = class BaseAI {
         if (this.enemy.isHooking) {
             if (this.enemy._hookSafetyTimeout) clearTimeout(this.enemy._hookSafetyTimeout);
             this.enemy.isHooking = false;
+        }
+
+        // Si el enemigo estaba en Dimensión Extraña activa o cargando
+        if (this.enemy.strangeDimensionState) {
+            for (const sId in this.enemy.strangeDimensionState) {
+                if (sId === skipMId) continue;
+                const s = this.enemy.strangeDimensionState[sId];
+                if (s && (s.isCharging || s.isActive)) {
+                    if (s.isCharging) {
+                        this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyCastCancel', { id: this.enemy.id, mId: sId, type: 'strange_dimension' });
+                    }
+                    s.isCharging = false;
+                    s.isActive = false;
+                    s.combatStartTime = null;
+                    s.nextShotTime = 0;
+                    if (s.capturedTargets && s.capturedTargets.length > 0) {
+                        s.capturedTargets.forEach(tId => {
+                            const pObj = (this.state?.players || {})[tId];
+                            if (pObj) {
+                                pObj.inStrangeDimension = false;
+                                pObj.isInvulnerable = false;
+                                io.to(`zone_${pObj.zone}`).emit('playerStatSync', { id: tId, inStrangeDimension: false, isInvulnerable: false });
+                            }
+                        });
+                        io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                            id: this.enemy.id,
+                            mId: sId,
+                            action: 'strange_dimension_expire',
+                            type: 'strange_dimension',
+                            targetIds: s.capturedTargets,
+                            silent: false
+                        });
+                    }
+                }
+            }
         }
     }
 
@@ -1371,13 +1445,13 @@ module.exports = class BaseAI {
     }
 
     _isGenericCastType(type) {
-        // Types with internal cast handling (their own charge) - generic runs in parallel (double bar)
+        // Tipos con máquinas de estado de carga/casteo internas propias
         const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball","whip_summon","strange_dimension","mega_laser"];
         return !internal.includes(type);
     }
     _handleGenericCast(mech, mId, now, io) {
         const castMs = Math.max(0, Number(mech.castTimeMs || 0));
-        if (castMs <= 0) return false; // no cast, not busy
+        if (castMs <= 0) return false; // sin casteo, no bloquea
         if (!this.enemy.genericCastState) this.enemy.genericCastState = {};
         let gState = this.enemy.genericCastState[mId];
         if (!gState) {
@@ -1386,49 +1460,32 @@ module.exports = class BaseAI {
         }
         const castInterruptible = mech.castInterruptible !== false; // default true
         const isCC = !!(this.enemy.isStunned || this.enemy.isFeared || this.enemy.isPolymorphed || this.enemy.isAsleep);
-        const isInternal = !this._isGenericCastType(mech.type);
         if (gState.isCasting) {
             if (isCC && castInterruptible) {
-                // cancel
+                // cancelado por CC
                 gState.isCasting = false;
                 this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount||1)-1);
                 io.to(`zone_${this.enemy.zone}`).emit(`enemyCastCancel`, {id: this.enemy.id, mId, type: mech.type});
                 return false;
             }
             if (now < gState.castEndTime) {
-                // still casting
-                // For internal types, generic runs in parallel, do not block specific handler
-                if (isInternal) return false;
+                // aún casteando: bloquea la ejecución del disparo
                 return true;
             } else {
+                // casteo finalizado exitosamente
                 gState.isCasting = false;
                 this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount||1)-1);
                 io.to(`zone_${this.enemy.zone}`).emit(`enemyCastEnd`, {id: this.enemy.id, mId, type: mech.type});
-                return false;
+                return false; // listo para disparar
             }
         } else {
-            // not yet casting, should we start?
-            // Only start if mechanic is about to fire (we are in _executeMechanic which means it wants to fire)
-            // For non-internal types, we delay firing: start cast now and block
-            // For internal types, we start parallel and do NOT block (return false to let internal start)
-            const isInternal = !this._isGenericCastType(mech.type);
-            if (isInternal) {
-                // parallel: start generic casting but do not block specific handler
-                gState.isCasting = true;
-                gState.castEndTime = now + castMs;
-                gState.startTime = now;
-                this.enemy._castFreezeCount = (this.enemy._castFreezeCount||0)+1;
-                io.to(`zone_${this.enemy.zone}`).emit(`enemyCastStart`, {id: this.enemy.id, mId, type: mech.type, castTimeMs: castMs, x: this.enemy.x, y: this.enemy.y});
-                return false; // not busy for internal, let internal also start
-            } else {
-                // blocking: start and block
-                gState.isCasting = true;
-                gState.castEndTime = now + castMs;
-                gState.startTime = now;
-                this.enemy._castFreezeCount = (this.enemy._castFreezeCount||0)+1;
-                io.to(`zone_${this.enemy.zone}`).emit(`enemyCastStart`, {id: this.enemy.id, mId, type: mech.type, castTimeMs: castMs, x: this.enemy.x, y: this.enemy.y});
-                return true; // busy, will fire next tick after cast
-            }
+            // Iniciar casteo bloqueante
+            gState.isCasting = true;
+            gState.castEndTime = now + castMs;
+            gState.startTime = now;
+            this.enemy._castFreezeCount = (this.enemy._castFreezeCount||0)+1;
+            io.to(`zone_${this.enemy.zone}`).emit(`enemyCastStart`, {id: this.enemy.id, mId, type: mech.type, castTimeMs: castMs, x: this.enemy.x, y: this.enemy.y});
+            return true; // ocupado casteando, disparará al concluir el tiempo
         }
     }
     _executeMechanic(mech, mId, target, dist, angle, now, io, players) {
@@ -1460,10 +1517,10 @@ module.exports = class BaseAI {
             if (!this._passesActivationGate(mech, state, now, hpPercent)) return false;
         }
 
-        // Generic cast gate (per mechanic, default 0 = instant)
-        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && mech.type !== "whip_summon") {
+        // Generic cast gate (per mechanic, default 0 = instant) - SÓLO para tipos genéricos
+        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && this._isGenericCastType(mech.type)) {
             const isBusy = this._handleGenericCast(mech, mId, now, io);
-            if (isBusy && this._isGenericCastType(mech.type)) {
+            if (isBusy) {
                 return true;
             }
         }
@@ -1587,20 +1644,30 @@ module.exports = class BaseAI {
 
         // v266.600: Lógica de Precarga para Mega Láser
         if (mech.type === "mega_laser") {
-            const chargeTime = (mech.chargeTimeMs !== undefined) ? mech.chargeTimeMs : 2000;
-            const lockTime = (mech.lockTimeMs !== undefined) ? mech.lockTimeMs : 500;
-            const lifetime = (mech.lifetimeMs !== undefined) ? mech.lifetimeMs : 1000;
+            const chargeTime = Number((mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) ? mech.castTimeMs : ((mech.chargeTimeMs !== undefined) ? mech.chargeTimeMs : 2000));
+            const lockTime = (mech.lockTimeMs !== undefined) ? Number(mech.lockTimeMs) : 500;
+            const lifetime = (mech.lifetimeMs !== undefined) ? Number(mech.lifetimeMs) : 1000;
+            const totalCastTime = chargeTime + lockTime;
 
             if (!state.isCharging && !state.isLocked && !state.isFiring && now > state.nextShotTime) {
                 // FASE 1: CARGA (Te sigue apuntando y moviéndose)
                 state.isCharging = true;
                 state.chargeEndTime = now + chargeTime;
                 
+                io.to(`zone_${this.enemy.zone}`).emit('enemyCastStart', {
+                    id: this.enemy.id,
+                    mId: mId,
+                    type: "mega_laser",
+                    castTimeMs: totalCastTime,
+                    x: this.enemy.x,
+                    y: this.enemy.y
+                });
+
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                     id: this.enemy.id,
                     action: "charging",
                     type: "mega_laser",
-                    duration: chargeTime + lockTime, 
+                    duration: totalCastTime, 
                     angle: angle,
                     range: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange,
                     targetId: target?.socketId || target?.id || "" // v266.730: Tracking en tiempo real
@@ -1626,6 +1693,12 @@ module.exports = class BaseAI {
                 state.isLocked = false;
                 state.isFiring = true;
                 state.fireEndTime = now + lifetime;
+
+                io.to(`zone_${this.enemy.zone}`).emit('enemyCastEnd', {
+                    id: this.enemy.id,
+                    mId: mId,
+                    type: "mega_laser"
+                });
 
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
@@ -1664,9 +1737,9 @@ module.exports = class BaseAI {
         if (mech.type === "bomb") {
             const fireRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
         // Generic cast gate (per mechanic, default 0 = instant)
-        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && this._isGenericCastType(mech.type)) {
             const isBusy = this._handleGenericCast(mech, mId, now, io);
-            if (isBusy && this._isGenericCastType(mech.type)) {
+            if (isBusy) {
                 return true;
             }
         }
@@ -1837,6 +1910,18 @@ module.exports = class BaseAI {
                 state.chargeEndTime = now + actualDuration;
                 state.lockedAngle = angle; // Ángulo inicial
                 
+                if (actualDuration > 0) {
+                    this.enemy._castFreezeCount = (this.enemy._castFreezeCount || 0) + 1;
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyCastStart', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: mech.type,
+                        castTimeMs: actualDuration,
+                        x: this.enemy.x,
+                        y: this.enemy.y
+                    });
+                }
+
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                     id: this.enemy.id,
                     action: "cone_charging",
@@ -1855,6 +1940,15 @@ module.exports = class BaseAI {
                 state.isCharging = false;
                 state.nextShotTime = now + cooldown;
                 state.aimReadyTime = now + (mech.aimDelayMs !== undefined ? mech.aimDelayMs : 1000);
+
+                if (actualDuration > 0) {
+                    this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyCastEnd', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: mech.type
+                    });
+                }
 
                 const faceAngle = state.lockedAngle !== undefined ? state.lockedAngle : (this.enemy.rotation - Math.PI / 2);
                 const halfAngleRad = ((mech.coneAngle || 60) * Math.PI / 180) / 2;
@@ -1987,6 +2081,18 @@ module.exports = class BaseAI {
                 state.lockedY = this.enemy.y;
                 state.isPositionLocked = false;
                 
+                if (chargeTime > 0) {
+                    this.enemy._castFreezeCount = (this.enemy._castFreezeCount || 0) + 1;
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyCastStart', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: mech.type,
+                        castTimeMs: chargeTime,
+                        x: this.enemy.x,
+                        y: this.enemy.y
+                    });
+                }
+
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                     id: this.enemy.id,
                     action: "circle_charging",
@@ -2006,6 +2112,15 @@ module.exports = class BaseAI {
                     state.nextShotTime = now + cooldown;
                     if (mech.activationMode === "time") {
                         state.nextReadyTime = now + cooldown;
+                    }
+
+                    if (chargeTime > 0) {
+                        this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyCastEnd', {
+                            id: this.enemy.id,
+                            mId: mId,
+                            type: mech.type
+                        });
                     }
 
                     // Si no se había bloqueado antes, bloquear ahora en el punto de detonación
@@ -2138,6 +2253,18 @@ module.exports = class BaseAI {
                 state.targetId = target.socketId;
                 state.isPositionLocked = false;
 
+                if (chargeTime > 0) {
+                    this.enemy._castFreezeCount = (this.enemy._castFreezeCount || 0) + 1;
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyCastStart', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: mech.type,
+                        castTimeMs: chargeTime,
+                        x: this.enemy.x,
+                        y: this.enemy.y
+                    });
+                }
+
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                     id: this.enemy.id,
                     action: "ice_storm_charging",
@@ -2162,6 +2289,15 @@ module.exports = class BaseAI {
                     state.isActive = true;
                     state.activeEndTime = now + duration;
                     state.lastTickTime = now;
+
+                    if (chargeTime > 0) {
+                        this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyCastEnd', {
+                            id: this.enemy.id,
+                            mId: mId,
+                            type: mech.type
+                        });
+                    }
 
                     io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                         id: this.enemy.id,
@@ -2252,7 +2388,7 @@ module.exports = class BaseAI {
                         });
 
                         // Daño al Altar por tick de Tormenta de Hielo si está dentro del radio
-                        const altarState = this.state.altarState;
+                        const altarState = this.state?.altarState;
                         if (altarState && altarState.hp > 0 && String(altarState.zone) === String(this.enemy.zone)) {
                             const altarX = Number(altarState.x) || 5000;
                             const altarY = Number(altarState.y) || 5000;
@@ -2710,6 +2846,18 @@ module.exports = class BaseAI {
                 state.chargeEndTime = now + castTimeMs;
                 state.activeWindWall = null;
 
+                if (castTimeMs > 0) {
+                    this.enemy._castFreezeCount = (this.enemy._castFreezeCount || 0) + 1;
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyCastStart', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: mech.type,
+                        castTimeMs: castTimeMs,
+                        x: this.enemy.x,
+                        y: this.enemy.y
+                    });
+                }
+
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                     id: this.enemy.id,
                     action: "wind_charging",
@@ -2726,6 +2874,15 @@ module.exports = class BaseAI {
                 // FASE 2: DISPARO DE LA PARED (ligeramente adelantada del enemigo)
                 state.isCharging = false;
                 state.isActive = true;
+
+                if (castTimeMs > 0) {
+                    this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyCastEnd', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: mech.type
+                    });
+                }
                 const fireAngle = state.chargeAngle !== undefined ? state.chargeAngle : angle;
                 const sx = this.enemy.x + Math.cos(fireAngle) * startOffset;
                 const sy = this.enemy.y + Math.sin(fireAngle) * startOffset;
@@ -2827,6 +2984,18 @@ module.exports = class BaseAI {
                 state.chargeEndTime = now + castTimeMs;
                 state.chargeAngle = angle;
 
+                if (castTimeMs > 0) {
+                    this.enemy._castFreezeCount = (this.enemy._castFreezeCount || 0) + 1;
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyCastStart', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: mech.type,
+                        castTimeMs: castTimeMs,
+                        x: this.enemy.x,
+                        y: this.enemy.y
+                    });
+                }
+
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
                     id: this.enemy.id,
                     action: "melee_charging",
@@ -2849,6 +3018,15 @@ module.exports = class BaseAI {
             // FASE 2: Anticipación terminada → golpe instantáneo en el área
             if (state.isCharging && now >= state.chargeEndTime) {
                 state.isCharging = false;
+
+                if (castTimeMs > 0) {
+                    this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount || 1) - 1);
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyCastEnd', {
+                        id: this.enemy.id,
+                        mId: mId,
+                        type: mech.type
+                    });
+                }
                 const slashAngle = state.chargeAngle !== undefined ? state.chargeAngle : angle;
                 const halfAngleRad = fullCircle ? Math.PI : ((arcAngle * Math.PI / 180) / 2);
 

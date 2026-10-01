@@ -121,6 +121,14 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
     const zoneRoom = `zone_${ai.enemy.zone}`;
 
     const spawnFireball = (spawnNow) => {
+        if (state.isCharging && chargeTime > 0) {
+            ai.enemy._castFreezeCount = Math.max(0, (ai.enemy._castFreezeCount || 1) - 1);
+            io.to(zoneRoom).emit('enemyCastEnd', {
+                id: ai.enemy.id,
+                mId: mId,
+                type: 'fireball'
+            });
+        }
         state.isCharging = false;
         state.isActive = true;
         state.activeEnd = spawnNow + duration;
@@ -166,6 +174,15 @@ function _handleFireballLogic(mech, mId, target, dist, now, io, players) {
         } else {
             state.isCharging = true;
             state.chargeEnd = now + chargeTime;
+            ai.enemy._castFreezeCount = (ai.enemy._castFreezeCount || 0) + 1;
+            io.to(zoneRoom).emit('enemyCastStart', {
+                id: ai.enemy.id,
+                mId: mId,
+                type: 'fireball',
+                castTimeMs: chargeTime,
+                x: ai.enemy.x,
+                y: ai.enemy.y
+            });
             io.to(zoneRoom).emit('serverEnemyAction', {
                 id: ai.enemy.id,
                 mId: mId,

@@ -752,8 +752,23 @@ func _clean_mechanic_label_text(raw_text: String) -> String:
 
 func _get_mechanic_display_name(mech_type: String, raw_data: Dictionary = {}) -> String:
 	# 1. Nombre explícito desde el paquete si existe
-	var explicit_name = str(raw_data.get("name", raw_data.get("mechanicName", raw_data.get("label", "")))).strip_edges()
-	if explicit_name != "":
+	var explicit_name = ""
+	if raw_data.has("displayName") and raw_data.displayName != null:
+		explicit_name = str(raw_data.displayName).strip_edges()
+	elif raw_data.has("name") and raw_data.name != null:
+		var cand_name = str(raw_data.name).strip_edges()
+		if cand_name.to_lower() != "null" and cand_name.to_lower() != "<null>":
+			explicit_name = cand_name
+	elif raw_data.has("mechanicName") and raw_data.mechanicName != null:
+		var cand_mname = str(raw_data.mechanicName).strip_edges()
+		if cand_mname.to_lower() != "null" and cand_mname.to_lower() != "<null>":
+			explicit_name = cand_mname
+	elif raw_data.has("label") and raw_data.label != null and typeof(raw_data.label) == TYPE_STRING:
+		var cand_lbl = str(raw_data.label).strip_edges()
+		if cand_lbl.to_lower() != "null" and cand_lbl.to_lower() != "<null>":
+			explicit_name = cand_lbl
+
+	if explicit_name != "" and explicit_name.to_lower() != "<null>" and explicit_name.to_lower() != "null":
 		return _clean_mechanic_label_text(explicit_name)
 		
 	var t = mech_type.to_lower()
@@ -923,10 +938,14 @@ func _create_enemy_cast_visual(enemy: Node, mId: String, castTimeMs: float, mech
 		"visual": null,
 		"bg": null,
 		"fg": null,
-		"label": null,
 		"startTime": Time.get_ticks_msec(),
 		"duration": max(1.0, castTimeMs),
-		"enemy": enemy
+		"enemy": enemy,
+		"type": mech_type,
+		"mechType": mech_type,
+		"displayName": display_name,
+		"cast_color": cast_color,
+		"raw_data": raw_data
 	}
 	
 	# Creación de la barra de casteo 2D en el HUD de la entidad
