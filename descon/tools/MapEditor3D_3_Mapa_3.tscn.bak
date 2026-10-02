@@ -1,0 +1,193 @@
+[gd_scene format=3 uid="uid://cuayvppygi27q"]
+
+[ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="Texture2D" uid="uid://dwanhpfvjms3w" path="res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/Rocas de Arena Costeras.png" id="2_303il"]
+[ext_resource type="Texture2D" uid="uid://dotpd685ssjpd" path="res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/packed_normal_roughness.png" id="3_7bc5u"]
+[ext_resource type="PackedScene" uid="uid://dsgcgwbrmyoc1" path="res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb" id="4_7bc5u"]
+
+[sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7bc5u"]
+albedo_color = Color(0.05, 0.08, 0.15, 1)
+metallic = 0.3
+roughness = 0.8
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1"]
+size = Vector2(20000, 20000)
+subdivide_width = 200
+subdivide_depth = 200
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 1
+background_color = Color(0.08, 0.08, 0.12, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.3, 0.32, 0.4, 1)
+ambient_light_energy = 1.5
+tonemap_mode = 1
+tonemap_exposure = 1.02
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.13009274, 0.14534974, 0.16909006, 1)
+fog_light_energy = 0.2
+fog_density = 1.0
+fog_sky_affect = 0.0
+fog_height = 29.68
+fog_depth_curve = 4.7568617
+fog_depth_begin = 40.0
+fog_depth_end = 193.3
+volumetric_fog_density = 0.0
+volumetric_fog_emission_energy = 0.0
+volumetric_fog_gi_inject = 0.64
+volumetric_fog_length = 60.0
+volumetric_fog_detail_spread = 2.1435478
+adjustment_enabled = true
+adjustment_brightness = 1.1
+adjustment_contrast = 1.25
+
+[sub_resource type="Gradient" id="Gradient_d0lf8"]
+offsets = PackedFloat32Array(0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_y5icj"]
+noise_type = 2
+frequency = 0.03
+cellular_jitter = 3.0
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_type = 1
+domain_warp_amplitude = 50.0
+domain_warp_fractal_type = 2
+domain_warp_fractal_lacunarity = 1.5
+domain_warp_fractal_gain = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_0yuxv"]
+noise = SubResource("FastNoiseLite_y5icj")
+color_ramp = SubResource("Gradient_d0lf8")
+seamless = true
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_mvx5v"]
+_shader_parameters = {
+&"bias_distance": null,
+&"blend_sharpness": null,
+&"depth_blur": null,
+&"enable_macro_variation": null,
+&"enable_projection": null,
+&"flat_terrain_normals": null,
+&"macro_variation1": null,
+&"macro_variation2": null,
+&"macro_variation_slope": null,
+&"mipmap_bias": null,
+&"noise1_angle": null,
+&"noise1_offset": null,
+&"noise1_scale": null,
+&"noise2_scale": null,
+&"noise_texture": SubResource("NoiseTexture2D_0yuxv"),
+&"projection_threshold": null
+}
+world_background = 0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l5msm"]
+transparency = 4
+cull_mode = 2
+vertex_color_use_as_albedo = true
+backlight_enabled = true
+backlight = Color(0.5, 0.5, 0.5, 1)
+distance_fade_mode = 1
+distance_fade_min_distance = 128.0
+distance_fade_max_distance = 96.0
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_jqspa"]
+generated_type = 1
+height_offset = 0.5
+material_override = SubResource("StandardMaterial3D_l5msm")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_d0lf8"]
+name = "Rocas de Arena Costeras"
+albedo_texture = ExtResource("2_303il")
+normal_texture = ExtResource("3_7bc5u")
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_d7lmv"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_jqspa")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_d0lf8")])
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t7ar1"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_d0lf8"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[node name="MapEditor3D" type="Node3D" unique_id=941587839]
+script = ExtResource("1_editor_script")
+zone_id = "3"
+json_to_import = "[{\"assetPath\":\"res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb\",\"colHeight\":730.43,\"colOffsetX\":-457.89,\"colOffsetY\":-119.86,\"colType\":\"rect\",\"colWidth\":510.04,\"colliders\":[{\"height\":730.43,\"offsetX\":-457.89,\"offsetY\":-119.86,\"rot\":-2.1,\"type\":\"rect\",\"width\":510.04},{\"height\":544.8,\"offsetX\":454.3,\"offsetY\":-19.97,\"rot\":8.0,\"type\":\"rect\",\"width\":454.17}],\"label\":\"CuevaCalaberas\",\"rotY\":43.0,\"scale\":40.0,\"type\":\"wall\",\"x\":-875.21,\"y\":-3666.38,\"yOffset\":0.0}]"
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=770567274]
+transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
+fov = 35.0
+near = 0.1
+far = 10000.0
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Camera3D" unique_id=2119741983]
+transform = Transform3D(0.7071068, -0.5, 0.5, 0.50000006, 0.8535535, 0.14644665, -0.50000006, 0.14644665, 0.8535535, 0, 0, -56.568546)
+light_color = Color(1, 0.95, 0.9, 1)
+light_energy = 2.0
+light_specular = 0.3
+shadow_enabled = true
+shadow_bias = 0.02
+shadow_normal_bias = 0.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 200.0
+
+[node name="GroundPlane" type="StaticBody3D" parent="." unique_id=300381787]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane" unique_id=911426627]
+shape = SubResource("WorldBoundaryShape3D_1")
+
+[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1711100493]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+visible = false
+material_override = SubResource("StandardMaterial3D_7bc5u")
+mesh = SubResource("PlaneMesh_1")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=798809310]
+environment = SubResource("Environment_1")
+
+[node name="Terrain3D" type="Terrain3D" parent="." unique_id=1796060403]
+data_directory = "res://assets/Mapas/Mapa3/Terreno"
+material = SubResource("Terrain3DMaterial_mvx5v")
+assets = SubResource("Terrain3DAssets_d7lmv")
+free_editor_textures = false
+top_level = true
+metadata/_edit_lock_ = true
+
+[node name="CuevaCalaberas" type="Node3D" parent="." unique_id=828808755 instance=ExtResource("4_7bc5u")]
+transform = Transform3D(29.254148, 0, 27.279934, 0, 40, 0, -27.279934, 0, 29.254148, -17.5042, 0, -103.70089)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb"
+metadata/label = "CuevaCalaberas"
+metadata/scale_2d = 40.0
+metadata/rot_y_deg = 43.0
+metadata/editor_only = true
+metadata/colType = "rect"
+metadata/colWidth = 510.04
+metadata/colHeight = 730.43
+metadata/colOffsetX = -457.89
+metadata/colOffsetY = -119.86
+
+[node name="Collider1" type="CSGBox3D" parent="CuevaCalaberas" unique_id=523287330]
+transform = Transform3D(0.9993284, 0, -0.036643706, 0, 1, 0, 0.036643706, 0, 0.9993284, -9.1578, 0.0025, -3.3901527)
+size = Vector3(10.2008, 0.005, 20.65968)
+material = SubResource("StandardMaterial3D_t7ar1")
+
+[node name="Collider2" type="CSGBox3D" parent="CuevaCalaberas" unique_id=1291386632]
+transform = Transform3D(0.99026805, 0, 0.1391731, 0, 1, 0, -0.1391731, 0, 0.99026805, 9.086, 0.0025, -0.5648369)
+size = Vector3(9.0834, 0.005, 15.409271)
+material = SubResource("StandardMaterial3D_d0lf8")
