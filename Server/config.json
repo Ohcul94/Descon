@@ -8309,60 +8309,144 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 35.9,
                     "scale": 38.03,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1313.46,
                     "y": -3613.25,
                     "yOffset": 4.295
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 52.6,
                     "scale": 35.89,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1527.8,
                     "y": -3539.93,
                     "yOffset": 4.045
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 24.1,
                     "scale": 25.23,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1556.62,
                     "y": -3159.01,
                     "yOffset": 2.007
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 271.5,
                     "scale": 24.26,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1193.5,
                     "y": -3390.47,
                     "yOffset": 1.926
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 291.0,
                     "scale": 24.51,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1636.6,
                     "y": -3402.78,
                     "yOffset": 1.708
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 144.2,
                     "scale": 20.47,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1402.95,
                     "y": -3558.94,
                     "yOffset": 1.398
@@ -8429,20 +8513,48 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 27.7,
                     "scale": 32.23,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -277.25,
                     "y": -3172.39,
                     "yOffset": 3.644
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 8.0,
                     "scale": 37.35,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -166.21,
                     "y": -3490.37,
                     "yOffset": 4.246
@@ -8529,60 +8641,144 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 220.0,
                     "scale": 39.5,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1641.73,
                     "y": -2339.86,
                     "yOffset": 4.468
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 293.0,
                     "scale": 38.22,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1218.2,
                     "y": -2462.42,
                     "yOffset": 4.318
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 73.3,
                     "scale": 37.3,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1263.83,
                     "y": -2636.7,
                     "yOffset": 4.211
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 269.7,
                     "scale": 31.59,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -896.14,
                     "y": -2481.61,
                     "yOffset": 3.568
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 120.1,
                     "scale": 35.31,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1479.47,
                     "y": -2612.15,
                     "yOffset": 4.006
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 12.7,
                     "scale": 21.87,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1456.08,
                     "y": -2360.39,
                     "yOffset": 1.726
@@ -8649,60 +8845,144 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 181.5,
                     "scale": 39.82,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 722.02,
                     "y": -2289.58,
                     "yOffset": 4.537
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 332.2,
                     "scale": 35.16,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 358.47,
                     "y": -1791.42,
                     "yOffset": 3.988
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 161.3,
                     "scale": 31.87,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 422.66,
                     "y": -2204.67,
                     "yOffset": 3.576
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 72.3,
                     "scale": 31.35,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 247.52,
                     "y": -1835.41,
                     "yOffset": 3.514
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 287.0,
                     "scale": 22.42,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1002.53,
                     "y": -2336.46,
                     "yOffset": 1.539
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 304.6,
                     "scale": 19.66,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 60.19,
                     "y": -1873.73,
                     "yOffset": 1.34
@@ -8749,40 +9029,96 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 178.3,
                     "scale": 36.9,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1991.39,
                     "y": -3111.61,
                     "yOffset": 4.164
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 359.5,
                     "scale": 37.18,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1653.49,
                     "y": -2717.57,
                     "yOffset": 4.196
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 341.8,
                     "scale": 25.52,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1487.11,
                     "y": -3279.15,
                     "yOffset": 2.031
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 300.9,
                     "scale": 25.0,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1776.3,
                     "y": -3016.3,
                     "yOffset": 1.987
@@ -8829,50 +9165,120 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 170.8,
                     "scale": 35.89,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1101.26,
                     "y": 130.62,
                     "yOffset": 4.046
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 197.9,
                     "scale": 38.77,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1387.57,
                     "y": 116.24,
                     "yOffset": 4.382
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 201.9,
                     "scale": 36.75,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1455.81,
                     "y": 363.23,
                     "yOffset": 4.146
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 243.9,
                     "scale": 31.31,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1598.98,
                     "y": 164.16,
                     "yOffset": 3.535
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 273.1,
                     "scale": 30.66,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1082.37,
                     "y": 510.11,
                     "yOffset": 3.458
@@ -8979,40 +9385,96 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 49.8,
                     "scale": 37.48,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1355.22,
                     "y": -64.09,
                     "yOffset": 4.232
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 191.6,
                     "scale": 34.07,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 972.81,
                     "y": -102.86,
                     "yOffset": 3.833
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 11.8,
                     "scale": 31.75,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1383.13,
                     "y": -469.48,
                     "yOffset": 3.586
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 184.2,
                     "scale": 22.05,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1154.94,
                     "y": -428.07,
                     "yOffset": 1.512
@@ -9079,60 +9541,144 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 147.2,
                     "scale": 37.09,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 2162.79,
                     "y": -429.15,
                     "yOffset": 4.226
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 66.5,
                     "scale": 35.57,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 2228.34,
                     "y": -268.42,
                     "yOffset": 4.037
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 153.2,
                     "scale": 35.22,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 2703.89,
                     "y": 732.92,
                     "yOffset": 3.968
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 196.6,
                     "scale": 38.53,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 2191.74,
                     "y": 848.82,
                     "yOffset": 4.355
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 108.4,
                     "scale": 35.49,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 2337.42,
                     "y": 584.51,
                     "yOffset": 4.027
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 206.1,
                     "scale": 36.0,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 2408.28,
                     "y": 884.01,
                     "yOffset": 4.087
@@ -9179,40 +9725,96 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 329.9,
                     "scale": 26.6,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 475.95,
                     "y": 1549.11,
                     "yOffset": 2.121
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 23.5,
                     "scale": 25.26,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 647.81,
                     "y": 1331.57,
                     "yOffset": 2.01
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 97.7,
                     "scale": 25.6,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 394.05,
                     "y": 1374.09,
                     "yOffset": 1.768
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 29.4,
                     "scale": 23.61,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 252.69,
                     "y": 1594.71,
                     "yOffset": 1.625
@@ -9239,20 +9841,48 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 309.0,
                     "scale": 33.34,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 224.08,
                     "y": 1288.84,
                     "yOffset": 3.761
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 275.8,
                     "scale": 35.18,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 222.82,
                     "y": 1402.4,
                     "yOffset": 3.963
@@ -9269,50 +9899,120 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 135.4,
                     "scale": 34.28,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1903.64,
                     "y": 2126.82,
                     "yOffset": 3.885
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 39.7,
                     "scale": 36.71,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1945.52,
                     "y": 1938.3,
                     "yOffset": 4.17
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 19.3,
                     "scale": 38.09,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1738.83,
                     "y": 2118.24,
                     "yOffset": 4.361
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 88.5,
                     "scale": 34.61,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 2271.3,
                     "y": 1945.9,
                     "yOffset": 3.896
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 278.2,
                     "scale": 33.4,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1666.49,
                     "y": 2217.33,
                     "yOffset": 3.77
@@ -9389,40 +10089,96 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 285.3,
                     "scale": 38.91,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1259.5,
                     "y": 2481.1,
                     "yOffset": 4.399
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 226.3,
                     "scale": 39.69,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -779.01,
                     "y": 2584.73,
                     "yOffset": 4.489
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 216.3,
                     "scale": 33.63,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -469.56,
                     "y": 2229.83,
                     "yOffset": 3.808
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 253.8,
                     "scale": 33.8,
-                    "type": "decor",
+                    "type": "wall",
                     "x": -1291.7,
                     "y": 2157.29,
                     "yOffset": 3.828
@@ -9489,90 +10245,216 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 1.7,
                     "scale": 40.55,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1040.37,
                     "y": 4527.06,
                     "yOffset": 4.59
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 142.4,
                     "scale": 35.08,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 725.87,
                     "y": 4519.21,
                     "yOffset": 3.951
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colliders": [
+                        {
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.4
+                        }
+                    ],
                     "label": "Arbol_1",
                     "rotY": 317.6,
                     "scale": 35.99,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1390.24,
                     "y": 4502.74,
                     "yOffset": 4.057
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 106.9,
                     "scale": 37.04,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 775.33,
                     "y": 4741.58,
                     "yOffset": 4.249
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colliders": [
+                        {
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 2.6
+                        }
+                    ],
                     "label": "Arbol_2",
                     "rotY": 254.1,
                     "scale": 33.61,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 910.72,
                     "y": 4607.45,
                     "yOffset": 3.806
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 269.3,
                     "scale": 24.79,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 712.65,
                     "y": 4620.47,
                     "yOffset": 1.97
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb",
+                    "colHeight": 6.72,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 9.5,
+                    "colliders": [
+                        {
+                            "height": 6.72,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 9.5
+                        }
+                    ],
                     "label": "Piedra_Grande",
                     "rotY": 81.2,
                     "scale": 25.63,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 1727.94,
                     "y": 4681.27,
                     "yOffset": 2.138
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 254.5,
                     "scale": 20.26,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 789.32,
                     "y": 4442.97,
                     "yOffset": 1.383
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
+                    "colHeight": 4.24,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colType": "circle",
+                    "colWidth": 6.0,
+                    "colliders": [
+                        {
+                            "height": 4.24,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "type": "circle",
+                            "width": 6.0
+                        }
+                    ],
                     "label": "Piedras_Apiladas_Grandes",
                     "rotY": 53.2,
                     "scale": 21.8,
-                    "type": "decor",
+                    "type": "wall",
                     "x": 942.08,
                     "y": 4402.29,
                     "yOffset": 1.598

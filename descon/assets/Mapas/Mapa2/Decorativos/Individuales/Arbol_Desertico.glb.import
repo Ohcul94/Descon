@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://b0n8e8cw4lk7b"
-path="res://.godot/imported/Piedras_Apiladas_Medianas.glb-da94012b5ed89df39148b025f49ee2b7.scn"
+uid="uid://w2prkjr5vnbg"
+path="res://.godot/imported/Arbol_Desertico.glb-63206bc35b4b578b0cc21afc0805af44.scn"
 
 [deps]
 
-source_file="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
-dest_files=["res://.godot/imported/Piedras_Apiladas_Medianas.glb-da94012b5ed89df39148b025f49ee2b7.scn"]
+source_file="res://assets/Mapas/Mapa2/Decorativos/Individuales/Arbol_Desertico.glb"
+dest_files=["res://.godot/imported/Arbol_Desertico.glb-63206bc35b4b578b0cc21afc0805af44.scn"]
 
 [params]
 
