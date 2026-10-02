@@ -873,14 +873,15 @@ function removeMechanic(enemyId, idx) {
 function addDefenseMechanic(enemyId) {
     if (!config.enemyModels[enemyId].defenseMechanics) config.enemyModels[enemyId].defenseMechanics = [];
     config.enemyModels[enemyId].defenseMechanics.push({
-        type: "basic_defense",
+        type: "aura_heal",
         castTimeMs: 0,
         castInterruptible: true,
         activationMode: "time",
         activationHPs: [50],
         activationIntervalMs: 0,
-        reductionPercentage: 10,
-        shieldRegen: 5,
+        healAmount: 20,
+        radius: 300,
+        intervalMs: 500,
         duration: 5000,
         cooldown: 10000,
         startDelay: 0
@@ -901,12 +902,18 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
     const lib = (config.defenseLib && config.defenseLib[newType]) ? config.defenseLib[newType] : DEFAULT_DEFENSE_LIB[newType];
     lib.fields.forEach(f => {
         if (mech[f] === undefined) {
-            if (f === 'castTimeMs') mech[f] = 0;
+            if (f === 'castTimeMs') mech[f] = newType === 'sobrecarga' ? 2000 : 0;
             else if (f === 'castInterruptible') mech[f] = true;
             else if (f === 'reductionPercentage') mech[f] = 10;
             else if (f === 'shieldRegen') mech[f] = 5;
             else if (f === 'radius') mech[f] = 300;
-            else if (f === 'healAmount') mech[f] = 20;
+            else if (f === 'healAmount') mech[f] = newType === 'sobrecarga' ? 500 : 20;
+            else if (f === 'healMode') mech[f] = 'flat';
+            else if (f === 'healAlliesEnabled') mech[f] = false;
+            else if (f === 'healRange') mech[f] = 300;
+            else if (f === 'damageEnabled') mech[f] = false;
+            else if (f === 'explosionRadius') mech[f] = 250;
+            else if (f === 'damage') mech[f] = newType === 'sobrecarga' ? 100 : 0;
             else if (f === 'intervalMs') mech[f] = 500;
             else if (f === 'duration') mech[f] = 5000;
             else if (f === 'cooldown') mech[f] = 10000;
@@ -1047,6 +1054,12 @@ function updateMechanicType(enemyId, idx, newType) {
              else if (f === 'stunDuration') mech[f] = 1500;
              else if (f === 'arcAngle') mech[f] = 120;
              else if (f === 'fullCircle') mech[f] = false;
+             // v902.0: Enraizada
+             else if (f === 'trapRadius') mech[f] = 140;
+             else if (f === 'rootDuration') mech[f] = 4000;
+             else if (f === 'trapDamage') mech[f] = 40;
+             else if (f === 'rootDps') mech[f] = 0;
+             else if (f === 'rootTickInterval') mech[f] = 1000;
              else mech[f] = 0;
         }
     });

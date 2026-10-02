@@ -105,6 +105,33 @@ func _ready():
 		body_shape_entered.connect(_on_body_shape_entered)
 	queue_redraw()
 
+func _safe_free_3d_node(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	if node is Node3D:
+		node.visible = false
+	var p = node.get_parent()
+	if is_instance_valid(p):
+		p.remove_child(node)
+	node.queue_free()
+
+func _safe_free_world_root_3d() -> void:
+	if is_instance_valid(_laser_hit_3d):
+		VFXSystem.recycle_vfx_to_pool(_laser_hit_3d)
+		_laser_hit_3d = null
+	if is_instance_valid(_bomb_ground_marker):
+		_safe_free_3d_node(_bomb_ground_marker)
+		_bomb_ground_marker = null
+	if is_instance_valid(_hook_chain_3d):
+		_safe_free_3d_node(_hook_chain_3d)
+		_hook_chain_3d = null
+	if is_instance_valid(world_root_3d):
+		_safe_free_3d_node(world_root_3d)
+		world_root_3d = null
+
+func _exit_tree() -> void:
+	_safe_free_world_root_3d()
+
 func _process(_delta):
 	# Sincronización visual 3D en cada frame para evitar desfase con las naves (Entity.gd)
 	if is_instance_valid(world_root_3d):
@@ -354,10 +381,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 			world_root_3d.scale = Vector3.ZERO
 			create_tween().tween_property(world_root_3d, "scale", Vector3.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 			
-		tree_exiting.connect(func():
-			if is_instance_valid(world_root_3d):
-				world_root_3d.queue_free()
-		)
+		tree_exiting.connect(_safe_free_world_root_3d)
 		
 	# Spawn 3D anticipation aura for heal projectiles
 	if type == "heal":
@@ -645,10 +669,7 @@ func _setup_visual_sprite():
 			light.omni_range = 6.0
 			world_root_3d.add_child(light)
 
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 
 			sprite = null
 			return
@@ -694,10 +715,7 @@ func _setup_visual_sprite():
 			light.omni_range = 5.0
 			world_root_3d.add_child(light)
 
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 
 			sprite = null
 			return
@@ -795,12 +813,7 @@ func _setup_visual_sprite():
 			_hook_chain_3d.material_override = chain_mat
 			target_vp.add_child(_hook_chain_3d)
 
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-				if is_instance_valid(_hook_chain_3d):
-					_hook_chain_3d.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 
 			sprite = null
 			return
@@ -849,10 +862,7 @@ func _setup_visual_sprite():
 			light.omni_range = 5.0
 			world_root_3d.add_child(light)
 
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 
 			sprite = null
 			return
@@ -1012,12 +1022,7 @@ func _setup_visual_sprite():
 			marker_fill.material_override = mf_mat
 			_bomb_ground_marker.add_child(marker_fill)
 
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-				if is_instance_valid(_bomb_ground_marker):
-					_bomb_ground_marker.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 
 			sprite = null
 			return
@@ -1065,10 +1070,7 @@ func _setup_visual_sprite():
 			light.omni_range = 5.0
 			world_root_3d.add_child(light)
 
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 
 			sprite = null
 			return
@@ -1116,10 +1118,7 @@ func _setup_visual_sprite():
 			light.omni_range = 5.0
 			world_root_3d.add_child(light)
 
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 
 			sprite = null
 			return
@@ -1159,10 +1158,7 @@ func _setup_visual_sprite():
 			var tw = create_tween().set_loops()
 			tw.tween_property(world_root_3d, "rotation_degrees", Vector3(0, 360, 0), 1.5).set_trans(Tween.TRANS_LINEAR)
 			
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 		
 		sprite = null
 		return
@@ -1180,10 +1176,7 @@ func _setup_visual_sprite():
 
 			world_root_3d.scale = Vector3(0.55, 0.55, 0.55)
 
-			tree_exiting.connect(func():
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-			)
+			tree_exiting.connect(_safe_free_world_root_3d)
 
 			# --- Cráneo (esfera hueso) ---
 			var cranium = MeshInstance3D.new()
@@ -1468,12 +1461,7 @@ func _setup_visual_sprite():
 					_laser_hit_3d.name = "LaserHit3D_" + str(get_instance_id())
 					target_vp.add_child(_laser_hit_3d)
 
-				tree_exiting.connect(func():
-					if is_instance_valid(world_root_3d):
-						world_root_3d.queue_free()
-					if is_instance_valid(_laser_hit_3d):
-						VFXSystem.recycle_vfx_to_pool(_laser_hit_3d)
-				)
+				tree_exiting.connect(_safe_free_world_root_3d)
 
 				sprite = null
 				return

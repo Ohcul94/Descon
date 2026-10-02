@@ -463,7 +463,7 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 	slot.material = null
 	
 	# v410: Tinte de Silencio (Polimorfia) o Interferencia
-	var is_silenced = ref.get("is_polymorphed") == true and not ref.get("poly_can_use_skills")
+	var is_silenced = (ref.get("is_polymorphed") == true and not ref.get("poly_can_use_skills")) or ref.get("is_silenced") == true
 	if is_silenced:
 		slot.modulate = Color(0.5, 0.25, 0.7, 0.85) # Violeta de silencio
 	elif _is_interference_ui_active:
@@ -616,7 +616,7 @@ func _update_sphere_ui(id: int, ref, slot):
 		l_cd.add_theme_font_size_override("font_size", 12)
 	
 	# v410: Tinte de Silencio (Polimorfia) o Interferencia
-	var is_silenced = ref.get("is_polymorphed") == true and not ref.get("poly_can_use_skills")
+	var is_silenced = (ref.get("is_polymorphed") == true and not ref.get("poly_can_use_skills")) or ref.get("is_silenced") == true
 	if is_silenced:
 		slot.modulate = Color(0.5, 0.25, 0.7, 0.85) # Violeta de silencio
 	elif _is_interference_ui_active:

@@ -23,13 +23,13 @@ function buildSD(id, currentValue, options, color, cbCode) {
                 <input type="text" id="sd-in-${id}" value="${search}" placeholder="🔍 Filtrar por nombre..."
                     oninput="filterSD('${id}')" 
                     onclick="event.stopPropagation()"
-                    onkeydown="if(event.key==='Escape'){closeSD('${id}');} else if(event.key==='Enter'){pickFirstSD('${id}','${safeCb}');}">
+                    onkeydown="if(event.key==='Escape'){closeSD('${id}');} else if(event.key==='Enter'){pickFirstSD('${id}');}">
             </div>
             <div id="sd-opts-${id}" class="sd-opts-list" data-opts='${safeOpts}' data-cb="${safeCb}">
                 ${filtered.length === 0 ? '<div class="sd-no-results">Sin resultados</div>' : ''}
                 ${filtered.map(o => {
                     const isSelected = o.value === currentValue;
-                    return `<div class="sd-o ${isSelected ? 'selected' : ''}" onclick="pickSD('${id}','${o.value}','${safeCb}')">
+                    return `<div class="sd-o ${isSelected ? 'selected' : ''}" onclick="pickSD('${id}','${o.value}')">
                         <span style="font-size:1.1rem; flex-shrink:0;">${o.icon}</span>
                         <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${o.label}</span>
                         ${isSelected ? `<span style="color:${color}; font-weight:bold; font-size:0.8rem; margin-left:auto;">✓</span>` : ''}
@@ -73,6 +73,11 @@ function closeSD(id) {
     if (box) box.classList.remove('open');
     if (wrap) wrap.classList.remove('active');
     mechSearchState[id] = '';
+    const inp = document.getElementById(`sd-in-${id}`);
+    if (inp && inp.value !== '') {
+        inp.value = '';
+        filterSD(id);
+    }
 }
 
 function filterSD(id) {
@@ -100,7 +105,7 @@ function filterSD(id) {
     });
 }
 
-function pickFirstSD(id, cbCode) {
+function pickFirstSD(id) {
     const optsDiv = document.getElementById(`sd-opts-${id}`);
     if (!optsDiv) return;
     const firstItem = optsDiv.querySelector('.sd-o');
@@ -108,12 +113,18 @@ function pickFirstSD(id, cbCode) {
 }
 
 function pickSD(id, value, cbCode) {
+    if (!cbCode) {
+        const optsDiv = document.getElementById(`sd-opts-${id}`);
+        if (optsDiv) cbCode = optsDiv.getAttribute('data-cb') || '';
+    }
     closeSD(id);
-    try {
-        const f = new Function('value', '"use strict";' + cbCode);
-        f(value);
-    } catch(err) {
-        console.error('Error executing pickSD:', err);
+    if (cbCode) {
+        try {
+            const f = new Function('value', '"use strict";' + cbCode);
+            f(value);
+        } catch(err) {
+            console.error('Error executing pickSD:', err);
+        }
     }
     if (typeof renderEnemyDetail === 'function') renderEnemyDetail();
 }
@@ -635,8 +646,14 @@ const fieldLabelsMap = {
                                            // v901.1: Campos de atracción de la bola de fuego
                                            pullEnabled: "Activar Atracción de Rayos",
                                            pullRadius: "Radio de Atracción de Rayos (px)",
-                                           pullStrength: "Fuerza de Atracción (px/s)",
-                                           ray_damage: "Daño por Tick de Rayos (pts)"
+                                            pullStrength: "Fuerza de Atracción (px/s)",
+                                            ray_damage: "Daño por Tick de Rayos (pts)",
+                                            // v902.0: Enraizada
+                                            trapRadius: "Radio de las Raíces (px)",
+                                            rootDuration: "Duración del Enraizamiento (ms)",
+                                            trapDamage: "Daño al Atrapar (pts)",
+                                            rootDps: "Daño por Tick Enraizado (pts/s, 0 = sin daño)",
+                                            rootTickInterval: "Intervalo de Tick del Root (ms)"
                                          };
                                      if (f === 'activationMode') {
                                          const mode = m.activationMode || 'time';
@@ -772,8 +789,10 @@ if (f === 'slowIsPercentage') return '';
                                                               <option value="poison">🤢 Veneno</option>
                                                               <option value="stun">⚡ Parálisis</option>
                                                               <option value="slow">🐢 Ralentización (Slow)</option>
+                                                              <option value="root">🌱 Enraizado (Root)</option>
+                                                              <option value="silence">🔇 Silencio</option>
                                                           </select>
-                                                          <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.65rem; background:#ef4444;" onclick="const type = document.getElementById('new-debuff-select-${idx}').value; const debuffDefaults = { bleed: { type: 'bleed', dps: 30, duration: 4000, tickInterval: 1000 }, poison: { type: 'poison', dps: 20, duration: 4000, tickInterval: 1000 }, stun: { type: 'stun', duration: 1500 }, slow: { type: 'slow', amount: 50, duration: 2500, isPercentage: true } }; config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList.push(JSON.parse(JSON.stringify(debuffDefaults[type]))); renderEnemyDetail();">+ AGREGAR DEBUFF</button>
+                                                          <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.65rem; background:#ef4444;" onclick="const type = document.getElementById('new-debuff-select-${idx}').value; const debuffDefaults = { bleed: { type: 'bleed', dps: 30, duration: 4000, tickInterval: 1000 }, poison: { type: 'poison', dps: 20, duration: 4000, tickInterval: 1000 }, stun: { type: 'stun', duration: 1500 }, slow: { type: 'slow', amount: 50, duration: 2500, isPercentage: true }, root: { type: 'root', duration: 3000, dps: 0, tickInterval: 1000 }, silence: { type: 'silence', duration: 3000 } }; config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList.push(JSON.parse(JSON.stringify(debuffDefaults[type]))); renderEnemyDetail();">+ AGREGAR DEBUFF</button>
                                                       </div>
                                                   </div>
                                                   <div style="display:grid; grid-template-columns: 1fr; gap:8px;">
@@ -825,13 +844,40 @@ if (f === 'slowIsPercentage') return '';
                                                                       </div>
                                                                   </div>
                                                               `;
+                                                          } else if (d.type === 'root') {
+                                                              // Enraizado: duración obligatoria + daño por tick opcional (0 = sin daño)
+                                                              fieldsHtml = `
+                                                                  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; width:100%;">
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Duración Root (ms)</label>
+                                                                          <input type="number" value="${d.duration || 3000}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].duration = parseInt(this.value)">
+                                                                      </div>
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Daño por Tick (0 = sin daño)</label>
+                                                                          <input type="number" value="${d.dps || 0}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].dps = parseInt(this.value)">
+                                                                      </div>
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Intervalo Tick (ms)</label>
+                                                                          <input type="number" value="${d.tickInterval || 1000}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" ${Number(d.dps) > 0 ? '' : 'disabled'} onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].tickInterval = parseInt(this.value)">
+                                                                      </div>
+                                                                  </div>
+                                                              `;
+                                                          } else if (d.type === 'silence') {
+                                                              fieldsHtml = `
+                                                                  <div style="display:grid; grid-template-columns: 1fr; gap:8px; width:100%;">
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Duración de Silencio (ms)</label>
+                                                                          <input type="number" value="${d.duration || 3000}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].duration = parseInt(this.value)">
+                                                                      </div>
+                                                                  </div>
+                                                              `;
                                                           }
 
                                                           return `
                                                               <div style="display:flex; flex-direction:column; gap:6px; background:#0f172a; padding:8px; border-radius:6px; border:1px solid #334155; position:relative;">
                                                                   <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
                                                                       <span style="font-size:0.75rem; font-weight:bold; color:#ef4444;">
-                                                                          ${d.type === 'bleed' ? '🩸 Sangrado' : (d.type === 'poison' ? '🤢 Veneno' : (d.type === 'stun' ? '⚡ Parálisis' : '🐢 Ralentización (Slow)'))}
+                                                                           ${(d.type === 'bleed' ? '🩸 Sangrado' : (d.type === 'poison' ? '🤢 Veneno' : (d.type === 'stun' ? '⚡ Parálisis' : (d.type === 'root' ? '🌱 Enraizado (Root)' : (d.type === 'silence' ? '🔇 Silencio' : '🐢 Ralentización (Slow)')))))}
                                                                       </span>
                                                                       <button style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList.splice(${dIdx}, 1); renderEnemyDetail();">✕</button>
                                                                   </div>
@@ -935,7 +981,7 @@ if (f === 'targetMode') {
                             </div>
                             <div id="mc-body-${selectedEnemyId}-defenseMechanics-${idx}" class="mech-card-body ${m._collapsed ? 'collapsed' : ''}">
                             <div class="form-grid" style="margin-top:1rem;">
-                                ${(DEFENSE_LIB[m.type] || DEFENSE_LIB['basic_defense']).fields.map(f => {
+                                ${(DEFENSE_LIB[m.type] || DEFENSE_LIB['aura_heal'] || Object.values(DEFENSE_LIB)[0]).fields.map(f => {
                                     const defLabels = { 
                                         reductionPercentage: "Reducción de Daño (%)", 
                                         shieldRegen: "Regeneración de Escudo (pts/s)", 
@@ -947,7 +993,13 @@ if (f === 'targetMode') {
                                         activationHPs: "Activadores de Vida (%)",
                                         activationIntervalMs: "Tiempo en Combate para Activar (ms)",
                                         radius: m.type === 'wall_dome' ? "Radio del Domo (px)" : "Radio del Aura (px)",
-                                        healAmount: "Curación por Pulso (pts)",
+                                        healAmount: m.type === 'sobrecarga' ? (((m.healMode || 'flat') === 'percent') ? "Curación (% de Vida Máxima)" : "Curación (pts)") : "Curación por Pulso (pts)",
+                                        healMode: "Modo de Curación",
+                                        healAlliesEnabled: "Curar Aliados Cercanos (además de sí mismo)",
+                                        healRange: "Radio de Curación (px)",
+                                        damageEnabled: "Activar Daño en la Explosión",
+                                        explosionRadius: "Radio de la Explosión (px)",
+                                        damage: "Daño de la Explosión (pts)",
                                         intervalMs: "Intervalo de Tick (ms)",
                                         activationHP: "Activación por HP (%)",
                                         affectsEnemies: "¿Afectar a otros Enemigos? (Sí/No)", 
@@ -1095,9 +1147,52 @@ if (f === 'targetMode') {
                                          `;
                                      }
                                     if (['affectsEnemies', 'affectsBosses', 'cloneExplodeOnExpiry'].includes(f)) {
+                                         if (m.type === 'sobrecarga' && !m.healAlliesEnabled) return '';
                                          const checked = f === 'cloneExplodeOnExpiry' ? m[f] !== false : !!m[f];
                                          return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.checked"><label style="margin:0;">${defLabels[f]}</label></div>`;
                                     }
+                                    if (f === 'healMode') {
+                                        const hmode = m.healMode || 'flat';
+                                        if (m.healMode === undefined) m.healMode = 'flat';
+                                        return `
+                                            <div class="field" style="grid-column: 1 / -1;"><label>Modo de Curación</label>
+                                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].healMode = this.value; renderEnemyDetail();">
+                                                    <option value="flat" ${hmode === 'flat' ? 'selected' : ''}>📏 Fijo (pts de curación)</option>
+                                                    <option value="percent" ${hmode === 'percent' ? 'selected' : ''}>📊 Porcentual (% de la vida máxima del enemigo)</option>
+                                                </select>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'healAlliesEnabled') {
+                                        if (m.healAlliesEnabled === undefined) m.healAlliesEnabled = false;
+                                        const checked = !!m.healAlliesEnabled;
+                                        return `
+                                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(59,130,246,0.08); padding:10px; border-radius:8px; margin-top:10px; grid-column: 1 / -1;">
+                                                <input type="checkbox" ${checked ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].healAlliesEnabled = this.checked; if (this.checked) { var mm = config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}]; if (mm.healRange === undefined) mm.healRange = 300; if (mm.affectsEnemies === undefined) mm.affectsEnemies = false; if (mm.affectsBosses === undefined) mm.affectsBosses = false; } renderEnemyDetail();">
+                                                <label style="margin:0; cursor:pointer; font-weight:bold; color:#60a5fa;">Curar Aliados Cercanos (además de sí mismo)</label>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'healRange') {
+                                        if (!m.healAlliesEnabled) return '';
+                                        const hrange = m.healRange !== undefined ? m.healRange : 300;
+                                        return `
+                                            <div class="field"><label>${defLabels[f] || f}</label>
+                                                <input type="number" step="1" min="0" value="${hrange}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].healRange = parseFloat(this.value)">
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'damageEnabled') {
+                                        if (m.damageEnabled === undefined) m.damageEnabled = false;
+                                        const dchecked = !!m.damageEnabled;
+                                        return `
+                                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(239,68,68,0.08); padding:10px; border-radius:8px; margin-top:10px; grid-column: 1 / -1;">
+                                                <input type="checkbox" ${dchecked ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].damageEnabled = this.checked; if (this.checked) { var md = config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}]; if (md.explosionRadius === undefined) md.explosionRadius = 250; if (md.damage === undefined) md.damage = 100; } renderEnemyDetail();">
+                                                <label style="margin:0; cursor:pointer; font-weight:bold; color:#ef4444;">Activar Daño en la Explosión</label>
+                                            </div>
+                                        `;
+                                    }
+                                    if ((f === 'explosionRadius' || f === 'damage') && m.type === 'sobrecarga' && !m.damageEnabled) return '';
                                     if (f === 'pillarName') return `<div class="field" style="grid-column: 1 / -1;"><label>${defLabels[f] || f}</label><input type="text" value="${m[f] || 'Pilar Protector'}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.value"></div>`;
                                     if (f === 'stealMode') {
                                         const mode = m.stealMode || 'flat';
@@ -1287,9 +1382,8 @@ if (f === 'targetMode') {
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.sd-wrap')) {
         document.querySelectorAll('.sd-box.open').forEach(box => {
-            box.classList.remove('open');
-            const wrap = box.closest('.sd-wrap');
-            if (wrap) wrap.classList.remove('active');
+            const id = box.id.replace('sd-box-', '');
+            closeSD(id);
         });
     }
 });

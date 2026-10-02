@@ -23,7 +23,9 @@ const getStatusEffects = (ent) => {
         frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
         feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime)),
         provoked: !!(ent.forcedTarget && ent.tauntEndTime && now < ent.tauntEndTime),
-        polymorphed: !!(ent.isPolymorphed || (ent.polyEndTime && now < ent.polyEndTime))
+        polymorphed: !!(ent.isPolymorphed || (ent.polyEndTime && now < ent.polyEndTime)),
+        rooted: !!(ent.isRooted || (ent.rootEndTime && now < ent.rootEndTime)),
+        silenced: !!(ent.isSilenced || (ent.silencedUntil && now < ent.silencedUntil))
     };
 };
 
@@ -532,6 +534,21 @@ function startGameLoop(io, state, aiManager) {
 
             let changed = false;
 
+            // NUEVO: Al morir se limpian de forma autoritativa los estados alterados
+            // (inclinuido ROOT y SILENCIO). El respawn también limpia vía clearAllDebuffs.
+            if (p.isDead && (p.isRooted || p.isSilenced || (p.silencedUntil && p.silencedUntil > 0))) {
+                if (p.isRooted) {
+                    p.isRooted = false; p.rootEndTime = 0;
+                    p.rootDps = 0; p.rootInterval = 0; p.lastRootTick = 0;
+                    io.to(p.socketId).emit('rootState', { active: false });
+                }
+                if (p.isSilenced || (p.silencedUntil && p.silencedUntil > 0)) {
+                    p.isSilenced = false; p.silencedUntil = 0; p.lastSilenceTime = 0; p._silenceActive = false;
+                    io.to(p.socketId).emit('silenceState', { active: false });
+                }
+                changed = true;
+            }
+
             // v266.360: Procesamiento de Sueño (Sleep Mechanic)
             if (p.isAsleep) {
                 // Verificar si expiró el sueño
@@ -626,6 +643,25 @@ function startGameLoop(io, state, aiManager) {
                 p.poisonInterval = 0;
             }
 
+            // NUEVO: Daño por tick mientras está INMOVILIZADO (root) por la mecánica "enraizada"
+            // Solo aplica si el root tiene dps configurado (el Dashboard permite root sin daño).
+            if (p.rootEndTime && now < p.rootEndTime && p.rootDps) {
+                const interval = p.rootInterval || 1000;
+                const lastTick = p.lastRootTick || (now - 1000);
+                const elapsed = now - lastTick;
+                if (elapsed >= interval) {
+                    const ticks = Math.floor(elapsed / interval);
+                    debuffDmg += p.rootDps * ticks;
+                    p.lastRootTick = lastTick + (ticks * interval);
+                    debuffType = debuffType ? 'mixed' : 'root';
+                }
+            } else if (p.rootEndTime && now >= p.rootEndTime) {
+                p.rootEndTime = 0;
+                p.rootDps = 0;
+                p.rootInterval = 0;
+                p.lastRootTick = 0;
+            }
+
             if (debuffDmg > 0) {
                 recordPlayerCombat(p, state, now);
                 if (p.shield >= debuffDmg) {
@@ -676,6 +712,8 @@ function startGameLoop(io, state, aiManager) {
             if (activeHeal <= 0) p.healStacks = 0;
             const activeBleed = p.bleedEndTime ? Math.max(0, p.bleedEndTime - now) : 0;
             const activePoison = p.poisonEndTime ? Math.max(0, p.poisonEndTime - now) : 0;
+            const activeRoot = p.rootEndTime ? Math.max(0, p.rootEndTime - now) : 0;
+            const activeSilence = p.silencedUntil ? Math.max(0, p.silencedUntil - now) : 0;
             
             // v410.7: Expirar flags booleanas en el servidor cuando sus timers terminen
             if (activeSlow <= 0 && p.isSlowed && (!p.lastSlowTime || now - p.lastSlowTime > 400)) {
@@ -719,6 +757,32 @@ function startGameLoop(io, state, aiManager) {
                 changed = true;
             }
 
+            // NUEVO: Expiración de INMOVILIZACIÓN (root). Solo libera el movimiento;
+            // no tocamos casteos ni skills porque el root nunca los bloqueó.
+            if (activeRoot <= 0 && p.isRooted) {
+                p.isRooted = false;
+                p.rootEndTime = 0;
+                p.rootDps = 0;
+                p.rootInterval = 0;
+                p.lastRootTick = 0;
+                io.to(p.socketId).emit('rootState', { active: false });
+                changed = true;
+            }
+
+            // NUEVO: Expiración de SILENCIO. silencedUntil es la fuente de verdad
+            // (el flag isSilenced lo resetea además el loop corto cada 200ms).
+            // _silenceActive recuerda si ya avisamos al cliente para emitir el "off" una sola vez.
+            if (activeSilence > 0) {
+                p._silenceActive = true;
+            } else if (p._silenceActive) {
+                p._silenceActive = false;
+                p.isSilenced = false;
+                p.silencedUntil = 0;
+                p.lastSilenceTime = 0;
+                io.to(p.socketId).emit('silenceState', { active: false });
+                changed = true;
+            }
+
             // v410: Polimorfia - Expirar estado
             const activePoly = p.polyEndTime ? Math.max(0, p.polyEndTime - now) : 0;
             if (activePoly <= 0 && p.isPolymorphed) {
@@ -739,7 +803,7 @@ function startGameLoop(io, state, aiManager) {
 
             // v2.5: Delta Compression — Solo emitir statusEffectsSync si algún estado cambió
             // Evita enviar 75+ paquetes/segundo de ceros cuando los jugadores no tienen debuffs activos
-            const newStatusSnapshot = `${activeSlow}|${activeStun}|${activeHeal}|${p.healStacks||0}|${activeBleed}|${activePoison}|${activePoly}`;
+            const newStatusSnapshot = `${activeSlow}|${activeStun}|${activeHeal}|${p.healStacks||0}|${activeBleed}|${activePoison}|${activePoly}|${activeRoot}|${activeSilence}`;
             if (newStatusSnapshot !== p._lastStatusSnapshot) {
                 p._lastStatusSnapshot = newStatusSnapshot;
                 io.to(p.socketId).emit('statusEffectsSync', {
@@ -750,6 +814,8 @@ function startGameLoop(io, state, aiManager) {
                     bleed: activeBleed,
                     poison: activePoison,
                     poly: activePoly,
+                    root: activeRoot,
+                    silence: activeSilence,
                     polyCanUseSkills: activePoly > 0 ? (p.polyCanUseSkills !== undefined ? p.polyCanUseSkills : true) : true,
                     polyCanMove: activePoly > 0 ? (p.polyCanMove !== undefined ? p.polyCanMove : true) : true
                 });

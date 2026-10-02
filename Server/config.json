@@ -1280,27 +1280,6 @@
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
-        "basic_defense": {
-            "desc": "Mecánica de mitigación de daño y regeneración.",
-            "fields": [
-                "activationMode",
-                "activationHPs",
-                "activationIntervalMs",
-                "reductionPercentage",
-                "shieldRegen",
-                "duration",
-                "cooldown",
-                "startDelay",
-                "castTimeMs",
-                "castInterruptible"
-            ],
-            "icon": "🛡️",
-            "label": "Defensa Estándar",
-            "sound": "",
-            "soundMaxDist": 800,
-            "soundVolumeDb": 0,
-            "soundVolumePercent": 50
-        },
         "boss_colors": {
             "desc": "El Boss y los jugadores cercanos reciben colores. Solo los del color del Boss pueden dañarlo.",
             "fields": [
@@ -1546,6 +1525,32 @@
                 "startDelay",
                 "castTimeMs",
                 "castInterruptible"
+            ],
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 1200
+        },
+        "sobrecarga": {
+            "label": "Sobrecarga",
+            "icon": "⚡",
+            "desc": "Acumula energía verde (casteo) y al completarse detona una explosión verde que cura al enemigo (y opcionalmente a aliados en rango). Con el checkbox activo la explosión también daña a los jugadores cercanos.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible",
+                "healMode",
+                "healAmount",
+                "healAlliesEnabled",
+                "healRange",
+                "affectsEnemies",
+                "affectsBosses",
+                "damageEnabled",
+                "explosionRadius",
+                "damage",
+                "cooldown"
             ],
             "sound": "",
             "soundVolumePercent": 50,
@@ -3381,7 +3386,9 @@
                     "fireRange": 1600,
                     "fireRate": 3000,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -3444,7 +3451,9 @@
                     "fireRange": 1700,
                     "fireRate": 850,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -5567,18 +5576,7 @@
             "aggressive": true,
             "bulletDamage": 400,
             "bulletSpeed": 600,
-            "defenseMechanics": [
-                {
-                    "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "cooldown": 10000,
-                    "duration": 3000,
-                    "reductionPercentage": 20,
-                    "shieldRegen": 5,
-                    "startDelay": 2000,
-                    "type": "basic_defense"
-                }
-            ],
+            "defenseMechanics": [],
             "fireRange": 800,
             "fireRate": 2500,
             "hp": 30000,
@@ -8160,16 +8158,6 @@
             "spawnY": 2000,
             "spawns": [
                 {
-                    "count": 1,
-                    "id": "spawn_1786920069775244",
-                    "intervalMs": 36000,
-                    "radius": 0,
-                    "spawnMode": "fixed",
-                    "type": "103",
-                    "x": 2499,
-                    "y": 2512
-                },
-                {
                     "count": 8,
                     "id": "spawn_1787187794205716",
                     "intervalMs": 10000,
@@ -9610,7 +9598,7 @@
                 "debuffsList"
             ],
             "icon": "🪓",
-            "label": "Hachazo Melee 🪓",
+            "label": "Hachazo 🪓",
             "sound": "",
             "soundMaxDist": 800,
             "soundVolumeDb": 0,
@@ -9967,6 +9955,32 @@
             "sound": "",
             "soundVolumePercent": 50,
             "soundMaxDist": 1200
+        },
+        "enraizada": {
+            "label": "Enraizada",
+            "icon": "🌱",
+            "desc": "Raices que brotan del suelo y abrazan a los objetivos seleccionados: los inmovilizan durante una duracion configurable (sin bloquear casteos ni skills). Opcionalmente inflige dano unico al atrapar y dano por tick mientras dura el enraizamiento.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible",
+                "fireRange",
+                "trapRadius",
+                "rootDuration",
+                "trapDamage",
+                "rootDps",
+                "rootTickInterval",
+                "targetCount",
+                "targetMode",
+                "targetSphereColor"
+            ],
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 1400
         }
     },
     "movementLib": {
@@ -11411,15 +11425,21 @@
                 {
                     "bulletSpeed": 800,
                     "castTimeMs": 200,
-                    "cooldown": 1500,
+                    "cooldown": 1000,
                     "id": "am_l1",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "bleed",
+                            "damagePerSecond": 5,
+                            "duration": 3000
+                        }
+                    ],
                     "name": "Láser T1",
                     "prices": {
                         "hubs": 1000,
                         "ohcu": 10
                     },
-                    "range": 450,
+                    "range": 1000,
                     "requirements": [],
                     "sound": "",
                     "soundVolumePercent": 50

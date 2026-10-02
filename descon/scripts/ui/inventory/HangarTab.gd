@@ -942,21 +942,27 @@ func _make_materials_unshaded_in_ui(node: Node):
 	if not is_instance_valid(node): return
 	if node is MeshInstance3D:
 		if node.material_override and node.material_override is BaseMaterial3D:
-			node.material_override = node.material_override.duplicate()
-			node.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		
-		for i in range(node.get_surface_override_material_count()):
-			var mat = node.get_surface_override_material(i)
-			if mat and mat is BaseMaterial3D:
-				var dup_mat = mat.duplicate()
-				dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				node.set_surface_override_material(i, dup_mat)
-			else:
-				var active_mat = node.get_active_material(i)
-				if active_mat and active_mat is BaseMaterial3D:
-					var dup_mat = active_mat.duplicate()
-					dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-					node.set_surface_override_material(i, dup_mat)
+			if node.material_override.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+				node.material_override = node.material_override.duplicate()
+				node.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		else:
+			var s_count = node.get_surface_override_material_count()
+			if s_count == 0 and node.mesh:
+				s_count = node.mesh.get_surface_count()
+			for i in range(s_count):
+				var mat = node.get_surface_override_material(i)
+				if mat and mat is BaseMaterial3D:
+					if mat.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+						var dup_mat = mat.duplicate()
+						dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+						node.set_surface_override_material(i, dup_mat)
+				else:
+					var active_mat = node.get_active_material(i)
+					if active_mat and active_mat is BaseMaterial3D:
+						if active_mat.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+							var dup_mat = active_mat.duplicate()
+							dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+							node.set_surface_override_material(i, dup_mat)
 	for child in node.get_children():
 		_make_materials_unshaded_in_ui(child)
 

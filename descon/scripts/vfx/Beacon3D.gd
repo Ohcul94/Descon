@@ -272,7 +272,12 @@ func pulse(radius_2d: float = 200.0):
 
 	var tw = create_tween()
 	tw.tween_interval(lifetime + 0.4)
-	tw.tween_callback(wave.queue_free)
+	tw.tween_callback(func():
+		if is_instance_valid(wave):
+			wave.visible = false
+			if wave.get_parent(): wave.get_parent().remove_child(wave)
+			wave.queue_free()
+	)
 
 	var ring_width = max(radius_3d * 0.06, 0.15)
 	var half_thick = ring_width * 0.5
@@ -295,4 +300,9 @@ func pulse(radius_2d: float = 200.0):
 	ftw.set_parallel(true)
 	ftw.tween_property(ring_mat, "albedo_color", Color(0.1, 1.0, 0.3, 0.0), lifetime)
 	ftw.tween_property(ring_flash, "scale", Vector3(1.12, 1.0, 1.12), lifetime)
-	ftw.chain().tween_callback(ring_flash.queue_free)
+	ftw.chain().tween_callback(func():
+		if is_instance_valid(ring_flash):
+			ring_flash.visible = false
+			if ring_flash.get_parent(): ring_flash.get_parent().remove_child(ring_flash)
+			ring_flash.queue_free()
+	)

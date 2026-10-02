@@ -21,6 +21,7 @@ const METEOR_SPARKS_TEX = preload("res://VFX/textures/T_VFX_sparks42.jpg")
 const METEOR_SMOKE_TEX = preload("res://VFX/textures/T_VFX_smoke_1.PNG")
 const FOLLOW_ORB_3D_SCRIPT = preload("res://scripts/entities/projectiles/FollowOrb3D.gd")
 const WHIP_SUMMON_VISUAL_SCRIPT = preload("res://scripts/systems/WhipSummonVisual.gd")
+const ENRAIZADA_VISUAL_SCRIPT = preload("res://scripts/systems/EnraizadaVisual.gd")
 
 func setup(entity_manager_ref: Node) -> void:
 	em = entity_manager_ref
@@ -1272,6 +1273,65 @@ func handle_whip_summon_action(data: Dictionary) -> void:
 					whip_node.finish()
 				else:
 					whip_node.queue_free()
+		return
+
+# ==============================================================================
+# 8. ENRAIZADA (Raíces que enraizan a la nave)
+# ==============================================================================
+func handle_enraizada_action(data: Dictionary) -> void:
+	if not is_instance_valid(em): return
+	var action = str(data.get("action", ""))
+	var enemy_id = str(data.get("id", ""))
+	var key = "enraizada_" + enemy_id
+
+	if action == "enraizada_start":
+		# Si ya hay un aviso previo vivo, lo reutiliza (recasteo)
+		if em.active_areas.has(key) and is_instance_valid(em.active_areas[key]):
+			em.active_areas[key].queue_free()
+			em.active_areas.erase(key)
+		var map_node = get_tree().get_first_node_in_group("map")
+		if not is_instance_valid(map_node): return
+		var vfx = ENRAIZADA_VISUAL_SCRIPT.new()
+		vfx.name = "Enraizada_" + enemy_id
+		vfx.z_index = 14
+		vfx.set_as_top_level(true)
+		if is_instance_valid(em.world) and is_instance_valid(em.world.entities_node):
+			em.world.entities_node.add_child(vfx)
+		else:
+			em.add_child(vfx)
+		if vfx.has_method("setup"):
+			vfx.setup(data, map_node)
+		em.active_areas[key] = vfx
+		# Auto-limpieza de la referencia al morir el VFX
+		if vfx.has_signal("tree_exiting"):
+			vfx.tree_exiting.connect(func():
+				if em.active_areas.get(key) == vfx:
+					em.active_areas.erase(key)
+			)
+		return
+
+	if action == "enraizada_end":
+		var vfx: Node = null
+		if em.active_areas.has(key) and is_instance_valid(em.active_areas[key]):
+			vfx = em.active_areas[key]
+		# Resiliencia: si no llegó el start, crea el brote directo
+		if vfx == null:
+			var map_node = get_tree().get_first_node_in_group("map")
+			if not is_instance_valid(map_node): return
+			var vfx2 = ENRAIZADA_VISUAL_SCRIPT.new()
+			vfx2.name = "Enraizada_" + enemy_id
+			vfx2.z_index = 14
+			vfx2.set_as_top_level(true)
+			if is_instance_valid(em.world) and is_instance_valid(em.world.entities_node):
+				em.world.entities_node.add_child(vfx2)
+			else:
+				em.add_child(vfx2)
+			if vfx2.has_method("setup"):
+				vfx2.setup(data, map_node)
+			em.active_areas[key] = vfx2
+			return
+		if vfx.has_method("trigger_burst"):
+			vfx.trigger_burst(data)
 		return
 
 func _spawn_persistent_meteor_zone(data: Dictionary) -> void:

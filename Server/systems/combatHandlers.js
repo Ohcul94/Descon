@@ -474,6 +474,13 @@ socket.on('playerFire', (fireData) => {
         const sphereIdx = (data.id !== undefined) ? data.id : data.sphereIdx;
         if (sphereIdx === undefined || sphereIdx < 0 || sphereIdx > 3) return;
 
+        // SILENCIO: bloquea el lanzamiento de skills de esfera (mismo criterio que
+        // playerCastStart/playerFire). Ignora para admins para no romper pruebas.
+        if (!p.isAdmin && (p.isSilenced || p.silencedUntil > Date.now())) {
+            socket.emit('gameNotification', { msg: '🚫 SILENCIADO: no puedes usar habilidades.', type: 'error' });
+            return;
+        }
+
         // v270.0: Blindaje de Habilidad (Verificar que el jugador la posea equipada)
         let hasSkillEquipped = false;
         if (p.spheres && Array.isArray(p.spheres)) {

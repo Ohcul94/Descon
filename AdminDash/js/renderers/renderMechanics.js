@@ -21,6 +21,13 @@ function renderMechanicsLib() {
         "radius": "Radio / Tamaño (px)",
         "damage": "Daño (pts)",
         "healAmount": "Curación por Pulso (pts)",
+        "healMode": "Modo de Curación",
+        "healAlliesEnabled": "¿Curar Aliados Cercanos? (Sí/No)",
+        "healRange": "Radio de Curación (px)",
+        "damageEnabled": "¿Activar Daño en la Explosión? (Sí/No)",
+        "explosionRadius": "Radio de Explosión (px)",
+        "affectsEnemies": "¿Afectar a otros Enemigos? (Sí/No)",
+        "affectsBosses": "¿Afectar a Bosses? (Sí/No)",
         "speedBonus": "Bono de Velocidad (px/s)",
         "intervalMs": "Intervalo entre Ticks (ms)",
         "castTimeMs": "Tiempo de Casteo (ms)",
@@ -118,7 +125,13 @@ function renderMechanicsLib() {
         "fullCircle": "¿Giro Completo 360°? (Sí/No)",
         "range": "Distancia de Embestida (px)",
         "lifetimeMs": "Tiempo de Vida (ms)",
-        "slowAmount": "Cantidad de Ralentización (px/s)"
+        "slowAmount": "Cantidad de Ralentización (px/s)",
+        // v902.0: Enraizada
+        "trapRadius": "Radio de las Raíces (px)",
+        "rootDuration": "Duración del Enraizamiento (ms)",
+        "trapDamage": "Daño al Atrapar (pts)",
+        "rootDps": "Daño por Tick mientras está Enraizado (pts/s, 0 = sin daño)",
+        "rootTickInterval": "Intervalo de Tick del Root (ms)"
     };
 
     if (currentMechTab === 'attack') {

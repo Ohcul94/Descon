@@ -5,20 +5,12 @@ const { onZoneChanged } = require('../systems/questHandlers');
 const { applyZoneRules } = require('../systems/deathDropHelper');
 
 // v410.6: Helper para limpiar todos los debuffs y estados alterados al saltar de sector o warp
+const { clearAllDebuffs } = require('../utils/debuffUtils');
+
+// Limpieza autoritativa de estados alterados (warp, cambio de zona, respawn)
+// Incluye los nuevos ROOT y SILENCIO - ver utils/debuffUtils.js
 const clearPlayerStatusEffects = (p) => {
-    if (!p) return;
-    p.isPolymorphed = false;
-    p.polyEndTime = 0;
-    p.polyCanMove = true;
-    p.polyCanUseSkills = true;
-    
-    p.isSlowed = false; p.slowPoints = 0; p.slowEndTime = 0;
-    p.isStunned = false; p.stunEndTime = 0;
-    p.isBleeding = false; p.bleedEndTime = 0;
-    p.isPoisoned = false; p.poisonEndTime = 0;
-    p.isFrozen = false; p.freezeEndTime = 0;
-    p.isFeared = false; p.fearEndTime = 0;
-    p.forcedTarget = null; p.tauntEndTime = 0;
+    clearAllDebuffs(p);
 };
 
 const { getStatusEffects, getCleanPlayerData, getCleanEnemyData } = require('../utils/entitySanitizer');
@@ -90,6 +82,8 @@ function registerZoneHandlers(socket, io, state) {
             isSlowed: false,
             isFrozen: false,
             isFeared: false,
+            isRooted: false,
+            isSilenced: false,
             hp: p.hp,
             shield: p.shield,
             maxHp: p.maxHp,
@@ -99,6 +93,8 @@ function registerZoneHandlers(socket, io, state) {
         // v410.7: Limpiar slow y stun en el cliente local del jugador al warpearse
         socket.emit('slowState', { active: false });
         socket.emit('stunState', { active: false });
+        socket.emit('rootState', { active: false });
+        socket.emit('silenceState', { active: false });
         
         socket.to(`zone_${newZone}`).emit('newPlayer', getCleanPlayerData(p, socket.id));
 
@@ -459,6 +455,8 @@ function registerZoneHandlers(socket, io, state) {
                 isSlowed: false,
                 isFrozen: false,
                 isFeared: false,
+                isRooted: false,
+                isSilenced: false,
                 hp: p.hp,
                 shield: p.shield,
                 maxHp: p.maxHp,
@@ -468,6 +466,8 @@ function registerZoneHandlers(socket, io, state) {
             // v410.7: Limpiar slow y stun en el cliente local del jugador al cambiar de sector
             socket.emit('slowState', { active: false });
             socket.emit('stunState', { active: false });
+            socket.emit('rootState', { active: false });
+            socket.emit('silenceState', { active: false });
             
             socket.to(`zone_${zoneId}`).emit('newPlayer', getCleanPlayerData(p, socket.id));
 

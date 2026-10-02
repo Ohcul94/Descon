@@ -1,3 +1,4 @@
+const { applyDebuffsList } = require('../../utils/debuffUtils');
 // Server/behaviors/mechanics/BossMeteorMechanics.js
 // v411: Mecánica modular de lluvia de meteoritos y debuffs configurables
 
@@ -5,46 +6,7 @@ const altarDefenseManager = require('../../systems/altarDefenseManager');
 
 function _applyMeteorDebuffs(p, mech, io) {
     if (!p || p.isInvulnerable || p.inStrangeDimension) return;
-    if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
-    mech.debuffsList.forEach(d => {
-        if (d.type === 'bleed') {
-            const bleedDur = Number(d.duration) || 4000;
-            p.isBleeding = true;
-            p.bleedEndTime = Date.now() + bleedDur;
-            p.bleedDps = Number(d.dps) || 30;
-            p.bleedInterval = Number(d.tickInterval) || 1000;
-            p.lastBleedTick = Date.now();
-            io.to(p.socketId).emit('gameNotification', { msg: `🩸 ¡El meteorito te hizo sangrar!`, type: "warning" });
-            io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
-        }
-        else if (d.type === 'poison') {
-            const poisonDur = Number(d.duration) || 4000;
-            p.isPoisoned = true;
-            p.poisonEndTime = Date.now() + poisonDur;
-            p.poisonDps = Number(d.dps) || 20;
-            p.poisonInterval = Number(d.tickInterval) || 1000;
-            p.lastPoisonTick = Date.now();
-            io.to(p.socketId).emit('gameNotification', { msg: `🤢 ¡El meteorito te envenenó!`, type: "warning" });
-            io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
-        }
-        else if (d.type === 'stun') {
-            const stunDur = Number(d.duration) || 1500;
-            p.isStunned = true;
-            p.stunEndTime = Date.now() + stunDur;
-            io.to(p.socketId).emit('stunState', { active: true, duration: stunDur });
-        }
-        else if (d.type === 'slow') {
-            const slowAmt = Number(d.amount) || 50;
-            const slowDur = Number(d.duration) || 2500;
-            const isPct = d.isPercentage !== false;
-            p.isSlowed = true;
-            p.slowEndTime = Date.now() + slowDur;
-            p.slowPoints = slowAmt;
-            p.slowIsPercentage = isPct;
-            p.lastSlowTime = Date.now();
-            io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
-        }
-    });
+    applyDebuffsList(p, mech.debuffsList, io, "El meteorito");
 }
 
 function _handleMeteorLogic(mech, mId, target, dist, angle, now, io, players) {

@@ -34,7 +34,9 @@ const DEFAULT_MECHANICS_LIB = {
     "fireball": { label: "Bola de Fuego Dinámica", icon: "☀️", desc: "Invoca una esfera de fuego tipo sol que comienza a moverse dentro de un área determinada, dañando a todo lo que toca durante su duración. Tamaño, área, daño, cadencia, duración y enfriamiento los define el Admin. Opcionalmente atrae a los jugadores que estén en su rango y les pega golpes de rayos por tick.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "startDelay", "castTimeMs", "castInterruptible", "fireRange", "cooldown", "duration", "areaRadius", "areaMode", "speed", "radius", "damage_per_tick", "tick_interval", "pullEnabled", "pullRadius", "pullStrength", "ray_damage"], sound: "", soundVolumePercent: 50, soundMaxDist: 1600 },
     // v415.0: Látigo Dominante (Whip)
     "whip_summon": { label: "Látigo Dominante", icon: "🪢", desc: "El enemigo canaliza un látigo místico que azota N veces consecutivas al objetivo a una cadencia configurable.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "startDelay", "castTimeMs", "castInterruptible", "fireRange", "hits", "cadence", "damage", "targetCount", "targetMode", "targetSphereColor"], sound: "", soundVolumePercent: 50, soundMaxDist: 1200 },
-    "strange_dimension": { label: "Dimensión Extraña", icon: "🌌", desc: "El enemigo abre un portal tenebroso, selecciona objetivos según la configuración de target y los transporta a una dimensión paralela violeta durante unos segundos, devolviéndolos al finalizar.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "targetCount", "targetMode", "targetSphereColor", "startDelay", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 1200 }
+    "strange_dimension": { label: "Dimensión Extraña", icon: "🌌", desc: "El enemigo abre un portal tenebroso, selecciona objetivos según la configuración de target y los transporta a una dimensión paralela violeta durante unos segundos, devolviéndolos al finalizar.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "targetCount", "targetMode", "targetSphereColor", "startDelay", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 1200 },
+    // v902.0: Enraizada - raíces que brotan del piso y abrazan a la nave
+    "enraizada": { label: "Enraizada", icon: "🌱", desc: "Raíces que brotan del suelo y abrazan a los objetivos seleccionados: los inmovilizan durante una duración configurable (sin bloquear casteos ni skills). Opcionalmente inflige daño único al atrapar y daño por tick mientras dura el enraizamiento.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "startDelay", "castTimeMs", "castInterruptible", "fireRange", "trapRadius", "rootDuration", "trapDamage", "rootDps", "rootTickInterval", "targetCount", "targetMode", "targetSphereColor"], sound: "", soundVolumePercent: 50, soundMaxDist: 1400 }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)
@@ -69,7 +71,6 @@ const MOVEMENT_CONDITION_FIELDS = [
 
 // v266.300: Definición de Mecánicas de Defensa
 const DEFAULT_DEFENSE_LIB = {
-    "basic_defense": { label: "Defensa Estándar", icon: "🛡️", desc: "Mecánica de mitigación de daño y regeneración.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "reductionPercentage", "shieldRegen", "duration", "cooldown", "startDelay", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 },
     "aura_heal": { label: "Aura Curativa", icon: "✨", desc: "Cura a los aliados cercanos continuamente.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "radius", "healAmount", "intervalMs", "duration", "cooldown", "startDelay", "affectsEnemies", "affectsBosses", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 },
     "invulnerability": { label: "Invulnerabilidad Temporal", icon: "💎", desc: "Se vuelve inmune a todo daño por un tiempo.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "startDelay", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 },
     "invisibility": { label: "Invisibilidad / Camuflaje", icon: "👤", desc: "El enemigo se vuelve invisible o camuflado.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "invisType", "keepAttacking", "changeSpeed", "invisSpeedMultiplier", "startDelay", "castTimeMs", "castInterruptible"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 },
@@ -99,6 +100,13 @@ const DEFAULT_DEFENSE_LIB = {
         desc: "El enemigo abre un portal tenebroso, selecciona objetivos según la configuración de target y los transporta a una dimensión paralela violeta durante unos segundos, devolviéndolos al finalizar.", 
         fields: ["activationMode", "activationHPs", "activationIntervalMs", "duration", "cooldown", "targetCount", "targetMode", "targetSphereColor", "startDelay", "castTimeMs", "castInterruptible"], 
         sound: "", soundVolumePercent: 50, soundMaxDist: 1200 
+    },
+    "sobrecarga": {
+        label: "Sobrecarga",
+        icon: "⚡",
+        desc: "Acumula energía verde (casteo) y al completarse detona una explosión verde que cura al enemigo (y opcionalmente a aliados en rango). Con el checkbox activo la explosión también daña a los jugadores cercanos.",
+        fields: ["activationMode", "activationHPs", "activationIntervalMs", "startDelay", "castTimeMs", "castInterruptible", "healMode", "healAmount", "healAlliesEnabled", "healRange", "affectsEnemies", "affectsBosses", "damageEnabled", "explosionRadius", "damage", "cooldown"],
+        sound: "", soundVolumePercent: 50, soundMaxDist: 1200
     }
 };
 

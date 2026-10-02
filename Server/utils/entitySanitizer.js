@@ -17,7 +17,9 @@ const getStatusEffects = (ent) => {
         frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
         feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime)),
         provoked: !!(ent.forcedTarget && ent.tauntEndTime && now < ent.tauntEndTime),
-        polymorphed: !!(ent.isPolymorphed || (ent.polyEndTime && now < ent.polyEndTime))
+        polymorphed: !!(ent.isPolymorphed || (ent.polyEndTime && now < ent.polyEndTime)),
+        rooted: !!(ent.isRooted || (ent.rootEndTime && now < ent.rootEndTime)),
+        silenced: !!(ent.isSilenced || (ent.silencedUntil && now < ent.silencedUntil))
     };
 };
 

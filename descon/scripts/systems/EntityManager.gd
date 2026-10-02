@@ -44,7 +44,16 @@ const CONE_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
 const CONE_SPARK_TEX = preload("res://VFX/textures/T_VFX_sparks42.jpg")
 
 func _safe_free_node(target: Variant) -> void:
-	if is_instance_valid(target):
+	if not is_instance_valid(target):
+		return
+	if target is Node3D:
+		target.visible = false
+	if target is Node:
+		var p = target.get_parent()
+		if is_instance_valid(p):
+			p.remove_child(target)
+		target.queue_free()
+	elif target is Object and target.has_method("queue_free"):
 		target.queue_free()
 
 func _on_blast_area_cleanup(area_key: String, blast_node: Variant) -> void:
@@ -785,6 +794,7 @@ func _get_mechanic_display_name(mech_type: String, raw_data: Dictionary = {}) ->
 	# 3. Mapeo de traducciones estandarizadas sin paréntesis
 	var name_map = {
 		"whip_summon": "Invocación de Látigo",
+		"enraizada": "Enraizada",
 		"whip": "Invocación de Látigo",
 		"mega_laser": "Mega Láser",
 		"strange_dimension": "Dimensión Extraña",
@@ -828,8 +838,8 @@ func _get_mechanic_display_name(mech_type: String, raw_data: Dictionary = {}) ->
 		"boss_water_orbs": "Orbes de Agua",
 		"duplicado": "Duplicación Defensiva",
 		"wall_dome": "Muro de Energía",
-		"basic_defense": "Defensa Estándar",
 		"aura_heal": "Aura Curativa",
+		"sobrecarga": "Sobrecarga",
 		"boss_offensive": "Ataque Pesado",
 		"boss_puzzle": "Mecánica Central",
 		"boss_defensive": "Escudo Táctico"
@@ -847,6 +857,9 @@ func _get_enemy_cast_color(mech_type: String, mId: String) -> Color:
 	var t = mech_type.to_lower()
 	var mid = mId.to_lower()
 	
+	# Sobrecarga -> Verde Curación (energía verde), antes del fallback azul de defensas
+	if "sobrecarga" in t or "sobrecarga" in mid:
+		return Color(0.15, 0.95, 0.4)
 	# Mecánicas Defensivas / Místicas -> Azul Neón / Cian Elegante (AAA)
 	if mid.begins_with("def_") or "defense" in t or "defensive" in t or "shield" in t or "wind_wall" in t or "barrier" in t or "escudo" in t or "defensa" in t or "burrow" in t or "shield_steal" in t or "strange_dimension" in t or "dimension" in t or "wall_dome" in t or "reflect" in t or "invulnerab" in t or "defensive" in mid or "shield" in mid or "barrier" in mid:
 		return Color(0.12, 0.65, 1.0)
@@ -1331,6 +1344,11 @@ func _on_enemy_action(data: Dictionary):
 		boss_action_handler.handle_whip_summon_action(data)
 		return
 
+	# v902.0: Enraizada - raíces que enraizan a la(s) nave(s)
+	if action == "enraizada_start" or action == "enraizada_end":
+		boss_action_handler.handle_enraizada_action(data)
+		return
+
 	# v900.0: Dimensión Extraña - «otra dimensión» del mismo mapa pero vacío
 	# Oculta ABSOLUTAMENTE TODO excepto el jugador local y el terreno/mapa
 	if action == "strange_dimension_start":
@@ -1471,20 +1489,20 @@ func _on_enemy_action(data: Dictionary):
 				for c in world.entities_node.get_children():
 					if is_instance_valid(c) and (c.has_meta("is_circle_indicator") or c.name.begins_with("CircleIndicator_")):
 						var c3d = c.get_meta("circle_3d", null)
-						if is_instance_valid(c3d): c3d.queue_free()
-						c.queue_free()
+						if is_instance_valid(c3d): _safe_free_node(c3d)
+						_safe_free_node(c)
 			for eid in enemies.keys():
 				var en_obj = enemies[eid]
 				if is_instance_valid(en_obj):
 					for c in en_obj.get_children():
 						if is_instance_valid(c) and (c.has_meta("is_circle_indicator") or c.name.begins_with("CircleIndicator_")):
 							var c3d = c.get_meta("circle_3d", null)
-							if is_instance_valid(c3d): c3d.queue_free()
-							c.queue_free()
+							if is_instance_valid(c3d): _safe_free_node(c3d)
+							_safe_free_node(c)
 					if is_instance_valid(en_obj.get("world_root_3d")):
 						for c3 in en_obj.world_root_3d.get_children():
 							if is_instance_valid(c3) and (c3.name.begins_with("Circle3D_") or c3.name.begins_with("CircleBlast3D_")):
-								c3.queue_free()
+								_safe_free_node(c3)
 			# 4n. Limpieza de indicadores previos y tormentas de Tormenta de Hielo (IceStormCharging_ / IceStorm_)
 			var c_map_start = get_tree().get_first_node_in_group("map")
 			if is_instance_valid(c_map_start) and "sub_viewport" in c_map_start and is_instance_valid(c_map_start.sub_viewport):
@@ -1634,12 +1652,12 @@ func _on_enemy_action(data: Dictionary):
 				for c in en_obj.get_children():
 					if is_instance_valid(c) and (c.has_meta("is_circle_indicator") or c.name.begins_with("CircleIndicator_")):
 						var c3d = c.get_meta("circle_3d", null)
-						if is_instance_valid(c3d): c3d.queue_free()
-						c.queue_free()
+						if is_instance_valid(c3d): _safe_free_node(c3d)
+						_safe_free_node(c)
 				if is_instance_valid(en_obj.get("world_root_3d")):
 					for c3 in en_obj.world_root_3d.get_children():
 						if is_instance_valid(c3) and (c3.name.begins_with("Circle3D_") or c3.name.begins_with("CircleBlast3D_")):
-							c3.queue_free()
+							_safe_free_node(c3)
 		# Limpieza de Tormentas de Hielo al salir (IceStorm_ / IceStormCharging_)
 		var c_map_expire = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(c_map_expire) and "sub_viewport" in c_map_expire and is_instance_valid(c_map_expire.sub_viewport):
@@ -1975,8 +1993,8 @@ func _on_enemy_action(data: Dictionary):
 					return
 				var c3 = node.get_meta("cone_3d", false)
 				if c3 is Node and is_instance_valid(c3):
-					c3.queue_free()
-				node.queue_free()
+					_safe_free_node(c3)
+				_safe_free_node(node)
 
 			_kill_indicator.call(en.get_node_or_null("ConeIndicator_" + enemy_id))
 			if is_instance_valid(world) and is_instance_valid(world.entities_node):
@@ -1987,12 +2005,12 @@ func _on_enemy_action(data: Dictionary):
 				var _ci = active_areas[cone_key]
 				active_areas.erase(cone_key)
 				if is_instance_valid(_ci):
-					_ci.queue_free()
+					_safe_free_node(_ci)
 
 			if is_instance_valid(en.get("world_root_3d")):
 				var orphan = en.world_root_3d.get_node_or_null("Cone3D_" + enemy_id)
 				if is_instance_valid(orphan):
-					orphan.queue_free()
+					_safe_free_node(orphan)
 
 			var range_val = float(data.get("range", 400.0))
 			var cone_angle = float(data.get("coneAngle", 60.0))
@@ -2800,7 +2818,7 @@ func _on_enemy_action(data: Dictionary):
 					for n in ["Cone3D_" + enemy_id, "Circle3D_" + enemy_id]:
 						var tgt = en.world_root_3d.get_node_or_null(n)
 						if is_instance_valid(tgt):
-							tgt.queue_free()
+							_safe_free_node(tgt)
 
 			var current_map_interrupt = get_tree().get_first_node_in_group("map")
 			var interrupt_3d = is_instance_valid(current_map_interrupt) and current_map_interrupt.get("sub_viewport") != null and is_instance_valid(en.get("world_root_3d"))
@@ -2808,12 +2826,12 @@ func _on_enemy_action(data: Dictionary):
 				for n in ["LaserIndicator3D_" + enemy_id, "IceStormCharging_" + enemy_id]:
 					var old_vp_node = current_map_interrupt.sub_viewport.get_node_or_null(n)
 					if is_instance_valid(old_vp_node):
-						old_vp_node.queue_free()
+						_safe_free_node(old_vp_node)
 
 			if active_laser_tracking.has(enemy_id):
 				var lt_data = active_laser_tracking[enemy_id]
 				var lt_3d = lt_data.get("indicator_3d")
-				if is_instance_valid(lt_3d): lt_3d.queue_free()
+				if is_instance_valid(lt_3d): _safe_free_node(lt_3d)
 				active_laser_tracking.erase(enemy_id)
 
 			var containers := [en]

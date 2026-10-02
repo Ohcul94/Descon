@@ -15,6 +15,11 @@ const fireballMechanics = require('./mechanics/FireballMechanics');
 const whipSummonMechanics = require('./mechanics/WhipSummonMechanics');
 // v900.0: Dimensión Extraña
 const strangeDimensionMechanics = require('./mechanics/StrangeDimensionMechanics');
+const sobrecargaMechanics = require('./mechanics/SobrecargaMechanics');
+// v902.0: Enraizada (raíces que inmovilizan)
+const enraizadaMechanics = require('./mechanics/EnraizadaMechanics');
+// Debuffs declarativos centralizados (bleed/poison/stun/slow/root/silence)
+const { applyDebuffsList } = require('../utils/debuffUtils');
 const { ThreatTable } = require('../systems/ThreatTable');
 
 module.exports = class BaseAI {
@@ -739,6 +744,8 @@ module.exports = class BaseAI {
                     this._handleLifeStealLogic(mech, mId, now, io, players);
                 } else if (mech.type === "strange_dimension") {
                     this._handleStrangeDimensionLogic(mech, mId, now, io, players);
+                } else if (mech.type === "sobrecarga") {
+                    this._handleSobrecargaLogic(mech, mId, now, io, grid, players);
                 } else if (mech.type && mech.type.startsWith("aura_")) {
                     this._handleAuraLogic(mech, mId, now, io, grid, players);
                 }
@@ -795,6 +802,28 @@ module.exports = class BaseAI {
                     st.nextShotTime = 0;
                     st.triggeredHPs = {};
                     st.pendingHpTrigger = false;
+                }
+                if (mech.type === "sobrecarga" && this.enemy.mechState && this.enemy.mechState[mId]) {
+                    const st = this.enemy.mechState[mId];
+                    if (st.isCharging) {
+                        st.isCharging = false;
+                        io.to(`zone_${this.enemy.zone}`).emit("enemyCastCancel", {
+                            id: this.enemy.id,
+                            mId: mId,
+                            type: "sobrecarga"
+                        });
+                        io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
+                            id: this.enemy.id,
+                            mId: mId,
+                            action: "sobrecarga_cancel",
+                            type: "sobrecarga",
+                            silent: true
+                        });
+                    }
+                    st.chargeEndTime = 0;
+                    st.combatStartTime = null;
+                    st.nextReadyTime = 0;
+                    st.triggeredHPs = {};
                 }
             });
             // Resetear defState genéricos para que startDelay se renueve al volver a entrar en combate
@@ -1446,7 +1475,7 @@ module.exports = class BaseAI {
 
     _isGenericCastType(type) {
         // Tipos con máquinas de estado de carga/casteo internas propias
-        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball","whip_summon","strange_dimension","mega_laser"];
+        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash","choque_devastador","fireball","whip_summon","strange_dimension","mega_laser","sobrecarga","enraizada"];
         return !internal.includes(type);
     }
     _handleGenericCast(mech, mId, now, io) {
@@ -1568,6 +1597,11 @@ module.exports = class BaseAI {
         // v900.0: Dimensión Extraña
         if (mech.type === "strange_dimension") {
             return strangeDimensionMechanics._handleStrangeDimensionLogic.call(this, mech, mId, target, dist, now, io, players);
+        }
+
+        // v902.0: Enraizada - raíces que inmovilizan al objetivo
+        if (mech.type === "enraizada") {
+            return enraizadaMechanics._handleEnraizadaLogic.call(this, mech, mId, target, dist, angle, now, io, players);
         }
 
         if (dist > fireRange && !state.isCharging && !state.isActive && mech.type !== "polymorph") return false;
@@ -2544,64 +2578,7 @@ module.exports = class BaseAI {
 
             const applyWormDebuffs = (p) => {
                 if (!p || p.isInvulnerable || p.inStrangeDimension) return;
-                if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
-                mech.debuffsList.forEach(d => {
-                    if (d.type === 'bleed') {
-                        const bleedDps = Number(d.dps) || 30;
-                        const bleedDur = Number(d.duration) || 4000;
-                        const tickInt = Number(d.tickInterval) || 1000;
-                        p.isBleeding = true;
-                        p.bleedEndTime = Date.now() + bleedDur;
-                        p.bleedDps = bleedDps;
-                        p.bleedInterval = tickInt;
-                        p.lastBleedTick = Date.now();
-                        io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
-                        io.to(p.socketId).emit('gameNotification', {
-                            msg: `🩸 ¡El gusano te muerde! Sangrando ${bleedDps} HP cada ${tickInt}ms.`,
-                            type: "warning"
-                        });
-                    }
-                    else if (d.type === 'poison') {
-                        const poisonDps = Number(d.dps) || 20;
-                        const poisonDur = Number(d.duration) || 4000;
-                        const tickInt = Number(d.tickInterval) || 1000;
-                        p.isPoisoned = true;
-                        p.poisonEndTime = Date.now() + poisonDur;
-                        p.poisonDps = poisonDps;
-                        p.poisonInterval = tickInt;
-                        p.lastPoisonTick = Date.now();
-                        io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
-                        io.to(p.socketId).emit('gameNotification', {
-                            msg: `🤢 ¡El gusano te envenena! perdiendo ${poisonDps} HP cada ${tickInt}ms.`,
-                            type: "warning"
-                        });
-                    }
-                    else if (d.type === 'stun') {
-                        const stunDuration = Number(d.duration) || 1500;
-                        p.isStunned = true;
-                        p.stunEndTime = Date.now() + stunDuration;
-                        io.to(p.socketId).emit('stunState', { active: true, duration: stunDuration });
-                        io.to(p.socketId).emit('gameNotification', {
-                            msg: `⚡ ¡El gusano te paraliza!`,
-                            type: "error"
-                        });
-                    }
-                    else if (d.type === 'slow') {
-                        const slowAmt = Number(d.amount) || 50;
-                        const slowDur = Number(d.duration) || 2500;
-                        const isPct = d.isPercentage !== false;
-                        p.isSlowed = true;
-                        p.slowEndTime = Date.now() + slowDur;
-                        p.slowPoints = slowAmt;
-                        p.slowIsPercentage = isPct;
-                        p.lastSlowTime = Date.now();
-                        io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
-                        io.to(p.socketId).emit('gameNotification', {
-                            msg: `🐢 ¡Ralentizado por el gusano! Velocidad reducida en ${slowAmt}${isPct ? '%' : ' px/s'}.`,
-                            type: "warning"
-                        });
-                    }
-                });
+                applyDebuffsList(p, mech.debuffsList, io, 'El gusano');
             };
 
             // FASE 1: LANZAMIENTO DEL ABANICO
@@ -2741,52 +2718,7 @@ module.exports = class BaseAI {
 
             const applyWindDebuffs = (p) => {
                 if (p.isInvulnerable || p.inStrangeDimension) return;
-                if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
-                mech.debuffsList.forEach(d => {
-                    if (d.type === 'bleed') {
-                        const bleedDps = Number(d.dps) || 30;
-                        const bleedDur = Number(d.duration) || 4000;
-                        const tickInt = Number(d.tickInterval) || 1000;
-                        p.isBleeding = true;
-                        p.bleedEndTime = Date.now() + bleedDur;
-                        p.bleedDps = bleedDps;
-                        p.bleedInterval = tickInt;
-                        p.lastBleedTick = Date.now();
-                        io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
-                        io.to(p.socketId).emit('gameNotification', { msg: `🩸 ¡El viento cortante te desgarra! Sangrando ${bleedDps} HP cada ${tickInt}ms.`, type: "warning" });
-                    }
-                    else if (d.type === 'poison') {
-                        const poisonDps = Number(d.dps) || 20;
-                        const poisonDur = Number(d.duration) || 4000;
-                        const tickInt = Number(d.tickInterval) || 1000;
-                        p.isPoisoned = true;
-                        p.poisonEndTime = Date.now() + poisonDur;
-                        p.poisonDps = poisonDps;
-                        p.poisonInterval = tickInt;
-                        p.lastPoisonTick = Date.now();
-                        io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
-                        io.to(p.socketId).emit('gameNotification', { msg: `🤢 ¡Partículas tóxicas en el viento! Perdiendo ${poisonDps} HP cada ${tickInt}ms.`, type: "warning" });
-                    }
-                    else if (d.type === 'stun') {
-                        const stunDuration = Number(d.duration) || 1500;
-                        p.isStunned = true;
-                        p.stunEndTime = Date.now() + stunDuration;
-                        io.to(p.socketId).emit('stunState', { active: true, duration: stunDuration });
-                        io.to(p.socketId).emit('gameNotification', { msg: `⚡ ¡El viento te marea! Paralizado.`, type: "error" });
-                    }
-                    else if (d.type === 'slow') {
-                        const slowAmt = Number(d.amount) || 50;
-                        const slowDur = Number(d.duration) || 2500;
-                        const isPct = d.isPercentage !== false;
-                        p.isSlowed = true;
-                        p.slowEndTime = Date.now() + slowDur;
-                        p.slowPoints = slowAmt;
-                        p.slowIsPercentage = isPct;
-                        p.lastSlowTime = Date.now();
-                        io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
-                        io.to(p.socketId).emit('gameNotification', { msg: `🐢 ¡La ráfaga te arrastra! Velocidad reducida en ${slowAmt}${isPct ? '%' : ' px/s'}.`, type: "warning" });
-                    }
-                });
+                applyDebuffsList(p, mech.debuffsList, io, 'El viento cortante');
             };
 
             const hitPlayer = (p, ww) => {
@@ -3083,38 +3015,7 @@ module.exports = class BaseAI {
                         io.to(`zone_${p.zone}`).emit('windPush', { victimId: p.socketId, dirX: Math.cos(pushAngle), dirY: Math.sin(pushAngle), distance: pushForce });
                     }
                     // Stun/Parálisis ahora solo vía debuffsList (abajo)
-                    if (mech.debuffsList && Array.isArray(mech.debuffsList)) {
-                        mech.debuffsList.forEach(d => {
-                            if (d.type === 'bleed') {
-                                const bleedDur = Number(d.duration) || 4000;
-                                p.isBleeding = true;
-                                p.bleedEndTime = Date.now() + bleedDur;
-                                p.bleedDps = Number(d.dps) || 30;
-                                p.bleedInterval = Number(d.tickInterval) || 1000;
-                                p.lastBleedTick = Date.now();
-                                io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
-                            } else if (d.type === 'poison') {
-                                const poisonDur = Number(d.duration) || 4000;
-                                p.isPoisoned = true;
-                                p.poisonEndTime = Date.now() + poisonDur;
-                                p.poisonDps = Number(d.dps) || 20;
-                                p.poisonInterval = Number(d.tickInterval) || 1000;
-                                p.lastPoisonTick = Date.now();
-                                io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
-                            } else if (d.type === 'stun') {
-                                p.isStunned = true;
-                                p.stunEndTime = Date.now() + (Number(d.duration) || 1500);
-                                io.to(p.socketId).emit('stunState', { active: true, duration: Number(d.duration) || 1500 });
-                            } else if (d.type === 'slow') {
-                                p.isSlowed = true;
-                                p.slowEndTime = Date.now() + (Number(d.duration) || 2500);
-                                p.slowPoints = Number(d.amount) || 50;
-                                p.slowIsPercentage = d.isPercentage !== false;
-                                p.lastSlowTime = Date.now();
-                                io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints, isPercentage: p.slowIsPercentage, duration: Number(d.duration) || 2500 });
-                            }
-                        });
-                    }
+                    applyDebuffsList(p, mech.debuffsList, io, 'El hachazo');
                     io.to(p.socketId).emit('environmentDamage', { damage: bulletDamage });
                     io.to(`zone_${p.zone}`).emit('playerStatSync', { id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), isDead: p.isDead });
                 });
@@ -3176,48 +3077,7 @@ module.exports = class BaseAI {
 
             const applyBurrowDebuffs = (p) => {
                 if (p.isInvulnerable || p.inStrangeDimension) return;
-                if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
-                mech.debuffsList.forEach(d => {
-                    if (d.type === 'bleed') {
-                        const bleedDur = Number(d.duration) || 4000;
-                        p.isBleeding = true;
-                        p.bleedEndTime = Date.now() + bleedDur;
-                        p.bleedDps = Number(d.dps) || 30;
-                        p.bleedInterval = Number(d.tickInterval) || 1000;
-                        p.lastBleedTick = Date.now();
-                        io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
-                        io.to(p.socketId).emit('gameNotification', { msg: `🩸 ¡Las grietas del suelo te desgarran! Sangrando ${p.bleedDps} HP cada ${p.bleedInterval}ms.`, type: "warning" });
-                    }
-                    else if (d.type === 'poison') {
-                        const poisonDur = Number(d.duration) || 4000;
-                        p.isPoisoned = true;
-                        p.poisonEndTime = Date.now() + poisonDur;
-                        p.poisonDps = Number(d.dps) || 20;
-                        p.poisonInterval = Number(d.tickInterval) || 1000;
-                        p.lastPoisonTick = Date.now();
-                        io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
-                        io.to(p.socketId).emit('gameNotification', { msg: `🤢 ¡El subsuelo emite toxinas! Perdiendo ${p.poisonDps} HP cada ${p.poisonInterval}ms.`, type: "warning" });
-                    }
-                    else if (d.type === 'stun') {
-                        const stunDur = Number(d.duration) || 1500;
-                        p.isStunned = true;
-                        p.stunEndTime = Date.now() + stunDur;
-                        io.to(p.socketId).emit('stunState', { active: true, duration: stunDur });
-                        io.to(p.socketId).emit('gameNotification', { msg: `⚡ ¡El temblor te paraliza!`, type: "error" });
-                    }
-                    else if (d.type === 'slow') {
-                        const slowAmt = Number(d.amount) || 50;
-                        const slowDur = Number(d.duration) || 2500;
-                        const isPct = d.isPercentage !== false;
-                        p.isSlowed = true;
-                        p.slowEndTime = Date.now() + slowDur;
-                        p.slowPoints = slowAmt;
-                        p.slowIsPercentage = isPct;
-                        p.lastSlowTime = Date.now();
-                        io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
-                        io.to(p.socketId).emit('gameNotification', { msg: `🐢 ¡El suelo te succiona! Velocidad reducida en ${slowAmt}${isPct ? '%' : ' px/s'}.`, type: "warning" });
-                    }
-                });
+                applyDebuffsList(p, mech.debuffsList, io, 'Las grietas del suelo');
             };
 
             const applyCircleDamage = (cx, cy, hitSet, dmgVal = dmg) => {
@@ -4197,6 +4057,10 @@ module.exports = class BaseAI {
         const target = this.activeTarget || (this.enemy.lastHitter && players[this.enemy.lastHitter]);
         const dist = target ? Math.hypot(target.x - this.enemy.x, target.y - this.enemy.y) : 0;
         return strangeDimensionMechanics._handleStrangeDimensionLogic.call(this, mech, mId, target, dist, now, io, players);
+    }
+    // v904: SOBRECARGA (Modularizado en mechanics/SobrecargaMechanics.js)
+    _handleSobrecargaLogic(mech, mId, now, io, grid, players) {
+        return sobrecargaMechanics._handleSobrecargaLogic.call(this, mech, mId, now, io, grid, players);
     }
     _onEnemyLifeStealHit(targetId, mech, mId, now, io) {
         return stealMechanics._onEnemyLifeStealHit.call(this, targetId, mech, mId, now, io);

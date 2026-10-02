@@ -141,6 +141,14 @@ var poly_timer: float = 0.0
 var poly_can_move: bool = false
 var poly_can_use_skills: bool = true
 
+# Raíces / Silencio (mecánica "enraizada")
+# - root: solo bloquea MOVIMIENTO (los casteos y skills siguen permitidos).
+# - silence: solo bloquea skills/casteos (el movimiento sigue permitido).
+var is_rooted: bool = false
+var root_timer: float = 0.0
+var is_silenced: bool = false
+var silence_timer: float = 0.0
+
 # ==== DIMENSIÓN EXTRAÑA ====
 var strange_dimension_timer: float = 0.0
 var strange_dimension_config: Dictionary = {}
@@ -171,6 +179,8 @@ func _ready():
 		NetworkManager.inventory_data.connect(_on_inventory_received)
 		NetworkManager.slow_state.connect(_on_slow_state)
 		NetworkManager.stun_state.connect(_on_stun_state)
+		NetworkManager.root_state.connect(_on_root_state)
+		NetworkManager.silence_state.connect(_on_silence_state)
 		NetworkManager.environment_damaged.connect(_on_environment_damaged)
 		NetworkManager.status_effects_sync.connect(_on_status_effects_sync)
 		if not NetworkManager.config_updated.is_connected(_on_config_updated_recalc):
@@ -443,6 +453,43 @@ func _on_stun_state(data: Dictionary):
 		set_debuff_timer("stun", 0)
 		_stop_sleep_zzz()
 	_emit_stats()
+
+# Raíces: solo bloquea el MOVIMIENTO. Casteos y skills siguen funcionando.
+func _on_root_state(data: Dictionary):
+	if data.has("active") and data.active:
+		is_rooted = true
+		root_timer = float(data.get("duration", 3000.0)) / 1000.0
+		set_debuff_timer("root", root_timer)
+		# Cortar el movimiento en curso de inmediato (el input sigue disponible)
+		is_moving = false
+		autopilot_enabled = false
+		target_position = global_position
+		velocity = Vector2.ZERO
+		joystick_direction = Vector2.ZERO
+		apply_shake(3.0)
+	else:
+		_clear_root()
+	_emit_stats()
+
+func _clear_root():
+	is_rooted = false
+	root_timer = 0.0
+	set_debuff_timer("root", 0.0)
+
+# Silencio: bloquea skills/casteos. El movimiento sigue permitido.
+func _on_silence_state(data: Dictionary):
+	if data.has("active") and data.active:
+		is_silenced = true
+		silence_timer = float(data.get("duration", 3000.0)) / 1000.0
+		set_debuff_timer("silence", silence_timer)
+	else:
+		_clear_silence()
+	_emit_stats()
+
+func _clear_silence():
+	is_silenced = false
+	silence_timer = 0.0
+	set_debuff_timer("silence", 0.0)
 
 var _sleep_zzz: Node2D = null
 
@@ -746,6 +793,24 @@ func _physics_process(p_delta):
 					if not is_typing_p:
 						_handle_input()
 				return
+
+	# Raíces (enraizada): bloquea SOLO el movimiento. Los casteos y skills siguen
+	# funcionando, así que procesamos el input pero no aplicamos movimiento.
+	if is_rooted:
+		root_timer -= p_delta
+		if root_timer <= 0.0:
+			_clear_root()
+		else:
+			var chat_r = get_tree().get_first_node_in_group("chat_ui")
+			var focus_node_r = get_viewport().gui_get_focus_owner()
+			var is_typing_r = (chat_r and chat_r.has_method("is_typing") and chat_r.is_typing()) or (focus_node_r is LineEdit or focus_node_r is TextEdit)
+			if not is_typing_r:
+				_handle_input()
+			velocity = Vector2.ZERO
+			target_position = global_position
+			_update_shake(p_delta)
+			_sync_with_server(p_delta)
+			return
 	
 	var chat = get_tree().get_first_node_in_group("chat_ui")
 	var focus_node = get_viewport().gui_get_focus_owner()
@@ -808,6 +873,10 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 		return
 	# v410: Bloqueo de habilidades por Polimorfia
 	if is_polymorphed and not poly_can_use_skills:
+		return
+
+	# SILENCIO: bloquea habilidades/casteos, pero NO el movimiento.
+	if is_silenced:
 		return
 	
 	# ==== DIMENSIÓN EXTRAÑA: Bloquear uso de habilidades normales (CC check) ====
@@ -1024,6 +1093,9 @@ func _start_cast(p_duration_ms: float, p_type: String, p_angle: float, p_payload
 	if is_casting:
 		return false
 	if p_duration_ms <= 0:
+		return false
+	# SILENCIO: no permite iniciar casteos (el servidor también los rechaza).
+	if is_silenced:
 		return false
 	is_casting = true
 	cast_duration = float(p_duration_ms) / 1000.0
@@ -2014,7 +2086,23 @@ func update_stats(data):
 		electron_speed_buff_stacks = int(eb.get("stacks", 1))
 		set_debuff_timer("electron_speed", electron_speed_buff_timer, electron_speed_buff_stacks)
 		_recalculate_stats()
-	
+
+	# Raíces: sync periódico. Solo afecta el movimiento.
+	if data.has("root"):
+		root_timer = float(data.root) / 1000.0
+		is_rooted = root_timer > 0.0
+		set_debuff_timer("root", root_timer)
+		if not is_rooted:
+			root_timer = 0.0
+
+	# Silencio: sync periódico. Solo afecta skills/casteos.
+	if data.has("silence"):
+		silence_timer = float(data.silence) / 1000.0
+		is_silenced = silence_timer > 0.0
+		set_debuff_timer("silence", silence_timer)
+		if not is_silenced:
+			silence_timer = 0.0
+
 	# v410: Polimorfia - Recibir flags de movimiento/habilidades del servidor
 	var poly_active = false
 	if data.has("isPolymorphed"):

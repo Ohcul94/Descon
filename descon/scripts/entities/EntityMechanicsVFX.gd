@@ -639,6 +639,14 @@ func handle_enemy_action(data: Dictionary) -> void:
 		"choque_devastador_end":
 			_cleanup_choque_marker()
 
+		# ==== SOBRECARGA (mecánica defensiva) ====
+		"sobrecarga_charge":
+			_start_overload_charge(data)
+		"sobrecarga_burst":
+			_trigger_overload_burst(data)
+		"sobrecarga_cancel":
+			_stop_overload_charge()
+
 func stop_orbital_orbit() -> void:
 	if not is_instance_valid(entity): return
 	var projs = get_tree().get_nodes_in_group("projectiles")
@@ -1833,3 +1841,289 @@ void fragment() {
 	tw.tween_property(orb, "scale", Vector3(1.0, 1.0, 1.0), 0.3).from(Vector3(0.01, 0.01, 0.01)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(core, "scale", Vector3(1.0, 1.0, 1.0), 0.35).from(Vector3(0.01, 0.01, 0.01)).set_delay(0.05).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(light, "light_energy", 1.0, 0.3).from(0.0)
+
+# ==============================================================================
+# 6. SOBRECARGA (Mecánica Defensiva) - Carga verde rebordando + explosión curativa
+# ==============================================================================
+const OVERLOAD_GREEN := Color(0.18, 1.0, 0.45)
+const OVERLOAD_META_CHARGE := "_overload_charge_vfx"
+
+func _overload_pivot():
+	if not is_instance_valid(entity):
+		return null
+	var pivot = null
+	if "accessory_pivot_3d" in entity and is_instance_valid(entity.accessory_pivot_3d):
+		pivot = entity.accessory_pivot_3d
+	elif "world_root_3d" in entity and is_instance_valid(entity.world_root_3d):
+		pivot = entity.world_root_3d
+	return pivot
+
+func _overload_radius() -> float:
+	if not is_instance_valid(entity):
+		return 1.0
+	var s_factor: float = float(entity.get_meta("map_scale", 0.02))
+	var base_r: float = 70.0
+	var etype: int = int(entity.entity_type)
+	if etype >= 101:
+		base_r = 180.0
+	elif etype == 200 or "pillar" in str(entity.entity_id):
+		base_r = 100.0
+	return base_r * s_factor
+
+func _make_overload_additive_mat(alpha: float, emission_energy: float) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.albedo_color = Color(OVERLOAD_GREEN.r, OVERLOAD_GREEN.g, OVERLOAD_GREEN.b, alpha)
+	mat.emission_enabled = true
+	mat.emission = OVERLOAD_GREEN
+	mat.emission_energy_multiplier = emission_energy
+	return mat
+
+func _stop_overload_charge() -> void:
+	if not is_instance_valid(entity):
+		return
+	if not entity.has_meta(OVERLOAD_META_CHARGE):
+		return
+	var root = entity.get_meta(OVERLOAD_META_CHARGE)
+	entity.remove_meta(OVERLOAD_META_CHARGE)
+	if is_instance_valid(root):
+		root.queue_free()
+
+func _expire_overload_charge(root) -> void:
+	if not is_instance_valid(root):
+		return
+	if is_instance_valid(entity) and entity.has_meta(OVERLOAD_META_CHARGE) and entity.get_meta(OVERLOAD_META_CHARGE) == root:
+		entity.remove_meta(OVERLOAD_META_CHARGE)
+	root.queue_free()
+
+func _start_overload_charge(data: Dictionary) -> void:
+	if not is_instance_valid(entity):
+		return
+	_stop_overload_charge()
+	var pivot = _overload_pivot()
+	if not is_instance_valid(pivot):
+		return
+
+	var cast_s: float = maxf(0.3, float(data.get("castMs", 1500.0)) / 1000.0)
+	var r: float = _overload_radius()
+
+	var root := Node3D.new()
+	root.name = "SobrecargaChargeVFX"
+	pivot.add_child(root)
+	entity.set_meta(OVERLOAD_META_CHARGE, root)
+
+	# 1) Cáscara de energía que se va "llenando" alrededor del asset
+	var shell := MeshInstance3D.new()
+	var shell_mesh := SphereMesh.new()
+	shell_mesh.radius = r * 1.1
+	shell_mesh.height = r * 2.2
+	shell.mesh = shell_mesh
+	var shell_mat := _make_overload_additive_mat(0.0, 0.0)
+	shell.material_override = shell_mat
+	shell.position.y = r * 0.55
+	root.add_child(shell)
+
+	# 2) Aro de rebosamiento que gira y se llena
+	var ring := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = r * 0.7
+	ring_mesh.outer_radius = r * 0.9
+	ring_mesh.rings = 8
+	ring_mesh.ring_segments = 32
+	ring.mesh = ring_mesh
+	var ring_mat := _make_overload_additive_mat(0.0, 0.0)
+	ring.material_override = ring_mat
+	ring.position.y = r * 1.0
+	root.add_child(ring)
+
+	# 3) Partículas verdes desbordando hacia arriba
+	var particles := CPUParticles3D.new()
+	_configure_ring_particles(particles, r, {
+		"amount": 60,
+		"lifetime": minf(1.8, cast_s),
+		"preprocess": 0.5,
+		"vel_min": 0.9,
+		"vel_max": 2.6,
+		"spread": 26.0,
+		"ring_scale": 0.85,
+		"ring_inner": 0.2,
+		"scale_min": 0.06,
+		"scale_max": 0.18,
+		"quad_size": 0.34,
+		"color": OVERLOAD_GREEN,
+		"texture": VFX_SparkleTexture
+	})
+	particles.gravity = Vector3(0, 1.6, 0)
+	particles.emitting = true
+	particles.scale = Vector3(0.05, 0.05, 0.05)
+	root.add_child(particles)
+
+	# 4) Luz verde que crece con la carga
+	var light := OmniLight3D.new()
+	light.light_color = OVERLOAD_GREEN
+	light.light_energy = 0.0
+	light.omni_range = r * 5.0
+	light.position = Vector3(0, r * 1.4, 0)
+	root.add_child(light)
+
+	# 5) Animación de llenado a lo largo del casteo
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(shell_mat, "albedo_color", Color(OVERLOAD_GREEN.r, OVERLOAD_GREEN.g, OVERLOAD_GREEN.b, 0.3), cast_s * 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tw.tween_property(shell_mat, "emission_energy_multiplier", 3.4, cast_s * 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tw.tween_property(ring_mat, "albedo_color", Color(OVERLOAD_GREEN.r, OVERLOAD_GREEN.g, OVERLOAD_GREEN.b, 0.6), cast_s * 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(ring_mat, "emission_energy_multiplier", 5.5, cast_s * 0.7)
+	tw.tween_property(ring, "rotation", Vector3(0.35, TAU, 0.0), cast_s).set_trans(Tween.TRANS_LINEAR)
+	tw.tween_property(light, "light_energy", 4.5, cast_s * 0.85)
+	tw.tween_property(particles, "scale", Vector3.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(root, "scale", Vector3(1.12, 1.12, 1.12), cast_s).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+	# 6) Auto-limpieza (cubre interrupciones por CC / muerte / bury)
+	var tw_life := create_tween()
+	tw_life.tween_interval(cast_s + 0.4)
+	tw_life.tween_callback(_expire_overload_charge.bind(root))
+
+func _trigger_overload_burst(data: Dictionary) -> void:
+	if not is_instance_valid(entity):
+		return
+	_stop_overload_charge()
+
+	var r: float = _overload_radius()
+	var s_factor := 0.02
+	var correction_z := 1.41421356
+	var vp = null
+	var current_map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(current_map):
+		if "scale_factor" in current_map:
+			s_factor = float(current_map.scale_factor)
+		if "correction_z" in current_map:
+			correction_z = float(current_map.correction_z)
+		if "sub_viewport" in current_map and is_instance_valid(current_map.sub_viewport):
+			vp = current_map.sub_viewport
+
+	# Radio visual: el mayor entre el cuerpo del enemigo y el radio de explosión configurado
+	var dmg_radius_3d: float = maxf(0.0, float(data.get("radius", 0.0))) * s_factor
+	var burst_r: float = maxf(r, dmg_radius_3d)
+
+	# --- A) Destello verde + ráfaga de partículas sobre el propio asset ---
+	var pivot = _overload_pivot()
+	if is_instance_valid(pivot):
+		var flash := MeshInstance3D.new()
+		var flash_mesh := SphereMesh.new()
+		flash_mesh.radius = r * 1.1
+		flash_mesh.height = r * 2.2
+		flash.mesh = flash_mesh
+		var flash_mat := _make_overload_additive_mat(0.75, 7.0)
+		flash.material_override = flash_mat
+		flash.position.y = r * 0.55
+		flash.scale = Vector3(0.3, 0.3, 0.3)
+		pivot.add_child(flash)
+		var tw_f := flash.create_tween().set_parallel(true)
+		tw_f.tween_property(flash, "scale", Vector3(2.4, 2.4, 2.4), 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw_f.tween_property(flash_mat, "albedo_color", Color(OVERLOAD_GREEN.r, OVERLOAD_GREEN.g, OVERLOAD_GREEN.b, 0.0), 0.42)
+		tw_f.tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.42)
+		tw_f.finished.connect(flash.queue_free)
+
+		var burst_p := CPUParticles3D.new()
+		_configure_ring_particles(burst_p, r, {
+			"amount": 70,
+			"lifetime": 0.8,
+			"preprocess": 0.0,
+			"vel_min": 2.2,
+			"vel_max": 4.6,
+			"spread": 70.0,
+			"ring_scale": 0.5,
+			"ring_inner": 0.05,
+			"scale_min": 0.07,
+			"scale_max": 0.2,
+			"quad_size": 0.36,
+			"color": OVERLOAD_GREEN,
+			"texture": VFX_FlareTexture
+		})
+		burst_p.one_shot = true
+		burst_p.emitting = true
+		pivot.add_child(burst_p)
+		var tw_bp := burst_p.create_tween()
+		tw_bp.tween_interval(1.2)
+		tw_bp.tween_callback(burst_p.queue_free)
+
+		var flash_light := OmniLight3D.new()
+		flash_light.light_color = OVERLOAD_GREEN
+		flash_light.light_energy = 7.0
+		flash_light.omni_range = r * 6.0
+		flash_light.position = Vector3(0, r * 1.2, 0)
+		pivot.add_child(flash_light)
+		var tw_l := flash_light.create_tween().set_parallel(true)
+		tw_l.tween_property(flash_light, "light_energy", 0.0, 0.4)
+		tw_l.finished.connect(flash_light.queue_free)
+
+	# --- B) Explosión de suelo verde que simula curación ---
+	if is_instance_valid(vp):
+		var ground := Node3D.new()
+		ground.name = "SobrecargaBurstVFX"
+		ground.position = Vector3(entity.global_position.x * s_factor, 0.03, entity.global_position.y * s_factor * correction_z)
+		vp.add_child(ground)
+
+		# Disco de sanación que flashea y se desvanece
+		var disc := _make_ground_disc(HealAuraShader, burst_r, 0.02)
+		var disc_mat: ShaderMaterial = disc.material_override
+		disc_mat.set_shader_parameter("core_color", Color(0.85, 1.0, 0.9, 1.0))
+		disc_mat.set_shader_parameter("mid_color", Color(0.36, 1.0, 0.54, 1.0))
+		disc_mat.set_shader_parameter("rim_color", Color(0.3, 1.0, 0.5, 1.0))
+		disc_mat.set_shader_parameter("intensity", 0.0)
+		ground.add_child(disc)
+		var tw_disc := ground.create_tween()
+		tw_disc.tween_method(func(v): disc_mat.set_shader_parameter("intensity", v), 0.0, 2.4, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw_disc.tween_method(func(v): disc_mat.set_shader_parameter("intensity", v), 2.4, 0.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+		# Ondas expansivas verdes (mismo shader que los ticks de aura)
+		var wave_count: int = 3 if dmg_radius_3d > 0.0 else 2
+		for i in wave_count:
+			var wave := MeshInstance3D.new()
+			var wave_mesh := PlaneMesh.new()
+			var wave_size: float = burst_r * 2.5
+			wave_mesh.size = Vector2(wave_size, wave_size)
+			wave.mesh = wave_mesh
+			wave.position.y = 0.035 + (0.005 * float(i))
+			var wave_mat := ShaderMaterial.new()
+			wave_mat.shader = AuraPulseRingShader
+			wave_mat.set_shader_parameter("ring_color", Color(0.35, 1.0, 0.5, 1.0))
+			wave_mat.set_shader_parameter("progress", 0.0)
+			wave_mat.set_shader_parameter("intensity", 1.7 if i == 0 else 1.2)
+			wave_mat.set_shader_parameter("thickness", 0.12 if i == 0 else 0.08)
+			wave.material_override = wave_mat
+			ground.add_child(wave)
+			var tw_w := ground.create_tween()
+			if i > 0:
+				tw_w.tween_interval(0.14 * float(i))
+			tw_w.tween_method(func(p): wave_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			tw_w.tween_callback(wave.queue_free)
+
+		# Partículas de sanación que ascienden
+		var heal_p := CPUParticles3D.new()
+		_configure_ring_particles(heal_p, burst_r, {
+			"amount": 45,
+			"lifetime": 1.1,
+			"preprocess": 0.0,
+			"vel_min": 1.0,
+			"vel_max": 2.4,
+			"spread": 40.0,
+			"ring_scale": 0.7,
+			"ring_inner": 0.1,
+			"scale_min": 0.07,
+			"scale_max": 0.19,
+			"quad_size": 0.34,
+			"color": Color(0.4, 1.0, 0.55, 0.9),
+			"texture": VFX_SparkleTexture
+		})
+		heal_p.gravity = Vector3(0, 2.2, 0)
+		heal_p.one_shot = true
+		heal_p.emitting = true
+		heal_p.position.y = 0.1
+		ground.add_child(heal_p)
+
+		var tw_cleanup := ground.create_tween()
+		tw_cleanup.tween_interval(1.6)
+		tw_cleanup.tween_callback(ground.queue_free)

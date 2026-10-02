@@ -181,10 +181,17 @@ func _interact():
 	if NetworkManager:
 		NetworkManager.send_event("inspectLoot", { "lootId": loot_id })
 
-func _exit_tree():
+func _safe_free_world_root_3d() -> void:
 	if is_instance_valid(world_root_3d):
+		world_root_3d.visible = false
+		var p = world_root_3d.get_parent()
+		if is_instance_valid(p):
+			p.remove_child(world_root_3d)
 		world_root_3d.queue_free()
 		world_root_3d = null
+
+func _exit_tree():
+	_safe_free_world_root_3d()
 
 func fade_out_and_free():
 	collision.set_deferred("disabled", true)
@@ -198,9 +205,7 @@ func fade_out_and_free():
 	tw.tween_property(self, "scale", Vector2.ZERO, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	tw.tween_property(self, "modulate:a", 0.0, 0.25)
 	tw.chain().tween_callback(func():
-		if is_instance_valid(world_root_3d):
-			world_root_3d.queue_free()
-			world_root_3d = null
+		_safe_free_world_root_3d()
 		queue_free()
 	)
 

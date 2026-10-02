@@ -39,6 +39,8 @@ const DEBUFF_MAP = {
 	"frozen": {"type": "freeze", "icon": "🧊", "color": Color(0.3, 0.6, 1.0), "name": "Freeze"},
 	"provoked": {"type": "provoked", "icon": "🎯", "color": Color(1.0, 0.4, 0.0), "name": "Provocación"},
 	"polymorphed": {"type": "poly", "icon": "🟦", "color": Color(0.2, 0.8, 1.0), "name": "Polimorfia"},
+	"rooted": {"type": "root", "icon": "🌱", "color": Color(0.35, 0.75, 0.25), "name": "Enraizado"},
+	"silenced": {"type": "silence", "icon": "🔇", "color": Color(0.6, 0.6, 0.65), "name": "Silencio"},
 }
 
 const BUFF_MAP = {
@@ -2271,8 +2273,7 @@ func die():
 	# 5. Lógica de pooling/limpieza para enemigos
 	if not is_in_group("player") and not is_in_group("remote_players"): 
 		if is_special_defense:
-			if is_instance_valid(world_root_3d):
-				world_root_3d.queue_free()
+			_safe_free_world_root_3d()
 			queue_free()
 		else:
 			set_meta("is_pooled", true)
@@ -2507,9 +2508,7 @@ func _create_anim(lib: AnimationLibrary, a_name: String, start: int, count: int,
 
 func _setup_enemy_visuals():
 	# Limpieza de modelos 3D y Viewports anteriores (evita heredar naves/sprites del pool)
-	if is_instance_valid(world_root_3d):
-		world_root_3d.queue_free()
-		world_root_3d = null
+	_safe_free_world_root_3d()
 	_3d_model = null
 	_3d_propulsion = null
 	_prop_mesh_mat = null
@@ -3458,16 +3457,19 @@ func _play_frost_activate_vfx() -> void:
 		parts.emitting = true
 		var twp := create_tween()
 		twp.tween_interval(parts.lifetime + 0.4)
-		twp.tween_callback(parts.queue_free)
+		twp.tween_callback(func():
+			if is_instance_valid(parts):
+				parts.visible = false
+				if parts.get_parent(): parts.get_parent().remove_child(parts)
+				parts.queue_free()
+		)
 
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
 func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: float = 0.0, auto_anim: String = ""):
 	# print("[3D] Inicializando renderizado para: ", glb_path)
 	
 	# v306.4: Evitar duplicaciones de naves huérfanas al reconstruir el layout 3D en cambios de mapa
-	if is_instance_valid(world_root_3d):
-		world_root_3d.queue_free()
-		world_root_3d = null
+	_safe_free_world_root_3d()
 	_3d_propulsion = null
 	_prop_mesh_mat = null
 	_prop_proc_mat = null
@@ -4690,27 +4692,33 @@ func _make_materials_unshaded(node: Node):
 		return
 	if node is MeshInstance3D:
 		if node.name != "EnergyShield" and not _is_descendant_of_active_shield(node):
-			# 1. Modificar material_override si existe
+			# 1. Si ya tiene material_override, con actualizar ese alcanza y evitamos conflicto de overrides múltiples
 			if node.material_override and node.material_override is BaseMaterial3D:
-				node.material_override = node.material_override.duplicate()
-				node.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				node.material_override.cull_mode = BaseMaterial3D.CULL_BACK
-			
-			# 2. Modificar materiales de superficies individuales
-			for i in range(node.get_surface_override_material_count()):
-				var mat = node.get_surface_override_material(i)
-				if mat and mat is BaseMaterial3D:
-					var dup_mat = mat.duplicate()
-					dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-					dup_mat.cull_mode = BaseMaterial3D.CULL_BACK
-					node.set_surface_override_material(i, dup_mat)
-				else:
-					var active_mat = node.get_active_material(i)
-					if active_mat and active_mat is BaseMaterial3D:
-						var dup_mat = active_mat.duplicate()
-						dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-						dup_mat.cull_mode = BaseMaterial3D.CULL_BACK
-						node.set_surface_override_material(i, dup_mat)
+				if node.material_override.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+					node.material_override = node.material_override.duplicate()
+					node.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					node.material_override.cull_mode = BaseMaterial3D.CULL_BACK
+			else:
+				# 2. Solo si NO tiene material_override global, actualizar materiales de superficies
+				var s_count = node.get_surface_override_material_count()
+				if s_count == 0 and node.mesh:
+					s_count = node.mesh.get_surface_count()
+				for i in range(s_count):
+					var mat = node.get_surface_override_material(i)
+					if mat and mat is BaseMaterial3D:
+						if mat.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+							var dup_mat = mat.duplicate()
+							dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+							dup_mat.cull_mode = BaseMaterial3D.CULL_BACK
+							node.set_surface_override_material(i, dup_mat)
+					else:
+						var active_mat = node.get_active_material(i)
+						if active_mat and active_mat is BaseMaterial3D:
+							if active_mat.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+								var dup_mat = active_mat.duplicate()
+								dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+								dup_mat.cull_mode = BaseMaterial3D.CULL_BACK
+								node.set_surface_override_material(i, dup_mat)
 	for child in node.get_children():
 		_make_materials_unshaded(child)
 
@@ -4770,9 +4778,52 @@ func _setup_sphere_materials_recursive(node: Node, color_name: String):
 	for child in node.get_children():
 		_setup_sphere_materials_recursive(child, color_name)
 
-func _exit_tree():
+# v550.0: Funciones de liberación segura de nodos y raíces 3D para evitar errores de GLES3
+# (material_storage.cpp: material_casts_shadows: Parameter "material" is null)
+static func _safe_free_3d_node(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	if node is Node3D:
+		node.visible = false
+	var p = node.get_parent()
+	if is_instance_valid(p):
+		p.remove_child(node)
+	node.queue_free()
+
+func _safe_free_world_root_3d() -> void:
 	if is_instance_valid(world_root_3d):
+		world_root_3d.visible = false
+		var p = world_root_3d.get_parent()
+		if is_instance_valid(p):
+			p.remove_child(world_root_3d)
 		world_root_3d.queue_free()
+		world_root_3d = null
+
+static var _wreckage_ring_mat: StandardMaterial3D = null
+static var _wreckage_bar_mat: StandardMaterial3D = null
+
+static func _get_wreckage_ring_mat() -> StandardMaterial3D:
+	if _wreckage_ring_mat == null:
+		_wreckage_ring_mat = StandardMaterial3D.new()
+		_wreckage_ring_mat.albedo_color = Color(0.35, 0.32, 0.3)
+		_wreckage_ring_mat.metallic = 0.6
+		_wreckage_ring_mat.roughness = 0.7
+		_wreckage_ring_mat.emission_enabled = true
+		_wreckage_ring_mat.emission = Color(0.02, 0.01, 0.03)
+	return _wreckage_ring_mat
+
+static func _get_wreckage_bar_mat() -> StandardMaterial3D:
+	if _wreckage_bar_mat == null:
+		_wreckage_bar_mat = StandardMaterial3D.new()
+		_wreckage_bar_mat.albedo_color = Color(0.4, 0.38, 0.35)
+		_wreckage_bar_mat.metallic = 0.5
+		_wreckage_bar_mat.roughness = 0.8
+		_wreckage_bar_mat.emission_enabled = true
+		_wreckage_bar_mat.emission = Color(0.02, 0.01, 0.02)
+	return _wreckage_bar_mat
+
+func _exit_tree():
+	_safe_free_world_root_3d()
 
 func deactivate_for_pooling():
 	invalidate_map_cache()
@@ -4967,13 +5018,7 @@ func _spawn_wreckage_marker():
 		torus.ring_segments = 6
 		ring.mesh = torus
 		ring.rotation_degrees = Vector3(-90, 0, 0)
-		var ring_mat = StandardMaterial3D.new()
-		ring_mat.albedo_color = Color(0.35, 0.32, 0.3)
-		ring_mat.metallic = 0.6
-		ring_mat.roughness = 0.7
-		ring_mat.emission_enabled = true
-		ring_mat.emission = Color(0.02, 0.01, 0.03)
-		ring.material_override = ring_mat
+		ring.material_override = _get_wreckage_ring_mat()
 		wreckage_3d.add_child(ring)
 		
 		# Cruz de escombros (X sobre el anillo)
@@ -4983,13 +5028,7 @@ func _spawn_wreckage_marker():
 			box.size = Vector3(0.8, 0.03, 0.06)
 			bar.mesh = box
 			bar.rotation_degrees = Vector3(-90, 0, 45.0 if cross_i == 0 else -45.0)
-			var bar_mat = StandardMaterial3D.new()
-			bar_mat.albedo_color = Color(0.4, 0.38, 0.35)
-			bar_mat.metallic = 0.5
-			bar_mat.roughness = 0.8
-			bar_mat.emission_enabled = true
-			bar_mat.emission = Color(0.02, 0.01, 0.02)
-			bar.material_override = bar_mat
+			bar.material_override = _get_wreckage_bar_mat()
 			wreckage_3d.add_child(bar)
 		
 		# Pequeña luz naranja para resaltar el naufragio
@@ -5013,15 +5052,13 @@ func _spawn_wreckage_marker():
 			# Limpiar el wreckage 3D también
 			if marker.has_meta("wreckage_3d"):
 				var w3d = marker.get_meta("wreckage_3d")
-				if is_instance_valid(w3d): w3d.queue_free()
+				if is_instance_valid(w3d): _safe_free_3d_node(w3d)
 			marker.queue_free()
 			# v416.1: Liberar el asset del cuerpo junto con el marcador para que no
 			# quede invisible ocupando el mundo 3D. Solo si el enemigo sigue muerto
 			# (pooled); si ya respawnó, no tocar el body que está en uso.
 			if is_instance_valid(self) and is_in_group("enemies") and get_meta("is_pooled", false):
-				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-					world_root_3d = null
+				_safe_free_world_root_3d()
 				_3d_model = null
 				_3d_propulsion = null
 				_prop_mesh_mat = null
@@ -5040,7 +5077,7 @@ func _clear_wreckage_marker():
 		if is_instance_valid(marker):
 			if marker.has_meta("wreckage_3d"):
 				var w3d = marker.get_meta("wreckage_3d")
-				if is_instance_valid(w3d): w3d.queue_free()
+				if is_instance_valid(w3d): _safe_free_3d_node(w3d)
 			marker.queue_free()
 
 func _safe_float(val, default: float = 0.0) -> float:

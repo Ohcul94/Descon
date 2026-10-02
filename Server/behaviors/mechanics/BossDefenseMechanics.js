@@ -1,3 +1,4 @@
+const { applyDebuffsList } = require('../../utils/debuffUtils');
 // Server/behaviors/mechanics/BossDefenseMechanics.js
 // Mecánicas defensivas modulares de jefes (Domo de supervivencia, Muro de energía y Reflejo)
 
@@ -133,65 +134,7 @@ function _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, playe
 
                         io.to(p.socketId).emit('environmentDamage', { damage: dmg });
 
-                        if (mech.debuffsList && Array.isArray(mech.debuffsList)) {
-                            mech.debuffsList.forEach(d => {
-                                if (d.type === 'bleed') {
-                                    const bleedDps = Number(d.dps) || 30;
-                                    const bleedDur = Number(d.duration) || 4000;
-                                    const tickInt = Number(d.tickInterval) || 1000;
-                                    p.isBleeding = true;
-                                    p.bleedEndTime = Date.now() + bleedDur;
-                                    p.bleedDps = bleedDps;
-                                    p.bleedInterval = tickInt;
-                                    p.lastBleedTick = Date.now();
-                                    io.to(p.socketId).emit('statusEffectsSync', { bleed: bleedDur });
-                                    io.to(p.socketId).emit('gameNotification', { 
-                                        msg: `🩸 ¡Sufres de Sangrado! perdiendo ${bleedDps} HP cada ${tickInt}ms.`, 
-                                        type: "warning" 
-                                    });
-                                }
-                                else if (d.type === 'poison') {
-                                    const poisonDps = Number(d.dps) || 20;
-                                    const poisonDur = Number(d.duration) || 4000;
-                                    const tickInt = Number(d.tickInterval) || 1000;
-                                    p.isPoisoned = true;
-                                    p.poisonEndTime = Date.now() + poisonDur;
-                                    p.poisonDps = poisonDps;
-                                    p.poisonInterval = tickInt;
-                                    p.lastPoisonTick = Date.now();
-                                    io.to(p.socketId).emit('statusEffectsSync', { poison: poisonDur });
-                                    io.to(p.socketId).emit('gameNotification', { 
-                                        msg: `🤢 ¡Has sido envenenado! perdiendo ${poisonDps} HP cada ${tickInt}ms.`, 
-                                        type: "warning" 
-                                    });
-                                }
-                                else if (d.type === 'stun') {
-                                    const stunDuration = Number(d.duration) || 1500;
-                                    p.isStunned = true;
-                                    p.stunEndTime = Date.now() + stunDuration;
-                                    io.to(p.socketId).emit('stunState', { active: true, duration: stunDuration });
-                                    io.to(p.socketId).emit('gameNotification', { 
-                                        msg: `⚡ ¡Has sido paralizado!`, 
-                                        type: "error" 
-                                    });
-                                }
-                                else if (d.type === 'slow') {
-                                    const slowAmt = Number(d.amount) || 50;
-                                    const slowDur = Number(d.duration) || 2500;
-                                    const isPct = d.isPercentage !== false;
-                                    p.isSlowed = true;
-                                    p.slowEndTime = Date.now() + slowDur;
-                                    p.slowPoints = slowAmt;
-                                    p.slowIsPercentage = isPct;
-                                    p.lastSlowTime = Date.now();
-                                    io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
-                                    io.to(p.socketId).emit('gameNotification', { 
-                                        msg: `🐢 ¡Ralentizado! Velocidad reducida en ${slowAmt}${isPct ? '%' : ' px/s'}.`, 
-                                        type: "warning" 
-                                    });
-                                }
-                            });
-                        }
+                        applyDebuffsList(p, mech.debuffsList, io, "El domo");
 
                         io.to(`zone_${p.zone}`).emit('playerStatSync', {
                             id: p.socketId,

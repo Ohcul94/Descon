@@ -1,6 +1,7 @@
 const Logger = require('../utils/logger');
 const { checkCombatLock, sendInventoryData } = require('../systems/inventoryHandlers');
 const { getCleanEnemyData } = require('../utils/entitySanitizer');
+const { clearAllDebuffs } = require('../utils/debuffUtils');
 
 const { normalizeZone } = require('../utils/zoneUtils');
 
@@ -14,7 +15,9 @@ const getStatusEffects = (ent) => {
         frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
         feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime)),
         provoked: !!(ent.forcedTarget && ent.tauntEndTime && now < ent.tauntEndTime),
-        polymorphed: !!(ent.isPolymorphed || (ent.polyEndTime && now < ent.polyEndTime))
+        polymorphed: !!(ent.isPolymorphed || (ent.polyEndTime && now < ent.polyEndTime)),
+        rooted: !!(ent.isRooted || (ent.rootEndTime && now < ent.rootEndTime)),
+        silenced: !!(ent.isSilenced || (ent.silencedUntil && now < ent.silencedUntil))
     };
 };
 
@@ -114,6 +117,14 @@ function registerMovementHandlers(socket, io, state) {
         }
 
         if (p.isFrozen) {
+            movementData.x = p.x;
+            movementData.y = p.y;
+        }
+        // ==== ROOT (Inmovilización): bloquear SOLO el desplazamiento ====
+        // El jugador conserva la cámara, puede disparar y usar skills; solo no se mueve.
+        // Se fuerza la posición autoritativa para que el anti-speedhack no lo marche.
+        const nowRoot = Date.now();
+        if (p.isRooted || (p.rootEndTime && nowRoot < p.rootEndTime)) {
             movementData.x = p.x;
             movementData.y = p.y;
         }
@@ -368,18 +379,8 @@ function registerMovementHandlers(socket, io, state) {
         p.shield = respawnData.sh || p.maxShield || 500;
         
         // v410.5: Limpiar de forma autoritativa todos los debuffs y estados alterados en respawn
-        p.isPolymorphed = false;
-        p.polyEndTime = 0;
-        p.polyCanMove = true;
-        p.polyCanUseSkills = true;
-        
-        p.isSlowed = false; p.slowPoints = 0; p.slowEndTime = 0;
-        p.isStunned = false; p.stunEndTime = 0;
-        p.isBleeding = false; p.bleedEndTime = 0;
-        p.isPoisoned = false; p.poisonEndTime = 0;
-        p.isFrozen = false; p.freezeEndTime = 0;
-        p.isFeared = false; p.fearEndTime = 0;
-        p.forcedTarget = null; p.tauntEndTime = 0;
+        // (incluye los nuevos ROOT y SILENCIO - ver utils/debuffUtils.js)
+        clearAllDebuffs(p);
         
         // v_fix_dead: Validar zona autoritativamente
         if (respawnData.zone) {
@@ -515,6 +516,8 @@ function registerMovementHandlers(socket, io, state) {
             isSlowed: false,
             isFrozen: false,
             isFeared: false,
+            isRooted: false,
+            isSilenced: false,
             hp: p.hp,
             shield: p.shield,
             maxHp: p.maxHp,
@@ -524,6 +527,9 @@ function registerMovementHandlers(socket, io, state) {
         // v410.7: Forzar la limpieza de slow y stun en el cliente local del jugador al revivir
         socket.emit('slowState', { active: false });
         socket.emit('stunState', { active: false });
+        // Limpieza de los efectos nuevos (root y silence) al revivir
+        socket.emit('rootState', { active: false });
+        socket.emit('silenceState', { active: false });
 
         const respawnPayload = {
             ...getMovementPayload(p, socket.id),
