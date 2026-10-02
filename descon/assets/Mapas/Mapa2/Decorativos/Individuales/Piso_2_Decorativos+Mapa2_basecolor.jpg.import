@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6tc38om1tatj"
-path.s3tc="res://.godot/imported/Pasto_Desertico_2_Decorativos+Mapa2_basecolor.jpg-754d0c13423413b4d52ff67ab295952e.s3tc.ctex"
-path.etc2="res://.godot/imported/Pasto_Desertico_2_Decorativos+Mapa2_basecolor.jpg-754d0c13423413b4d52ff67ab295952e.etc2.ctex"
+uid="uid://dao5o6132e0to"
+path.s3tc="res://.godot/imported/Piso_2_Decorativos+Mapa2_basecolor.jpg-3175738e4cb46d51a01adf7998b95367.s3tc.ctex"
+path.etc2="res://.godot/imported/Piso_2_Decorativos+Mapa2_basecolor.jpg-3175738e4cb46d51a01adf7998b95367.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/Mapas/Mapa2/Decorativos/Individuales/Pasto_Desertico_2_Decorativos+Mapa2_basecolor.jpg"
-dest_files=["res://.godot/imported/Pasto_Desertico_2_Decorativos+Mapa2_basecolor.jpg-754d0c13423413b4d52ff67ab295952e.s3tc.ctex", "res://.godot/imported/Pasto_Desertico_2_Decorativos+Mapa2_basecolor.jpg-754d0c13423413b4d52ff67ab295952e.etc2.ctex"]
+source_file="res://assets/Mapas/Mapa2/Decorativos/Individuales/Piso_2_Decorativos+Mapa2_basecolor.jpg"
+dest_files=["res://.godot/imported/Piso_2_Decorativos+Mapa2_basecolor.jpg-3175738e4cb46d51a01adf7998b95367.s3tc.ctex", "res://.godot/imported/Piso_2_Decorativos+Mapa2_basecolor.jpg-3175738e4cb46d51a01adf7998b95367.etc2.ctex"]
 
 [params]
 

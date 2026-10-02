@@ -2,18 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b68ebphaawbs2"
-path.s3tc="res://.godot/imported/moon_texture_1k.jpg-5e7953794ebfb36b75cfeaf70683d572.s3tc.ctex"
-path.etc2="res://.godot/imported/moon_texture_1k.jpg-5e7953794ebfb36b75cfeaf70683d572.etc2.ctex"
+uid="uid://bw11gftf03vr7"
+path.s3tc="res://.godot/imported/Plantas_Deserticas_Decorativos+Mapa2_rm.jpg-fb67f617d54e4ab695e399432cfc8246.s3tc.ctex"
+path.etc2="res://.godot/imported/Plantas_Deserticas_Decorativos+Mapa2_rm.jpg-fb67f617d54e4ab695e399432cfc8246.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
+generator_parameters={
+"md5": "99909409df92d1dd0ad95e6025a72c9e"
+}
 
 [deps]
 
-source_file="res://Plugins/day_night_sky/textures/moon_texture_1k.jpg"
-dest_files=["res://.godot/imported/moon_texture_1k.jpg-5e7953794ebfb36b75cfeaf70683d572.s3tc.ctex", "res://.godot/imported/moon_texture_1k.jpg-5e7953794ebfb36b75cfeaf70683d572.etc2.ctex"]
+source_file="res://assets/Mapas/Mapa2/Decorativos/Individuales/Plantas_Deserticas_Decorativos+Mapa2_rm.jpg"
+dest_files=["res://.godot/imported/Plantas_Deserticas_Decorativos+Mapa2_rm.jpg-fb67f617d54e4ab695e399432cfc8246.s3tc.ctex", "res://.godot/imported/Plantas_Deserticas_Decorativos+Mapa2_rm.jpg-fb67f617d54e4ab695e399432cfc8246.etc2.ctex"]
 
 [params]
 

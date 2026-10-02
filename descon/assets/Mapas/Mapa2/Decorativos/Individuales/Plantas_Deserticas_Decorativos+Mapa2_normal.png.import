@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bnebyhcpipasq"
-path.s3tc="res://.godot/imported/Captus_Decorativos+Mapa2_normal.png-8596e824aff5ff24d473175e8e1780af.s3tc.ctex"
-path.etc2="res://.godot/imported/Captus_Decorativos+Mapa2_normal.png-8596e824aff5ff24d473175e8e1780af.etc2.ctex"
+uid="uid://ne3vwvir6at7"
+path.s3tc="res://.godot/imported/Plantas_Deserticas_Decorativos+Mapa2_normal.png-5805bee91d1994d9ad923b7095e36b5f.s3tc.ctex"
+path.etc2="res://.godot/imported/Plantas_Deserticas_Decorativos+Mapa2_normal.png-5805bee91d1994d9ad923b7095e36b5f.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/Mapas/Mapa2/Decorativos/Individuales/Captus_Decorativos+Mapa2_normal.png"
-dest_files=["res://.godot/imported/Captus_Decorativos+Mapa2_normal.png-8596e824aff5ff24d473175e8e1780af.s3tc.ctex", "res://.godot/imported/Captus_Decorativos+Mapa2_normal.png-8596e824aff5ff24d473175e8e1780af.etc2.ctex"]
+source_file="res://assets/Mapas/Mapa2/Decorativos/Individuales/Plantas_Deserticas_Decorativos+Mapa2_normal.png"
+dest_files=["res://.godot/imported/Plantas_Deserticas_Decorativos+Mapa2_normal.png-5805bee91d1994d9ad923b7095e36b5f.s3tc.ctex", "res://.godot/imported/Plantas_Deserticas_Decorativos+Mapa2_normal.png-5805bee91d1994d9ad923b7095e36b5f.etc2.ctex"]
 
 [params]
 
@@ -31,7 +31,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://assets/Mapas/Mapa2/Decorativos/Individuales/Captus_Decorativos+Mapa2_normal.png"
+roughness/src_normal="res://assets/Mapas/Mapa2/Decorativos/Individuales/Plantas_Deserticas_Decorativos+Mapa2_normal.png"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

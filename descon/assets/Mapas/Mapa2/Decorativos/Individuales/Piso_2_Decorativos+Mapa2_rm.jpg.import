@@ -2,18 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dslxeelsrxejw"
-path.s3tc="res://.godot/imported/star_map_texture_2k.jpg-bf513cf3b9f8d0ef880f5e0cff400998.s3tc.ctex"
-path.etc2="res://.godot/imported/star_map_texture_2k.jpg-bf513cf3b9f8d0ef880f5e0cff400998.etc2.ctex"
+uid="uid://b5lyn8q5v0jdr"
+path.s3tc="res://.godot/imported/Piso_2_Decorativos+Mapa2_rm.jpg-8fa318c823fc0140dc958f28aa4260e8.s3tc.ctex"
+path.etc2="res://.godot/imported/Piso_2_Decorativos+Mapa2_rm.jpg-8fa318c823fc0140dc958f28aa4260e8.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
+generator_parameters={
+"md5": "99909409df92d1dd0ad95e6025a72c9e"
+}
 
 [deps]
 
-source_file="res://Plugins/day_night_sky/textures/star_map_texture_2k.jpg"
-dest_files=["res://.godot/imported/star_map_texture_2k.jpg-bf513cf3b9f8d0ef880f5e0cff400998.s3tc.ctex", "res://.godot/imported/star_map_texture_2k.jpg-bf513cf3b9f8d0ef880f5e0cff400998.etc2.ctex"]
+source_file="res://assets/Mapas/Mapa2/Decorativos/Individuales/Piso_2_Decorativos+Mapa2_rm.jpg"
+dest_files=["res://.godot/imported/Piso_2_Decorativos+Mapa2_rm.jpg-8fa318c823fc0140dc958f28aa4260e8.s3tc.ctex", "res://.godot/imported/Piso_2_Decorativos+Mapa2_rm.jpg-8fa318c823fc0140dc958f28aa4260e8.etc2.ctex"]
 
 [params]
 
@@ -23,7 +26,7 @@ compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=2
+compress/normal_map=0
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
