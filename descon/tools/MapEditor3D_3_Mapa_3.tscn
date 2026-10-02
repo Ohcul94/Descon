@@ -1,23 +1,20 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cuayvppygi27q"]
 
-[ext_resource type="Script" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
-[ext_resource type="Texture2D" path="res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/Rocas de Arena Costeras.png" id="2_303il"]
-[ext_resource type="Texture2D" path="res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/packed_normal_roughness.png" id="3_7bc5u"]
-[ext_resource type="PackedScene" path="res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb" id="4_7bc5u"]
+[ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="Texture2D" uid="uid://dwanhpfvjms3w" path="res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/Rocas de Arena Costeras.png" id="2_303il"]
+[ext_resource type="Texture2D" uid="uid://dotpd685ssjpd" path="res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/packed_normal_roughness.png" id="3_7bc5u"]
+[ext_resource type="PackedScene" uid="uid://dsgcgwbrmyoc1" path="res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb" id="4_7bc5u"]
 [ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb" id="5_g2dmw"]
 [ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Grande.glb" id="6_se6js"]
 [ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb" id="7_fpthl"]
 [ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb" id="8_vt0q6"]
-[ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb" id="9_kmgwr"]
-[ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb" id="10_5q4e8"]
 [ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb" id="11_jhxel"]
 [ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb" id="12_ftivt"]
 [ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb" id="13_iyyeo"]
-[ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_3.glb" id="14_8m4tl"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7bc5u"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jqspa"]
 albedo_color = Color(0.05, 0.08, 0.15, 1)
 metallic = 0.3
 roughness = 0.8
@@ -169,7 +166,7 @@ shape = SubResource("WorldBoundaryShape3D_1")
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1711100493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 visible = false
-material_override = SubResource("StandardMaterial3D_7bc5u")
+material_override = SubResource("StandardMaterial3D_jqspa")
 mesh = SubResource("PlaneMesh_1")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=798809310]
@@ -183,7 +180,7 @@ free_editor_textures = false
 top_level = true
 metadata/_edit_lock_ = true
 
-[node name="CuevaCalaberas" type="Node3D" parent="." unique_id=828808755 instance=ExtResource("4_7bc5u")]
+[node name="CuevaCalaberas" parent="." unique_id=828808755 instance=ExtResource("4_7bc5u")]
 transform = Transform3D(29.254148, 0, 27.279934, 0, 40, 0, -27.279934, 0, 29.254148, -17.5042, 0, -103.70089)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb"
@@ -207,7 +204,7 @@ transform = Transform3D(0.99026805, 0, 0.1391731, 0, 1, 0, -0.1391731, 0, 0.9902
 size = Vector3(9.0834, 0.005, 15.409271)
 material = SubResource("StandardMaterial3D_d0lf8")
 
-[node name="Arbol_1" type="Node3D" parent="." unique_id=37791156 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1" parent="." unique_id=37791156 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(30.805883, 0, 22.29974, 0, 38.03, 0, -22.29974, 0, 30.805883, -26.2692, 4.295, -102.19814)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -227,7 +224,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_2" type="Node3D" parent="." unique_id=294487414 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_2" parent="." unique_id=294487414 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(21.79872, 0, 28.51154, 0, 35.89, 0, -28.51154, 0, 21.79872, -30.556, 4.045, -100.124344)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -247,7 +244,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Grande" type="Node3D" parent="." unique_id=630907643 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande" parent="." unique_id=630907643 instance=ExtResource("6_se6js")]
 transform = Transform3D(23.030806, 0, 10.302177, 0, 25.23, 0, -10.302177, 0, 23.030806, -31.1324, 2.007, -89.350296)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -267,7 +264,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Grande_2" type="Node3D" parent="." unique_id=356933523 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande_2" parent="." unique_id=356933523 instance=ExtResource("6_se6js")]
 transform = Transform3D(0.63504946, 0, -24.251688, 0, 24.26, 0, 24.251688, 0, 0.63504946, -23.87, 1.926, -95.89697)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -287,7 +284,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes" type="Node3D" parent="." unique_id=1125130976 instance=ExtResource("7_fpthl")]
+[node name="Piedras_Apiladas_Grandes" parent="." unique_id=1125130976 instance=ExtResource("7_fpthl")]
 transform = Transform3D(8.783595, 0, -22.882057, 0, 24.51, 0, 22.882057, 0, 8.783595, -32.732, 1.708, -96.245155)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -307,7 +304,7 @@ radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes_2" type="Node3D" parent="." unique_id=454536361 instance=ExtResource("7_fpthl")]
+[node name="Piedras_Apiladas_Grandes_2" parent="." unique_id=454536361 instance=ExtResource("7_fpthl")]
 transform = Transform3D(-16.602474, 0, 11.974085, 0, 20.47, 0, -11.974085, 0, -16.602474, -28.059, 1.398, -100.662025)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -327,7 +324,7 @@ radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Mediana" type="Node3D" parent="." unique_id=928709559 instance=ExtResource("8_vt0q6")]
+[node name="Piedra_Mediana" parent="." unique_id=928709559 instance=ExtResource("8_vt0q6")]
 transform = Transform3D(-14.122588, 0, 11.934513, 0, 18.49, 0, -11.934513, 0, -14.122588, -22.2738, 0.502, -97.52247)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -336,7 +333,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_
 metadata/scale_2d = 18.49
 metadata/rot_y_deg = 139.8
 
-[node name="Piedra_Mediana_2" type="Node3D" parent="." unique_id=1519514283 instance=ExtResource("8_vt0q6")]
+[node name="Piedra_Mediana_2" parent="." unique_id=1519514283 instance=ExtResource("8_vt0q6")]
 transform = Transform3D(7.938539, 0, 21.693077, 0, 23.1, 0, -21.693077, 0, 7.938539, -23.5582, 0.642, -99.54649)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -345,43 +342,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_
 metadata/scale_2d = 23.1
 metadata/rot_y_deg = 69.9
 
-[node name="Piso_Musgo_2" type="Node3D" parent="." unique_id=1159902814 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-29.10556, 0, -12.958626, 0, 31.86, 0, 12.958626, 0, -29.10556, -26.488, 1.184, -93.52025)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 31.86
-metadata/rot_y_deg = 204.0
-
-[node name="Piso_Musgo_2_2" type="Node3D" parent="." unique_id=1209073606 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(26.726622, 0, 9.780555, 0, 28.46, 0, -9.780555, 0, 26.726622, -22.4694, 1.056, -92.41065)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 28.46
-metadata/rot_y_deg = 20.1
-
-[node name="Piso_Peque_o_Musgo" type="Node3D" parent="." unique_id=90005627 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(14.97964, 0, -18.236513, 0, 23.6, 0, 18.236513, 0, 14.97964, -20.5874, 0.488, -95.05325)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 23.6
-metadata/rot_y_deg = 309.4
-
-[node name="Piso_Peque_o_Musgo_2" type="Node3D" parent="." unique_id=149812485 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(15.616808, 0, 13.480065, 0, 20.63, 0, -13.480065, 0, 15.616808, -25.2978, 0.424, -99.19662)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 20.63
-metadata/rot_y_deg = 40.8
-
-[node name="Arbol_2" type="Node3D" parent="." unique_id=1772757046 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2" parent="." unique_id=1772757046 instance=ExtResource("11_jhxel")]
 transform = Transform3D(28.536236, 0, 14.981859, 0, 32.23, 0, -14.981859, 0, 28.536236, -5.545, 3.644, -89.72874)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -401,7 +362,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_2" type="Node3D" parent="." unique_id=2005829909 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_2" parent="." unique_id=2005829909 instance=ExtResource("11_jhxel")]
 transform = Transform3D(36.98651, 0, 5.1981153, 0, 37.35, 0, -5.1981153, 0, 36.98651, -3.3242, 4.246, -98.72257)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -421,7 +382,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Medianas" type="Node3D" parent="." unique_id=419622487 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas" parent="." unique_id=419622487 instance=ExtResource("12_ftivt")]
 transform = Transform3D(-11.996804, 0, 13.898428, 0, 18.36, 0, -13.898428, 0, -11.996804, -14.168, 0.907, -97.92665)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -430,7 +391,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 18.36
 metadata/rot_y_deg = 130.8
 
-[node name="Piedras_Apiladas_Medianas_2" type="Node3D" parent="." unique_id=342357256 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas_2" parent="." unique_id=342357256 instance=ExtResource("12_ftivt")]
 transform = Transform3D(-13.338646, 0, -18.90873, 0, 23.14, 0, 18.90873, 0, -13.338646, -4.2518, 1.159, -105.435844)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -439,7 +400,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 23.14
 metadata/rot_y_deg = 234.8
 
-[node name="Piedras_Apiladas_Chiquitas" type="Node3D" parent="." unique_id=908728463 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas" parent="." unique_id=908728463 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(-18.212067, 0, 12.054302, 0, 21.84, 0, -12.054302, 0, -18.212067, -6.7956, 0.96, -104.01088)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -448,7 +409,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 21.84
 metadata/rot_y_deg = 146.5
 
-[node name="Piedras_Apiladas_Chiquitas_2" type="Node3D" parent="." unique_id=1286519605 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_2" parent="." unique_id=1286519605 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(14.699947, 0, -8.418738, 0, 16.94, 0, 8.418738, 0, 14.699947, -16.9886, 0.736, -97.714806)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -457,43 +418,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 16.94
 metadata/rot_y_deg = 330.2
 
-[node name="Piso_Musgo_3" type="Node3D" parent="." unique_id=1653883904 instance=ExtResource("14_8m4tl")]
-transform = Transform3D(24.968748, 0, -15.062112, 0, 29.16, 0, 15.062112, 0, 24.968748, -1.6404, 1.004, -95.407936)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_3"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_3.glb"
-metadata/scale_2d = 29.16
-metadata/rot_y_deg = 328.9
-
-[node name="Piso_Musgo_3_2" type="Node3D" parent="." unique_id=1346672147 instance=ExtResource("14_8m4tl")]
-transform = Transform3D(27.68864, 0, 10.407476, 0, 29.58, 0, -10.407476, 0, 27.68864, -13.95, 1.018, -95.386444)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_3"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_3.glb"
-metadata/scale_2d = 29.58
-metadata/rot_y_deg = 20.6
-
-[node name="Piso_Peque_o_Musgo_3" type="Node3D" parent="." unique_id=1839677707 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(5.8799977, 0, 18.424475, 0, 19.34, 0, -18.424475, 0, 5.8799977, -12.0926, 0.397, -101.849396)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 19.34
-metadata/rot_y_deg = 72.3
-
-[node name="Piso_Peque_o_Musgo_4" type="Node3D" parent="." unique_id=1918311540 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(20.025541, 0, 8.790598, 0, 21.87, 0, -8.790598, 0, 20.025541, -10.1244, 0.451, -106.5757)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 21.87
-metadata/rot_y_deg = 23.7
-
-[node name="Arbol_1_3" type="Node3D" parent="." unique_id=1743629821 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_3" parent="." unique_id=1743629821 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-30.258759, 0, -25.39011, 0, 39.5, 0, 25.39011, 0, -30.258759, -32.8346, 4.468, -66.18124)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -513,7 +438,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_4" type="Node3D" parent="." unique_id=1497316565 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_4" parent="." unique_id=1497316565 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(14.933748, 0, -35.181694, 0, 38.22, 0, 35.181694, 0, 14.933748, -24.364, 4.318, -69.64776)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -533,7 +458,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_5" type="Node3D" parent="." unique_id=94658566 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_5" parent="." unique_id=94658566 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(10.718544, 0, 35.72678, 0, 37.3, 0, -35.72678, 0, 10.718544, -25.2766, 4.211, -74.57714)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -553,7 +478,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_3" type="Node3D" parent="." unique_id=361937864 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_3" parent="." unique_id=361937864 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-0.16539374, 0, -31.589567, 0, 31.59, 0, 31.589567, 0, -0.16539374, -17.9228, 3.568, -70.19053)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -573,7 +498,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_4" type="Node3D" parent="." unique_id=687026885 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_4" parent="." unique_id=687026885 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-17.708344, 0, 30.5485, 0, 35.31, 0, -30.5485, 0, -17.708344, -29.5894, 4.006, -73.88276)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -593,7 +518,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Grande_3" type="Node3D" parent="." unique_id=145476048 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande_3" parent="." unique_id=145476048 instance=ExtResource("6_se6js")]
 transform = Transform3D(21.334942, 0, 4.808037, 0, 21.87, 0, -4.808037, 0, 21.334942, -29.1216, 1.726, -66.76191)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -613,7 +538,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Mediana_3" type="Node3D" parent="." unique_id=772921012 instance=ExtResource("8_vt0q6")]
+[node name="Piedra_Mediana_3" parent="." unique_id=772921012 instance=ExtResource("8_vt0q6")]
 transform = Transform3D(17.637806, 0, 4.7260356, 0, 18.26, 0, -4.7260356, 0, 17.637806, -34.284, 0.495, -62.146767)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -622,7 +547,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_
 metadata/scale_2d = 18.26
 metadata/rot_y_deg = 15.0
 
-[node name="Piedra_Mediana_4" type="Node3D" parent="." unique_id=140245883 instance=ExtResource("8_vt0q6")]
+[node name="Piedra_Mediana_4" parent="." unique_id=140245883 instance=ExtResource("8_vt0q6")]
 transform = Transform3D(-14.576752, 0, 6.9527545, 0, 16.15, 0, -6.9527545, 0, -14.576752, -32.3796, 0.431, -69.43958)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -631,43 +556,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_
 metadata/scale_2d = 16.15
 metadata/rot_y_deg = 154.5
 
-[node name="Piso_Musgo_2_3" type="Node3D" parent="." unique_id=962857928 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(13.8272295, 0, -30.062532, 0, 33.09, 0, 30.062532, 0, 13.8272295, -27.8522, 1.231, -69.53236)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 33.09
-metadata/rot_y_deg = 294.7
-
-[node name="Piso_Musgo_2_4" type="Node3D" parent="." unique_id=32876140 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-17.450129, 0, -29.157047, 0, 33.98, 0, 29.157047, 0, -17.450129, -21.1082, 1.264, -73.57446)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 33.98
-metadata/rot_y_deg = 239.1
-
-[node name="Piso_Peque_o_Musgo_5" type="Node3D" parent="." unique_id=1942635866 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(18.315187, 0, 11.355897, 0, 21.55, 0, -11.355897, 0, 18.315187, -16.9402, 0.444, -68.24768)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 21.55
-metadata/rot_y_deg = 31.8
-
-[node name="Piso_Peque_o_Musgo_6" type="Node3D" parent="." unique_id=1142437749 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(-21.09478, 0, -8.6516, 0, 22.8, 0, 8.6516, 0, -21.09478, -18.519, 0.471, -67.34004)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 22.8
-metadata/rot_y_deg = 202.3
-
-[node name="Arbol_2_5" type="Node3D" parent="." unique_id=160784483 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_5" parent="." unique_id=160784483 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-39.806355, 0, -1.0423636, 0, 39.82, 0, 1.0423636, 0, -39.806355, 14.4404, 4.537, -64.7591)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -687,7 +576,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_6" type="Node3D" parent="." unique_id=981543715 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_6" parent="." unique_id=981543715 instance=ExtResource("11_jhxel")]
 transform = Transform3D(31.101873, 0, -16.398144, 0, 35.16, 0, 16.398144, 0, 31.101873, 7.1694, 3.988, -50.66901)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -707,7 +596,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_6" type="Node3D" parent="." unique_id=1593336819 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_6" parent="." unique_id=1593336819 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-30.187592, 0, 10.2179365, 0, 31.87, 0, -10.2179365, 0, -30.187592, 8.4532, 3.576, -62.357483)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -727,7 +616,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_7" type="Node3D" parent="." unique_id=644472774 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_7" parent="." unique_id=644472774 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(9.531434, 0, 29.865938, 0, 31.35, 0, -29.865938, 0, 9.531434, 4.9504, 3.514, -51.913235)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -747,8 +636,8 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes_3" type="Node3D" parent="." unique_id=446990536 instance=ExtResource("7_fpthl")]
-transform = Transform3D(6.554969, 0, -21.440355, 0, 22.42, 0, 21.440355, 0, 6.554969, 20.0506, 1.539, -66.08507)
+[node name="Piedras_Apiladas_Grandes_3" parent="." unique_id=446990536 instance=ExtResource("7_fpthl")]
+transform = Transform3D(6.554969, 0, -21.440355, 0, 22.42, 0, 21.440355, 0, 6.554969, 18.214499, 1.5389991, -95.41171)
 metadata/editor_only = true
 metadata/obj_type = "wall"
 metadata/label = "Piedras_Apiladas_Grandes"
@@ -767,7 +656,7 @@ radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes_4" type="Node3D" parent="." unique_id=1214755966 instance=ExtResource("7_fpthl")]
+[node name="Piedras_Apiladas_Grandes_4" parent="." unique_id=1214755966 instance=ExtResource("7_fpthl")]
 transform = Transform3D(11.163805, 0, -16.182863, 0, 19.66, 0, 16.182863, 0, 11.163805, 1.2038, 1.34, -52.997086)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -787,7 +676,7 @@ radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Chiquitas_3" type="Node3D" parent="." unique_id=88478971 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_3" parent="." unique_id=88478971 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(5.3670893, 0, -14.509144, 0, 15.47, 0, 14.509144, 0, 5.3670893, 3.7166, 0.668, -53.265507)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -796,7 +685,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 15.47
 metadata/rot_y_deg = 290.3
 
-[node name="Piedras_Apiladas_Chiquitas_4" type="Node3D" parent="." unique_id=2015793256 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_4" parent="." unique_id=2015793256 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(-4.28451, 0, 14.844038, 0, 15.45, 0, -14.844038, 0, -4.28451, 0.505, 0.668, -65.91112)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -805,26 +694,8 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 15.45
 metadata/rot_y_deg = 106.1
 
-[node name="Piso_Musgo_3_3" type="Node3D" parent="." unique_id=377570099 instance=ExtResource("14_8m4tl")]
-transform = Transform3D(5.911881, 0, 30.991161, 0, 31.55, 0, -30.991161, 0, 5.911881, 19.1924, 1.087, -55.9214)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_3"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_3.glb"
-metadata/scale_2d = 31.55
-metadata/rot_y_deg = 79.2
-
-[node name="Piso_Musgo_3_4" type="Node3D" parent="." unique_id=1106652316 instance=ExtResource("14_8m4tl")]
-transform = Transform3D(0.83680105, 0, -34.239777, 0, 34.25, 0, 34.239777, 0, 0.83680105, 5.6728, 1.182, -60.701157)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_3"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_3.glb"
-metadata/scale_2d = 34.25
-metadata/rot_y_deg = 271.4
-
-[node name="Arbol_1_8" type="Node3D" parent="." unique_id=518296490 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-36.883762, 0, 1.0946856, 0, 36.9, 0, -1.0946856, 0, -36.883762, 39.8278, 4.164, -88.00962)
+[node name="Arbol_1_8" parent="." unique_id=518296490 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-49.977993, 0, 1.4833138, 0, 50, 0, -1.4833138, 0, -49.977993, 43.699146, 5.715977, -93.54117)
 metadata/editor_only = true
 metadata/obj_type = "wall"
 metadata/label = "Arbol_1"
@@ -843,8 +714,8 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_9" type="Node3D" parent="." unique_id=54019982 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(37.178585, 0, -0.32446197, 0, 37.18, 0, 0.32446197, 0, 37.178585, 33.0698, 4.196, -76.86449)
+[node name="Arbol_1_9" parent="." unique_id=54019982 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(79.996956, 0, -0.6981432, 0, 80, 0, 0.6981432, 0, 79.996956, 60.61511, 8.873402, -62.59281)
 metadata/editor_only = true
 metadata/obj_type = "wall"
 metadata/label = "Arbol_1"
@@ -863,7 +734,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Grande_4" type="Node3D" parent="." unique_id=1846920668 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande_4" parent="." unique_id=1846920668 instance=ExtResource("6_se6js")]
 transform = Transform3D(24.243286, 0, -7.970793, 0, 25.52, 0, 7.970793, 0, 24.243286, 29.7422, 2.031, -92.74837)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -883,7 +754,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Grande_5" type="Node3D" parent="." unique_id=93426781 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande_5" parent="." unique_id=93426781 instance=ExtResource("6_se6js")]
 transform = Transform3D(12.838529, 0, -21.451624, 0, 25, 0, 21.451624, 0, 12.838529, 35.526, 1.987, -85.31385)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -903,7 +774,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Medianas_3" type="Node3D" parent="." unique_id=998368341 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas_3" parent="." unique_id=998368341 instance=ExtResource("12_ftivt")]
 transform = Transform3D(4.1017246, 0, 22.570324, 0, 22.94, 0, -22.570324, 0, 4.1017246, 32.0758, 1.149, -82.625145)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -912,8 +783,8 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 22.94
 metadata/rot_y_deg = 79.7
 
-[node name="Piedras_Apiladas_Medianas_4" type="Node3D" parent="." unique_id=1562404805 instance=ExtResource("12_ftivt")]
-transform = Transform3D(-10.892091, 0, -20.834646, 0, 23.51, 0, 20.834646, 0, -10.892091, 26.613, 1.179, -91.652916)
+[node name="Piedras_Apiladas_Medianas_4" parent="." unique_id=1562404805 instance=ExtResource("12_ftivt")]
+transform = Transform3D(-10.892091, 0, -20.834646, 0, 23.51, 0, 20.834646, 0, -10.892091, 29.627434, 1.1789991, -109.04477)
 metadata/editor_only = true
 metadata/obj_type = "decor"
 metadata/label = "Piedras_Apiladas_Medianas"
@@ -921,25 +792,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 23.51
 metadata/rot_y_deg = 242.4
 
-[node name="Piso_Musgo_2_5" type="Node3D" parent="." unique_id=548406660 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(30.343111, 0, 11.891335, 0, 32.59, 0, -11.891335, 0, 30.343111, 35.8778, 1.212, -88.75321)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 32.59
-metadata/rot_y_deg = 21.4
-
-[node name="Piso_Musgo_2_6" type="Node3D" parent="." unique_id=1361303908 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(15.380558, 0, -25.699045, 0, 29.95, 0, 25.699045, 0, 15.380558, 32.25, 1.112, -85.84983)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 29.95
-metadata/rot_y_deg = 300.9
-
-[node name="Arbol_1_10" type="Node3D" parent="." unique_id=860297885 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_10" parent="." unique_id=860297885 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-35.428318, 0, 5.738136, 0, 35.89, 0, -5.738136, 0, -35.428318, -22.0252, 4.046, 3.6944914)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -959,7 +812,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_11" type="Node3D" parent="." unique_id=2122793071 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_11" parent="." unique_id=2122793071 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-36.89332, 0, -11.916211, 0, 38.77, 0, 11.916211, 0, -36.89332, -27.7514, 4.382, 3.2877636)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -979,7 +832,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_12" type="Node3D" parent="." unique_id=1738157008 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_12" parent="." unique_id=1738157008 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-34.097984, 0, -13.707298, 0, 36.75, 0, 13.707298, 0, -34.097984, -29.1162, 4.146, 10.273696)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -999,7 +852,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_7" type="Node3D" parent="." unique_id=1591477251 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_7" parent="." unique_id=1591477251 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-13.7745, 0, -28.117239, 0, 31.31, 0, 28.117239, 0, -13.7745, -31.9796, 3.535, 4.643146)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1019,7 +872,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_8" type="Node3D" parent="." unique_id=332378536 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_8" parent="." unique_id=332378536 instance=ExtResource("11_jhxel")]
 transform = Transform3D(1.658059, 0, -30.615133, 0, 30.66, 0, 30.615133, 0, 1.658059, -21.6474, 3.458, 14.428089)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1039,7 +892,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Medianas_5" type="Node3D" parent="." unique_id=1395008188 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas_5" parent="." unique_id=1395008188 instance=ExtResource("12_ftivt")]
 transform = Transform3D(-14.028914, 0, -12.99092, 0, 19.12, 0, 12.99092, 0, -14.028914, -34.5738, 0.948, -1.8814697)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1048,7 +901,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 19.12
 metadata/rot_y_deg = 222.8
 
-[node name="Piedras_Apiladas_Medianas_6" type="Node3D" parent="." unique_id=829867848 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas_6" parent="." unique_id=829867848 instance=ExtResource("12_ftivt")]
 transform = Transform3D(12.878552, 0, -15.078853, 0, 19.83, 0, 15.078853, 0, 12.878552, -36.0336, 0.985, 3.6599846)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1057,7 +910,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 19.83
 metadata/rot_y_deg = 310.5
 
-[node name="Piedras_Apiladas_Chiquitas_5" type="Node3D" parent="." unique_id=658626379 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_5" parent="." unique_id=658626379 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(11.057712, 0, 9.852061, 0, 14.81, 0, -9.852061, 0, 11.057712, -33.8376, 0.639, 3.4249425)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1066,7 +919,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 14.81
 metadata/rot_y_deg = 41.7
 
-[node name="Piedras_Apiladas_Chiquitas_6" type="Node3D" parent="." unique_id=1389149145 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_6" parent="." unique_id=1389149145 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(3.7067306, 0, 17.000591, 0, 17.4, 0, -17.000591, 0, 3.7067306, -31.6598, 0.757, 11.062544)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1075,7 +928,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 17.4
 metadata/rot_y_deg = 77.7
 
-[node name="Piedras_Apiladas_Chiquitas_7" type="Node3D" parent="." unique_id=1594711085 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_7" parent="." unique_id=1594711085 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(12.964928, 0, -6.691693, 0, 14.59, 0, 6.691693, 0, 12.964928, -17.5514, 0.628, -0.038749453)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1084,52 +937,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 14.59
 metadata/rot_y_deg = 332.7
 
-[node name="Piso_Musgo_2_7" type="Node3D" parent="." unique_id=1723675147 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-10.781827, 0, -31.136066, 0, 32.95, 0, 31.136066, 0, -10.781827, -24.8096, 1.226, -0.949503)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 32.95
-metadata/rot_y_deg = 250.9
-
-[node name="Piso_Musgo_2_8" type="Node3D" parent="." unique_id=1808093278 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(1.0924605, 0, -32.931885, 0, 32.95, 0, 32.931885, 0, 1.0924605, -35.4136, 1.225, 6.41063)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 32.95
-metadata/rot_y_deg = 271.9
-
-[node name="Piso_Musgo_2_9" type="Node3D" parent="." unique_id=1808681563 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(23.283703, 0, -16.608109, 0, 28.6, 0, 16.608109, 0, 23.283703, -15.9768, 1.061, 4.094148)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 28.6
-metadata/rot_y_deg = 324.5
-
-[node name="Piso_Peque_o_Musgo_7" type="Node3D" parent="." unique_id=1990172765 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(-15.34255, 0, 13.384161, 0, 20.36, 0, -13.384161, 0, -15.34255, -24.0206, 0.419, -3.429468)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 20.36
-metadata/rot_y_deg = 138.9
-
-[node name="Piso_Peque_o_Musgo_8" type="Node3D" parent="." unique_id=1176225078 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(21.85251, 0, 0.57222813, 0, 21.86, 0, -0.57222813, 0, 21.85251, -20.1274, 0.451, -1.4999149)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 21.86
-metadata/rot_y_deg = 1.5
-
-[node name="Arbol_1_13" type="Node3D" parent="." unique_id=1607659375 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_13" parent="." unique_id=1607659375 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(24.191753, 0, 28.627075, 0, 37.48, 0, -28.627075, 0, 24.191753, 27.1044, 4.232, -1.8127389)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1149,7 +957,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_14" type="Node3D" parent="." unique_id=415937818 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_14" parent="." unique_id=415937818 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-33.374126, 0, -6.8507257, 0, 34.07, 0, 6.8507257, 0, -33.374126, 19.4562, 3.833, -2.90932)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1169,7 +977,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_9" type="Node3D" parent="." unique_id=880682493 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_9" parent="." unique_id=880682493 instance=ExtResource("11_jhxel")]
 transform = Transform3D(31.07904, 0, 6.4927497, 0, 31.75, 0, -6.4927497, 0, 31.07904, 27.6626, 3.586, -13.278899)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1189,7 +997,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes_5" type="Node3D" parent="." unique_id=987290721 instance=ExtResource("7_fpthl")]
+[node name="Piedras_Apiladas_Grandes_5" parent="." unique_id=987290721 instance=ExtResource("7_fpthl")]
 transform = Transform3D(-21.990784, 0, -1.6149013, 0, 22.05, 0, 1.6149013, 0, -21.990784, 23.0988, 1.512, -12.107648)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1209,7 +1017,7 @@ radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Chiquitas_8" type="Node3D" parent="." unique_id=2146090169 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_8" parent="." unique_id=2146090169 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(5.5890694, 0, -17.099777, 0, 17.99, 0, 17.099777, 0, 5.5890694, 25.7012, 0.784, -3.7485144)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1218,7 +1026,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 17.99
 metadata/rot_y_deg = 288.1
 
-[node name="Piedras_Apiladas_Chiquitas_9" type="Node3D" parent="." unique_id=950806259 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_9" parent="." unique_id=950806259 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(-17.023409, 0, 7.5437374, 0, 18.62, 0, -7.5437374, 0, -17.023409, 22.449, 0.813, -8.941224)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1227,43 +1035,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 18.62
 metadata/rot_y_deg = 156.1
 
-[node name="Piso_Musgo_2_10" type="Node3D" parent="." unique_id=1727965653 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(1.1824985, 0, -32.248325, 0, 32.27, 0, 32.248325, 0, 1.1824985, 30.0594, 1.2, -7.3558903)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 32.27
-metadata/rot_y_deg = 272.1
-
-[node name="Piso_Musgo_2_11" type="Node3D" parent="." unique_id=596780292 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-30.50139, 0, 11.953357, 0, 32.76, 0, -11.953357, 0, -30.50139, 25.6658, 1.218, -5.902079)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 32.76
-metadata/rot_y_deg = 158.6
-
-[node name="Piso_Peque_o_Musgo_9" type="Node3D" parent="." unique_id=3213021 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(-12.017868, 0, 16.360342, 0, 20.3, 0, -16.360342, 0, -12.017868, 26.784, 0.417, -10.207793)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 20.3
-metadata/rot_y_deg = 126.3
-
-[node name="Piso_Peque_o_Musgo_10" type="Node3D" parent="." unique_id=1104295622 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(6.8384013, 0, -21.299135, 0, 22.37, 0, 21.299135, 0, 6.8384013, 19.2306, 0.461, -8.731071)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 22.37
-metadata/rot_y_deg = 287.8
-
-[node name="Arbol_2_10" type="Node3D" parent="." unique_id=965109091 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_10" parent="." unique_id=965109091 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-31.176617, 0, 20.091957, 0, 37.09, 0, -20.091957, 0, -31.176617, 43.2558, 4.226, -12.138195)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1283,7 +1055,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_11" type="Node3D" parent="." unique_id=1472546839 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_11" parent="." unique_id=1472546839 instance=ExtResource("11_jhxel")]
 transform = Transform3D(14.183505, 0, 32.619827, 0, 35.57, 0, -32.619827, 0, 14.183505, 44.5668, 4.037, -7.592064)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1303,7 +1075,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_15" type="Node3D" parent="." unique_id=757528744 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_15" parent="." unique_id=757528744 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-31.43687, 0, 15.8799095, 0, 35.22, 0, -15.8799095, 0, -31.43687, 54.0778, 3.968, 20.730108)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1323,7 +1095,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_16" type="Node3D" parent="." unique_id=593811492 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_16" parent="." unique_id=593811492 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-36.924168, 0, -11.007574, 0, 38.53, 0, 11.007574, 0, -36.924168, 43.8348, 4.355, 24.008255)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1343,7 +1115,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_12" type="Node3D" parent="." unique_id=1668407727 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_12" parent="." unique_id=1668407727 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-11.202385, 0, 33.675613, 0, 35.49, 0, -33.675613, 0, -11.202385, 46.7484, 4.027, 16.53244)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1363,7 +1135,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_13" type="Node3D" parent="." unique_id=429933123 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_13" parent="." unique_id=429933123 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-32.32899, 0, -15.837811, 0, 36, 0, 15.837811, 0, -32.32899, 48.1656, 4.087, 25.003578)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1383,7 +1155,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Medianas_7" type="Node3D" parent="." unique_id=2128466597 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas_7" parent="." unique_id=2128466597 instance=ExtResource("12_ftivt")]
 transform = Transform3D(21.928846, 0, -4.901687, 0, 22.47, 0, 4.901687, 0, 21.928846, 42.8344, 1.124, 18.389585)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1392,7 +1164,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 22.47
 metadata/rot_y_deg = 347.4
 
-[node name="Piedras_Apiladas_Medianas_8" type="Node3D" parent="." unique_id=1233737505 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas_8" parent="." unique_id=1233737505 instance=ExtResource("12_ftivt")]
 transform = Transform3D(5.2871394, 0, -20.59208, 0, 21.26, 0, 20.59208, 0, 5.2871394, 46.6158, 1.061, 19.225101)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1401,25 +1173,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 21.26
 metadata/rot_y_deg = 284.4
 
-[node name="Piso_Musgo_2_12" type="Node3D" parent="." unique_id=1861496214 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-1.2414882, 0, 33.857246, 0, 33.88, 0, -33.857246, 0, -1.2414882, 40.587, 1.261, 21.568455)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 33.88
-metadata/rot_y_deg = 92.1
-
-[node name="Piso_Musgo_2_13" type="Node3D" parent="." unique_id=1052888088 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-4.438209, 0, -29.346289, 0, 29.68, 0, 29.346289, 0, -4.438209, 51.0998, 1.102, 16.823202)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 29.68
-metadata/rot_y_deg = 261.4
-
-[node name="Piedra_Grande_6" type="Node3D" parent="." unique_id=1263760588 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande_6" parent="." unique_id=1263760588 instance=ExtResource("6_se6js")]
 transform = Transform3D(23.013025, 0, -13.340187, 0, 26.6, 0, 13.340187, 0, 23.013025, 9.519, 2.121, 43.81545)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1439,7 +1193,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Grande_7" type="Node3D" parent="." unique_id=798359635 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande_7" parent="." unique_id=798359635 instance=ExtResource("6_se6js")]
 transform = Transform3D(23.164938, 0, 10.072402, 0, 25.26, 0, -10.072402, 0, 23.164938, 12.9562, 2.01, 37.662487)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1459,7 +1213,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes_6" type="Node3D" parent="." unique_id=756458145 instance=ExtResource("7_fpthl")]
+[node name="Piedras_Apiladas_Grandes_6" parent="." unique_id=756458145 instance=ExtResource("7_fpthl")]
 transform = Transform3D(-3.4300447, 0, 25.36917, 0, 25.6, 0, -25.36917, 0, -3.4300447, 7.881, 1.768, 38.865135)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1479,7 +1233,7 @@ radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes_7" type="Node3D" parent="." unique_id=1439126854 instance=ExtResource("7_fpthl")]
+[node name="Piedras_Apiladas_Grandes_7" parent="." unique_id=1439126854 instance=ExtResource("7_fpthl")]
 transform = Transform3D(20.569359, 0, 11.590238, 0, 23.61, 0, -11.590238, 0, 20.569359, 5.0538, 1.625, 45.10521)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1499,7 +1253,7 @@ radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Chiquitas_10" type="Node3D" parent="." unique_id=52782020 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_10" parent="." unique_id=52782020 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(15.077042, 0, 7.9828825, 0, 17.06, 0, -7.9828825, 0, 15.077042, 9.1488, 0.741, 40.822124)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1508,7 +1262,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 17.06
 metadata/rot_y_deg = 27.9
 
-[node name="Piedras_Apiladas_Chiquitas_11" type="Node3D" parent="." unique_id=964507514 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_11" parent="." unique_id=964507514 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(6.832126, 0, 14.854109, 0, 16.35, 0, -14.854109, 0, 6.832126, 6.7596, 0.709, 41.83781)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1517,7 +1271,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 16.35
 metadata/rot_y_deg = 65.3
 
-[node name="Arbol_1_17" type="Node3D" parent="." unique_id=1347394846 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_17" parent="." unique_id=1347394846 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(20.981543, 0, -25.910048, 0, 33.34, 0, 25.910048, 0, 20.981543, 4.4816, 3.761, 36.4539)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1537,7 +1291,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_18" type="Node3D" parent="." unique_id=2071589742 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_18" parent="." unique_id=2071589742 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(3.5551476, 0, -34.999905, 0, 35.18, 0, 34.999905, 0, 3.5551476, 4.4564, 3.963, 39.665863)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1557,16 +1311,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piso_Musgo_3_5" type="Node3D" parent="." unique_id=738344125 instance=ExtResource("14_8m4tl")]
-transform = Transform3D(3.5412052, 0, 34.267513, 0, 34.45, 0, -34.267513, 0, 3.5412052, 9.216, 1.189, 36.37838)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_3"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_3.glb"
-metadata/scale_2d = 34.45
-metadata/rot_y_deg = 84.1
-
-[node name="Arbol_2_14" type="Node3D" parent="." unique_id=1938029346 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_14" parent="." unique_id=1938029346 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-24.408249, 0, 24.06981, 0, 34.28, 0, -24.06981, 0, -24.408249, 38.0728, 3.885, 60.155552)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1586,7 +1331,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_15" type="Node3D" parent="." unique_id=325065922 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_15" parent="." unique_id=325065922 instance=ExtResource("11_jhxel")]
 transform = Transform3D(28.244658, 0, 23.449167, 0, 36.71, 0, -23.449167, 0, 28.244658, 38.9104, 4.17, 54.823402)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1606,7 +1351,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_16" type="Node3D" parent="." unique_id=1972230273 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_16" parent="." unique_id=1972230273 instance=ExtResource("11_jhxel")]
 transform = Transform3D(35.94938, 0, 12.589293, 0, 38.09, 0, -12.589293, 0, 35.94938, 34.7766, 4.361, 59.912876)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1626,7 +1371,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_19" type="Node3D" parent="." unique_id=595013709 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_19" parent="." unique_id=595013709 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(0.9059858, 0, 34.59814, 0, 34.61, 0, -34.59814, 0, 0.9059858, 45.426, 3.896, 55.038364)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1646,7 +1391,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_20" type="Node3D" parent="." unique_id=1451590734 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_20" parent="." unique_id=1451590734 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(4.7638054, 0, -33.05853, 0, 33.4, 0, 33.05853, 0, 4.7638054, 33.3298, 3.77, 62.715565)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1666,7 +1411,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Mediana_5" type="Node3D" parent="." unique_id=220750201 instance=ExtResource("8_vt0q6")]
+[node name="Piedra_Mediana_5" parent="." unique_id=220750201 instance=ExtResource("8_vt0q6")]
 transform = Transform3D(14.838995, 0, -16.024664, 0, 21.84, 0, 16.024664, 0, 14.838995, 41.9066, 0.604, 54.703194)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1675,7 +1420,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_
 metadata/scale_2d = 21.84
 metadata/rot_y_deg = 312.8
 
-[node name="Piedra_Mediana_6" type="Node3D" parent="." unique_id=1994219561 instance=ExtResource("8_vt0q6")]
+[node name="Piedra_Mediana_6" parent="." unique_id=1994219561 instance=ExtResource("8_vt0q6")]
 transform = Transform3D(1.128151, 0, 20.178486, 0, 20.21, 0, -20.178486, 0, 1.128151, 36.4626, 0.582, 51.933598)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1684,52 +1429,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_
 metadata/scale_2d = 20.21
 metadata/rot_y_deg = 86.8
 
-[node name="Piso_Musgo_2_14" type="Node3D" parent="." unique_id=336362081 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-6.827903, 0, 31.580309, 0, 32.31, 0, -31.580309, 0, -6.827903, 42.9802, 1.201, 48.24335)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 32.31
-metadata/rot_y_deg = 102.2
-
-[node name="Piso_Musgo_2_15" type="Node3D" parent="." unique_id=1048483647 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-11.55002, 0, 31.73342, 0, 33.77, 0, -31.73342, 0, -11.55002, 38.712, 1.256, 51.48614)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 33.77
-metadata/rot_y_deg = 110.0
-
-[node name="Piso_Musgo_2_16" type="Node3D" parent="." unique_id=168707409 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(29.655252, 0, 22.591246, 0, 37.28, 0, -22.591246, 0, 29.655252, 38.3138, 1.389, 63.24165)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 37.28
-metadata/rot_y_deg = 37.3
-
-[node name="Piso_Peque_o_Musgo_11" type="Node3D" parent="." unique_id=274009716 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(15.904547, 0, -18.040173, 0, 24.05, 0, 18.040173, 0, 15.904547, 45.0902, 0.497, 51.613987)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 24.05
-metadata/rot_y_deg = 311.4
-
-[node name="Piso_Peque_o_Musgo_12" type="Node3D" parent="." unique_id=969069002 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(0.47099903, 0, -22.485067, 0, 22.49, 0, 22.485067, 0, 0.47099903, 35.711, 0.469, 46.813015)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 22.49
-metadata/rot_y_deg = 271.2
-
-[node name="Arbol_1_21" type="Node3D" parent="." unique_id=372852524 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_21" parent="." unique_id=372852524 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(10.267287, 0, -37.530933, 0, 38.91, 0, 37.530933, 0, 10.267287, -25.19, 4.399, 70.1761)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1749,7 +1449,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_22" type="Node3D" parent="." unique_id=101428143 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_22" parent="." unique_id=101428143 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-27.421124, 0, -28.694565, 0, 39.69, 0, 28.694565, 0, -27.421124, -15.5802, 4.489, 73.1072)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1769,7 +1469,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_17" type="Node3D" parent="." unique_id=1834799124 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_17" parent="." unique_id=1834799124 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-27.103369, 0, -19.909405, 0, 33.63, 0, 19.909405, 0, -27.103369, -9.3912, 3.808, 63.069115)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1789,7 +1489,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_18" type="Node3D" parent="." unique_id=623211397 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_18" parent="." unique_id=623211397 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-9.429902, 0, -32.457924, 0, 33.8, 0, 32.457924, 0, -9.429902, -25.834, 3.828, 61.017376)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1809,7 +1509,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Medianas_9" type="Node3D" parent="." unique_id=1338854154 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas_9" parent="." unique_id=1338854154 instance=ExtResource("12_ftivt")]
 transform = Transform3D(12.762606, 0, 18.639313, 0, 22.59, 0, -18.639313, 0, 12.762606, -20.5964, 1.13, 60.09248)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1818,7 +1518,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 22.59
 metadata/rot_y_deg = 55.6
 
-[node name="Piedras_Apiladas_Medianas_10" type="Node3D" parent="." unique_id=1361717051 instance=ExtResource("12_ftivt")]
+[node name="Piedras_Apiladas_Medianas_10" parent="." unique_id=1361717051 instance=ExtResource("12_ftivt")]
 transform = Transform3D(7.5169525, 0, -18.889263, 0, 20.33, 0, 18.889263, 0, 7.5169525, -19.5848, 1.011, 69.05944)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1827,7 +1527,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 20.33
 metadata/rot_y_deg = 291.7
 
-[node name="Piedras_Apiladas_Chiquitas_12" type="Node3D" parent="." unique_id=707991783 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_12" parent="." unique_id=707991783 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(18.367203, 0, 0.32060072, 0, 18.37, 0, -0.32060072, 0, 18.367203, -13.833, 0.802, 57.867073)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1836,7 +1536,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 18.37
 metadata/rot_y_deg = 1.0
 
-[node name="Piedras_Apiladas_Chiquitas_13" type="Node3D" parent="." unique_id=1001058614 instance=ExtResource("13_iyyeo")]
+[node name="Piedras_Apiladas_Chiquitas_13" parent="." unique_id=1001058614 instance=ExtResource("13_iyyeo")]
 transform = Transform3D(-5.916694, 0, -17.581104, 0, 18.55, 0, 17.581104, 0, -5.916694, -24.0116, 0.81, 67.73687)
 metadata/editor_only = true
 metadata/obj_type = "decor"
@@ -1845,25 +1545,7 @@ metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras
 metadata/scale_2d = 18.55
 metadata/rot_y_deg = 251.4
 
-[node name="Piso_Musgo_3_6" type="Node3D" parent="." unique_id=880397998 instance=ExtResource("14_8m4tl")]
-transform = Transform3D(6.4896984, 0, -27.453377, 0, 28.21, 0, 27.453377, 0, 6.4896984, -16.7714, 0.97, 62.92996)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_3"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_3.glb"
-metadata/scale_2d = 28.21
-metadata/rot_y_deg = 283.3
-
-[node name="Piso_Musgo_3_7" type="Node3D" parent="." unique_id=1641473053 instance=ExtResource("14_8m4tl")]
-transform = Transform3D(10.146566, 0, 28.338264, 0, 30.1, 0, -28.338264, 0, 10.146566, -18.2442, 1.036, 67.217285)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_3"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_3.glb"
-metadata/scale_2d = 30.1
-metadata/rot_y_deg = 70.3
-
-[node name="Arbol_1_23" type="Node3D" parent="." unique_id=63252714 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_23" parent="." unique_id=63252714 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(40.532154, 0, 1.2029662, 0, 40.55, 0, -1.2029662, 0, 40.532154, 20.8074, 4.59, 128.04459)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1883,7 +1565,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_24" type="Node3D" parent="." unique_id=1237090172 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_24" parent="." unique_id=1237090172 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(-27.79352, 0, 21.403896, 0, 35.08, 0, -21.403896, 0, -27.79352, 14.5174, 3.951, 127.82256)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1903,7 +1585,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_1_25" type="Node3D" parent="." unique_id=2034780969 instance=ExtResource("5_g2dmw")]
+[node name="Arbol_1_25" parent="." unique_id=2034780969 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(26.57701, 0, -24.268145, 0, 35.99, 0, 24.268145, 0, 26.57701, 27.8048, 4.057, 127.35672)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1923,7 +1605,7 @@ radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_19" type="Node3D" parent="." unique_id=218963475 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_19" parent="." unique_id=218963475 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-10.767611, 0, 35.440376, 0, 37.04, 0, -35.440376, 0, -10.767611, 15.5066, 4.249, 134.11214)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1943,7 +1625,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Arbol_2_20" type="Node3D" parent="." unique_id=1241885221 instance=ExtResource("11_jhxel")]
+[node name="Arbol_2_20" parent="." unique_id=1241885221 instance=ExtResource("11_jhxel")]
 transform = Transform3D(-9.2077675, 0, -32.324127, 0, 33.61, 0, 32.324127, 0, -9.2077675, 18.2144, 3.806, 130.31836)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1963,7 +1645,7 @@ radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Grande_8" type="Node3D" parent="." unique_id=875544282 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande_8" parent="." unique_id=875544282 instance=ExtResource("6_se6js")]
 transform = Transform3D(-0.30286455, 0, -24.78815, 0, 24.79, 0, 24.78815, 0, -0.30286455, 14.253, 1.97, 130.68663)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -1983,7 +1665,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedra_Grande_9" type="Node3D" parent="." unique_id=1380426133 instance=ExtResource("6_se6js")]
+[node name="Piedra_Grande_9" parent="." unique_id=1380426133 instance=ExtResource("6_se6js")]
 transform = Transform3D(3.9210296, 0, 25.328293, 0, 25.63, 0, -25.328293, 0, 3.9210296, 34.5588, 2.138, 132.40631)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -2003,7 +1685,7 @@ radius = 0.095
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes_8" type="Node3D" parent="." unique_id=421174683 instance=ExtResource("7_fpthl")]
+[node name="Piedras_Apiladas_Grandes_8" parent="." unique_id=421174683 instance=ExtResource("7_fpthl")]
 transform = Transform3D(-5.414247, 0, -19.523153, 0, 20.26, 0, 19.523153, 0, -5.414247, 15.7864, 1.383, 125.66617)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -2023,7 +1705,7 @@ radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
 
-[node name="Piedras_Apiladas_Grandes_9" type="Node3D" parent="." unique_id=67748162 instance=ExtResource("7_fpthl")]
+[node name="Piedras_Apiladas_Grandes_9" parent="." unique_id=67748162 instance=ExtResource("7_fpthl")]
 transform = Transform3D(13.058714, 0, 17.455944, 0, 21.8, 0, -17.455944, 0, 13.058714, 18.8416, 1.598, 124.515564)
 metadata/editor_only = true
 metadata/obj_type = "wall"
@@ -2042,39 +1724,3 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.065, 0)
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
-
-[node name="Piso_Musgo_2_17" type="Node3D" parent="." unique_id=548241015 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(31.800598, 0, 18.138742, 0, 36.61, 0, -18.138742, 0, 31.800598, 24.5908, 1.364, 128.15688)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 36.61
-metadata/rot_y_deg = 29.7
-
-[node name="Piso_Musgo_2_18" type="Node3D" parent="." unique_id=1292825352 instance=ExtResource("9_kmgwr")]
-transform = Transform3D(-24.0246, 0, 19.874884, 0, 31.18, 0, -19.874884, 0, -24.0246, 18.764, 1.376, 133.68306)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Musgo_2"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Musgo_2.glb"
-metadata/scale_2d = 31.18
-metadata/rot_y_deg = 140.4
-
-[node name="Piso_Peque_o_Musgo_13" type="Node3D" parent="." unique_id=1224748842 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(-20.255323, 0, 15.655093, 0, 25.6, 0, -15.655093, 0, -20.255323, 34.4766, 0.545, 129.85394)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 25.6
-metadata/rot_y_deg = 142.3
-
-[node name="Piso_Peque_o_Musgo_14" type="Node3D" parent="." unique_id=238363736 instance=ExtResource("10_5q4e8")]
-transform = Transform3D(3.9313028, 0, 19.854532, 0, 20.24, 0, -19.854532, 0, 3.9313028, 32.877, 0.416, 128.55766)
-metadata/editor_only = true
-metadata/obj_type = "decor"
-metadata/label = "Piso_Peque_o_Musgo"
-metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piso_Peque_o_Musgo.glb"
-metadata/scale_2d = 20.24
-metadata/rot_y_deg = 78.8

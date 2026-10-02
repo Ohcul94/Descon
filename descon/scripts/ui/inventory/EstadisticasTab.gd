@@ -20,8 +20,7 @@ var _lbl_vision = null
 var _lbl_hp_regen = null
 var _lbl_sh_regen = null
 var _lbl_level = null
-var _exp_bg = null
-var _exp_fg = null
+var _exp_bar: ProgressBar = null
 var _exp_lbl = null
 
 func setup(p_inv_main):
@@ -86,8 +85,7 @@ func _invalidate():
 	_lbl_hp_regen = null
 	_lbl_sh_regen = null
 	_lbl_level = null
-	_exp_bg = null
-	_exp_fg = null
+	_exp_bar = null
 	_exp_lbl = null
 	for n in get_children():
 		remove_child(n)
@@ -168,8 +166,8 @@ func _update_exp_refs(player):
 	var next_exp = floor(1000.0 * pow(max(1, player.level), 1.5))
 	var pct = clamp((player.current_exp / next_exp) * 100.0, 0.0, 100.0) if next_exp > 0 else 0.0
 	_exp_lbl.text = str(int(pct)) + "% (" + _format_number(player.current_exp) + " / " + _format_number(next_exp) + ")"
-	if is_instance_valid(_exp_fg) and is_instance_valid(_exp_bg):
-		_exp_fg.size = Vector2(_exp_bg.size.x * pct / 100.0, 8) if _exp_bg.size.x > 0 else Vector2(0, 8)
+	if is_instance_valid(_exp_bar):
+		_exp_bar.value = pct
 
 func _clear_children(c):
 	if not is_instance_valid(c):
@@ -847,6 +845,7 @@ func _add_exp_bar(parent, player):
 	l.add_theme_font_size_override("font_size", 10)
 	l.modulate = Color(0.6, 0.65, 0.75)
 	l.custom_minimum_size.x = 110.0
+	l.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	h.add_child(l)
 
 	var next_exp = floor(1000.0 * pow(max(1, player.level), 1.5))
@@ -854,27 +853,47 @@ func _add_exp_bar(parent, player):
 
 	var bar_v = VBoxContainer.new()
 	bar_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar_v.add_theme_constant_override("separation", 4)
 	h.add_child(bar_v)
 
-	var bar_bg = ColorRect.new()
-	bar_bg.custom_minimum_size = Vector2(0, 8)
-	bar_bg.color = Color(0.08, 0.1, 0.15)
-	bar_v.add_child(bar_bg)
+	var pb = ProgressBar.new()
+	pb.custom_minimum_size = Vector2(0, 10)
+	pb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pb.show_percentage = false
+	pb.min_value = 0.0
+	pb.max_value = 100.0
+	pb.value = pct
 
-	var bar_fg = ColorRect.new()
-	bar_fg.color = Color(0.2, 0.7, 1.0)
-	bar_fg.offset_bottom = 8.0
-	bar_v.add_child(bar_fg)
-	bar_fg.size = Vector2(bar_bg.size.x * pct / 100.0, 8) if bar_bg.size.x > 0 else Vector2(0, 8)
+	var sb_bg = StyleBoxFlat.new()
+	sb_bg.bg_color = Color(0.05, 0.08, 0.13, 0.9)
+	sb_bg.border_width_left = 1
+	sb_bg.border_width_top = 1
+	sb_bg.border_width_right = 1
+	sb_bg.border_width_bottom = 1
+	sb_bg.border_color = Color(0.12, 0.22, 0.35, 0.8)
+	sb_bg.corner_radius_top_left = 2
+	sb_bg.corner_radius_top_right = 2
+	sb_bg.corner_radius_bottom_right = 2
+	sb_bg.corner_radius_bottom_left = 2
+	pb.add_theme_stylebox_override("background", sb_bg)
+
+	var sb_fill = StyleBoxFlat.new()
+	sb_fill.bg_color = Color(0.18, 0.68, 1.0)
+	sb_fill.corner_radius_top_left = 2
+	sb_fill.corner_radius_top_right = 2
+	sb_fill.corner_radius_bottom_right = 2
+	sb_fill.corner_radius_bottom_left = 2
+	pb.add_theme_stylebox_override("fill", sb_fill)
+
+	bar_v.add_child(pb)
 
 	var pct_lbl = Label.new()
 	pct_lbl.text = str(int(pct)) + "% (" + _format_number(player.current_exp) + " / " + _format_number(next_exp) + ")"
 	pct_lbl.add_theme_font_size_override("font_size", 9)
-	pct_lbl.modulate = Color(0.5, 0.6, 0.7)
+	pct_lbl.modulate = Color(0.55, 0.7, 0.85)
 	bar_v.add_child(pct_lbl)
 
-	_exp_bg = bar_bg
-	_exp_fg = bar_fg
+	_exp_bar = pb
 	_exp_lbl = pct_lbl
 
 func _add_ammo_section(parent, player):

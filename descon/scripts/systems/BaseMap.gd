@@ -2141,7 +2141,7 @@ func _spawn_map_objects():
 				wall_body.add_to_group("walls")
 				add_child(wall_body)
 				wall_body.global_position = obj_pos
-				print("[BaseMap] Pared con autodetect-collider instanciada: ", obj_label, " @ ", obj_pos, " size: ", custom_size, " offset: ", custom_offset)
+				# print("[BaseMap] Pared con autodetect-collider instanciada: ", obj_label, " @ ", obj_pos, " size: ", custom_size, " offset: ", custom_offset)
 			
 			"decor":
 				var scale_val = float(obj.get("scale", 1.0))
@@ -2150,7 +2150,7 @@ func _spawn_map_objects():
 				var model_path = str(obj.get("assetPath", ""))
 				if model_path != "":
 					_instantiate_map_object_3d(model_path, obj_pos, Vector3.ONE * scale_val, Vector3(0, rot_y, 0), Color(0.8, 0.8, 0.8), y_offset)
-					print("[BaseMap] Objeto decorativo (sin colisión) instanciado: ", obj_label, " @ ", obj_pos, " escala: ", scale_val, " rot: ", rot_y)
+					# print("[BaseMap] Objeto decorativo (sin colisión) instanciado: ", obj_label, " @ ", obj_pos, " escala: ", scale_val, " rot: ", rot_y)
 			
 			"spawn":
 				# Punto de spawn visual solamente (sin colisión), decorativo
@@ -3032,8 +3032,6 @@ func _spawn_objects_from_custom_scene():
 		var rot_y = rad_to_deg(child.rotation.y)
 		var y_offset = pos_3d.y
 		
-		print("[BaseMap] Escena 3D -> Vinculando física 2D para: ", obj_label, " [", obj_type, "] en Pos2D: ", obj_pos)
-		
 		# v600.X: Registrar en OccluderFader CUALQUIER objeto del mapa local que no sea un colisionador puro.
 		# Así nos aseguramos de que "market", "door" y objetos sin colisionadores personalizados también se hagan transparentes al tapar la cámara.
 		if is_instance_valid(_occluder_fader) and is_instance_valid(child):
@@ -3045,7 +3043,6 @@ func _spawn_objects_from_custom_scene():
 				# Si el objeto padre tiene colisionadores hijos personalizados,
 				# omitimos crear la colisión AABB genérica del padre para evitar colisión duplicada o gigante.
 				if has_custom_colliders:
-					print("[BaseMap] Omitiendo colisión AABB genérica de la pared padre: ", obj_label)
 					if is_instance_valid(_occluder_fader) and is_instance_valid(child):
 						_occluder_fader.register_occluder(child)
 					continue
@@ -3059,7 +3056,6 @@ func _spawn_objects_from_custom_scene():
 				# v530.3: Para CSGBox3D usamos RectangleShape2D + rotación en Y
 				# Esto evita la triangulación de CollisionPolygon2D que generaba
 				# el triángulo fantasma de colisión en el borde del rectángulo.
-				print("[BaseMap] Procesando wall: ", obj_label, " | clase=", child.get_class(), " | es CSGBox3D=", child is CSGBox3D, " | es CSGCylinder3D=", child is CSGCylinder3D)
 				if child is CSGBox3D or child.get_class() == "CSGBox3D":
 					var box_size = child.get("size")
 					if box_size != null:
@@ -3134,7 +3130,6 @@ func _spawn_objects_from_custom_scene():
 						wall_body.add_to_group("obstacles")
 						add_child(wall_body)
 						wall_body.global_position = center_2d
-						print("[BaseMap] CSGCylinder3D -> Ellipse Polygon: ", wall_body.name, " rx=", rx_2d, " ry=", ry_2d, " pos=", center_2d)
 						if child.name.to_lower().contains("collider") or child.get_parent() != target_root:
 							child.visible = false
 						elif is_instance_valid(_occluder_fader) and is_instance_valid(child):
@@ -3339,8 +3334,8 @@ func _spawn_objects_from_custom_scene():
 				print("[BaseMap] Punto de spawn registrado lógicamente: ", obj_label, " @ ", obj_pos)
 				
 			"decor", "custom":
-				# No requieren física sólida ni interacción lógica, solo se imprimen para trazabilidad
-				print("[BaseMap] Objeto decorativo local detectado en escena: ", obj_label, " @ ", obj_pos)
+				# No requieren física sólida ni interacción lógica
+				pass
 				
 			_:
-				print("[BaseMap] Objeto genérico o de tipo alternativo procesado en escena local: ", obj_type, " - ", obj_label, " @ ", obj_pos)
+				pass
