@@ -119,11 +119,6 @@ normal_texture = ExtResource("3_7bc5u")
 mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_jqspa")])
 texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_d0lf8")])
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_d7lmv"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g2dmw"]
 transparency = 1
 shading_mode = 0
@@ -538,11 +533,6 @@ metadata/colHeight = 730.43
 metadata/colOffsetX = -457.89
 metadata/colOffsetY = -119.86
 
-[node name="Collider2" type="CSGBox3D" parent="CuevaCalaberas" unique_id=193515486]
-transform = Transform3D(0.99026805, 0, 0.1391731, 0, 1, 0, -0.1391731, 0, 0.99026805, 9.086, 0.0025, -0.5648369)
-size = Vector3(9.0834, 0.005, 15.409271)
-material = SubResource("StandardMaterial3D_d7lmv")
-
 [node name="Arbol_1" type="Node3D" parent="." unique_id=37791156 instance=ExtResource("5_g2dmw")]
 transform = Transform3D(30.805883, 0, 22.29974, 0, 38.03, 0, -22.29974, 0, 30.805883, -26.2692, 4.295, -102.19814)
 metadata/obj_type = "wall"
@@ -682,7 +672,7 @@ height = 0.01
 material = SubResource("StandardMaterial3D_5q4e8")
 
 [node name="Arbol_2" type="Node3D" parent="." unique_id=1772757046 instance=ExtResource("11_jhxel")]
-transform = Transform3D(28.536236, 0, 14.981859, 0, 32.23, 0, -14.981859, 0, 28.536236, -5.545, 3.644, -89.72874)
+transform = Transform3D(39.842712, 0, 20.917892, 0, 45, 0, -20.917892, 0, 39.842712, -24.96867, 3.644, -84.8115)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
@@ -953,7 +943,7 @@ height = 0.01
 material = SubResource("StandardMaterial3D_d0ssc")
 
 [node name="Arbol_2_5" type="Node3D" parent="." unique_id=353569469 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-39.806355, 0, -1.0423636, 0, 39.82, 0, 1.0423636, 0, -39.806355, 14.4404, 4.537, -64.7591)
+transform = Transform3D(-54.98115, 0, -1.4397323, 0, 55, 0, 1.4397323, 0, -54.98115, 81.51296, 6.068752, -24.573605)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
@@ -1045,7 +1035,7 @@ height = 0.01
 material = SubResource("StandardMaterial3D_0k5aj")
 
 [node name="Piedras_Apiladas_Grandes_3" type="Node3D" parent="." unique_id=1139128000 instance=ExtResource("7_fpthl")]
-transform = Transform3D(6.554969, 0, -21.440355, 0, 22.42, 0, 21.440355, 0, 6.554969, 20.0506, 1.539, -66.08507)
+transform = Transform3D(6.554969, 0, -21.440355, 0, 22.42, 0, 21.440355, 0, 6.554969, 40.874157, 1.539, -59.486996)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
@@ -1100,7 +1090,7 @@ metadata/rot_y_deg = 290.3
 metadata/editor_only = true
 
 [node name="Piedras_Apiladas_Chiquitas_4" type="Node3D" parent="." unique_id=896978305 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(-4.28451, 0, 14.844038, 0, 15.45, 0, -14.844038, 0, -4.28451, 0.505, 0.668, -65.91112)
+transform = Transform3D(-4.28451, 0, 14.844038, 0, 15.45, 0, -14.844038, 0, -4.28451, 0.505, 0.29983783, -65.91112)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
@@ -1109,7 +1099,7 @@ metadata/rot_y_deg = 106.1
 metadata/editor_only = true
 
 [node name="Arbol_1_8" type="Node3D" parent="." unique_id=1918301380 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-36.883762, 0, 1.0946856, 0, 36.9, 0, -1.0946856, 0, -36.883762, 39.8278, 4.164, -88.00962)
+transform = Transform3D(-59.973595, 0, 1.7799765, 0, 60, 0, -1.7799765, 0, -59.973595, 98.48711, 6.397863, -90.90539)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
@@ -1132,7 +1122,7 @@ height = 0.01
 material = SubResource("StandardMaterial3D_qt4wt")
 
 [node name="Arbol_1_9" type="Node3D" parent="." unique_id=2112908509 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(37.178585, 0, -0.32446197, 0, 37.18, 0, 0.32446197, 0, 37.178585, 33.0698, 4.196, -76.86449)
+transform = Transform3D(86.307625, 0, 25.514605, 0, 90, 0, -25.514605, 0, 86.307625, 60.47666, 9.893931, -68.88234)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
@@ -1155,7 +1145,7 @@ height = 0.01
 material = SubResource("StandardMaterial3D_88pyn")
 
 [node name="Piedras_Apiladas_Medianas_3" type="Node3D" parent="." unique_id=42612097 instance=ExtResource("12_ftivt")]
-transform = Transform3D(4.1017246, 0, 22.570324, 0, 22.94, 0, -22.570324, 0, 4.1017246, 32.0758, 1.149, -82.625145)
+transform = Transform3D(4.1017246, 0, 22.570324, 0, 22.94, 0, -22.570324, 0, 4.1017246, 42.861362, 1.149, -106.89567)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
@@ -1178,7 +1168,7 @@ height = 0.01
 material = SubResource("StandardMaterial3D_dynd3")
 
 [node name="Piedras_Apiladas_Medianas_4" type="Node3D" parent="." unique_id=1422948855 instance=ExtResource("12_ftivt")]
-transform = Transform3D(-10.892091, 0, -20.834646, 0, 23.51, 0, 20.834646, 0, -10.892091, 26.613, 1.179, -91.652916)
+transform = Transform3D(-9.839489, -1.1198015, -21.322538, -2.6584392, 23.359213, 1.1920929e-07, 21.185781, 2.4110878, -9.903006, 22.390406, 1.5384322, -89.1696)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
