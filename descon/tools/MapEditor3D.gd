@@ -37,6 +37,28 @@ class_name MapEditor3D
 			trigger_clear_terrain_colliders = false
 			notify_property_list_changed()
 
+@export_group("Herramientas de Colisión de Objetos")
+@export var trigger_auto_colliders_all_decoratives: bool = false:
+	set(val):
+		if val:
+			apply_auto_colliders_to_all_known_decoratives()
+			trigger_auto_colliders_all_decoratives = false
+			notify_property_list_changed()
+
+@export var trigger_add_circle_to_selected: bool = false:
+	set(val):
+		if val:
+			add_collider_to_selected("circle")
+			trigger_add_circle_to_selected = false
+			notify_property_list_changed()
+
+@export var trigger_add_box_to_selected: bool = false:
+	set(val):
+		if val:
+			add_collider_to_selected("rect")
+			trigger_add_box_to_selected = false
+			notify_property_list_changed()
+
 
 
 
@@ -56,6 +78,80 @@ var _drag_start_scale: float = 1.0
 
 const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "nexus", "pillar", "market", "custom", "spawner"]
 
+## CATÁLOGO AAA DE PRESETS DE COLISIÓN PARA DECORATIVOS
+const ASSET_COLLIDER_PRESETS = {
+	"Arbol_1": {
+		"obj_type": "wall",
+		"colType": "circle",
+		"radius_3d": 0.024,
+		"height_3d": 0.01,
+		"col_y": -0.11,
+		"colWidth": 2.4,
+		"colHeight": 1.70
+	},
+	"Arbol_2": {
+		"obj_type": "wall",
+		"colType": "circle",
+		"radius_3d": 0.026,
+		"height_3d": 0.01,
+		"col_y": -0.11,
+		"colWidth": 2.6,
+		"colHeight": 1.84
+	},
+	"Piedra_Grande": {
+		"obj_type": "wall",
+		"colType": "circle",
+		"radius_3d": 0.095,
+		"height_3d": 0.01,
+		"col_y": -0.075,
+		"colWidth": 9.5,
+		"colHeight": 6.72
+	},
+	"Piedras_Apiladas_Grandes": {
+		"obj_type": "wall",
+		"colType": "circle",
+		"radius_3d": 0.060,
+		"height_3d": 0.01,
+		"col_y": -0.065,
+		"colWidth": 6.0,
+		"colHeight": 4.24
+	},
+	"Piedra_Mediana": {
+		"obj_type": "wall",
+		"colType": "circle",
+		"radius_3d": 0.040,
+		"height_3d": 0.01,
+		"col_y": -0.025,
+		"colWidth": 4.0,
+		"colHeight": 2.83
+	},
+	"Piedras_Apiladas_Medianas": {
+		"obj_type": "wall",
+		"colType": "circle",
+		"radius_3d": 0.050,
+		"height_3d": 0.01,
+		"col_y": -0.045,
+		"colWidth": 5.0,
+		"colHeight": 3.54
+	},
+	"Piedras_Apiladas_Chiquitas": {
+		"obj_type": "decor",
+		"colType": "none"
+	},
+	"Piso_Musgo_2": {
+		"obj_type": "decor",
+		"colType": "none"
+	},
+	"Piso_Musgo_3": {
+		"obj_type": "decor",
+		"colType": "none"
+	},
+	"Piso_Peque_o_Musgo": {
+		"obj_type": "decor",
+		"colType": "none"
+	}
+}
+
 func _ready():
 	if not Engine.is_editor_hint():
 		set_process(false)
@@ -63,6 +159,7 @@ func _ready():
 		set_process_input(false)
 		return
 	_setup_editor_camera()
+	_find_objects_root()
 	_connect_editor_signals()
 	
 	# v700.4: Carga y sincronización diferida automática al abrir la escena en el editor
@@ -81,28 +178,217 @@ func _setup_editor_camera():
 		cam.near = 0.1
 		cam.far = 10000.0
 
+func _find_objects_root() -> Node3D:
+	if not is_instance_valid(objects_root):
+		objects_root = find_child("ObjectsRoot", true, false)
+	return objects_root
+
 func _connect_editor_signals():
-	var target = objects_root if is_instance_valid(objects_root) else self
-	if is_instance_valid(target):
-		if not target.child_entered_tree.is_connected(_on_child_added):
-			target.child_entered_tree.connect(_on_child_added)
-		if not target.child_exiting_tree.is_connected(_on_child_removed):
-			target.child_exiting_tree.connect(_on_child_removed)
+	_find_objects_root()
+	if not child_entered_tree.is_connected(_on_child_added):
+		child_entered_tree.connect(_on_child_added)
+	if not child_exiting_tree.is_connected(_on_child_removed):
+		child_exiting_tree.connect(_on_child_removed)
+
+	if is_instance_valid(objects_root):
+		if not objects_root.child_entered_tree.is_connected(_on_child_added):
+			objects_root.child_entered_tree.connect(_on_child_added)
+		if not objects_root.child_exiting_tree.is_connected(_on_child_removed):
+			objects_root.child_exiting_tree.connect(_on_child_removed)
 
 func _on_child_added(child: Node):
 	if not is_instance_valid(child) or not (child is Node3D or child is MeshInstance3D):
 		return
 		
 	# v700.6: Ignorar de forma segura nodos de infraestructura del sistema
-	if child.name in ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers", "Terrain3D", "SkyDome", "TerrainColliders"]:
+	if child.name in ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "MapBoundaryVisual", "EventMarkers", "Terrain3D", "SkyDome", "TerrainColliders"]:
 		return
 	
+	if child.name == "ObjectsRoot":
+		objects_root = child as Node3D
+		if not objects_root.child_entered_tree.is_connected(_on_child_added):
+			objects_root.child_entered_tree.connect(_on_child_added)
+		if not objects_root.child_exiting_tree.is_connected(_on_child_removed):
+			objects_root.child_exiting_tree.connect(_on_child_removed)
+		return
+
 	# No marcar editor_only en nodos collider (son hijos de un wall padre)
-	if child is CSGBox3D or child is CSGCylinder3D or child is CollisionShape3D or child is CollisionPolygon3D:
+	if child is CSGBox3D or child is CSGCylinder3D or child is CollisionShape3D or child is CollisionPolygon3D or child.name.to_lower().contains("collider"):
 		return
 		
 	_setup_object_metadata(child)
+	_apply_asset_preset_collider.call_deferred(child)
 	child.set_meta("editor_only", true)
+
+func _get_asset_preset(node: Node3D) -> Dictionary:
+	if not is_instance_valid(node):
+		return {}
+	var candidates: Array[String] = []
+	if node.scene_file_path != "":
+		candidates.append(node.scene_file_path.get_file().get_basename())
+	if node.has_meta("asset_path"):
+		var ap = str(node.get_meta("asset_path"))
+		if ap != "":
+			candidates.append(ap.get_file().get_basename())
+	candidates.append(node.name)
+	if node.has_meta("label"):
+		candidates.append(str(node.get_meta("label")))
+		
+	var keys = ASSET_COLLIDER_PRESETS.keys()
+	# Ordenar de mayor a menor longitud para que nombres compuestos como "Piedras_Apiladas_Medianas" coincidan antes que "Piedra_Mediana"
+	keys.sort_custom(func(a, b): return a.length() > b.length())
+	
+	for cand in candidates:
+		var c_clean = cand.replace("@", "").strip_edges()
+		for k in keys:
+			if c_clean == k or c_clean.begins_with(k + "_") or c_clean.begins_with(k + "2") or c_clean.begins_with(k + "3") or c_clean.begins_with(k + "4") or c_clean.begins_with(k + "5") or c_clean.begins_with(k + "6") or c_clean.begins_with(k + "7") or c_clean.begins_with(k + "8") or c_clean.begins_with(k + "9") or c_clean.begins_with(k + "0") or c_clean.contains(k):
+				return ASSET_COLLIDER_PRESETS[k]
+				
+	return {}
+
+func _apply_asset_preset_collider(child: Node3D):
+	if not is_instance_valid(child):
+		return
+		
+	var preset = _get_asset_preset(child)
+	if preset.is_empty():
+		return
+		
+	var obj_type = str(preset.get("obj_type", "wall"))
+	child.set_meta("obj_type", obj_type)
+	
+	if obj_type == "decor":
+		return
+		
+	var c_type = str(preset.get("colType", "circle"))
+	var c_w = float(preset.get("colWidth", 100.0))
+	var c_h = float(preset.get("colHeight", 20.0))
+	var col_y = float(preset.get("col_y", 0.0))
+	var rad_3d = float(preset.get("radius_3d", (c_w * scale_factor) / 2.0))
+	var h_3d = float(preset.get("height_3d", 0.01))
+	
+	child.set_meta("colType", c_type)
+	child.set_meta("colWidth", c_w)
+	child.set_meta("colHeight", c_h)
+	child.set_meta("colOffsetX", 0.0)
+	child.set_meta("colOffsetY", 0.0)
+	child.set_meta("colRot", 0.0)
+	child.set_meta("colY", col_y)
+	child.set_meta("colH", h_3d)
+	
+	# Verificar si ya existe collider hijo
+	for sub in child.get_children():
+		if sub.name.to_lower().contains("collider") or sub is CSGCylinder3D or sub is CSGBox3D or sub is CollisionShape3D:
+			return # Ya tiene collider configurado
+			
+	var col_helper: Node3D = null
+	if c_type == "circle":
+		var cyl = CSGCylinder3D.new()
+		cyl.name = "ColliderCircle1"
+		cyl.radius = rad_3d
+		cyl.height = h_3d
+		col_helper = cyl
+	else:
+		var box = CSGBox3D.new()
+		box.name = "Collider1"
+		box.size = Vector3(c_w * scale_factor, h_3d, c_h * scale_factor * correction_z)
+		col_helper = box
+		
+	var mat = StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(0.0, 0.8, 0.0, 0.35)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	col_helper.material = mat
+	col_helper.position = Vector3(0, col_y, 0)
+	
+	child.add_child(col_helper)
+	
+	var scene_root = get_tree().edited_scene_root if (Engine.is_editor_hint() and get_tree()) else null
+	if not scene_root and is_inside_tree():
+		scene_root = owner if owner else self
+	if scene_root:
+		col_helper.owner = scene_root
+		
+	print("[MapEditor3D] Collider automático asignado con éxito a: ", child.name, " (", c_type, " r=", rad_3d, ")")
+
+func apply_auto_colliders_to_all_known_decoratives():
+	_find_objects_root()
+	var count = 0
+	var stack: Array[Node] = []
+	for c in get_children():
+		stack.append(c)
+	if is_instance_valid(objects_root):
+		for c in objects_root.get_children():
+			if not c in stack:
+				stack.append(c)
+				
+	while stack.size() > 0:
+		var node = stack.pop_back()
+		if not is_instance_valid(node):
+			continue
+		if node.name in ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers", "Terrain3D", "SkyDome", "TerrainColliders"]:
+			continue
+		if node is CSGBox3D or node is CSGCylinder3D or node is CollisionShape3D or node is CollisionPolygon3D or node.name.to_lower().contains("collider"):
+			continue
+			
+		if node is Node3D:
+			var preset = _get_asset_preset(node)
+			if not preset.is_empty():
+				_setup_object_metadata(node)
+				_apply_asset_preset_collider(node)
+				node.set_meta("editor_only", true)
+				count += 1
+				
+		for sub in node.get_children():
+			if not (sub is CSGBox3D or sub is CSGCylinder3D or sub.name.to_lower().contains("collider")):
+				stack.append(sub)
+				
+	print("[MapEditor3D] Presets y colliders verificados/aplicados a %d decorativos." % count)
+
+func add_collider_to_selected(c_type: String = "circle"):
+	if not is_instance_valid(_selected_object):
+		print("[MapEditor3D] Seleccione un objeto primero en el editor.")
+		return
+	var target = _selected_object
+	target.set_meta("obj_type", "wall")
+	target.set_meta("colType", c_type)
+	target.set_meta("editor_only", true)
+	
+	var col_helper: Node3D = null
+	if c_type == "circle":
+		var cyl = CSGCylinder3D.new()
+		cyl.name = "ColliderCircle1"
+		cyl.radius = 0.05
+		cyl.height = 0.01
+		col_helper = cyl
+		target.set_meta("colWidth", 5.0)
+		target.set_meta("colHeight", 3.54)
+		target.set_meta("colY", 0.0)
+		target.set_meta("colH", 0.01)
+	else:
+		var box = CSGBox3D.new()
+		box.name = "Collider1"
+		box.size = Vector3(1.0, 0.01, 1.0)
+		col_helper = box
+		target.set_meta("colWidth", 50.0)
+		target.set_meta("colHeight", 35.0)
+		target.set_meta("colY", 0.0)
+		target.set_meta("colH", 0.01)
+		
+	var mat = StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(0.0, 0.8, 0.0, 0.35)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	col_helper.material = mat
+	col_helper.position = Vector3(0, 0, 0)
+	
+	target.add_child(col_helper)
+	var edit_root = get_tree().edited_scene_root if (Engine.is_editor_hint() and get_tree()) else null
+	if not edit_root and is_inside_tree():
+		edit_root = owner if owner else self
+	if edit_root:
+		col_helper.owner = edit_root
+	print("[MapEditor3D] Collider manual añadido a: ", target.name)
 
 func _on_child_removed(child: Node):
 	if child == _selected_object:

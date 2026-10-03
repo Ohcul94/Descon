@@ -74,9 +74,20 @@ func use_skill(id: int):
 			return true
 	return false
 
-# v760.0: Nombre de color capitalizado de la esfera INSTALADA en un slot ("" si no hay)
+# v760.3: Nombre de color capitalizado de la esfera instalada (se adapta a la skill si hay una equipada)
 func installed_color_name(slot_data) -> String:
 	if typeof(slot_data) != TYPE_DICTIONARY: return ""
+	var skill = slot_data.get("equipped")
+	if skill:
+		var st = ""
+		if typeof(skill) == TYPE_DICTIONARY: st = str(skill.get("type", "")).to_lower()
+		elif "type" in skill: st = str(skill.type).to_lower()
+		st = st.replace("ó", "o").replace("é", "e").replace("í", "i").replace("á", "a").replace("ú", "u").replace("ü", "u")
+		if "ataque" in st: return "Roja"
+		if "defensa" in st: return "Azul"
+		if "curacion" in st: return "Verde"
+		return "Amarilla"
+	
 	var sp = slot_data.get("sphere")
 	if sp == null or typeof(sp) != TYPE_DICTIONARY: return ""
 	var c: String = str(sp.get("type", sp.get("sphereColor", ""))).to_lower()
@@ -87,10 +98,12 @@ func installed_color_name(slot_data) -> String:
 		"amarilla", "amarillo", "yellow": return "Amarilla"
 	return ""
 
-# v760.0: ¿El slot tiene una esfera física instalada?
+# v760.3: ¿El slot tiene una esfera instalada o adaptada por habilidad?
 func has_installed_sphere(slot_id: int) -> bool:
 	if slot_id < 0 or slot_id >= spheres_data.size(): return false
-	var sp = spheres_data[slot_id].get("sphere")
+	var slot_data = spheres_data[slot_id]
+	if slot_data.get("equipped") != null: return true
+	var sp = slot_data.get("sphere")
 	return sp != null and typeof(sp) == TYPE_DICTIONARY and not sp.is_empty()
 
 # v760.0: Actualización local optimista al instalar (el servidor es autoritativo)
@@ -123,6 +136,9 @@ func remove_sphere(sphere_id: int):
 	spheres_data[sphere_id]["color"] = Color.WHITE
 	_update_visuals()
 	spheres_updated.emit()
+	var hud = get_tree().get_first_node_in_group("hud")
+	if is_instance_valid(hud) and hud.has_method("update_skill_slots"):
+		hud.update_skill_slots()
 
 # v760.0: Sincronización completa de un slot desde datos del servidor (esfera instalada + skill)
 func apply_server_slot(sphere_id: int, slot_data):
@@ -283,6 +299,34 @@ func equip_item(sphere_id, item_data):
 			
 			if not is_matching:
 				spheres_data[sphere_id]["equipped"] = _build_skill_from_data(real_equipped)
+				# v760.3: Adaptar la esfera local al color de la habilidad
+				var s_type = ""
+				if typeof(real_equipped) == TYPE_DICTIONARY: s_type = str(real_equipped.get("type", "Ataque")).to_lower()
+				elif "type" in real_equipped: s_type = str(real_equipped.type).to_lower()
+				s_type = s_type.replace("ó", "o").replace("é", "e").replace("í", "i").replace("á", "a").replace("ú", "u").replace("ü", "u")
+				var c_name = "Amarilla"
+				var c_hex = Color("#e5fb3c")
+				var c_key = "amarilla"
+				if "ataque" in s_type:
+					c_name = "Roja"; c_hex = Color("#7d3531"); c_key = "roja"
+				elif "defensa" in s_type:
+					c_name = "Azul"; c_hex = Color("#389c99"); c_key = "azul"
+				elif "curacion" in s_type:
+					c_name = "Verde"; c_hex = Color("#4f902c"); c_key = "verde"
+				
+				spheres_data[sphere_id]["type"] = c_key
+				spheres_data[sphere_id]["color"] = c_hex
+				var prev_inst = ""
+				if spheres_data[sphere_id].get("sphere") is Dictionary:
+					prev_inst = str(spheres_data[sphere_id]["sphere"].get("instanceId", ""))
+				spheres_data[sphere_id]["sphere"] = {
+					"id": "esfera_" + c_key,
+					"name": "Esfera " + c_name,
+					"type": c_key,
+					"color": c_hex.to_html(false),
+					"icon": "res://assets/Esferas/Esfera" + c_name + "1.png",
+					"instanceId": prev_inst
+				}
 				needs_update = true
 
 		if needs_update:
@@ -301,15 +345,6 @@ func get_equipped_skill(id: int):
 		return spheres_data[id]["equipped"]
 	return null
 
-# v760.0: La skill equipable debe coincidir con el color de la esfera instalada
-func skill_matches_sphere(slot_id: int, skill_type: String) -> bool:
-	if slot_id < 0 or slot_id >= spheres_data.size(): return false
-	if not has_installed_sphere(slot_id): return false
-	var color_name = installed_color_name(spheres_data[slot_id])
-	var t: String = skill_type.to_lower()
-	match color_name:
-		"Roja": return t == "ataque"
-		"Azul": return t == "defensa"
-		"Verde": return t == "curación" or t == "curacion"
-		"Amarilla": return t != "ataque" and t != "defensa" and t != "curación" and t != "curacion"
-	return false
+# v760.2: Cualquier habilidad es compatible con cualquier slot de esfera
+func skill_matches_sphere(_slot_id: int, _skill_type: String) -> bool:
+	return true

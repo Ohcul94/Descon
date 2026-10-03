@@ -863,30 +863,114 @@ function registerInventoryHandlers(socket, io, state) {
                 }
             }
 
-            // v262.735: Blindaje de datos. Si el slot no existe, lo creamos.
-            while (user.gameData.spheres.length <= sphereId) {
-                user.gameData.spheres.push({ name: `Slot ${user.gameData.spheres.length + 1}`, type: "any", color: "#ffffff", sphere: null, equipped: null });
-            }
-
-            // v760.0: La skill SOLO puede equiparse si hay una esfera física instalada en el slot
+            // v760.4: Validación de posesión de esfera y traslado/swap automático de slots
+            const requiredColor = sphereColorFromSkillType(skill ? skill.type : '') || 'amarilla';
             const targetSlot = user.gameData.spheres[sphereId];
-            if (!targetSlot.sphere || typeof targetSlot.sphere !== 'object') {
-                sendInventoryData(socket, user);
-                return socket.emit('gameNotification', { msg: 'NO HAY ESFERA INSTALADA EN ESTE SLOT. Fabrica una esfera en el Crafteo e instálala en este slot.', type: 'error' });
-            }
+            
+            // 1. ¿El slot destino ya tiene la esfera del color requerido?
+            const targetHasColor = targetSlot && targetSlot.sphere && normalizeSphereColor(targetSlot.sphere.type || targetSlot.sphere.sphereColor || '') === requiredColor;
 
-            // v760.0: La skill debe coincidir con el color de la esfera instalada
-            //   Roja→ATAQUE | Azul→DEFENSA | Verde→CURACIÓN | Amarilla→UTILIDAD/MOVIMIENTO
-            if (skill && skill.type) {
-                const slotColor = normalizeSphereColor(targetSlot.sphere.type || targetSlot.sphere.sphereColor || '');
-                const skillColor = sphereColorFromSkillType(skill.type);
-                if (slotColor && skillColor && slotColor !== skillColor) {
-                    sendInventoryData(socket, user);
-                    return socket.emit('gameNotification', { msg: `LA ESFERA ${slotColor.toUpperCase()} SOLO ACEPTA HABILIDADES DE ${sphereColorTypeLabel(slotColor)}.`, type: 'error' });
+            if (targetHasColor) {
+                targetSlot.equipped = skill;
+            } else {
+                // 2. Buscar si la esfera de ese color está en otro slot (0..3)
+                const sourceSlotIdx = user.gameData.spheres.findIndex((s, idx) => 
+                    idx !== sphereId && s.sphere && normalizeSphereColor(s.sphere.type || s.sphere.sphereColor || '') === requiredColor
+                );
+
+                if (sourceSlotIdx !== -1) {
+                    // Traslado / Intercambio (Swap) entre sourceSlotIdx y sphereId
+                    const sourceSlot = user.gameData.spheres[sourceSlotIdx];
+                    
+                    const movedSphere = sourceSlot.sphere;
+                    const movedType = sourceSlot.type;
+                    const movedColor = sourceSlot.color;
+                    const sourcePrevSkill = sourceSlot.equipped;
+
+                    const prevTargetSphere = targetSlot.sphere;
+                    const prevTargetType = targetSlot.type;
+                    const prevTargetColor = targetSlot.color;
+                    const targetPrevSkill = targetSlot.equipped;
+
+                    // Asignar esfera requerida y habilidad al targetSlot
+                    targetSlot.sphere = movedSphere;
+                    targetSlot.type = movedType;
+                    targetSlot.color = movedColor;
+                    targetSlot.equipped = skill;
+
+                    // El slot de origen recibe lo que tenía el targetSlot
+                    sourceSlot.sphere = prevTargetSphere;
+                    sourceSlot.type = prevTargetType;
+                    sourceSlot.color = prevTargetColor;
+
+                    // Sincronía de habilidad en el slot de origen:
+                    const newSourceColor = normalizeSphereColor(prevTargetType || (prevTargetSphere ? prevTargetSphere.type : ''));
+                    if (targetPrevSkill && targetPrevSkill.type && sphereColorFromSkillType(targetPrevSkill.type) === newSourceColor) {
+                        sourceSlot.equipped = targetPrevSkill;
+                    } else if (sourcePrevSkill && sourcePrevSkill.type && sphereColorFromSkillType(sourcePrevSkill.type) === newSourceColor) {
+                        sourceSlot.equipped = sourcePrevSkill;
+                    } else {
+                        sourceSlot.equipped = null;
+                    }
+
+                    console.log(`[SPHERE-SWAP] Esfera ${requiredColor} trasladada automáticamente del Slot ${sourceSlotIdx + 1} al Slot ${sphereId + 1}`);
+                } else {
+                    // 3. Buscar si tiene la esfera en el inventario
+                    const inv = user.gameData.inventory || [];
+                    const invIdx = inv.findIndex(it => 
+                        String(it.id || '').startsWith('esfera_') && 
+                        normalizeSphereColor(it.type || it.sphereColor || String(it.id || '').replace('esfera_', '')) === requiredColor
+                    );
+
+                    if (invIdx !== -1) {
+                        // Consumir del inventario e instalar en targetSlot
+                        const item = inv[invIdx];
+                        inv.splice(invIdx, 1);
+
+                        // Si el slot destino ya tenía una esfera física, devolverla al inventario
+                        if (targetSlot.sphere && typeof targetSlot.sphere === 'object') {
+                            const oldSphere = targetSlot.sphere;
+                            const oldColor = normalizeSphereColor(oldSphere.type || oldSphere.sphereColor || '') || 'amarilla';
+                            const defOld = sphereItemDef(oldColor);
+                            inv.push({
+                                id: oldSphere.id || (defOld ? defOld.id : 'esfera_' + oldColor),
+                                name: oldSphere.name || (defOld ? defOld.name : 'Esfera ' + oldColor),
+                                type: 'consumible',
+                                base: 0,
+                                instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
+                                rarity: 0,
+                                color: oldSphere.color || (defOld ? defOld.color : '#ffffff'),
+                                icon: oldSphere.icon || (defOld ? defOld.icon : ''),
+                                sphereColor: oldColor,
+                                soulbound: false
+                            });
+                        }
+
+                        const defNew = sphereItemDef(requiredColor);
+                        targetSlot.sphere = {
+                            id: item.id || ('esfera_' + requiredColor),
+                            name: item.name || (defNew ? defNew.name : 'Esfera ' + requiredColor),
+                            type: requiredColor,
+                            color: item.color || (defNew ? defNew.color : '#ffffff'),
+                            icon: item.icon || (defNew ? defNew.icon : ''),
+                            instanceId: item.instanceId || (Date.now() + Math.random().toString(36).substr(2, 5))
+                        };
+                        targetSlot.type = requiredColor;
+                        targetSlot.color = targetSlot.sphere.color;
+                        targetSlot.equipped = skill;
+
+                        user.markModified('gameData.inventory');
+                        console.log(`[SPHERE-AUTOINSTALL] Esfera ${requiredColor} tomada del inventario para el Slot ${sphereId + 1}`);
+                    } else {
+                        // 4. No tiene la esfera en ningún slot ni en inventario
+                        sendInventoryData(socket, user);
+                        return socket.emit('gameNotification', { 
+                            msg: `REQUIERE ESFERA ${requiredColor.toUpperCase()}. No tienes ninguna instalada ni en tu inventario. Fabrícala en CRAFTEO.`, 
+                            type: 'error' 
+                        });
+                    }
                 }
             }
-
-            user.gameData.spheres[sphereId].equipped = skill;
             user.markModified('gameData.spheres');
             await user.save();
 
@@ -969,13 +1053,9 @@ function registerInventoryHandlers(socket, io, state) {
             }
 
             const slot = user.gameData.spheres[sphereId];
-            if (slot.sphere && typeof slot.sphere === 'object') {
-                sendInventoryData(socket, user);
-                return socket.emit('gameNotification', { msg: 'ESTE SLOT YA TIENE UNA ESFERA INSTALADA. Retírala primero para cambiarla.', type: 'error' });
-            }
+            const inv = user.gameData.inventory || [];
 
             // Buscar el ítem de esfera en el inventario
-            const inv = user.gameData.inventory || [];
             const idx = inv.findIndex(it => it.instanceId === instanceId && String(it.id || '').startsWith('esfera_'));
             if (idx === -1) {
                 sendInventoryData(socket, user);
@@ -988,7 +1068,26 @@ function registerInventoryHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'Este ítem no es una esfera válida.', type: 'error' });
             }
 
-            // Consumir el ítem e instalar la esfera en el slot
+            // Si el slot ya tiene una esfera instalada, devolverla al inventario (reemplazo/swap dinámico)
+            if (slot.sphere && typeof slot.sphere === 'object') {
+                const oldSphere = slot.sphere;
+                const oldColor = normalizeSphereColor(oldSphere.type || oldSphere.sphereColor || '') || 'amarilla';
+                const def = sphereItemDef(oldColor);
+                inv.push({
+                    id: oldSphere.id || (def ? def.id : 'esfera_' + oldColor),
+                    name: oldSphere.name || (def ? def.name : 'Esfera ' + oldColor),
+                    type: 'consumible',
+                    base: 0,
+                    instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
+                    rarity: 0,
+                    color: oldSphere.color || (def ? def.color : '#ffffff'),
+                    icon: oldSphere.icon || (def ? def.icon : ''),
+                    sphereColor: oldColor,
+                    soulbound: false
+                });
+            }
+
+            // Consumir el nuevo ítem e instalar la esfera en el slot
             inv.splice(idx, 1);
             slot.sphere = {
                 id: item.id || ('esfera_' + color),
@@ -1000,6 +1099,7 @@ function registerInventoryHandlers(socket, io, state) {
             };
             slot.type = color;
             slot.color = slot.sphere.color;
+            // Preservar slot.equipped intacto
 
             user.markModified('gameData.spheres');
             user.markModified('gameData.inventory');
@@ -1010,7 +1110,7 @@ function registerInventoryHandlers(socket, io, state) {
             p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
 
             sendInventoryData(socket, user);
-            socket.emit('gameNotification', { msg: `ESFERA INSTALADA: ${slot.sphere.name} en ${slot.name}. Ahora equipa una habilidad compatible.`, type: 'success' });
+            socket.emit('gameNotification', { msg: `ESFERA INSTALADA: ${slot.sphere.name} en ${slot.name}.`, type: 'success' });
         } catch (e) { console.error("[SPHERE-INSTALL-ERROR]", e); }
     });
 
@@ -1064,7 +1164,7 @@ function registerInventoryHandlers(socket, io, state) {
             };
             user.gameData.inventory.push(newItem);
 
-            // Al retirar la esfera también se desequipa la skill del slot (sin esfera no puede haber skill)
+            // Al retirar la esfera del slot, la habilidad equipada en ese slot también se desequipa automáticamente
             slot.sphere = null;
             slot.equipped = null;
             slot.type = 'any';

@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb" id="1_mesh"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.35)
+
+[node name="Piedra_Mediana" type="Node3D"]
+metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "Piedra_Mediana"
+metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb"
+metadata/colType = "circle"
+metadata/colWidth = 4.0
+metadata/colHeight = 2.83
+metadata/colOffsetX = 0.0
+metadata/colOffsetY = 0.0
+metadata/colY = -0.025
+metadata/colH = 0.01
+
+[node name="Model" parent="." instance=ExtResource("1_mesh")]
+
+[node name="ColliderCircle1" type="CSGCylinder3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+radius = 0.04
+height = 0.01
+material = SubResource("StandardMaterial3D_col")

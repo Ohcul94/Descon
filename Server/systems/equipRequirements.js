@@ -162,18 +162,18 @@ function sphereColorFromSkillType(skillType) {
 
 function getSphereColor(sphere) {
     if (!sphere || typeof sphere !== 'object') return '';
-    // 0) v760.0: Esfera FÍSICA instalada en el slot (ítem crafteado) — fuente de verdad del color
+    // 0) v760.3: Si hay una habilidad equipada, la esfera se adapta al tipo de la habilidad
+    if (sphere.equipped && typeof sphere.equipped === 'object' && sphere.equipped.type) {
+        return sphereColorFromSkillType(sphere.equipped.type);
+    }
+    // 1) Esfera física instalada en el slot (cuando el slot no tiene habilidad)
     if (sphere.sphere && typeof sphere.sphere === 'object') {
         const installed = normalizeSphereColor(sphere.sphere.type || sphere.sphere.sphereColor || '');
         if (installed) return installed;
     }
-    // 1) Tipo explícito de la esfera (futuro: esferas teñidas de un color fijo)
+    // 2) Tipo explícito de la ranura
     const explicit = normalizeSphereColor(sphere.type);
     if (explicit) return explicit;
-    // 2) Color derivado del tipo de habilidad equipada en ese slot
-    if (sphere.equipped && typeof sphere.equipped === 'object' && sphere.equipped.type) {
-        return sphereColorFromSkillType(sphere.equipped.type);
-    }
     return '';
 }
 

@@ -525,13 +525,26 @@ const handleUserLogin = async (socket, user, username) => {
         }
         // Sincronizar type/color del slot con la esfera instalada si está desincronizado
         else if (slot.sphere && typeof slot.sphere === 'object') {
-            const color = normalizeSphereColor(slot.sphere.type || slot.sphere.sphereColor || '');
-            if (color) {
-                const def = SPHERE_ITEM_DEFS[color];
-                if (slot.type !== color || (def && slot.color !== def.color)) {
-                    slot.type = color;
-                    if (def) slot.color = def.color;
+            // v760.3: Si hay una habilidad equipada, la esfera SE ADAPTA al color de la habilidad
+            if (slot.equipped && typeof slot.equipped === 'object' && slot.equipped.type) {
+                const skillColor = sphereColorFromSkillType(slot.equipped.type);
+                const def = SPHERE_ITEM_DEFS[skillColor];
+                if (def && (slot.type !== skillColor || slot.sphere.type !== skillColor)) {
+                    const prevInstId = slot.sphere.instanceId;
+                    slot.sphere = { id: def.id, name: def.name, type: skillColor, color: def.color, icon: def.icon, instanceId: prevInstId };
+                    slot.type = skillColor;
+                    slot.color = def.color;
                     spheresMigrated = true;
+                }
+            } else {
+                const color = normalizeSphereColor(slot.sphere.type || slot.sphere.sphereColor || '');
+                if (color) {
+                    const def = SPHERE_ITEM_DEFS[color];
+                    if (slot.type !== color || (def && slot.color !== def.color)) {
+                        slot.type = color;
+                        if (def) slot.color = def.color;
+                        spheresMigrated = true;
+                    }
                 }
             }
         }
