@@ -1769,6 +1769,7 @@ var _near_extract_portal_active: bool = false # Portal de extracción cercano (M
 var active_vault_node: Node = null
 var active_market_node: Node = null # v500.0: Terminal del Mercado
 var active_loot_node: Node = null
+var active_resource_node: Node = null # Nodo de recurso recolectable cercano
 
 # v400.1: Spawnear objetos del mundo desde mapsConfig del servidor con física, rotaciones y comportamiento Premium
 # Lee objects[] de mapsConfig e instancia los modelos 3D y colisiones correspondientes
@@ -2412,6 +2413,11 @@ func _set_portal_icon(type: String):
 				scene = active_market_node.TERMINAL_MODEL_SCENE
 			else:
 				scene = load("res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb")
+		"resource":
+			if is_instance_valid(active_resource_node) and active_resource_node.get("icon_scene"):
+				scene = active_resource_node.get("icon_scene")
+			if scene == null:
+				scene = MODEL_LOOT_ICON
 	if scene:
 		var model = scene.instantiate()
 		model.scale = Vector3(1.5, 1.5, 1.5)
@@ -2459,6 +2465,9 @@ func _on_interact_button_pressed(key: String):
 		"loot":
 			if is_instance_valid(active_loot_node) and active_loot_node.has_method("_interact"):
 				active_loot_node._interact()
+		"resource":
+			if is_instance_valid(active_resource_node) and active_resource_node.has_method("_interact"):
+				active_resource_node._interact()
 
 # Actualizar visibilidad de los botones de acción (portal / vault / market / loot)
 func _update_interact_visibility():
@@ -2471,8 +2480,10 @@ func _update_interact_visibility():
 	_set_interact_button("vault", is_instance_valid(active_vault_node))
 	_set_interact_button("market", is_instance_valid(active_market_node))
 	_set_interact_button("loot", is_instance_valid(active_loot_node))
+	_set_interact_button("resource", is_instance_valid(active_resource_node))
 	interact_hbox.visible = (_near_door_active or _near_extract_portal_active
-		or is_instance_valid(active_vault_node) or is_instance_valid(active_market_node) or is_instance_valid(active_loot_node))
+		or is_instance_valid(active_vault_node) or is_instance_valid(active_market_node)
+		or is_instance_valid(active_loot_node) or is_instance_valid(active_resource_node))
 
 # Mostrar botón de loot directamente (llamado desde LootDrop)
 func _show_loot_button(loot: Node):
@@ -2486,6 +2497,20 @@ func _show_loot_button(loot: Node):
 
 func _hide_loot_button():
 	active_loot_node = null
+	_update_interact_visibility()
+
+# Mostrar botón de recolección directamente (llamado desde ResourceNode)
+func _show_resource_button(res_node: Node):
+	if not is_instance_valid(interact_hbox):
+		_create_portal_jump_ui()
+	active_resource_node = res_node
+	var key_text = _get_bound_interact_key("loot_claim")
+	_set_interact_button("resource", true, "RECOLECTAR [" + key_text + " / Clic]")
+	_set_portal_icon("resource")
+	_update_interact_visibility()
+
+func _hide_resource_button():
+	active_resource_node = null
 	_update_interact_visibility()
 
 # Registrar/desregistrar vault para interacción
@@ -2792,7 +2817,7 @@ func _input(event):
 				get_viewport().set_input_as_handled()
 
 	if event.is_action_pressed("loot_claim") and not event.is_echo():
-		for k in ["vault", "market", "loot"]:
+		for k in ["vault", "market", "loot", "resource"]:
 			if _is_interact_visible(k):
 				_press_interact(k)
 				get_viewport().set_input_as_handled()

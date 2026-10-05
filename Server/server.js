@@ -170,6 +170,7 @@ const HordeManager = require('./events/HordeManager');
 const { calculateFinalStats } = require('./systems/statCalculator'); // v266.135: Sistema de Stats Dinámicos
 const extractionManager = require('./systems/extractionManager');
 const lootManager = require('./systems/lootManager');
+const ResourceNodeManager = require('./systems/resourceNodeManager');
 const altarDefenseManager = require('./systems/altarDefenseManager');
 const arenaManager = require('./systems/arenaManager');
 
@@ -395,6 +396,9 @@ const hordeManager = new HordeManager(io, (...args) => aiManager.serverSpawnEnem
 aiManager.hordeManager = hordeManager;
 
 // v1.5: Inicio del Corazón del Servidor
+// Nodos de recursos recolectables (Cartografía → Recursos)
+const resourceNodeManager = new ResourceNodeManager(io, state);
+state.resourceNodeManager = resourceNodeManager;
 extractionManager.init(io, state, aiManager);
 altarDefenseManager.init(io, state, aiManager);
 arenaManager.init(io, state);
@@ -867,6 +871,9 @@ const handleUserLogin = async (socket, user, username) => {
             socket.broadcast.to(`zone_${userZone}`).emit('newPlayer', playerSpawnData);
         }
         io.emit('onlineCount', Object.keys(players).length);
+
+        // Sincronizar nodos de recursos recolectables de la zona
+        try { state.resourceNodeManager.sendZoneNodes(socket, userZone); } catch (e) { console.error('[RESOURCE-NODES]', e); }
     }, 100);
 
     if (playerParty[dbId]) {
@@ -1605,6 +1612,9 @@ io.on('connection', (socket) => {
 
     // Registrar manejadores del sistema de botín autoritativo
     lootManager.registerLootHandlers(socket, io, state);
+
+    // Registrar manejadores de nodos de recursos recolectables
+    resourceNodeManager.registerHandlers(socket, io);
 
     // v350.0: Registrar manejadores del baúl de almacenamiento personal
     registerVaultHandlers(socket, io, state);

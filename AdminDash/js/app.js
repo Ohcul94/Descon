@@ -1098,8 +1098,8 @@ function toggleMapCard(key) {
 // Seleccionar un ítem del mapa (desde el radar o desde la lista) y resaltarlo
 function selectMapItem(kind, idx) {
     window._mapSelection = { kind, index: idx };
-    const prefixes = { spawn: 'card-map-spawn-', door: 'card-map-obj-', market: 'card-map-obj-', ambience: 'card-map-amb-' };
-    document.querySelectorAll('[id^="card-map-spawn-"], [id^="card-map-obj-"], [id^="card-map-amb-"]').forEach(el => {
+    const prefixes = { spawn: 'card-map-spawn-', resource: 'card-map-resource-', door: 'card-map-obj-', market: 'card-map-obj-', ambience: 'card-map-amb-' };
+    document.querySelectorAll('[id^="card-map-spawn-"], [id^="card-map-resource-"], [id^="card-map-obj-"], [id^="card-map-amb-"]').forEach(el => {
         el.style.boxShadow = '';
         el.style.borderColor = '';
         el.style.background = '';
@@ -1112,6 +1112,10 @@ function selectMapItem(kind, idx) {
     }
     if (kind === 'spawn') {
         focusedRadarItem = { type: 'map-spawn', index: idx };
+        window._highlightedMapObj = null;
+        window._highlightedAmbienceIdx = null;
+    } else if (kind === 'resource') {
+        focusedRadarItem = { type: 'map-resource', index: idx };
         window._highlightedMapObj = null;
         window._highlightedAmbienceIdx = null;
     } else if (kind === 'door' || kind === 'market') {
@@ -1139,6 +1143,14 @@ async function requestMapDelete(kind, idx) {
         const modeName = s.spawnMode === 'polygon' ? 'Polígono personalizado' : (s.spawnMode === 'random' ? (s.radius > 0 ? 'Aleatorio en un área' : 'Aleatorio (todo el mapa)') : 'Fijo');
         msg = `SE ELIMINARÁ ESTE ENEMIGO:\n\n👾 ${enName}\nModo: ${modeName}\nCant. Máx: ${s.count}\nUbicación: X ${s.x !== undefined ? s.x : 1000}, Y ${s.y !== undefined ? s.y : 1000}\n\n¿Confirmás la eliminación?`;
         title = '⚠️ ELIMINAR ENEMIGO';
+    } else if (kind === 'resource') {
+        const r = m.resources && m.resources[idx];
+        if (!r) return;
+        const mat = (config.shopItems && Array.isArray(config.shopItems.resources)) ? config.shopItems.resources.find(x => x.id === r.resourceId) : null;
+        const matName = mat ? mat.name : (r.resourceId ? `ID ${r.resourceId}` : 'Sin material asignado');
+        const modeName = r.spawnMode === 'polygon' ? 'Polígono personalizado' : (r.spawnMode === 'random' ? (r.radius > 0 ? 'Aleatorio en un área' : 'Aleatorio (todo el mapa)') : 'Fijo');
+        msg = `SE ELIMINARÁ ESTE NODO DE RECURSO:\n\n🌿 ${matName}\nModo: ${modeName}\nCant. Nodos: ${r.count || 1}\nUnidades: ${r.amount || 1}\nRespawn: ${r.intervalMs || 0} ms\nUbicación: X ${r.x !== undefined ? r.x : 1000}, Y ${r.y !== undefined ? r.y : 1000}\n\n¿Confirmás la eliminación?`;
+        title = '⚠️ ELIMINAR RECURSO';
     } else if (kind === 'door') {
         const o = m.objects && m.objects[idx];
         if (!o) return;
@@ -1163,6 +1175,7 @@ async function requestMapDelete(kind, idx) {
     if (!ok) return;
 
     if (kind === 'spawn') m.spawns.splice(idx, 1);
+    else if (kind === 'resource') m.resources.splice(idx, 1);
     else if (kind === 'door' || kind === 'market') m.objects.splice(idx, 1);
     else if (kind === 'ambience') m.ambience.splice(idx, 1);
 
@@ -1238,25 +1251,35 @@ function formatPolygon(polygon) {
     return polygon.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join('\n');
 }
 
-function parsePolygonInput(value, idx) {
+function mapResourceArray(kind) {
+    return kind === 'resource' ? 'resources' : 'spawns';
+}
+
+function polygonTextareaId(kind, idx) {
+    return kind === 'resource' ? `resource-polygon-${idx}` : `spawn-polygon-${idx}`;
+}
+
+function parsePolygonInput(value, idx, kind = 'spawn') {
     const m = config.mapsConfig[selectedMapId];
-    if (!m || !m.spawns[idx]) return;
+    const arrName = mapResourceArray(kind);
+    if (!m || !m[arrName] || !m[arrName][idx]) return;
     const polygon = parsePolygonString(value);
     if (polygon) {
-        m.spawns[idx].polygon = polygon;
+        m[arrName][idx].polygon = polygon;
         // Actualizar centroide
         const cx = polygon.reduce((a,p)=>a+p.x,0)/polygon.length;
         const cy = polygon.reduce((a,p)=>a+p.y,0)/polygon.length;
-        m.spawns[idx].x = Math.round(cx);
-        m.spawns[idx].y = Math.round(cy);
+        m[arrName][idx].x = Math.round(cx);
+        m[arrName][idx].y = Math.round(cy);
     }
 }
 
-function clearPolygon(idx) {
+function clearPolygon(idx, kind = 'spawn') {
     const m = config.mapsConfig[selectedMapId];
-    if (!m || !m.spawns[idx]) return;
-    m.spawns[idx].polygon = [];
-    const ta = document.getElementById(`spawn-polygon-${idx}`);
+    const arrName = mapResourceArray(kind);
+    if (!m || !m[arrName] || !m[arrName][idx]) return;
+    m[arrName][idx].polygon = [];
+    const ta = document.getElementById(polygonTextareaId(kind, idx));
     if (ta) ta.value = '';
     renderMapDetail();
 }
@@ -1267,6 +1290,7 @@ function clearPolygon(idx) {
 
 let polygonDrawMode = false;
 let polygonDrawTargetIdx = -1; // -1 = nuevo spawn, >=0 = editando existente
+let polygonDrawKind = 'spawn'; // 'spawn' | 'resource'
 let polygonDrawPoints = [];
 let drawToolbar = null; // Referencia al toolbar de controles
 
@@ -1345,20 +1369,22 @@ function removeDrawToolbar() {
 
 // ===== Iniciar modo dibujo =====
 // Cierra el modal completamente y entra en modo dibujo sobre el radar
-function startPolygonDraw(idx) {
+function startPolygonDraw(idx, kind = 'spawn') {
     const overlay = document.getElementById('map-add-overlay');
     if (overlay) overlay.style.display = 'none';
     window._mapAddKind = null;
     
     const m = config.mapsConfig[selectedMapId];
-    if (!m || !m.spawns || !m.spawns[idx]) {
-        showToast('⚠️ Error: no se encontró el spawn para editar.');
+    const arrName = mapResourceArray(kind);
+    if (!m || !m[arrName] || !m[arrName][idx]) {
+        showToast('⚠️ Error: no se encontró el elemento para editar.');
         return;
     }
     
     polygonDrawMode = true;
     polygonDrawTargetIdx = idx;
-    polygonDrawPoints = (m.spawns[idx].polygon || []).map(p => ({x: p.x, y: p.y}));
+    polygonDrawKind = kind;
+    polygonDrawPoints = (m[arrName][idx].polygon || []).map(p => ({x: p.x, y: p.y}));
     
     createDrawToolbar();
     
@@ -1371,10 +1397,15 @@ function startPolygonDraw(idx) {
 
 // Para nuevo spawn (desde el botón "+ AÑADIR ESPECIE")
 function startPolygonDrawForNew() {
-    // No entrar a dibujar sin especie seleccionada: el spawn nuevo nace de ese dato
-    const enemyId = document.getElementById('map-add-enemy-id')?.value;
-    if (!enemyId) {
-        showToast('⚠️ Seleccioná un tipo de enemigo primero.', 'ERROR', '⚠️');
+    const addKind = window._mapAddKind || 'enemy';
+    // No entrar a dibujar sin el elemento base seleccionado: el nodo nuevo nace de ese dato
+    const requiredId = addKind === 'resource'
+        ? document.getElementById('map-add-resource-id')?.value
+        : document.getElementById('map-add-enemy-id')?.value;
+    if (!requiredId) {
+        showToast(addKind === 'resource'
+            ? '⚠️ Seleccioná un material recolectable primero.'
+            : '⚠️ Seleccioná un tipo de enemigo primero.', 'ERROR', '⚠️');
         return;
     }
     const overlay = document.getElementById('map-add-overlay');
@@ -1383,6 +1414,7 @@ function startPolygonDrawForNew() {
     
     polygonDrawMode = true;
     polygonDrawTargetIdx = -1;
+    polygonDrawKind = addKind === 'resource' ? 'resource' : 'spawn';
     polygonDrawPoints = [];
     
     createDrawToolbar();
@@ -1397,8 +1429,10 @@ function startPolygonDrawForNew() {
 // ===== Cancelar dibujo =====
 function cancelPolygonDraw() {
     const wasEditing = polygonDrawTargetIdx >= 0; // Guardar ANTES de resetear
+    const drawKind = polygonDrawKind || 'spawn';
     polygonDrawMode = false;
     polygonDrawTargetIdx = -1;
+    polygonDrawKind = 'spawn';
     polygonDrawPoints = [];
     removeDrawToolbar();
     
@@ -1408,9 +1442,9 @@ function cancelPolygonDraw() {
         canvas.title = '';
     }
     
-    // Solo reabrir modal si era un spawn nuevo (no estaba editando uno existente)
+    // Solo reabrir modal si era un nodo nuevo (no estaba editando uno existente)
     if (!wasEditing) {
-        setTimeout(() => openMapAddModal('enemy'), 100);
+        setTimeout(() => openMapAddModal(drawKind === 'resource' ? 'resource' : 'enemy'), 100);
     }
     showToast('❌ Dibujo cancelado.', 'OPERACIÓN CANCELADA', '✕');
 }
@@ -1427,20 +1461,40 @@ function finishPolygonDraw() {
     if (!m) return false;
     
     const targetIdx = polygonDrawTargetIdx;
+    const kind = polygonDrawKind || 'spawn';
+    const arrName = mapResourceArray(kind);
     const pts = polygonDrawPoints.map(p => ({x: p.x, y: p.y}));
     const cx = pts.reduce((a,p) => a + p.x, 0) / pts.length;
     const cy = pts.reduce((a,p) => a + p.y, 0) / pts.length;
     let newIdx = -1;
     
     if (targetIdx >= 0) {
-        // Editando spawn existente → convertirlo a zona polígono (aparición random dentro)
-        if (!m.spawns[targetIdx]) return false;
-        m.spawns[targetIdx].polygon = pts;
-        m.spawns[targetIdx].spawnMode = 'polygon';
-        m.spawns[targetIdx].radius = 0;
-        m.spawns[targetIdx].x = Math.round(cx);
-        m.spawns[targetIdx].y = Math.round(cy);
+        // Editando existente → convertirlo a zona polígono (aparición random dentro)
+        if (!m[arrName] || !m[arrName][targetIdx]) return false;
+        m[arrName][targetIdx].polygon = pts;
+        m[arrName][targetIdx].spawnMode = 'polygon';
+        m[arrName][targetIdx].radius = 0;
+        m[arrName][targetIdx].x = Math.round(cx);
+        m[arrName][targetIdx].y = Math.round(cy);
         newIdx = targetIdx;
+    } else if (kind === 'resource') {
+        // Nuevo nodo de recurso: material que aparece random dentro del polígono dibujado
+        const resourceId = document.getElementById('map-add-resource-id')?.value;
+        if (!resourceId) {
+            showToast('⚠️ Seleccioná un material recolectable primero.', 'ERROR', '⚠️');
+            return false;
+        }
+        if (!m.resources) m.resources = [];
+        m.resources.push(buildNewMapResource({
+            resourceId,
+            spawnMode: 'polygon',
+            x: Math.round(cx),
+            y: Math.round(cy),
+            radius: parseInt(document.getElementById('map-add-radius')?.value) || 300,
+            polygon: pts
+        }));
+        newIdx = m.resources.length - 1;
+        window._mapCardExpanded[`resource-${newIdx}`] = true;
     } else {
         // Nuevo spawn: especie que aparece random dentro del polígono dibujado,
         // respetando cantidad de slots e intervalo de respawn del formulario
@@ -1465,11 +1519,12 @@ function finishPolygonDraw() {
         window._mapCardExpanded[`spawn-${newIdx}`] = true;
     }
     
-    // Hecho: salir del modo dibujo, cerrar el modal y mostrar el ECOSISTEMA
-    // con la especie recién agregada/editada seleccionada
+    // Hecho: salir del modo dibujo, cerrar el modal y mostrar la sección
+    // con el elemento recién agregado/editado seleccionado
     removeDrawToolbar();
     polygonDrawMode = false;
     polygonDrawTargetIdx = -1;
+    polygonDrawKind = 'spawn';
     polygonDrawPoints = [];
     
     const canvas = document.getElementById('map-radar-canvas');
@@ -1480,7 +1535,7 @@ function finishPolygonDraw() {
     
     closeMapAddModal();
     renderMapDetail();
-    selectMapItem('spawn', newIdx);
+    selectMapItem(kind === 'resource' ? 'resource' : 'spawn', newIdx);
     showToast('✅ Polígono guardado con ' + savedVerts + ' vértices.');
     return true;
 }
@@ -1575,6 +1630,63 @@ function openMapAddModal(kind) {
                 </div>
             </div>
         `;
+    } else if (kind === 'resource') {
+        title.innerText = '➕ AGREGAR NODO DE RECURSO';
+        body.innerHTML = `
+            <div style="font-size:0.8rem; color:#64748b; margin-bottom:1.2rem; line-height:1.5;">Elegí un material <strong style="color:#fb923c;">Recolectable</strong>, cuántos nodos querés en la zona y dónde aparecen. Podés hacer clic en el <strong style="color:var(--accent);">radar táctico</strong> para copiar las coordenadas automáticamente.</div>
+            <div class="field" style="margin-bottom:1rem; overflow:visible;">
+                <label>🌿 MATERIAL RECOLECTABLE</label>
+                <input type="hidden" id="map-add-resource-id" value="">
+                ${renderSearchableResourceSelect('', (newId) => { document.getElementById('map-add-resource-id').value = newId; }, '#fb923c', 'map-add-resource')}
+            </div>
+            <div class="field" style="margin-bottom:1rem;">
+                <label>MODO DE APARICIÓN</label>
+                <select id="map-add-spawn-mode" onchange="toggleMapAddSpawnMode(this.value)">
+                    <option value="random_global">🌍 Aleatorio (En todo el mapa)</option>
+                    <option value="random_zone" selected>⭕ Aleatorio en un área (Centro + Radio)</option>
+                    <option value="polygon">📐 Zona Personalizada (Polígono)</option>
+                    <option value="fixed">📍 Fijo (Coordenadas Exactas)</option>
+                </select>
+            </div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                <div class="field"><label>Cant. Nodos</label><input type="number" id="map-add-count" min="1" value="3"></div>
+                <div class="field"><label>Respawn (ms)</label><input type="number" id="map-add-interval" value="15000"></div>
+                <div class="field"><label>Unidades (u)</label><input type="number" id="map-add-amount" min="1" value="1"></div>
+            </div>
+            <div id="map-add-pos-fields" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+                <div class="field"><label>Coordenada X</label><input type="number" id="map-add-x" value="${pos.x}"></div>
+                <div class="field"><label>Coordenada Y</label><input type="number" id="map-add-y" value="${pos.y}"></div>
+            </div>
+            <div id="map-add-radius-field" class="field" style="margin-top:12px;"><label>Radio de Área de Spawn (px)</label><input type="number" id="map-add-radius" value="500"></div>
+            <div id="map-add-polygon-field" class="field" style="margin-top:12px; display:none;">
+                <label>Vértices del Polígono (X,Y por línea)</label>
+                <textarea id="map-add-polygon" style="width:100%; height:80px; background:#0a0f1a; border:1px solid rgba(251,146,60,0.3); border-radius:4px; color:#fb923c; font-family:monospace; font-size:0.7rem; padding:6px; resize:vertical;" placeholder="Ej: 1000,2000&#10;1500,2000&#10;1500,2500&#10;1000,2500"></textarea>
+                <div style="font-size:0.6rem; color:#64748b; margin-top:4px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="startPolygonDrawForNew()">✏️ Dibujar en Radar</button>
+                    <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="document.getElementById('map-add-polygon').value=''">🗑️ Limpiar</button>
+                </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+                <label>Asset 3D del Nodo (ruta .glb)</label>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="text" id="map-add-asset" value="" placeholder="res://assets/....glb (vacío = genérico teñido con el material)" style="flex:1; margin:0;">
+                    <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="pickAssetPathToInput('map-add-asset')">📁</button>
+                </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+                <label>Icono / Foto del Nodo (imagen)</label>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="text" id="map-add-icon" value="" placeholder="res://assets/....png (vacío = icono del material)" style="flex:1; margin:0;">
+                    <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="pickAssetPathToInput('map-add-icon')">📁</button>
+                </div>
+            </div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:12px;">
+                <div class="field"><label>Escala</label><input type="number" step="0.1" min="0.1" id="map-add-scale" value="1.0"></div>
+                <div class="field"><label>Rotación Y</label><input type="number" step="1" id="map-add-roty" value="0"></div>
+                <div class="field"><label>Altura (Y offset)</label><input type="number" step="0.1" id="map-add-yoffset" value="0.5"></div>
+            </div>
+        `;
+        setTimeout(() => toggleMapAddSpawnMode('random_zone'), 0);
     } else if (kind === 'door') {
         title.innerText = '➕ AGREGAR PUERTA / WARP';
         const zoneOptions = Object.keys(config.mapsConfig)
@@ -1657,6 +1769,40 @@ function refreshMapAddAmbFields(type) {
     `;
 }
 
+// Construye el objeto de un nodo de recurso nuevo desde el modal de agregado
+// (los overrides permiten usarlo también desde finishPolygonDraw)
+function yOffsetFromModal(rawValue) {
+    const v = parseFloat(rawValue);
+    return isNaN(v) ? 0.5 : v;
+}
+
+function buildNewMapResource(overrides = {}) {
+    const val = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
+    const resourceId = overrides.resourceId !== undefined ? overrides.resourceId : (val('map-add-resource-id') || '');
+    const modeRaw = overrides.spawnMode !== undefined ? overrides.spawnMode : (val('map-add-spawn-mode') || 'random_zone');
+    const spawnMode = modeRaw === 'fixed' ? 'fixed' : (modeRaw === 'polygon' ? 'polygon' : 'random');
+    const data = {
+        id: 'res_' + Date.now() + Math.floor(Math.random() * 1000),
+        resourceId: resourceId,
+        count: overrides.count !== undefined ? overrides.count : (parseInt(val('map-add-count')) || 1),
+        intervalMs: overrides.intervalMs !== undefined ? overrides.intervalMs : (parseInt(val('map-add-interval')) || 15000),
+        amount: overrides.amount !== undefined ? overrides.amount : (parseInt(val('map-add-amount')) || 1),
+        spawnMode: spawnMode,
+        x: overrides.x !== undefined ? overrides.x : (parseInt(val('map-add-x')) || 0),
+        y: overrides.y !== undefined ? overrides.y : (parseInt(val('map-add-y')) || 0),
+        radius: overrides.radius !== undefined ? overrides.radius : (modeRaw === 'random_global' ? 0 : (parseInt(val('map-add-radius')) || 500)),
+        assetPath: overrides.assetPath !== undefined ? overrides.assetPath : (val('map-add-asset') || ''),
+        icon: overrides.icon !== undefined ? overrides.icon : (val('map-add-icon') || ''),
+        scale: overrides.scale !== undefined ? overrides.scale : (parseFloat(val('map-add-scale')) || 1.0),
+        rotY: overrides.rotY !== undefined ? overrides.rotY : (parseFloat(val('map-add-roty')) || 0),
+        yOffset: overrides.yOffset !== undefined ? overrides.yOffset : yOffsetFromModal(val('map-add-yoffset')),
+        polygon: null
+    };
+    if (spawnMode === 'polygon' && overrides.polygon) data.polygon = overrides.polygon;
+    else if (spawnMode === 'polygon') data.polygon = parsePolygonString(val('map-add-polygon'));
+    return data;
+}
+
 function confirmMapAdd() {
     const kind = window._mapAddKind;
     const m = config.mapsConfig[selectedMapId];
@@ -1693,6 +1839,24 @@ function confirmMapAdd() {
         m.spawns.push(spawnData);
         newIdx = m.spawns.length - 1;
         window._mapCardExpanded[`spawn-${newIdx}`] = true;
+    } else if (kind === 'resource') {
+        const resourceId = document.getElementById('map-add-resource-id').value;
+        if (!resourceId) { showToast('⚠️ Seleccioná un material recolectable primero.'); return; }
+        const resData = buildNewMapResource();
+        if (resData.spawnMode === 'polygon') {
+            if (!resData.polygon || resData.polygon.length < 3) {
+                showToast('⚠️ Un polígono necesita al menos 3 vértices. Dibujá en el radar o ingresá coordenadas.', 'ERROR', '⚠️');
+                return;
+            }
+            const cx = resData.polygon.reduce((a,p)=>a+p.x,0)/resData.polygon.length;
+            const cy = resData.polygon.reduce((a,p)=>a+p.y,0)/resData.polygon.length;
+            resData.x = Math.round(cx);
+            resData.y = Math.round(cy);
+        }
+        if (!m.resources) m.resources = [];
+        m.resources.push(resData);
+        newIdx = m.resources.length - 1;
+        window._mapCardExpanded[`resource-${newIdx}`] = true;
     } else if (kind === 'door') {
         if (!m.objects) m.objects = [];
         m.objects.push({
@@ -1760,6 +1924,15 @@ function duplicateMapItem(kind, idx) {
         m.spawns.push(clone);
         newIdx = m.spawns.length - 1;
         window._mapCardExpanded[`spawn-${newIdx}`] = true;
+    } else if (kind === 'resource') {
+        const r = m.resources && m.resources[idx];
+        if (!r) return;
+        if (!m.resources) m.resources = [];
+        const clone = JSON.parse(JSON.stringify(r));
+        clone.id = 'res_' + Date.now() + Math.floor(Math.random() * 1000);
+        m.resources.push(clone);
+        newIdx = m.resources.length - 1;
+        window._mapCardExpanded[`resource-${newIdx}`] = true;
     } else if (kind === 'door') {
         const o = m.objects && m.objects[idx];
         if (!o) return;
@@ -3274,7 +3447,7 @@ function initMapRadar() {
                 polygonDrawPoints.push({ x: Math.round(world.wx), y: Math.round(world.wy) });
                 // Actualizar preview en textarea si editando existente
                 if (polygonDrawTargetIdx >= 0) {
-                    const ta = document.getElementById(`spawn-polygon-${polygonDrawTargetIdx}`);
+                    const ta = document.getElementById(polygonTextareaId(polygonDrawKind, polygonDrawTargetIdx));
                     if (ta) ta.value = formatPolygon(polygonDrawPoints);
                 } else {
                     const ta = document.getElementById('map-add-polygon');
@@ -3312,6 +3485,39 @@ function initMapRadar() {
                 dragItem = { type: 'map-obj', index: i };
                 canvas.style.cursor = 'grabbing';
                 selectMapItem('door', i);
+                return;
+            }
+        }
+
+        // Buscar en Nodos de Recurso de este mapa
+        const resources = m.resources || [];
+        for (let i = 0; i < resources.length; i++) {
+            const r = resources[i];
+            if (r.spawnMode === 'random' && (!r.radius || r.radius === 0) && (!r.polygon || r.polygon.length < 3)) continue;
+
+            // Si es polígono, chequear vértices primero
+            if (r.spawnMode === 'polygon' && r.polygon && r.polygon.length >= 3) {
+                const polyPoints = r.polygon.map(p => worldToCanvas(p.x, p.y));
+                for (let vi = 0; vi < polyPoints.length; vi++) {
+                    const vp = polyPoints[vi];
+                    if (Math.hypot(vp.x - mouseX, vp.y - mouseY) < 10) {
+                        isDragging = true;
+                        dragItem = { type: 'map-resource-vertex', index: i, vertexIndex: vi };
+                        canvas.style.cursor = 'grabbing';
+                        selectMapItem('resource', i);
+                        return;
+                    }
+                }
+            }
+
+            const rx = r.x !== undefined ? r.x : 0;
+            const ry = r.y !== undefined ? r.y : 0;
+            const pos = worldToCanvas(rx, ry);
+            if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 16) {
+                isDragging = true;
+                dragItem = { type: 'map-resource', index: i };
+                canvas.style.cursor = 'grabbing';
+                selectMapItem('resource', i);
                 return;
             }
         }
@@ -3410,6 +3616,32 @@ function initMapRadar() {
                     if (rxInput) rxInput.value = s.x;
                     if (ryInput) ryInput.value = s.y;
                 }
+            } else if (dragItem.type === 'map-resource') {
+                const r = m.resources[dragItem.index];
+                if (r) {
+                    r.x = Math.round(world.wx);
+                    r.y = Math.round(world.wy);
+                    const ix = document.querySelector(`input[onchange*="resources[${dragItem.index}].x"], input[oninput*="resources[${dragItem.index}].x"]`);
+                    const iy = document.querySelector(`input[onchange*="resources[${dragItem.index}].y"], input[oninput*="resources[${dragItem.index}].y"]`);
+                    if (ix) ix.value = r.x;
+                    if (iy) iy.value = r.y;
+                    const rxInput = document.getElementById('map-radar-x');
+                    const ryInput = document.getElementById('map-radar-y');
+                    if (rxInput) rxInput.value = r.x;
+                    if (ryInput) ryInput.value = r.y;
+                }
+            } else if (dragItem.type === 'map-resource-vertex') {
+                const r = m.resources[dragItem.index];
+                if (r && r.polygon && r.polygon[dragItem.vertexIndex]) {
+                    r.polygon[dragItem.vertexIndex].x = Math.round(world.wx);
+                    r.polygon[dragItem.vertexIndex].y = Math.round(world.wy);
+                    const ta = document.getElementById(`resource-polygon-${dragItem.index}`);
+                    if (ta) ta.value = formatPolygon(r.polygon);
+                    const cx = r.polygon.reduce((a,p)=>a+p.x,0)/r.polygon.length;
+                    const cy = r.polygon.reduce((a,p)=>a+p.y,0)/r.polygon.length;
+                    r.x = Math.round(cx);
+                    r.y = Math.round(cy);
+                }
             } else if (dragItem.type === 'map-spawn-vertex') {
                 const s = m.spawns[dragItem.index];
                 if (s && s.polygon && s.polygon[dragItem.vertexIndex]) {
@@ -3437,6 +3669,27 @@ function initMapRadar() {
                     if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 14) {
                         hoveringItem = true;
                         break;
+                    }
+                }
+                if (!hoveringItem) {
+                    const resources = m.resources || [];
+                    for (let i = 0; i < resources.length; i++) {
+                        const r = resources[i];
+                        if (r.spawnMode === 'polygon' && r.polygon && r.polygon.length >= 3) {
+                            const polyPoints = r.polygon.map(p => worldToCanvas(p.x, p.y));
+                            for (let vi = 0; vi < polyPoints.length; vi++) {
+                                if (Math.hypot(polyPoints[vi].x - mouseX, polyPoints[vi].y - mouseY) < 10) {
+                                    hoveringItem = true;
+                                    break;
+                                }
+                            }
+                            if (hoveringItem) break;
+                        }
+                        const pos = worldToCanvas(r.x || 0, r.y || 0);
+                        if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 16) {
+                            hoveringItem = true;
+                            break;
+                        }
                     }
                 }
                 if (!hoveringItem) {
@@ -3495,7 +3748,7 @@ function initMapRadar() {
                 if (polygonDrawPoints.length > 0) {
                     polygonDrawPoints.pop();
                     if (polygonDrawTargetIdx >= 0) {
-                        const ta = document.getElementById(`spawn-polygon-${polygonDrawTargetIdx}`);
+                        const ta = document.getElementById(polygonTextareaId(polygonDrawKind, polygonDrawTargetIdx));
                         if (ta) ta.value = formatPolygon(polygonDrawPoints);
                     } else {
                         const ta = document.getElementById('map-add-polygon');
@@ -3714,6 +3967,105 @@ function initMapRadar() {
             ctx.font = `bold ${isBoss ? 10 : 9}px Outfit`;
             ctx.textAlign = 'center';
             ctx.fillText(model.name, pos.x, pos.y - (dotR + 7));
+        });
+
+        // ========== 4b. DIBUJAR NODOS DE RECURSO ==========
+        const resourceNodes = m.resources || [];
+        const RES_COLOR = '#fb923c';
+        const RES_RING = '#fdba74';
+        resourceNodes.forEach((r, idx) => {
+            if (r.spawnMode === 'random' && (!r.radius || r.radius === 0) && (!r.polygon || r.polygon.length < 3)) return;
+
+            const rx = r.x !== undefined ? r.x : 0;
+            const ry = r.y !== undefined ? r.y : 0;
+            const pos = worldToCanvas(rx, ry);
+            const isFocused = focusedRadarItem && focusedRadarItem.type === 'map-resource' && focusedRadarItem.index === idx;
+            const isSelected = isDragging && dragItem && dragItem.type === 'map-resource' && dragItem.index === idx;
+
+            const resLib = (config.shopItems && Array.isArray(config.shopItems.resources)) ? config.shopItems.resources : [];
+            const mat = resLib.find(x => x.id === r.resourceId) || null;
+            const label = mat ? mat.name : (r.resourceId || 'Recurso');
+
+            // Polígono personalizado
+            if (r.spawnMode === 'polygon' && r.polygon && r.polygon.length >= 3) {
+                const polyPoints = r.polygon.map(p => worldToCanvas(p.x, p.y));
+                ctx.fillStyle = 'rgba(251, 146, 60, 0.08)';
+                ctx.beginPath();
+                ctx.moveTo(polyPoints[0].x, polyPoints[0].y);
+                for (let i = 1; i < polyPoints.length; i++) ctx.lineTo(polyPoints[i].x, polyPoints[i].y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = RES_COLOR + (isSelected || isFocused ? 'cc' : '80');
+                ctx.lineWidth = (isSelected || isFocused) ? 2.5 : 1.5;
+                ctx.beginPath();
+                ctx.moveTo(polyPoints[0].x, polyPoints[0].y);
+                for (let i = 1; i < polyPoints.length; i++) ctx.lineTo(polyPoints[i].x, polyPoints[i].y);
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fillStyle = RES_COLOR;
+                polyPoints.forEach((p, vi) => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, isSelected || isFocused ? 6 : 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 8px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText((vi + 1).toString(), p.x, p.y);
+                    ctx.textBaseline = 'alphabetic';
+                    ctx.fillStyle = RES_COLOR;
+                });
+            }
+
+            // Radio de dispersión si existe
+            if (r.spawnMode === 'random' && r.radius > 0) {
+                const radiusCanvas = ((r.radius / worldW) * canvas.width) * radarState.zoom;
+                ctx.fillStyle = 'rgba(251, 146, 60, 0.05)';
+                ctx.strokeStyle = 'rgba(251, 146, 60, 0.25)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            const dotR = 5.0;
+            if (isSelected || isFocused) {
+                const pulse = 3 + Math.sin(Date.now() / 180) * 2;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, dotR + 8 + pulse, 0, Math.PI * 2);
+                ctx.strokeStyle = RES_COLOR;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Halo exterior translúcido
+            ctx.fillStyle = (isSelected || isFocused) ? '#fff' : 'rgba(251, 146, 60, 0.2)';
+            ctx.strokeStyle = RES_RING;
+            ctx.lineWidth = isSelected ? 2.5 : 1.5;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, dotR + 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Núcleo (rombo estilizado = recurso)
+            ctx.fillStyle = RES_COLOR;
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y - dotR);
+            ctx.lineTo(pos.x + dotR, pos.y);
+            ctx.lineTo(pos.x, pos.y + dotR);
+            ctx.lineTo(pos.x - dotR, pos.y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Etiqueta
+            ctx.fillStyle = RES_RING;
+            ctx.font = 'bold 9px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, pos.x, pos.y - (dotR + 7));
+            ctx.fillStyle = 'rgba(253,186,116,0.8)';
+            ctx.font = '8px Outfit';
+            ctx.fillText(`×${r.count || 1} · ${r.amount || 1}u`, pos.x, pos.y + dotR + 12);
         });
 
         // ========== 5. DIBUJAR OBJETOS DEL MUNDO ==========

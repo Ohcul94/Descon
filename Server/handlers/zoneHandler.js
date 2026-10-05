@@ -144,6 +144,8 @@ function registerZoneHandlers(socket, io, state) {
                         }
                     });
                 }
+                // Sincronizar nodos de recursos recolectables de la nueva zona
+                if (state.resourceNodeManager) state.resourceNodeManager.sendZoneNodes(socket, newZone);
             }
         }, 300);
     });
@@ -517,9 +519,11 @@ function registerZoneHandlers(socket, io, state) {
                                 });
                             }
                         });
-                    }
                 }
-            }, 500);
+                // Sincronizar nodos de recursos recolectables de la nueva zona
+                if (state.resourceNodeManager) state.resourceNodeManager.sendZoneNodes(socket, zoneId);
+            }
+        }, 500);
 
             socket.emit('gameNotification', { msg: `Salto exitoso a Sector ${zoneId}`, type: 'success' });
         } catch (e) {

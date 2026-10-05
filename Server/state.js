@@ -10,6 +10,7 @@ module.exports = {
     parties: {},
     playerParty: {},
     lootDrops: {},
+    resourceNodes: {},
     
     // Configuraciones y contadores
     SERVER_CONFIG: null,

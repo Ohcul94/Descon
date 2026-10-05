@@ -850,7 +850,9 @@ function startGameLoop(io, state, aiManager) {
     // 3. LOOP DE GUARDIANÍA (1s para Respawn Dinámico v266.999)
     setInterval(() => {
         aiManager.runGuardians();
-        
+
+        // Nodos de recursos recolectables (respawn + canales activos)
+        if (state.resourceNodeManager) state.resourceNodeManager.updateLoop();
         // v2.0: Procesar Lógica de Extracción (1Hz)
         extractionManager.updateLoop();
         

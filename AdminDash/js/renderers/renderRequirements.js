@@ -336,6 +336,101 @@ window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, bo
         </div>
     `;
 };
+
+// Selector buscable de MATERIALES RECOLECTABLES (para nodos de recurso en Cartografía)
+window.renderSearchableResourceSelect = function(currentValue, onChangeCallback, borderCSSColor = '#fb923c', extraId = '') {
+    const resList = (config.shopItems && Array.isArray(config.shopItems.resources)) ? config.shopItems.resources : [];
+    const currentRes = currentValue ? (resList.find(r => r.id === currentValue) || null) : null;
+    const currentName = currentRes ? currentRes.name : (currentValue ? currentValue : '');
+    const dropdownId = `dropdown-select-${extraId}`;
+    const inputId = `dropdown-search-${extraId}`;
+    const listId = `dropdown-list-${extraId}`;
+
+    window[`filterDropdown_${extraId}`] = function(query) {
+        const list = document.getElementById(listId);
+        if (!list) return;
+        list.innerHTML = '';
+        const q = (query || '').toLowerCase();
+
+        resList.forEach((r) => {
+            // Solo materiales marcados como recolectables (más el actual, por si dejó de serlo)
+            if (!r.recolectable && r.id !== currentValue) return;
+            const matches = (r.name || '').toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q);
+            if (q && !matches) return;
+
+            const row = document.createElement('div');
+            row.style.padding = '8px 12px';
+            row.style.cursor = 'pointer';
+            row.style.borderBottom = '1px solid rgba(255,255,255,0.02)';
+            row.style.display = 'flex';
+            row.style.flexDirection = 'column';
+            row.style.gap = '4px';
+            row.onmouseenter = () => row.style.background = `${borderCSSColor}1a`;
+            row.onmouseleave = () => row.style.background = 'transparent';
+
+            const titleSpan = document.createElement('span');
+            titleSpan.innerHTML = `<strong>[${r.id}]</strong> ${r.name || ''}`;
+            titleSpan.style.color = r.recolectable ? borderCSSColor : '#ff4444';
+            titleSpan.style.fontSize = '0.85rem';
+            row.appendChild(titleSpan);
+
+            const metaSpan = document.createElement('span');
+            const gt = r.gatherTime !== undefined ? r.gatherTime : 3;
+            metaSpan.innerText = (r.recolectable ? `⏱ Recolecta en ${gt}s` : '⚠️ Ya no es recolectable') +
+                (r.maxStack ? ` · Stack ${r.maxStack}` : '');
+            metaSpan.style.color = '#64748b';
+            metaSpan.style.fontSize = '0.68rem';
+            row.appendChild(metaSpan);
+
+            row.onclick = () => {
+                onChangeCallback(r.id);
+                const inp = document.getElementById(inputId);
+                if (inp) inp.value = r.name || r.id;
+                list.style.display = 'none';
+            };
+            list.appendChild(row);
+        });
+
+        if (list.children.length === 0) {
+            const noResult = document.createElement('div');
+            noResult.style.padding = '10px';
+            noResult.style.color = '#888';
+            noResult.style.fontSize = '0.78rem';
+            noResult.style.lineHeight = '1.5';
+            noResult.innerHTML = q ? 'No se encontraron materiales' :
+                'No hay materiales recolectables.<br>Marcalos en <strong style="color:var(--accent);">Crafteo → Materiales → Recolectable</strong>.';
+            list.appendChild(noResult);
+        }
+    };
+
+    document.addEventListener('click', function(e) {
+        const list = document.getElementById(listId);
+        const searchInput = document.getElementById(inputId);
+        if (list && searchInput && !list.contains(e.target) && e.target !== searchInput) {
+            list.style.display = 'none';
+        }
+    });
+
+    return `
+        <div style="position: relative; width: 100%; display: flex; flex-direction: column;">
+            <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                <input type="text" id="${inputId}" value="${currentName}"
+                       placeholder="🔍 Escribí para filtrar material recolectable..."
+                       style="background:#0f172a; color:${borderCSSColor}; font-weight:bold; padding-right: 30px; border: 1px solid ${borderCSSColor}33; width: 100%; border-radius: 8px; outline: none;"
+                       onfocus="document.querySelectorAll('.folder-content[id^=dropdown-list-]').forEach(el=>el.style.display='none'); document.getElementById('${listId}').style.display = 'block'; window['filterDropdown_${extraId}'](this.value);"
+                       oninput="window['filterDropdown_${extraId}'](this.value);">
+                <span style="position: absolute; right: 10px; cursor: pointer; color: ${borderCSSColor}; font-size: 0.8rem;"
+                      onclick="const el = document.getElementById('${listId}'); const cur = el.style.display; document.querySelectorAll('.folder-content[id^=dropdown-list-]').forEach(x=>x.style.display='none'); el.style.display = cur === 'block' ? 'none' : 'block';">▼</span>
+            </div>
+
+            <div id="${listId}" class="folder-content"
+                 style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 999999;
+                        max-height: 250px; overflow-y: auto; background: #0f172a; border: 1px solid ${borderCSSColor};
+                        padding: 5px; box-shadow: 0 15px 30px rgba(0,0,0,0.6); margin-top: 5px; border-radius: 8px; width: 100%;">
+            </div>
+        </div>
+    `;
+};
 window.updateAdPhaseTotal = function(waveIdx, phaseIdx) {
     const wave = config.gameModes.altar_defense.waves[waveIdx];
     if (!wave || !wave.phases || !wave.phases[phaseIdx]) return;

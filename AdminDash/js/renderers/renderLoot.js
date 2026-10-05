@@ -449,6 +449,8 @@ window.renderCrafting = function() {
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Hubs)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.hubs || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.hubs = parseInt(this.value) || 0;"></div>
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Ohcu)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.ohcu || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.ohcu = parseInt(this.value) || 0;"></div>
                             <div class="field" style="margin:0; flex-shrink: 0;"><label>No Comerciable</label><input type="checkbox" ${res.soulbound ? 'checked' : ''} onchange="config.shopItems.resources[${idx}].soulbound = this.checked;"></div>
+                            <div class="field" style="margin:0; flex-shrink: 0;"><label>Recolectable</label><input type="checkbox" ${res.recolectable ? 'checked' : ''} onchange="config.shopItems.resources[${idx}].recolectable = this.checked; renderCrafting();"></div>
+                            ${res.recolectable ? `<div class="field" style="width: 120px; margin:0; flex-shrink: 0;"><label>Tiempo Recolectar (s)</label><input type="number" min="0.5" step="0.5" value="${res.gatherTime !== undefined ? res.gatherTime : 3}" onchange="config.shopItems.resources[${idx}].gatherTime = parseFloat(this.value) || 3;"></div>` : ''}
                         </div>
 
                         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
@@ -604,7 +606,7 @@ window.renderCrafting = function() {
                             <div class="field"><label>Cantidad Fabricada</label><input type="number" min="1" value="${recipe.resultAmount || 1}" onchange="config.craftingRecipes[${idx}].resultAmount = parseInt(this.value)"></div>
                         </div>
 
-                         <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
+                        <div style="display: flex; gap: 15px; align-items: center; width: 100%; flex-wrap: wrap;">
                             <div class="field" style="width: 70px; margin:0; flex-shrink: 0;"><label>Escala</label><input type="number" step="0.1" min="0.1" value="${recipe.iconScale || 1.0}" style="width:100%;" onchange="config.craftingRecipes[${idx}].iconScale = parseFloat(this.value) || 1.0;"></div>
                             <div class="field" style="width: 90px; margin:0; flex-shrink: 0;"><label>Límite Stack</label><input type="number" min="1" value="${recipe.maxStack || 1}" onchange="config.craftingRecipes[${idx}].maxStack = parseInt(this.value) || 1;"></div>
                             <div class="field" style="flex-grow:1; margin:0;"><label>Costo de Hubs (qty)</label><input type="number" value="${recipe.costHubs || 0}" onchange="config.craftingRecipes[${idx}].costHubs = parseInt(this.value)"></div>
@@ -664,7 +666,9 @@ window.addCraftingResource = function() {
         icon: "res://assets/Materiales/Hierro.png",
         color: "#ffffff",
         type: "resource",
-        tags: []
+        tags: [],
+        recolectable: false,
+        gatherTime: 3
     });
     renderCrafting();
 };

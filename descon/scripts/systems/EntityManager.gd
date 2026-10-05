@@ -11,6 +11,8 @@ var active_areas = {} # Cache de zonas de efecto (Humo, etc)
 var frost_last_pos = {} # Ultimo punto del camino de escarcha por caster {ownerId: {p: Vector2, t: int}}
 var _frost_flake_tex: Texture2D = null # Copo de nieve procedural, generado una sola vez
 var loot_drops = {} # Cache de botines activos en el mapa
+var resource_nodes = {} # Cache de nodos de recursos recolectables {node_id: ResourceNode}
+var _pending_resource_nodes: Array = [] # Nodos recibidos antes de que el mundo esté listo
 var active_laser_tracking = {} # Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
 var active_wind_walls = {} # Paredes de viento en fase de carga {wall_id: Node2D}
 var active_fireballs = {} # Bolas de fuego dinámicas (tipo sol) {enemy_id_mId: Node2D} (v901.0)
@@ -27,6 +29,7 @@ var is_in_strange_dimension: bool = false
 const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
 const SHIP_SCENE = preload("res://scenes/entities/Ship.tscn")
 const LOOT_DROP_SCRIPT = preload("res://scripts/entities/LootDrop.gd")
+const RESOURCE_NODE_SCRIPT = preload("res://scripts/entities/ResourceNode.gd")
 const WIND_BARRIER_VFX_SCENE = "res://VFX/scenes/VFX_Shield_green_plane.tscn"
 const VFX_SHIELD_GREEN_SCENE = "res://VFX/scenes/VFX_Shield_green.tscn"
 const BEACON_3D_SCRIPT = preload("res://scripts/vfx/Beacon3D.gd")
@@ -421,12 +424,23 @@ func setup(world_ref):
 	NetworkManager.taunt_event.connect(_on_taunt_event)
 	NetworkManager.loot_spawned.connect(_on_loot_spawned)
 	NetworkManager.loot_despawned.connect(_on_loot_despawned)
+	NetworkManager.resource_nodes_received.connect(_on_resource_nodes_received)
+	NetworkManager.resource_node_spawned.connect(_on_resource_node_spawned)
+	NetworkManager.resource_node_depleted.connect(_on_resource_node_depleted)
+	NetworkManager.resource_collect_started.connect(_on_resource_collect_started)
+	NetworkManager.resource_collect_cancelled.connect(_on_resource_collect_cancelled)
 	NetworkManager.boss_colors_start.connect(_on_boss_colors_start)
 	NetworkManager.boss_colors_end.connect(_on_boss_colors_end)
 
 
 func _process(delta):
 	_update_enemy_cast_visuals(delta)
+	# Instanciar nodos de recursos que llegaron antes de que el mundo esté listo
+	if _pending_resource_nodes.size() > 0 and is_instance_valid(world) and is_instance_valid(world.entities_node):
+		var pending = _pending_resource_nodes.duplicate()
+		_pending_resource_nodes.clear()
+		for pd in pending:
+			_spawn_resource_node(pd["data"], int(pd.get("zone", -1)))
 	# 0. Filtro Proactivo de Zonas para prevenir Entidades Huérfanas (v3.0) - Optimizado (v3.1)
 	zone_cleanup_timer += delta
 	if zone_cleanup_timer >= ZONE_CLEANUP_INTERVAL:
@@ -468,6 +482,16 @@ func _process(delta):
 						loot_drops.erase(lid)
 						drop.queue_free()
 						print("[EntityManager SINC] Botín huérfano purgado por cambio de zona: ", lid)
+
+			# Limpiar Nodos de Recurso huérfanos
+			for nid in resource_nodes.keys():
+				var rn = resource_nodes[nid]
+				if is_instance_valid(rn):
+					var rn_zone = rn.get_meta("zone") if rn.has_meta("zone") else -1
+					if rn_zone == -1 or rn_zone != my_zone:
+						resource_nodes.erase(nid)
+						rn.queue_free()
+						print("[EntityManager SINC] Nodo de recurso huérfano purgado por cambio de zona: ", nid)
 
 
 	# 1. Procesar físicas locales de succión de Vórtices y Lazos Curativos
@@ -3235,6 +3259,11 @@ func clear_remote_players():
 		var drop = loot_drops[id]
 		if is_instance_valid(drop): drop.queue_free()
 	loot_drops.clear()
+	for id in resource_nodes.keys():
+		var rn = resource_nodes[id]
+		if is_instance_valid(rn): rn.queue_free()
+	resource_nodes.clear()
+	_pending_resource_nodes.clear()
 	
 	# v301.6: Limpiar todos los restos de naufragios del sector
 	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):
@@ -4524,6 +4553,14 @@ func _on_clear_zone_entities(payload):
 		if is_instance_valid(drop):
 			drop.queue_free()
 	loot_drops.clear()
+
+	# Limpiar nodos de recursos recolectables de la zona anterior
+	_pending_resource_nodes.clear()
+	for id in resource_nodes.keys():
+		var rn = resource_nodes[id]
+		if is_instance_valid(rn):
+			rn.queue_free()
+	resource_nodes.clear()
 	
 	# v371.2: Limpiar restos de naufragios (wreckage markers) antiguos del sector al cambiar de zona
 	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):
@@ -4858,8 +4895,130 @@ func _on_loot_despawned(data: Dictionary):
 				drop.queue_free()
 			print("[EntityManager] Botín físico removido: ", id)
 
-# --- v500.8+ Terrain-Conforming helpers (Decal híbrido) ---
-# Detecta si el renderer soporta Decal (Forward+ / Mobile). En gl_compatibility usamos malla conformante.
+# --- Nodos de recursos recolectables (Cartografía → Recursos) ---
+func _spawn_resource_node(data: Dictionary, zone: int = -1) -> void:
+	if typeof(data) != TYPE_DICTIONARY or not data.has("id"):
+		return
+	var id = str(data["id"])
+	if id == "" or resource_nodes.has(id):
+		return
+	if not is_instance_valid(world) or not is_instance_valid(world.entities_node):
+		for pd in _pending_resource_nodes:
+			if str(pd["data"].get("id", "")) == id:
+				return
+		_pending_resource_nodes.append({ "data": data, "zone": zone })
+		return
+
+	var node = Area2D.new()
+	node.set_script(RESOURCE_NODE_SCRIPT)
+	node.name = id
+	node.node_id = id
+	node.data = data
+	node.asset_path = str(data.get("assetPath", ""))
+	node.icon_path = str(data.get("icon", ""))
+	node.amount = int(data.get("amount", 1))
+	node.node_scale = float(data.get("scale", 1.0))
+	node.rot_y = float(data.get("rotY", 0.0))
+	node.y_offset = float(data.get("yOffset", 0.0))
+	node.global_position = Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	node.set_meta("zone", zone)
+	if not bool(data.get("active", true)):
+		node.is_active = false
+
+	world.entities_node.add_child(node)
+	resource_nodes[id] = node
+	print("[EntityManager] Nodo de recurso instanciado: ", id)
+
+func _on_resource_nodes_received(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	var zone = _parse_zone_to_int(data.get("zone", -1))
+	var my_zone = zone
+	if is_instance_valid(world) and is_instance_valid(world.local_player):
+		my_zone = _parse_zone_to_int(world.local_player.current_zone)
+	if zone != -1 and my_zone != -1 and zone != my_zone:
+		_clear_resource_nodes()
+		return
+
+	var nodes = data.get("nodes", [])
+	if typeof(nodes) != TYPE_ARRAY:
+		return
+
+	var seen = {}
+	for nd in nodes:
+		if typeof(nd) != TYPE_DICTIONARY or not nd.has("id"):
+			continue
+		var id = str(nd["id"])
+		seen[id] = true
+		if resource_nodes.has(id):
+			var existing = resource_nodes[id]
+			if is_instance_valid(existing):
+				existing.set_active_state(bool(nd.get("active", true)), int(nd.get("respawnAt", 0)))
+				continue
+			resource_nodes.erase(id)
+		_spawn_resource_node(nd, zone)
+
+	for id in resource_nodes.keys():
+		if seen.has(id):
+			continue
+		var rn = resource_nodes[id]
+		resource_nodes.erase(id)
+		if is_instance_valid(rn):
+			rn.queue_free()
+
+func _on_resource_node_spawned(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY or not data.has("id"):
+		return
+	var id = str(data["id"])
+	if resource_nodes.has(id):
+		var node = resource_nodes[id]
+		if is_instance_valid(node):
+			node.respawn()
+		else:
+			resource_nodes.erase(id)
+			_spawn_resource_node(data)
+		return
+	_spawn_resource_node(data)
+
+func _on_resource_node_depleted(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY or not data.has("id"):
+		return
+	var id = str(data["id"])
+	if not resource_nodes.has(id):
+		return
+	var node = resource_nodes[id]
+	if is_instance_valid(node):
+		node.deplete(int(data.get("respawnAt", 0)))
+
+func _on_resource_collect_started(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY or not data.has("nodeId"):
+		return
+	var id = str(data["nodeId"])
+	if not resource_nodes.has(id):
+		return
+	var node = resource_nodes[id]
+	if is_instance_valid(node):
+		node.begin_channel(float(data.get("gatherTime", 3.0)))
+
+func _on_resource_collect_cancelled(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY or not data.has("nodeId"):
+		return
+	var id = str(data["nodeId"])
+	if not resource_nodes.has(id):
+		return
+	var node = resource_nodes[id]
+	if is_instance_valid(node):
+		node.cancel_channel(str(data.get("reason", "")))
+
+func _clear_resource_nodes():
+	_pending_resource_nodes.clear()
+	for id in resource_nodes.keys():
+		var node = resource_nodes[id]
+		if is_instance_valid(node):
+			node.queue_free()
+	resource_nodes.clear()
+
+# --- v500.8+ Terrain-Conforming helpers (Decal híbrido) ---# Detecta si el renderer soporta Decal (Forward+ / Mobile). En gl_compatibility usamos malla conformante.
 func _render_supports_decal() -> bool:
 	var method = ProjectSettings.get_setting("renderer/rendering_method", "gl_compatibility")
 	# En editor mobile setting puede diferir

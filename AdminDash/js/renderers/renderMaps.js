@@ -440,6 +440,135 @@ ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? 
                     `; }).join('')}
                 </div>
 
+                <!-- ========== RECURSOS RECOLECTABLES ========== -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; margin-top:2rem; padding-top:1.5rem; border-top:1px solid rgba(251,146,60,0.18);"><label style="color:#fb923c; font-size: 0.8rem; font-weight:bold;">🌿 RECURSOS RECOLECTABLES</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#fb923c; border-color:#fb923c; color:#000; font-weight:bold;" onclick="openMapAddModal('resource')">+ AGREGAR RECURSO</button></div>
+                <div style="font-size:0.65rem; color:#64748b; margin-bottom:1rem;">Nodos de recolección: elegí un material marcado como <strong style="color:#fb923c;">Recolectable</strong> en Crafteo → Materiales, su ubicación, cantidad de nodos y tiempo de respawn. El jugador canaliza el rayo de extracción durante el tiempo configurado en el material.</div>
+                <div id="resources-list">
+                    ${(m.resources || []).map((r, idx) => {
+                        const resLib = (config.shopItems && Array.isArray(config.shopItems.resources)) ? config.shopItems.resources : [];
+                        const mat = resLib.find(x => x.id === r.resourceId) || null;
+                        const rName = mat ? mat.name : (r.resourceId ? `ID ${r.resourceId}` : 'Sin material asignado');
+                        const gatherTime = mat && mat.gatherTime !== undefined ? mat.gatherTime : 3;
+                        const matOk = !!(mat && mat.recolectable);
+                        const isRandomMode = r.spawnMode === 'random' || r.spawnMode === 'random_global' || r.spawnMode === 'random_zone';
+                        const rMode = isRandomMode ? (r.radius > 0 ? '⭕ Área' : '🌍 Global') : (r.spawnMode === 'polygon' ? '📐 Polígono' : '📍 Fijo');
+                        const isOpen = isMapCardExpanded(`resource-${idx}`);
+                        const iconWeb = resolveAssetWebUrl(r.icon || (mat ? mat.icon : '') || '');
+                        return `
+                        <div class="card" id="card-map-resource-${idx}" style="margin-bottom:0.6rem; padding:0; position:relative; border-color: rgba(251, 146, 60, 0.25); overflow:visible; cursor:pointer;">
+                            <div style="display:flex; align-items:center; gap:10px; padding:0.6rem 0.9rem; border-bottom: ${isOpen ? '1px solid rgba(255,255,255,0.06)' : 'none'};"
+                                 onclick="selectMapItem('resource', ${idx}); toggleMapCard('resource-${idx}')">
+                                <span style="font-size:1rem;">🌿</span>
+                                <span id="resource-name-${idx}" style="flex:1; color:#fb923c; font-weight:bold; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${rName}</span>
+                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">${rMode} ×${r.count || 1} · ${r.amount || 1}u · ⏱${gatherTime}s</span>
+                                ${matOk ? '' : `<span style="font-size:0.6rem; color:#ff4444; padding:2px 6px; border:1px solid rgba(255,68,68,0.4); border-radius:4px; white-space:nowrap;" title="El material no está marcado como Recolectable">⚠️ SIN RECOLECTAR</span>`}
+                                <span style="color:#fb923c; font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
+                                <button style="background:none; border:none; color:#fb923c; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Duplicar (Ctrl+D)" onclick="event.stopPropagation(); duplicateMapItem('resource', ${idx})">⧉</button>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Eliminar (Supr)" onclick="event.stopPropagation(); requestMapDelete('resource', ${idx})">✕</button>
+                            </div>
+                            ${isOpen ? `
+                            <div style="padding:1rem;">
+                                <div class="form-grid" style="overflow: visible;">
+                                    <div class="field" style="grid-column: span 2; overflow: visible;">
+                                        <label>Material Recolectable</label>
+                                        ${renderSearchableResourceSelect(r.resourceId, (newId) => {
+                                            config.mapsConfig[selectedMapId].resources[idx].resourceId = newId;
+                                            renderMapDetail();
+                                            selectMapItem('resource', idx);
+                                        }, '#fb923c', `map-resource-${idx}`)}
+                                        <div style="font-size:0.6rem; color:#64748b; margin-top:5px;">⏱ Tiempo de recolección: <strong style="color:#fb923c;">${gatherTime}s</strong> (se configura en Crafteo → Materiales)</div>
+                                    </div>
+                                    <div class="field">
+                                        <label>Cant. Nodos (slots)</label>
+                                        <input type="number" min="1" value="${r.count || 1}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].count = Math.max(1, parseInt(this.value) || 1)">
+                                    </div>
+                                    <div class="field">
+                                        <label>Intervalo Respawn (ms)</label>
+                                        <input type="number" min="0" value="${r.intervalMs !== undefined ? r.intervalMs : 15000}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].intervalMs = parseInt(this.value) || 0">
+                                    </div>
+                                    <div class="field" style="grid-column: span 2;">
+                                        <label>Unidades por Recolección</label>
+                                        <input type="number" min="1" value="${r.amount || 1}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].amount = Math.max(1, parseInt(this.value) || 1)">
+                                    </div>
+                                    <div class="field" style="grid-column: span 2;">
+                                         <label>Modo de Aparición</label>
+                                         <select style="background:#0f172a; border:none; color:#fb923c; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;"
+                                                 onchange="const val = this.value;
+                                                           const rr = config.mapsConfig['${selectedMapId}'].resources[${idx}];
+                                                           if (val === 'random_global') { rr.spawnMode = 'random'; rr.radius = 0; rr.polygon = null; }
+                                                           else if (val === 'random_zone') { rr.spawnMode = 'random'; if (!rr.radius || rr.radius === 0) rr.radius = 500; rr.polygon = null; }
+                                                           else if (val === 'polygon') { rr.spawnMode = 'polygon'; rr.radius = 0; if (!rr.polygon || rr.polygon.length < 3) rr.polygon = []; }
+                                                           else if (val === 'fixed') { rr.spawnMode = 'fixed'; rr.polygon = null; }
+                                                           renderMapDetail();">
+                                             <option value="random_global" ${(r.spawnMode === 'random_global') || (r.spawnMode === 'random' && (!r.radius || r.radius === 0) && !r.polygon) ? 'selected' : ''}>🌍 Aleatorio (En todo el mapa)</option>
+                                             <option value="random_zone" ${(r.spawnMode === 'random_zone') || (r.spawnMode === 'random' && r.radius > 0 && !r.polygon) ? 'selected' : ''}>⭕ Aleatorio en un área (Centro + Radio)</option>
+                                             <option value="polygon" ${r.spawnMode === 'polygon' ? 'selected' : ''}>📐 Zona Personalizada (Polígono)</option>
+                                             <option value="fixed" ${r.spawnMode === 'fixed' ? 'selected' : ''}>📍 Fijo (Coordenadas Exactas)</option>
+                                         </select>
+                                     </div>
+${(r.spawnMode === 'fixed' || r.spawnMode === 'random_zone' || (r.spawnMode === 'random' && r.radius > 0) || r.spawnMode === 'polygon') ? `
+                                     <div class="field">
+                                         <label>Coordenada Centro X</label>
+                                         <input type="number" value="${r.x !== undefined ? r.x : 1000}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].x = parseInt(this.value) || 0">
+                                     </div>
+                                     <div class="field">
+                                         <label>Coordenada Centro Y</label>
+                                         <input type="number" value="${r.y !== undefined ? r.y : 1000}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].y = parseInt(this.value) || 0">
+                                     </div>
+                                     ` : ''}
+${(r.spawnMode === 'random' || r.spawnMode === 'random_zone') && r.radius > 0 ? `
+                                     <div class="field" style="grid-column: span 2;">
+                                         <label>Radio de Área de Spawn (px)</label>
+                                         <input type="number" value="${r.radius}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].radius = parseInt(this.value) || 0">
+                                     </div>
+                                     ` : ''}
+                                     ${r.spawnMode === 'polygon' ? `
+                                     <div class="field" style="grid-column: span 2;">
+                                         <label>Vértices del Polígono (X,Y)</label>
+                                         <textarea id="resource-polygon-${idx}" style="width:100%; height:80px; background:#0a0f1a; border:1px solid rgba(251,146,60,0.3); border-radius:4px; color:#fb923c; font-family:monospace; font-size:0.7rem; padding:6px; resize:vertical;"
+                                             oninput="parsePolygonInput(this.value, ${idx}, 'resource')" placeholder="Ej: 1000,2000&#10;1500,2000&#10;1500,2500&#10;1000,2500">${(r.polygon || []).map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join('\n')}</textarea>
+                                         <div style="font-size:0.6rem; color:#64748b; margin-top:4px; display:flex; gap:8px; flex-wrap:wrap;">
+                                             <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="startPolygonDraw(${idx}, 'resource')">✏️ Dibujar en Radar</button>
+                                             <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="clearPolygon(${idx}, 'resource')">🗑️ Limpiar</button>
+                                             <span>${(r.polygon || []).length} vértices</span>
+                                         </div>
+                                     </div>
+                                     ` : ''}
+                                     <div class="field" style="grid-column: span 2;">
+                                         <label>Asset 3D del Nodo (ruta .glb)</label>
+                                         <div style="display:flex; gap:6px; align-items:center;">
+                                             <input type="text" value="${r.assetPath || ''}" placeholder="res://assets/....glb (vacío = genérico teñido con el color del material)"
+                                                    oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].assetPath = this.value" style="flex:1; margin:0;">
+                                             <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="triggerMapResourceAssetPick('${selectedMapId}', ${idx}, 'assetPath')">📁</button>
+                                         </div>
+                                     </div>
+                                     <div class="field" style="grid-column: span 2;">
+                                         <label>Icono / Foto del Nodo (imagen)</label>
+                                         <div style="display:flex; gap:6px; align-items:center;">
+                                             <input type="text" value="${r.icon || ''}" placeholder="res://assets/....png (vacío = icono del material)"
+                                                    oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].icon = this.value" style="flex:1; margin:0;">
+                                             <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="triggerMapResourceAssetPick('${selectedMapId}', ${idx}, 'icon')">📁</button>
+                                             ${iconWeb ? `<img src="${iconWeb}" style="width:34px;height:34px;object-fit:contain;border-radius:4px;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">` : ''}
+                                         </div>
+                                     </div>
+                                     <div class="field">
+                                         <label>Escala</label>
+                                         <input type="number" step="0.1" min="0.1" value="${r.scale !== undefined ? r.scale : 1.0}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].scale = parseFloat(this.value) || 1.0">
+                                     </div>
+                                     <div class="field">
+                                         <label>Rotación Y (grados)</label>
+                                         <input type="number" step="1" value="${r.rotY !== undefined ? r.rotY : 0}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].rotY = parseFloat(this.value) || 0">
+                                     </div>
+                                     <div class="field">
+                                         <label>Altura (Y offset)</label>
+                                         <input type="number" step="0.1" value="${r.yOffset !== undefined ? r.yOffset : 0.5}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].yOffset = parseFloat(this.value) || 0">
+                                     </div>
+                                </div>
+                            </div>` : ''}
+                        </div>
+                    `; }).join('')}
+                </div>
+
                 <!-- ========== CONFIGURADOR DE PUERTAS / WARPS ========== -->
                 <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(0,210,255,0.1);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">

@@ -1942,6 +1942,64 @@ window.triggerMapObjAssetPick = async function(mapId, objIdx) {
     input.click();
 };
 
+// Seleccionar asset (glb/imagen) para un NODO DE RECURSO de una zona
+// field: 'assetPath' (modelo3D) | 'icon' (foto/miniatura)
+window.triggerMapResourceAssetPick = async function(mapId, resIdx, field = 'assetPath') {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.glb,.png,.jpg,.webp';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+        try {
+            const response = await fetch(`${activeURL}/api/find-asset?fileName=${encodeURIComponent(file.name)}`);
+            const result = await response.json();
+            if (result.success && result.path) {
+                const res = config.mapsConfig[mapId] && config.mapsConfig[mapId].resources
+                    ? config.mapsConfig[mapId].resources[resIdx] : null;
+                if (res) {
+                    res[field] = result.path;
+                    renderMapDetail();
+                }
+            } else {
+                alert('❌ ' + (result.error || 'Archivo no encontrado en los assets del proyecto.\n\nAsegurate de que el archivo ya esté dentro de la carpeta descon/assets.'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error al conectar con el servidor local.');
+        }
+    };
+    input.click();
+};
+
+// Seleccionar un asset y escribir su ruta en un input (usado por los modales de Cartografía)
+window.pickAssetPathToInput = async function(inputId) {
+    const target = document.getElementById(inputId);
+    if (!target) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.glb,.png,.jpg,.webp';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+        try {
+            const response = await fetch(`${activeURL}/api/find-asset?fileName=${encodeURIComponent(file.name)}`);
+            const result = await response.json();
+            if (result.success && result.path) {
+                target.value = result.path;
+            } else {
+                alert('❌ ' + (result.error || 'Archivo no encontrado en los assets del proyecto.\n\nAsegurate de que el archivo ya esté dentro de la carpeta descon/assets.'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error al conectar con el servidor local.');
+        }
+    };
+    input.click();
+};
+
 // ─── MÚSICA DE LA ZONA (Cartografía) ──────────────────────────────────────────
 // Seleccionar el archivo de audio de un mapa (debe existir dentro de descon/assets)
 window.pickMapMusic = function(mapId) {
