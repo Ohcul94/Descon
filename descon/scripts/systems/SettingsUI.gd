@@ -311,7 +311,7 @@ func _setup_ui():
 		"slot_6": "SLOT 6 (HABILIDAD 3)", "slot_7": "SLOT 7 (HABILIDAD 4)",
 		"auto_target_self": "AUTO-LANZAR HABILIDADES",
 		"stay_still": "QUEDARSE QUIETO (DETENER NAVEGACIÓN)",
-		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (F1)", "ui_battlepass": "PASE DE BATALLA (F4)",
+		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (V)", "ui_logistics": "MENÚ DE LOGÍSTICA / FLOTA (F1)", "ui_battlepass": "PASE DE BATALLA (F4)",
 		"ui_events": "MENÚ DE EVENTOS (F2)",
 		"ui_housing": "MENÚ DE HOUSING (F3)",
 		"ui_map": "MAPA GRANDE (TAB)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (Z)", "ui_stats": "ESTADÍSTICAS (C)",

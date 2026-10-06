@@ -17,6 +17,7 @@ const DungeonBuilderScript = preload("res://scripts/systems/DungeonBuilder.gd")
 @onready var ui_hud = get_node_or_null("HUD/MainHUD")
 @onready var ui_chat = get_node_or_null("HUD/ChatUI")
 @onready var ui_inventory = get_node_or_null("HUD/Inventory")
+@onready var ui_player_inventory = get_node_or_null("HUD/PlayerInventory")
 @onready var local_player = $Player 
 @onready var combat_system = $CombatSystem
 var talent_system = null
@@ -479,6 +480,10 @@ func _process(delta):
 						ui_inventory.visible = false
 						if "is_open" in ui_inventory:
 							ui_inventory.is_open = false
+					if is_instance_valid(ui_player_inventory) and ui_player_inventory.visible:
+						ui_player_inventory.visible = false
+						if "is_open" in ui_player_inventory:
+							ui_player_inventory.is_open = false
 								
 				# C. Limpiar entidades de escena
 				if is_instance_valid(entity_manager):
@@ -567,6 +572,8 @@ func _process(delta):
 			# ítems viejos mientras el servidor procesa el drop de muerte (async).
 			if is_instance_valid(ui_inventory) and ui_inventory.is_open:
 				ui_inventory.toggle()
+			if is_instance_valid(ui_player_inventory) and ui_player_inventory.is_open:
+				ui_player_inventory.toggle()
 		else:
 			if death_modal and death_modal.is_open:
 				death_modal.close_modal()
@@ -705,6 +712,7 @@ func _on_admin_config_received(data: Dictionary):
 	if GameConstants.has_method("update_from_server"):
 		GameConstants.update_from_server(data)
 		if is_instance_valid(ui_inventory) and ui_inventory.visible: ui_inventory._refresh_data()
+		if is_instance_valid(ui_player_inventory) and ui_player_inventory.visible: ui_player_inventory.update_ui()
 		print("[WORLD] Configuración administrativa y constantes actualizadas.")
 		
 		# v420.901: Iniciar música de la zona apenas entra al juego (cuando llega la config del servidor)

@@ -1,7 +1,6 @@
 extends Control
 
-# Precarga de pestañas de inventario para optimizar transiciones (v313.4)
-const HangarTabScript = preload("res://scripts/ui/inventory/HangarTab.gd")
+# Precarga de pestañas de logística para optimizar transiciones
 const SpheresTabScript = preload("res://scripts/ui/inventory/SpheresTab.gd")
 const ShopTabScript = preload("res://scripts/ui/inventory/ShopTab.gd")
 const TalentsTabScript = preload("res://scripts/ui/inventory/TalentsTab.gd")
@@ -131,8 +130,7 @@ func _ready():
 	# v300.01: Inicialización de Módulos (Refactorización Modular)
 	var hangar_node = get_node_or_null("Window/TabContainer/Hangar")
 	if hangar_node:
-		hangar_node.set_script(HangarTabScript)
-		if hangar_node.has_method("setup"): hangar_node.setup(self)
+		hangar_node.queue_free()
 	
 	var spheres_node = get_node_or_null("Window/TabContainer/Esferas")
 	if spheres_node:
@@ -264,7 +262,7 @@ func _draw():
 	blocker.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	# Dibujar contenedor modal táctico AAA (Estética Aerospace Tactical Glass)
-	HUDFrame.draw_tactical_modal(self, r_pos, r_size, "CENTRO DE EQUIPAMIENTO Y LOGÍSTICA", true, _format_val(hubs), _format_val(ohcu))
+	HUDFrame.draw_tactical_modal(self, r_pos, r_size, "CENTRO DE COMANDO Y FLOTA", true, _format_val(hubs), _format_val(ohcu))
 
 func _format_val(v):
 	var s = str(int(v)); var r = ""; var c = 0
@@ -463,7 +461,7 @@ func _input(event):
 	var nm = get_node_or_null("/root/NetworkManager")
 	if not nm or not nm.is_logged_in: return
 
-	if event.is_action_pressed("ui_inventory"):
+	if event.is_action_pressed("ui_logistics") or (event is InputEventKey and event.pressed and event.keycode == KEY_F1):
 		toggle(); get_viewport().set_input_as_handled()
 	
 	# Atajo de teclado para abrir directamente la pestaña de Estadísticas
@@ -713,9 +711,8 @@ func _update_weapons_ui():
 			wt.set_script(WeaponsTabScript)
 			if wt.has_method("setup"): wt.setup(self)
 			
-			# Reordenar pestaña para que aparezca al lado de Esferas (Esferas suele ser la 2da o 3ra pestaña)
-			# Hangar es 0, Esferas es 1. Queremos que Municiones sea la pestaña 2.
-			tabs.move_child(wt, 2)
+			# Reordenar pestaña para que aparezca al lado de Esferas (Esferas es 0, Municiones es 1)
+			tabs.move_child(wt, 1)
 	
 	if is_open and wt and wt.has_method("update_ui"): wt.update_ui()
 

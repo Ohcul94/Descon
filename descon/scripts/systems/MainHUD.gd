@@ -410,7 +410,7 @@ func _input(event: InputEvent):
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
 	for ui in ui_nodes:
 		if ui.visible:
-			if event.is_action_pressed("ui_events") or event.is_action_pressed("ui_inventory") or event.is_action_pressed("ui_party") or event.is_action_pressed("ui_housing"):
+			if event.is_action_pressed("ui_events") or event.is_action_pressed("ui_inventory") or event.is_action_pressed("ui_logistics") or event.is_action_pressed("ui_party") or event.is_action_pressed("ui_housing"):
 				break
 			return
 
@@ -423,6 +423,16 @@ func _input(event: InputEvent):
 			clear_target()
 			get_viewport().set_input_as_handled()
 			return
+
+	if event.is_action_pressed("ui_inventory"):
+		toggle_player_inventory()
+		get_viewport().set_input_as_handled()
+		return
+
+	if event.is_action_pressed("ui_logistics"):
+		toggle_logistics_menu()
+		get_viewport().set_input_as_handled()
+		return
 
 	if event.is_action_pressed("ui_menu"):
 		toggle_esc_menu()
@@ -790,6 +800,10 @@ func _on_icon_pressed(id: String):
 		var player = get_tree().get_first_node_in_group("player")
 		if is_instance_valid(player) and player.has_method("stay_still"):
 			player.stay_still()
+		return
+
+	if id == "Inventory":
+		toggle_player_inventory()
 		return
 
 	if id == "EscMenu":
@@ -2420,6 +2434,40 @@ func toggle_housing_panel():
 	else:
 		_housing_panel.visible = !_housing_panel.visible
 
+var _player_inventory: Control = null
+func toggle_player_inventory():
+	if not is_instance_valid(_player_inventory):
+		var inv_node = get_tree().get_first_node_in_group("player_inventory_ui")
+		if is_instance_valid(inv_node):
+			_player_inventory = inv_node
+		else:
+			var res = load("res://scenes/ui/PlayerInventoryUI.tscn")
+			if res:
+				_player_inventory = res.instantiate()
+			else:
+				_player_inventory = Control.new()
+				_player_inventory.set_script(load("res://scripts/ui/PlayerInventoryUI.gd"))
+			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+			hud_parent.add_child(_player_inventory)
+
+	if is_instance_valid(_player_inventory):
+		if _player_inventory.has_method("toggle"):
+			_player_inventory.toggle()
+		else:
+			_player_inventory.visible = !_player_inventory.visible
+		_update_icon_state("Inventory", _player_inventory.visible)
+
+func toggle_logistics_menu():
+	var inv = get_tree().get_first_node_in_group("main_inventory_ui")
+	if not is_instance_valid(inv):
+		for node in get_tree().get_nodes_in_group("inventory_ui"):
+			if "is_open" in node and node.has_method("toggle") and not node.is_in_group("player_inventory_ui"):
+				inv = node
+				break
+	if is_instance_valid(inv) and inv.has_method("toggle"):
+		inv.toggle()
+
+
 # --- DEFENSA DEL ALTAR: MODAL DE INVITACIÓN ---
 var altar_defense_invite_popup: Panel = null
 var altar_defense_timer: Timer = null
@@ -3508,6 +3556,10 @@ func close_all_hud_modals():
 	if is_instance_valid(_settings_menu): _settings_menu.visible = false
 	if is_instance_valid(_bug_report_ui): _bug_report_ui.visible = false
 	if is_instance_valid(_support_mailbox_ui): _support_mailbox_ui.visible = false
+	if is_instance_valid(_player_inventory) and "is_open" in _player_inventory and _player_inventory.is_open:
+		_player_inventory.toggle()
+	elif is_instance_valid(_player_inventory):
+		_player_inventory.visible = false
 	
 	# Buscar y destruir todos los CanvasLayers temporales de interfaz en la escena
 	var root = get_tree().root

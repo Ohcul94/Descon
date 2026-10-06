@@ -251,7 +251,7 @@ func _setup_touch_buttons():
 	touch_btns.append_array([
 		{"id": "CombatMeter", "icon": "📊", "tip": "Métricas de Combate"},
 		{"id": "TopLeft", "icon": "📈", "tip": "Diagnósticos (FPS/MS)"},
-		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"},
+		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (V)"},
 		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"},
 		{"id": "BattlePass", "icon": "🎟️", "tip": "Pase de Batalla (F4)"}
 	])

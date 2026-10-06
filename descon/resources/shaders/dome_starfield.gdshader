@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, cull_disabled;
+render_mode unshaded, cull_disabled, depth_draw_never;
 
 uniform float u_star_density : hint_range(0.1, 3.0) = 0.3;
 uniform float u_show_stars : hint_range(0.0, 1.0) = 1.0;

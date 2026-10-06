@@ -11,7 +11,7 @@ var config_file = ConfigFile.new()
 var default_keys = {
 	"slot_1": KEY_Q, "slot_2": KEY_W, "slot_3": KEY_E, "slot_4": KEY_R,
 	"slot_5": KEY_A, "slot_6": KEY_D, "slot_7": KEY_F,
-	"ui_inventory": KEY_F1, "ui_menu": KEY_ESCAPE, "ui_events": KEY_F2, "ui_housing": KEY_F3, "ui_battlepass": KEY_F4,
+	"ui_inventory": KEY_V, "ui_logistics": KEY_F1, "ui_menu": KEY_ESCAPE, "ui_events": KEY_F2, "ui_housing": KEY_F3, "ui_battlepass": KEY_F4,
 	"ui_map": KEY_TAB, "ui_party": KEY_P, "ui_pvp_toggle": KEY_Z, "ui_stats": KEY_C,
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
@@ -298,6 +298,10 @@ func load_settings():
 		# Mapa grande: forzar TAB (los cfg viejos podían tener M u otra tecla)
 		if action == "ui_map":
 			val = KEY_TAB
+		# Inventario estilo Mu Online: migrar de F1 viejo a V por defecto si tenía F1
+		if action == "ui_inventory" and val == KEY_F1:
+			val = KEY_V
+			config_file.set_value("keys", action, KEY_V)
 		_apply_key_to_inputmap(action, val)
 	
 	if err == OK:
