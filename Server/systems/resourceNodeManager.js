@@ -23,6 +23,15 @@ function getMaterial(state, resourceId) {
     return getMaterials(state).find(m => String(m.id) === id) || null;
 }
 
+function getMaterialScale(mat, fallback = 1.0) {
+    if (!mat) return fallback;
+    const isVal = (mat.iconScale !== undefined && mat.iconScale !== null && mat.iconScale !== '') ? Number(mat.iconScale) : null;
+    const sVal = (mat.scale !== undefined && mat.scale !== null && mat.scale !== '') ? Number(mat.scale) : null;
+    if (isVal !== null && isFinite(isVal) && isVal > 0) return isVal;
+    if (sVal !== null && isFinite(sVal) && sVal > 0) return sVal;
+    return fallback;
+}
+
 // Tiempo de recolección en MILISEGUNDOS (como el resto del sistema).
 // Los valores < 100 se interpretan como segundos legacy y se convierten.
 function getGatherTime(mat) {
@@ -153,15 +162,69 @@ class ResourceNodeManager {
         if (!state.resourceNodes[zone]) state.resourceNodes[zone] = {};
         const zoneNodes = state.resourceNodes[zone];
 
+        const validNodeIds = new Set();
+
         mCfg.resources.forEach((cfg, idx) => {
             if (!cfg || !cfg.resourceId) return;
             const count = Math.max(1, parseInt(cfg.count) || 1);
             const intervalMs = Math.max(5000, parseInt(cfg.intervalMs) || 60000);
             const amount = Math.max(1, parseInt(cfg.amount) || 1);
 
+            // Stacks: 'fixed' (por defecto x1) o 'variable' (rango aleatorio min - max)
+            const stacksMode = cfg.stacksMode === 'variable' ? 'variable' : 'fixed';
+            const stacks = Math.max(1, parseInt(cfg.stacks) || 1);
+            const stacksMin = Math.max(1, parseInt(cfg.stacksMin) || 1);
+            const stacksMax = Math.max(stacksMin, parseInt(cfg.stacksMax) || 1);
+
+            // Asset 3D, icono y escala se obtienen exclusivamente del material (Crafteo → Materiales)
+            const mat = getMaterial(state, cfg.resourceId);
+            const resolvedAssetPath = (mat && mat.assetPath ? String(mat.assetPath).trim() : '');
+            const resolvedIcon = (mat && mat.icon ? String(mat.icon).trim() : '');
+            const resolvedScale = getMaterialScale(mat, 1.0);
+            const resolvedCanFloat = (mat && mat.canFloat === true);
+
             for (let slot = 0; slot < count; slot++) {
                 const nodeId = `res_${zone}_${idx}_${slot}`;
-                if (zoneNodes[nodeId]) continue;
+                validNodeIds.add(nodeId);
+
+                const configuredTotal = stacksMode === 'variable'
+                    ? (Math.floor(Math.random() * (stacksMax - stacksMin + 1)) + stacksMin)
+                    : stacks;
+
+                if (zoneNodes[nodeId]) {
+                    const node = zoneNodes[nodeId];
+                    node.resourceId = cfg.resourceId;
+                    node.assetPath = resolvedAssetPath;
+                    node.icon = resolvedIcon;
+                    node.scale = resolvedScale;
+                    node.canFloat = resolvedCanFloat;
+                    node.amount = amount;
+                    node.intervalMs = intervalMs;
+                    if (cfg.rotY !== undefined && cfg.rotY !== null && cfg.rotY !== '') node.rotY = Number(cfg.rotY);
+                    if (cfg.yOffset !== undefined && cfg.yOffset !== null && cfg.yOffset !== '') node.yOffset = Number(cfg.yOffset);
+
+                    const oldStacks = node.stacks;
+                    const oldStacksMode = node.stacksMode;
+                    const oldStacksMin = node.stacksMin;
+                    const oldStacksMax = node.stacksMax;
+
+                    node.stacksMode = stacksMode;
+                    node.stacks = stacks;
+                    node.stacksMin = stacksMin;
+                    node.stacksMax = stacksMax;
+
+                    // Si cambiaron las opciones de stacks en la configuración o el total actual difiere:
+                    const stacksChanged = (oldStacks !== stacks || oldStacksMode !== stacksMode || oldStacksMin !== stacksMin || oldStacksMax !== stacksMax);
+                    if (stacksChanged || !node.totalStacks || node.totalStacks <= 0) {
+                        node.totalStacks = configuredTotal;
+                        if (node.active && !node.collecting) {
+                            node.remainingStacks = configuredTotal;
+                        } else if (node.remainingStacks > configuredTotal) {
+                            node.remainingStacks = configuredTotal;
+                        }
+                    }
+                    continue;
+                }
 
                 const pos = this.resolvePosition(cfg, zone);
                 zoneNodes[nodeId] = {
@@ -177,15 +240,29 @@ class ResourceNodeManager {
                     spawnMode: cfg.spawnMode || 'fixed',
                     radius: Number(cfg.radius) || 0,
                     polygon: Array.isArray(cfg.polygon) && cfg.polygon.length >= 3 ? cfg.polygon.map(p => ({ x: p.x, y: p.y })) : null,
-                    assetPath: cfg.assetPath || null,
-                    icon: cfg.icon || null,
-                    scale: cfg.scale !== undefined && cfg.scale !== null && cfg.scale !== '' ? Number(cfg.scale) : 1,
+                    assetPath: resolvedAssetPath,
+                    icon: resolvedIcon,
+                    scale: resolvedScale,
+                    canFloat: resolvedCanFloat,
                     rotY: cfg.rotY !== undefined && cfg.rotY !== null && cfg.rotY !== '' ? Number(cfg.rotY) : 0,
                     yOffset: cfg.yOffset !== undefined && cfg.yOffset !== null && cfg.yOffset !== '' ? Number(cfg.yOffset) : 0,
+                    stacksMode: stacksMode,
+                    stacks: stacks,
+                    stacksMin: stacksMin,
+                    stacksMax: stacksMax,
+                    totalStacks: configuredTotal,
+                    remainingStacks: configuredTotal,
                     active: true,
                     respawnAt: 0,
                     collecting: null
                 };
+            }
+        });
+
+        // Limpiar nodos que ya no pertenezcan a la configuración activa
+        Object.keys(zoneNodes).forEach(id => {
+            if (!validNodeIds.has(id)) {
+                delete zoneNodes[id];
             }
         });
 
@@ -199,6 +276,12 @@ class ResourceNodeManager {
     }
 
     serialize(node) {
+        const mat = getMaterial(this.state, node.resourceId);
+        const resolvedScale = getMaterialScale(mat, Number(node.scale) || 1.0);
+        const resolvedAssetPath = (mat && mat.assetPath ? String(mat.assetPath).trim() : (node.assetPath || ''));
+        const resolvedIcon = (mat && mat.icon ? String(mat.icon).trim() : (node.icon || ''));
+        const resolvedCanFloat = (mat && mat.canFloat !== undefined ? !!mat.canFloat : !!node.canFloat);
+
         return {
             id: node.id,
             resourceId: node.resourceId,
@@ -207,13 +290,17 @@ class ResourceNodeManager {
             amount: node.amount,
             spawnMode: node.spawnMode,
             radius: node.radius,
-            assetPath: node.assetPath,
-            icon: node.icon,
-            scale: node.scale,
+            assetPath: resolvedAssetPath,
+            icon: resolvedIcon,
+            scale: resolvedScale,
+            canFloat: resolvedCanFloat,
             rotY: node.rotY,
             yOffset: node.yOffset,
             active: node.active,
-            respawnAt: node.respawnAt || 0
+            respawnAt: node.respawnAt || 0,
+            stacksMode: node.stacksMode || 'fixed',
+            totalStacks: node.totalStacks || 1,
+            remainingStacks: (node.remainingStacks !== undefined) ? node.remainingStacks : (node.totalStacks || 1)
         };
     }
 
@@ -269,6 +356,40 @@ class ResourceNodeManager {
                         node.active = true;
                         node.respawnAt = 0;
                         node.collecting = null;
+                        const mCfg = getZoneCfg(state, node.zone);
+                        const cfg = mCfg && mCfg.resources && mCfg.resources[node.cfgIdx];
+                        if (cfg) {
+                            const sMode = cfg.stacksMode === 'variable' ? 'variable' : 'fixed';
+                            const sFixed = Math.max(1, parseInt(cfg.stacks) || 1);
+                            const sMin = Math.max(1, parseInt(cfg.stacksMin) || 1);
+                            const sMax = Math.max(sMin, parseInt(cfg.stacksMax) || 1);
+                            node.stacksMode = sMode;
+                            node.stacks = sFixed;
+                            node.stacksMin = sMin;
+                            node.stacksMax = sMax;
+                            if (sMode === 'variable') {
+                                node.totalStacks = Math.floor(Math.random() * (sMax - sMin + 1)) + sMin;
+                            } else {
+                                node.totalStacks = sFixed;
+                            }
+                        } else {
+                            if (node.stacksMode === 'variable') {
+                                const sMin = Math.max(1, parseInt(node.stacksMin) || 1);
+                                const sMax = Math.max(sMin, parseInt(node.stacksMax) || 1);
+                                node.totalStacks = Math.floor(Math.random() * (sMax - sMin + 1)) + sMin;
+                            } else {
+                                node.totalStacks = Math.max(1, parseInt(node.stacks) || 1);
+                            }
+                        }
+                        node.remainingStacks = node.totalStacks;
+
+                        // Si el modo de spawn no era fixed, reubicar posición en el área
+                        if (node.spawnMode !== 'fixed' && cfg) {
+                            const newPos = this.resolvePosition(cfg, node.zone);
+                            node.x = newPos.x;
+                            node.y = newPos.y;
+                        }
+
                         this.io.to(`zone_${node.zone}`).emit('resourceNodeSpawned', this.serialize(node));
                     }
                 });
@@ -291,7 +412,7 @@ class ResourceNodeManager {
                 if (!p || !data || !data.nodeId) return;
                 const node = this.getNode(p.zone, data.nodeId);
                 if (!node) return;
-                if (!node.active) {
+                if (!node.active || (node.remainingStacks !== undefined && node.remainingStacks <= 0)) {
                     return socket.emit('resourceCollectCancelled', { nodeId: node.id, reason: 'inactive' });
                 }
 
@@ -344,7 +465,7 @@ class ResourceNodeManager {
                 const node = this.getNode(p.zone, data.nodeId);
                 if (!node) return;
 
-                if (!node.active) {
+                if (!node.active || (node.remainingStacks !== undefined && node.remainingStacks <= 0)) {
                     return socket.emit('resourceCollectCancelled', { nodeId: node.id, reason: 'inactive' });
                 }
 
@@ -397,37 +518,79 @@ class ResourceNodeManager {
                 socket.dbUser = user;
                 p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
 
-                // Agotar el nodo y programar reaparición
+                // Descontar un stack por cada canal completado
+                const curRemaining = (node.remainingStacks !== undefined) ? node.remainingStacks : 1;
+                node.remainingStacks = Math.max(0, curRemaining - 1);
                 node.collecting = null;
-                node.active = false;
-                node.respawnAt = Date.now() + node.intervalMs;
-
-                this.io.to(`zone_${node.zone}`).emit('resourceNodeDepleted', {
-                    id: node.id,
-                    respawnAt: node.respawnAt
-                });
-
-                socket.emit('resourceCollected', {
-                    nodeId: node.id,
-                    resourceId: node.resourceId,
-                    name: newItem.name,
-                    amount: amount
-                });
 
                 const eByShipObj = {};
                 if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
                 else Object.assign(eByShipObj, user.gameData.equippedByShip);
 
-                socket.emit('inventoryData', {
-                    player: {
-                        ...JSON.parse(JSON.stringify(user.gameData)),
-                        equippedByShip: eByShipObj,
-                        inventoryByCategory: getCategorizedInventory(user.gameData.inventory)
-                    }
-                });
+                if (node.remainingStacks > 0) {
+                    // El nodo sigue activo con stacks restantes
+                    node.active = true;
+                    this.io.to(`zone_${node.zone}`).emit('resourceNodeUpdated', {
+                        id: node.id,
+                        remainingStacks: node.remainingStacks,
+                        totalStacks: node.totalStacks || 1
+                    });
 
-                Logger.info('RESOURCE', `${p.user} recolectó ${amount}x ${newItem.name} del nodo ${node.id}.`);
-                socket.emit('gameNotification', { msg: `Recolectado: ${amount}x ${newItem.name}`, type: 'success' });
+                    socket.emit('resourceCollected', {
+                        nodeId: node.id,
+                        resourceId: node.resourceId,
+                        name: newItem.name,
+                        amount: amount,
+                        remainingStacks: node.remainingStacks,
+                        totalStacks: node.totalStacks || 1
+                    });
+
+                    socket.emit('inventoryData', {
+                        player: {
+                            ...JSON.parse(JSON.stringify(user.gameData)),
+                            equippedByShip: eByShipObj,
+                            inventoryByCategory: getCategorizedInventory(user.gameData.inventory)
+                        }
+                    });
+
+                    Logger.info('RESOURCE', `${p.user} recolectó stack (${node.remainingStacks}/${node.totalStacks} restantes) de ${amount}x ${newItem.name} del nodo ${node.id}.`);
+                    socket.emit('gameNotification', {
+                        msg: `Recolectado: ${amount}x ${newItem.name} (${node.remainingStacks}/${node.totalStacks} restantes)`,
+                        type: 'success'
+                    });
+                } else {
+                    // Se agotaron todos los stacks: activar cooldown de respawn
+                    node.active = false;
+                    node.respawnAt = Date.now() + node.intervalMs;
+
+                    this.io.to(`zone_${node.zone}`).emit('resourceNodeDepleted', {
+                        id: node.id,
+                        respawnAt: node.respawnAt
+                    });
+
+                    socket.emit('resourceCollected', {
+                        nodeId: node.id,
+                        resourceId: node.resourceId,
+                        name: newItem.name,
+                        amount: amount,
+                        remainingStacks: 0,
+                        totalStacks: node.totalStacks || 1
+                    });
+
+                    socket.emit('inventoryData', {
+                        player: {
+                            ...JSON.parse(JSON.stringify(user.gameData)),
+                            equippedByShip: eByShipObj,
+                            inventoryByCategory: getCategorizedInventory(user.gameData.inventory)
+                        }
+                    });
+
+                    Logger.info('RESOURCE', `${p.user} agotó el nodo ${node.id}: recolectó ${amount}x ${newItem.name}.`);
+                    socket.emit('gameNotification', {
+                        msg: `¡Nodo agotado! Recolectado: ${amount}x ${newItem.name}`,
+                        type: 'success'
+                    });
+                }
             } catch (err) {
                 console.error('[RESOURCE-COLLECT-ERR]', err);
             }

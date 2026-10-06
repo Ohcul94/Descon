@@ -454,6 +454,7 @@ ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? 
                         const matOk = !!(mat && mat.recolectable);
                         const isRandomMode = r.spawnMode === 'random' || r.spawnMode === 'random_global' || r.spawnMode === 'random_zone';
                         const rMode = isRandomMode ? (r.radius > 0 ? '⭕ Área' : '🌍 Global') : (r.spawnMode === 'polygon' ? '📐 Polígono' : '📍 Fijo');
+                        const stacksBadge = (r.stacksMode === 'variable') ? `🎲 ${r.stacksMin || 1}-${r.stacksMax || 3} st.` : `📦 ×${r.stacks || 1} st.`;
                         const isOpen = isMapCardExpanded(`resource-${idx}`);
                         const iconWeb = resolveAssetWebUrl(r.icon || (mat ? mat.icon : '') || '');
                         return `
@@ -462,7 +463,7 @@ ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? 
                                  onclick="selectMapItem('resource', ${idx}); toggleMapCard('resource-${idx}')">
                                 <span style="font-size:1rem;">🌿</span>
                                 <span id="resource-name-${idx}" style="flex:1; color:#fb923c; font-weight:bold; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${rName}</span>
-                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">${rMode} ×${r.count || 1} · ${r.amount || 1}u · ⏱${gatherTime}</span>
+                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">${rMode} ×${r.count || 1} · ${stacksBadge} · ${r.amount || 1}u · ⏱${gatherTime}</span>
                                 ${matOk ? '' : `<span style="font-size:0.6rem; color:#ff4444; padding:2px 6px; border:1px solid rgba(255,68,68,0.4); border-radius:4px; white-space:nowrap;" title="El material no está marcado como Recolectable">⚠️ SIN RECOLECTAR</span>`}
                                 <span style="color:#fb923c; font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
                                 <button style="background:none; border:none; color:#fb923c; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Duplicar (Ctrl+D)" onclick="event.stopPropagation(); duplicateMapItem('resource', ${idx})">⧉</button>
@@ -491,6 +492,39 @@ ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? 
                                     <div class="field" style="grid-column: span 2;">
                                         <label>Unidades por Recolección</label>
                                         <input type="number" min="1" value="${r.amount || 1}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].amount = Math.max(1, parseInt(this.value) || 1)">
+                                    </div>
+                                    <div class="field" style="grid-column: span 2; padding:10px 12px; background:rgba(251,146,60,0.06); border:1px solid rgba(251,146,60,0.22); border-radius:6px; margin:4px 0;">
+                                        <label style="color:#fb923c; font-weight:bold; margin-bottom:8px; display:block;">📦 CONFIGURACIÓN DE STACKS (USOS POR NODO)</label>
+                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                                            <div>
+                                                <label style="font-size:0.68rem;">Modo de Stacks</label>
+                                                <select style="background:#0f172a; border:1px solid rgba(251,146,60,0.3); color:#fb923c; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px; font-size:0.75rem;"
+                                                        onchange="config.mapsConfig['${selectedMapId}'].resources[${idx}].stacksMode = this.value; renderMapDetail();">
+                                                    <option value="fixed" ${(!r.stacksMode || r.stacksMode === 'fixed') ? 'selected' : ''}>📦 Stacks Fijos (por defecto x1)</option>
+                                                    <option value="variable" ${r.stacksMode === 'variable' ? 'selected' : ''}>🎲 Stacks Variables (Rango aleatorio)</option>
+                                                </select>
+                                            </div>
+                                            ${(r.stacksMode === 'variable') ? `
+                                            <div style="display:flex; gap:8px;">
+                                                <div style="flex:1;">
+                                                    <label style="font-size:0.68rem;">Mín. Stacks</label>
+                                                    <input type="number" min="1" value="${r.stacksMin || 1}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].stacksMin = Math.max(1, parseInt(this.value) || 1)" style="font-size:0.75rem; padding:6px;">
+                                                </div>
+                                                <div style="flex:1;">
+                                                    <label style="font-size:0.68rem;">Máx. Stacks</label>
+                                                    <input type="number" min="1" value="${r.stacksMax || 3}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].stacksMax = Math.max(1, parseInt(this.value) || 1)" style="font-size:0.75rem; padding:6px;">
+                                                </div>
+                                            </div>
+                                            ` : `
+                                            <div>
+                                                <label style="font-size:0.68rem;">Cantidad de Stacks</label>
+                                                <input type="number" min="1" value="${r.stacks || 1}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].stacks = Math.max(1, parseInt(this.value) || 1)" style="font-size:0.75rem; padding:6px;">
+                                            </div>
+                                            `}
+                                        </div>
+                                        <div style="font-size:0.6rem; color:#94a3b8; margin-top:6px; line-height:1.4;">
+                                            ⏱ Cada stack se extrae completando un ciclo completo de recolección (<strong>${gatherTime}</strong> por stack). Al agotarse todos los stacks, el nodo desaparece e inicia su tiempo de respawn.
+                                        </div>
                                     </div>
                                     <div class="field" style="grid-column: span 2;">
                                          <label>Modo de Aparición</label>
@@ -536,28 +570,13 @@ ${(r.spawnMode === 'random' || r.spawnMode === 'random_zone') && r.radius > 0 ? 
                                          </div>
                                      </div>
                                      ` : ''}
-                                      <div class="field" style="grid-column: span 2;">
-                                          <label>Asset 3D del Nodo (ruta .glb)</label>
-                                          <div style="display:flex; gap:6px; align-items:center;">
-                                              <input type="text" value="${r.assetPath || ''}" placeholder="res://assets/....glb (vacío = modelo 3D del material)"
-                                                    oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].assetPath = this.value" style="flex:1; margin:0;">
-                                              <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="triggerMapResourceAssetPick('${selectedMapId}', ${idx}, 'assetPath')">📁</button>
+                                                                            <div class="field" style="grid-column: span 2; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:6px;">
+                                          <div style="font-size:0.7rem; color:#94a3b8; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                                              <span>🧱 Modelo 3D: <strong style="color:#fb923c; font-family:'JetBrains Mono', monospace;">${mat && mat.assetPath ? mat.assetPath : 'Cristal genérico naranja'}</strong></span>
+                                              <span style="color:#38bdf8; font-weight:bold; font-size:0.68rem;">Escala 3D: ${mat && mat.scale !== undefined ? mat.scale : (mat && mat.iconScale ? mat.iconScale : 1.0)}x</span>
                                           </div>
-                                          ${!r.assetPath && mat && mat.assetPath ? `<div style="font-size:0.6rem; color:#fb923c; margin-top:4px;">↳ Usará el modelo del material: <span style="font-family:'JetBrains Mono', monospace;">${mat.assetPath}</span></div>` : (r.assetPath ? '' : `<div style="font-size:0.6rem; color:#64748b; margin-top:4px;">↳ Sin modelo: se usará un cristal naranja genérico.</div>`)}
+                                          <div style="font-size:0.6rem; color:#64748b; margin-top:3px;">El modelo 3D, su escala y la flotación se configuran exclusivamente en <strong style="color:var(--accent);">Crafteo → Materiales</strong>.</div>
                                       </div>
-                                     <div class="field" style="grid-column: span 2;">
-                                         <label>Icono / Foto del Nodo (imagen)</label>
-                                         <div style="display:flex; gap:6px; align-items:center;">
-                                             <input type="text" value="${r.icon || ''}" placeholder="res://assets/....png (vacío = icono del material)"
-                                                    oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].icon = this.value" style="flex:1; margin:0;">
-                                             <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="triggerMapResourceAssetPick('${selectedMapId}', ${idx}, 'icon')">📁</button>
-                                             ${iconWeb ? `<img src="${iconWeb}" style="width:34px;height:34px;object-fit:contain;border-radius:4px;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">` : ''}
-                                         </div>
-                                     </div>
-                                     <div class="field">
-                                         <label>Escala</label>
-                                         <input type="number" step="0.1" min="0.1" value="${r.scale !== undefined ? r.scale : 1.0}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].scale = parseFloat(this.value) || 1.0">
-                                     </div>
                                      <div class="field">
                                          <label>Rotación Y (grados)</label>
                                          <input type="number" step="1" value="${r.rotY !== undefined ? r.rotY : 0}" oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].rotY = parseFloat(this.value) || 0">

@@ -1633,7 +1633,7 @@ function openMapAddModal(kind) {
     } else if (kind === 'resource') {
         title.innerText = '➕ AGREGAR NODO DE RECURSO';
         body.innerHTML = `
-            <div style="font-size:0.8rem; color:#64748b; margin-bottom:1.2rem; line-height:1.5;">Elegí un material <strong style="color:#fb923c;">Recolectable</strong>, cuántos nodos querés en la zona y dónde aparecen. Podés hacer clic en el <strong style="color:var(--accent);">radar táctico</strong> para copiar las coordenadas automáticamente.</div>
+            <div style="font-size:0.8rem; color:#64748b; margin-bottom:1.2rem; line-height:1.5;">Elegí un material <strong style="color:#fb923c;">Recolectable</strong>, cuántos nodos querés en la zona, sus stacks y dónde aparecen. Podés hacer clic en el <strong style="color:var(--accent);">radar táctico</strong> para copiar las coordenadas automáticamente.</div>
             <div class="field" style="margin-bottom:1rem; overflow:visible;">
                 <label>🌿 MATERIAL RECOLECTABLE</label>
                 <input type="hidden" id="map-add-resource-id" value="">
@@ -1642,22 +1642,39 @@ function openMapAddModal(kind) {
             <div class="field" style="margin-bottom:1rem;">
                 <label>MODO DE APARICIÓN</label>
                 <select id="map-add-spawn-mode" onchange="toggleMapAddSpawnMode(this.value)">
+                    <option value="fixed" selected>📍 Fijo (Coordenadas Exactas)</option>
+                    <option value="random_zone">⭕ Aleatorio en un área (Centro + Radio)</option>
                     <option value="random_global">🌍 Aleatorio (En todo el mapa)</option>
-                    <option value="random_zone" selected>⭕ Aleatorio en un área (Centro + Radio)</option>
                     <option value="polygon">📐 Zona Personalizada (Polígono)</option>
-                    <option value="fixed">📍 Fijo (Coordenadas Exactas)</option>
                 </select>
             </div>
             <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
-                <div class="field"><label>Cant. Nodos</label><input type="number" id="map-add-count" min="1" value="3"></div>
+                <div class="field"><label>Cant. Nodos</label><input type="number" id="map-add-count" min="1" value="1"></div>
                 <div class="field"><label>Respawn (ms)</label><input type="number" id="map-add-interval" value="15000"></div>
                 <div class="field"><label>Unidades (u)</label><input type="number" id="map-add-amount" min="1" value="1"></div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+                <label>📦 MODO DE STACKS (CANTIDAD DE USOS)</label>
+                <select id="map-add-stacks-mode" onchange="const sm = this.value; document.getElementById('map-add-stacks-fixed-box').style.display = sm === 'fixed' ? 'block' : 'none'; document.getElementById('map-add-stacks-var-box').style.display = sm === 'variable' ? 'grid' : 'none';" style="background:#0f172a; border:none; color:#fb923c; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;">
+                    <option value="fixed" selected>📦 Stacks Fijos (por defecto x1)</option>
+                    <option value="variable">🎲 Stacks Variables (Rango aleatorio)</option>
+                </select>
+            </div>
+            <div id="map-add-stacks-fixed-box" class="field" style="margin-top:8px;">
+                <label>Cantidad de Stacks</label>
+                <input type="number" id="map-add-stacks" min="1" value="1">
+                <div style="font-size:0.6rem; color:#64748b; margin-top:3px;">Cada stack se extrae individualmente en el tiempo de recolección (ej. 3000ms por stack).</div>
+            </div>
+            <div id="map-add-stacks-var-box" class="form-grid" style="display:none; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
+                <div class="field"><label>Mín. Stacks</label><input type="number" id="map-add-stacks-min" min="1" value="1"></div>
+                <div class="field"><label>Máx. Stacks</label><input type="number" id="map-add-stacks-max" min="1" value="3"></div>
+                <div style="font-size:0.6rem; color:#64748b; grid-column: span 2;">Al aparecer o reaparecer el nodo, se sortea un número entre el mín. y el máx.</div>
             </div>
             <div id="map-add-pos-fields" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
                 <div class="field"><label>Coordenada X</label><input type="number" id="map-add-x" value="${pos.x}"></div>
                 <div class="field"><label>Coordenada Y</label><input type="number" id="map-add-y" value="${pos.y}"></div>
             </div>
-            <div id="map-add-radius-field" class="field" style="margin-top:12px;"><label>Radio de Área de Spawn (px)</label><input type="number" id="map-add-radius" value="500"></div>
+            <div id="map-add-radius-field" class="field" style="margin-top:12px; display:none;"><label>Radio de Área de Spawn (px)</label><input type="number" id="map-add-radius" value="500"></div>
             <div id="map-add-polygon-field" class="field" style="margin-top:12px; display:none;">
                 <label>Vértices del Polígono (X,Y por línea)</label>
                 <textarea id="map-add-polygon" style="width:100%; height:80px; background:#0a0f1a; border:1px solid rgba(251,146,60,0.3); border-radius:4px; color:#fb923c; font-family:monospace; font-size:0.7rem; padding:6px; resize:vertical;" placeholder="Ej: 1000,2000&#10;1500,2000&#10;1500,2500&#10;1000,2500"></textarea>
@@ -1666,27 +1683,15 @@ function openMapAddModal(kind) {
                     <button class="btn btn-secondary" style="padding:2px 8px; font-size:0.6rem;" onclick="document.getElementById('map-add-polygon').value=''">🗑️ Limpiar</button>
                 </div>
             </div>
-            <div class="field" style="margin-top:12px;">
-                <label>Asset 3D del Nodo (ruta .glb)</label>
-                <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="text" id="map-add-asset" value="" placeholder="res://assets/....glb (vacío = genérico teñido con el material)" style="flex:1; margin:0;">
-                    <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="pickAssetPathToInput('map-add-asset')">📁</button>
-                </div>
+            <div style="font-size:0.65rem; color:#64748b; margin-top:12px; line-height:1.5;">
+                🧩 El <strong style="color:#fb923c;">modelo 3D</strong> y su <strong style="color:#fb923c;">escala</strong> se configuran en <strong>Crafteo → Materiales</strong>.
             </div>
-            <div class="field" style="margin-top:12px;">
-                <label>Icono / Foto del Nodo (imagen)</label>
-                <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="text" id="map-add-icon" value="" placeholder="res://assets/....png (vacío = icono del material)" style="flex:1; margin:0;">
-                    <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="pickAssetPathToInput('map-add-icon')">📁</button>
-                </div>
-            </div>
-            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:12px;">
-                <div class="field"><label>Escala</label><input type="number" step="0.1" min="0.1" id="map-add-scale" value="1.0"></div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
                 <div class="field"><label>Rotación Y</label><input type="number" step="1" id="map-add-roty" value="0"></div>
                 <div class="field"><label>Altura (Y offset)</label><input type="number" step="0.1" id="map-add-yoffset" value="0.5"></div>
             </div>
         `;
-        setTimeout(() => toggleMapAddSpawnMode('random_zone'), 0);
+        setTimeout(() => toggleMapAddSpawnMode('fixed'), 0);
     } else if (kind === 'door') {
         title.innerText = '➕ AGREGAR PUERTA / WARP';
         const zoneOptions = Object.keys(config.mapsConfig)
@@ -1779,8 +1784,12 @@ function yOffsetFromModal(rawValue) {
 function buildNewMapResource(overrides = {}) {
     const val = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
     const resourceId = overrides.resourceId !== undefined ? overrides.resourceId : (val('map-add-resource-id') || '');
-    const modeRaw = overrides.spawnMode !== undefined ? overrides.spawnMode : (val('map-add-spawn-mode') || 'random_zone');
+    const modeRaw = overrides.spawnMode !== undefined ? overrides.spawnMode : (val('map-add-spawn-mode') || 'fixed');
     const spawnMode = modeRaw === 'fixed' ? 'fixed' : (modeRaw === 'polygon' ? 'polygon' : 'random');
+    const stacksMode = overrides.stacksMode !== undefined ? overrides.stacksMode : (val('map-add-stacks-mode') || 'fixed');
+    const stacks = overrides.stacks !== undefined ? overrides.stacks : (parseInt(val('map-add-stacks')) || 1);
+    const stacksMin = overrides.stacksMin !== undefined ? overrides.stacksMin : (parseInt(val('map-add-stacks-min')) || 1);
+    const stacksMax = overrides.stacksMax !== undefined ? overrides.stacksMax : (parseInt(val('map-add-stacks-max')) || 3);
     const data = {
         id: 'res_' + Date.now() + Math.floor(Math.random() * 1000),
         resourceId: resourceId,
@@ -1790,10 +1799,11 @@ function buildNewMapResource(overrides = {}) {
         spawnMode: spawnMode,
         x: overrides.x !== undefined ? overrides.x : (parseInt(val('map-add-x')) || 0),
         y: overrides.y !== undefined ? overrides.y : (parseInt(val('map-add-y')) || 0),
-        radius: overrides.radius !== undefined ? overrides.radius : (modeRaw === 'random_global' ? 0 : (parseInt(val('map-add-radius')) || 500)),
-        assetPath: overrides.assetPath !== undefined ? overrides.assetPath : (val('map-add-asset') || ''),
-        icon: overrides.icon !== undefined ? overrides.icon : (val('map-add-icon') || ''),
-        scale: overrides.scale !== undefined ? overrides.scale : (parseFloat(val('map-add-scale')) || 1.0),
+        radius: overrides.radius !== undefined ? overrides.radius : (modeRaw === 'random_zone' ? (parseInt(val('map-add-radius')) || 500) : 0),
+        stacksMode: stacksMode,
+        stacks: stacks,
+        stacksMin: stacksMin,
+        stacksMax: Math.max(stacksMin, stacksMax),
         rotY: overrides.rotY !== undefined ? overrides.rotY : (parseFloat(val('map-add-roty')) || 0),
         yOffset: overrides.yOffset !== undefined ? overrides.yOffset : yOffsetFromModal(val('map-add-yoffset')),
         polygon: null

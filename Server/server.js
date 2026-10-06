@@ -1732,6 +1732,19 @@ io.on('connection', (socket) => {
             });
             console.log(`[ADMIN] Purgados ${oldEnemyCount} enemigos antiguos para re-sincronización.`);
             
+            // Sincronizar en caliente los nodos de recursos en todas las zonas activas
+            if (resourceNodeManager) {
+                const zonesToSync = new Set([
+                    ...Object.keys(state.resourceNodes || {}),
+                    ...Object.keys((config && config.mapsConfig) || {})
+                ]);
+                zonesToSync.forEach(z => {
+                    resourceNodeManager.ensureZoneNodes(z);
+                    const zNodes = Object.values((state.resourceNodes && state.resourceNodes[z]) || {}).map(n => resourceNodeManager.serialize(n));
+                    io.to(`zone_${z}`).emit('resourceNodes', { zone: Number(z), nodes: zNodes });
+                });
+            }
+            
         } catch (e) { console.error("Error guardando config:", e); }
     });
     

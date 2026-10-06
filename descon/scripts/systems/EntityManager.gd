@@ -426,6 +426,7 @@ func setup(world_ref):
 	NetworkManager.loot_despawned.connect(_on_loot_despawned)
 	NetworkManager.resource_nodes_received.connect(_on_resource_nodes_received)
 	NetworkManager.resource_node_spawned.connect(_on_resource_node_spawned)
+	NetworkManager.resource_node_updated.connect(_on_resource_node_updated)
 	NetworkManager.resource_node_depleted.connect(_on_resource_node_depleted)
 	NetworkManager.resource_collect_started.connect(_on_resource_collect_started)
 	NetworkManager.resource_collect_cancelled.connect(_on_resource_collect_cancelled)
@@ -4914,20 +4915,34 @@ func _spawn_resource_node(data: Dictionary, zone: int = -1) -> void:
 	node.name = id
 	node.node_id = id
 	node.data = data
-	node.asset_path = str(data.get("assetPath", ""))
-	node.icon_path = str(data.get("icon", ""))
+	node.resource_id = str(data.get("resourceId", ""))
+	var raw_asset = data.get("assetPath", "")
+	if raw_asset != null and str(raw_asset) != "null":
+		node.asset_path = str(raw_asset).strip_edges()
+	else:
+		node.asset_path = ""
+
+	var raw_icon = data.get("icon", "")
+	if raw_icon != null and str(raw_icon) != "null":
+		node.icon_path = str(raw_icon).strip_edges()
+	else:
+		node.icon_path = ""
+
 	node.amount = int(data.get("amount", 1))
 	node.node_scale = float(data.get("scale", 1.0))
 	node.rot_y = float(data.get("rotY", 0.0))
-	node.y_offset = float(data.get("yOffset", 0.0))
+	node.y_offset = float(data.get("yOffset", 0.5))
+	node.total_stacks = int(data.get("totalStacks", 1))
+	node.remaining_stacks = int(data.get("remainingStacks", node.total_stacks))
 	node.global_position = Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
 	node.set_meta("zone", zone)
 	if not bool(data.get("active", true)):
 		node.is_active = false
 
 	world.entities_node.add_child(node)
+	node.global_position = Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
 	resource_nodes[id] = node
-	print("[EntityManager] Nodo de recurso instanciado: ", id)
+	print("[EntityManager] Nodo de recurso instanciado: ", id, " (stacks: ", node.remaining_stacks, "/", node.total_stacks, ")")
 
 func _on_resource_nodes_received(data: Dictionary):
 	if typeof(data) != TYPE_DICTIONARY:
@@ -4953,7 +4968,10 @@ func _on_resource_nodes_received(data: Dictionary):
 		if resource_nodes.has(id):
 			var existing = resource_nodes[id]
 			if is_instance_valid(existing):
-				existing.set_active_state(bool(nd.get("active", true)), int(nd.get("respawnAt", 0)))
+				if existing.has_method("apply_data"):
+					existing.apply_data(nd)
+				else:
+					existing.set_active_state(bool(nd.get("active", true)), int(nd.get("respawnAt", 0)))
 				continue
 			resource_nodes.erase(id)
 		_spawn_resource_node(nd, zone)
@@ -4973,12 +4991,22 @@ func _on_resource_node_spawned(data: Dictionary):
 	if resource_nodes.has(id):
 		var node = resource_nodes[id]
 		if is_instance_valid(node):
-			node.respawn()
+			node.respawn(data)
 		else:
 			resource_nodes.erase(id)
 			_spawn_resource_node(data)
 		return
 	_spawn_resource_node(data)
+
+func _on_resource_node_updated(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY or not data.has("id"):
+		return
+	var id = str(data["id"])
+	if not resource_nodes.has(id):
+		return
+	var node = resource_nodes[id]
+	if is_instance_valid(node):
+		node.update_stacks(int(data.get("remainingStacks", 1)), int(data.get("totalStacks", 1)))
 
 func _on_resource_node_depleted(data: Dictionary):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"):

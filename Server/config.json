@@ -7910,7 +7910,25 @@
             "terrainImage": "assets/maps/terrain_zone_2.png",
             "timeRestrictionsEnabled": false,
             "warpCost": 0,
-            "width": 28800
+            "width": 28800,
+            "resources": [
+                {
+                    "id": "res_179125048049984",
+                    "resourceId": "rec_recolectable_comestible",
+                    "count": 3,
+                    "intervalMs": 3000,
+                    "amount": 1,
+                    "spawnMode": "random",
+                    "x": 5031,
+                    "y": 722,
+                    "radius": 300,
+                    "rotY": 0,
+                    "yOffset": 0.5,
+                    "polygon": null,
+                    "stacksMode": "fixed",
+                    "stacks": 3
+                }
+            ]
         },
         "3": {
             "ambience": [],
@@ -15047,7 +15065,11 @@
                 "recolectable": true,
                 "gatherTime": 3,
                 "soulbound": true,
-                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Comestible.glb"
+                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Comestible.glb",
+                "iconScale": 5,
+                "scale": 5,
+                "canFloat": false,
+                "maxStack": 5
             },
             {
                 "id": "rec_recolectable_mineral",
@@ -15066,7 +15088,9 @@
                 "recolectable": true,
                 "gatherTime": 3,
                 "soulbound": true,
-                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Mineral.glb"
+                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Mineral.glb",
+                "scale": 1,
+                "canFloat": false
             },
             {
                 "id": "rec_recolectable_madera",
@@ -15084,7 +15108,9 @@
                 ],
                 "recolectable": true,
                 "gatherTime": 3000,
-                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Madera.glb"
+                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Madera.glb",
+                "scale": 1,
+                "canFloat": false
             },
             {
                 "id": "rec_recolectable_cristal",
@@ -15102,7 +15128,9 @@
                 ],
                 "recolectable": true,
                 "gatherTime": 3000,
-                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Cristal.glb"
+                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Cristal.glb",
+                "scale": 1,
+                "canFloat": false
             },
             {
                 "id": "rec_recolectable_hongo",
@@ -15120,7 +15148,9 @@
                 ],
                 "recolectable": true,
                 "gatherTime": 3000,
-                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Hongo.glb"
+                "assetPath": "res://assets/Crafteo/Recolectables/3D/Individuales/Hongo.glb",
+                "scale": 1,
+                "canFloat": false
             }
         ],
         "shields": [

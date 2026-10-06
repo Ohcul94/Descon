@@ -2378,6 +2378,16 @@ func _find_target_entity(screen_pos: Vector2 = Vector2.ZERO):
 		if dist < best_dist:
 			best_dist = dist
 			best_target = e
+
+	for r in get_tree().get_nodes_in_group("resource_nodes"):
+		if not is_instance_valid(r) or not r.visible or not r.is_active or r.remaining_stacks <= 0: continue
+		var visual_pos = r.get_visual_position() if r.has_method("get_visual_position") else r.global_position
+		var dist_v = visual_pos.distance_to(m_pos)
+		var dist_g = r.global_position.distance_to(m_pos)
+		var dist = minf(dist_v, dist_g)
+		if dist < (best_dist + 30.0):
+			best_dist = dist
+			best_target = r
 	
 	return best_target
 
@@ -2534,7 +2544,7 @@ var _status_effects_panel: Control = null
 var _status_hbox: HBoxContainer = null
 
 # --- SISTEMA DE TARGET FRAME (TARGET + DEBUFFS) ---
-var _target_entity: Entity = null
+var _target_entity: Node2D = null
 var _target_press_pos: Vector2 = Vector2.ZERO
 var _target_pressed: bool = false
 var _target_entity_pressed: bool = false
@@ -2996,9 +3006,10 @@ func set_target(entity):
 	
 	# Limpiar selección anterior
 	if is_instance_valid(_target_entity):
-		if _target_entity.debuffs_updated.is_connected(_update_target_debuffs):
+		if "debuffs_updated" in _target_entity and _target_entity.debuffs_updated.is_connected(_update_target_debuffs):
 			_target_entity.debuffs_updated.disconnect(_update_target_debuffs)
-		_target_entity.is_selected = false
+		if "is_selected" in _target_entity:
+			_target_entity.is_selected = false
 	
 	_target_entity = entity
 	
@@ -3006,12 +3017,14 @@ func set_target(entity):
 		clear_target()
 		return
 	
-	entity.is_selected = true
+	if "is_selected" in entity:
+		entity.is_selected = true
 	_target_frame.visible = true
 	
-	if entity.debuffs_updated.is_connected(_update_target_debuffs):
-		entity.debuffs_updated.disconnect(_update_target_debuffs)
-	entity.debuffs_updated.connect(_update_target_debuffs)
+	if "debuffs_updated" in entity:
+		if entity.debuffs_updated.is_connected(_update_target_debuffs):
+			entity.debuffs_updated.disconnect(_update_target_debuffs)
+		entity.debuffs_updated.connect(_update_target_debuffs)
 	
 	_update_target_frame()
 	_update_target_debuffs()
@@ -3019,11 +3032,16 @@ func set_target(entity):
 
 func clear_target():
 	if is_instance_valid(_target_entity):
-		if _target_entity.debuffs_updated.is_connected(_update_target_debuffs):
+		if "debuffs_updated" in _target_entity and _target_entity.debuffs_updated.is_connected(_update_target_debuffs):
 			_target_entity.debuffs_updated.disconnect(_update_target_debuffs)
-		_target_entity.is_selected = false
+		if "is_selected" in _target_entity:
+			_target_entity.is_selected = false
 	_target_entity = null
 	if _target_frame: _target_frame.visible = false
+	if is_instance_valid(_target_sh_bg) and is_instance_valid(_target_sh_bg.get_parent()):
+		_target_sh_bg.get_parent().visible = true
+	if is_instance_valid(_target_hp_bg):
+		_target_hp_bg.color = Color(0, 0.4, 0, 0.2)
 	if is_instance_valid(_target_casts_vbox):
 		for child in _target_casts_vbox.get_children():
 			child.free()
@@ -3040,10 +3058,15 @@ func _update_target_frame():
 		return
 	
 	if not _target_frame.visible: return
-	if not is_instance_valid(_target_entity) or _target_entity.is_dead or not _target_entity.visible or _target_entity.get("in_strange_dimension") == true or _target_entity.get("is_in_strange_dimension") == true:
+	if not is_instance_valid(_target_entity) or _target_entity.get("is_dead") == true or not _target_entity.visible or _target_entity.get("in_strange_dimension") == true or _target_entity.get("is_in_strange_dimension") == true:
 		clear_target()
 		return
 		
+	# Si es un nodo de recurso y está agotado o inactivo
+	if _target_entity.get("is_resource_node") == true and (_target_entity.get("remaining_stacks") <= 0 or not _target_entity.get("is_active")):
+		clear_target()
+		return
+
 	# Deseleccionar si la entidad se pierde de vista físicamente (por niebla / culling visual del motor)
 	if _target_entity.has_meta("_was_screen_visible") and not _target_entity.get_meta("_was_screen_visible"):
 		clear_target()
@@ -3061,19 +3084,48 @@ func _update_target_frame():
 			return
 	
 	var ent = _target_entity
+
+	# Caso Nodo de Recurso (muestra Stacks en vivo y oculta escudo)
+	if ent.get("is_resource_node") == true:
+		_target_name_lbl.text = ent.username if ("username" in ent and ent.username != "") else "Recurso"
+		
+		# Ocultar barra de escudo para recursos
+		if is_instance_valid(_target_sh_bg) and is_instance_valid(_target_sh_bg.get_parent()):
+			_target_sh_bg.get_parent().visible = false
+			
+		# Configurar barra de HP como barra de Stacks
+		if is_instance_valid(_target_hp_bg):
+			_target_hp_bg.color = Color(0.4, 0.25, 0.05, 0.3)
+		var rem_s = int(ent.get("remaining_stacks"))
+		var tot_s = max(1, int(ent.get("total_stacks")))
+		_hp_ratio = clamp(float(rem_s) / float(tot_s), 0.0, 1.0)
+		_target_hp_bar.anchor_right = _hp_ratio
+		_target_hp_bar.offset_right = 0.0
+		_target_hp_bar.color = Color(0.98, 0.57, 0.24) # Naranja ámbar SciFi
+		_target_hp_lbl.text = "Stacks: %d / %d" % [rem_s, tot_s]
+		
+		_update_target_casts()
+		_update_target_debuffs()
+		return
+
+	# Caso normal (Enemigos / Jugadores)
+	if is_instance_valid(_target_sh_bg) and is_instance_valid(_target_sh_bg.get_parent()):
+		_target_sh_bg.get_parent().visible = true
+	if is_instance_valid(_target_hp_bg):
+		_target_hp_bg.color = Color(0, 0.4, 0, 0.2)
 	
 	var name_text = ent.username
-	if ent.clan_tag != "":
+	if "clan_tag" in ent and ent.clan_tag != "":
 		name_text = "[%s] %s" % [ent.clan_tag, ent.username]
 	_target_name_lbl.text = name_text
 	
-	var hp_bar = int(ent._display_hp)
-	var max_hp = int(ent.max_hp)
-	var sh_bar = int(ent._display_shield)
-	var max_sh = int(ent.max_shield)
+	var hp_bar = int(ent._display_hp) if "_display_hp" in ent else int(ent.current_hp)
+	var max_hp = int(ent.max_hp) if "max_hp" in ent else 1
+	var sh_bar = int(ent._display_shield) if "_display_shield" in ent else int(ent.current_shield)
+	var max_sh = int(ent.max_shield) if "max_shield" in ent else 1
 	
-	var hp_text = roundi(ent.current_hp)
-	var sh_text = roundi(ent.current_shield)
+	var hp_text = roundi(ent.current_hp) if "current_hp" in ent else 0
+	var sh_text = roundi(ent.current_shield) if "current_shield" in ent else 0
 	
 	_hp_ratio = clamp(hp_bar / float(max_hp) if max_hp > 0 else 0.0, 0.0, 1.0)
 	_sh_ratio = clamp(sh_bar / float(max_sh) if max_sh > 0 else 0.0, 0.0, 1.0)
@@ -3090,12 +3142,102 @@ func _update_target_frame():
 	_update_target_casts()
 	_update_target_debuffs()
 
+func _format_seconds(sec: float) -> String:
+	var rounded = snappedf(sec, 0.1)
+	if is_equal_approx(rounded, roundf(rounded)):
+		return "%ds" % [int(roundf(rounded))]
+	return "%.1fs" % [rounded]
+
 func _update_target_casts():
 	if not is_instance_valid(_target_casts_vbox): return
 	
 	if not is_instance_valid(_target_entity) or _target_entity.get("is_dead") == true:
 		for child in _target_casts_vbox.get_children():
 			child.free()
+		return
+
+	# Si es un nodo de recurso: barra de casteo con contador en segundos en vivo
+	if _target_entity.get("is_resource_node") == true:
+		var is_coll = bool(_target_entity.get("collecting"))
+		var g_time = float(_target_entity.get("gather_time"))
+		var elap = float(_target_entity.get("collect_elapsed"))
+		
+		var bar_node_name = "TargetCastBar_Resource"
+		if is_coll and g_time > 0.0:
+			var prog = clampf(elap / maxf(0.01, g_time), 0.0, 1.0)
+			var cast_color = Color(0.22, 0.74, 0.97) # Cyan recolección
+			var display_name = "Recolectando... %s / %s" % [_format_seconds(elap), _format_seconds(g_time)]
+			
+			var bar_container: Control = _target_casts_vbox.get_node_or_null(bar_node_name)
+			if not is_instance_valid(bar_container):
+				bar_container = Control.new()
+				bar_container.name = bar_node_name
+				bar_container.custom_minimum_size = Vector2(0, 16)
+				bar_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				bar_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				
+				var bg_panel = Panel.new()
+				bg_panel.name = "BG"
+				bg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				bg_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				var style_bg = StyleBoxFlat.new()
+				style_bg.bg_color = Color(0.03, 0.03, 0.06, 0.95)
+				style_bg.border_width_left = 1; style_bg.border_width_top = 1
+				style_bg.border_width_right = 1; style_bg.border_width_bottom = 1
+				style_bg.border_color = Color(0.0, 0.0, 0.0, 1.0)
+				style_bg.corner_radius_top_left = 3; style_bg.corner_radius_top_right = 3
+				style_bg.corner_radius_bottom_left = 3; style_bg.corner_radius_bottom_right = 3
+				bg_panel.add_theme_stylebox_override("panel", style_bg)
+				bar_container.add_child(bg_panel)
+				
+				var fill_clip = Control.new()
+				fill_clip.name = "FillClip"
+				fill_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				fill_clip.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				fill_clip.clip_contents = true
+				bar_container.add_child(fill_clip)
+				
+				var fg = ColorRect.new()
+				fg.name = "FG"
+				fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				fg.color = cast_color
+				fg.anchor_left = 0.0
+				fg.anchor_top = 0.0
+				fg.anchor_bottom = 1.0
+				fg.anchor_right = prog
+				fg.offset_left = 0.0
+				fg.offset_top = 0.0
+				fg.offset_right = 0.0
+				fg.offset_bottom = 0.0
+				fill_clip.add_child(fg)
+				
+				var lbl = Label.new()
+				lbl.name = "Label"
+				lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				lbl.text = display_name
+				lbl.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+				lbl.vertical_alignment = VerticalAlignment.VERTICAL_ALIGNMENT_CENTER
+				lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				lbl.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+				lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+				lbl.add_theme_constant_override("outline_size", 2)
+				lbl.add_theme_font_size_override("font_size", 10)
+				bar_container.add_child(lbl)
+				
+				_target_casts_vbox.add_child(bar_container)
+			else:
+				var fg: ColorRect = bar_container.get_node_or_null("FillClip/FG")
+				if is_instance_valid(fg):
+					fg.anchor_right = prog
+					fg.offset_right = 0.0
+					fg.color = cast_color
+				var lbl: Label = bar_container.get_node_or_null("Label")
+				if is_instance_valid(lbl):
+					lbl.text = display_name
+		else:
+			var res_bar = _target_casts_vbox.get_node_or_null(bar_node_name)
+			if is_instance_valid(res_bar):
+				res_bar.free()
 		return
 		
 	var em = null
@@ -3396,14 +3538,14 @@ func _update_3d_target_preview(entity):
 	if not is_instance_valid(_target_model_holder):
 		return
 		
-	if not is_instance_valid(entity) or entity.is_dead:
+	if not is_instance_valid(entity) or entity.get("is_dead") == true or (entity.get("is_resource_node") == true and (entity.get("remaining_stacks") <= 0 or not entity.get("is_active"))):
 		_clear_3d_target_preview()
 		_last_previewed_glb = ""
 		return
 		
 	var glb_path = ""
 	if entity.has_meta("current_glb"):
-		glb_path = entity.get_meta("current_glb")
+		glb_path = str(entity.get_meta("current_glb"))
 		
 	if glb_path == "":
 		var ship_id = entity.get("current_ship_id")
@@ -3414,9 +3556,33 @@ func _update_3d_target_preview(entity):
 					break
 					
 	if glb_path == "":
-		_clear_3d_target_preview()
-		_last_previewed_glb = ""
-		return
+		if entity.get("is_resource_node") == true:
+			var res_fallback = "__resource_fallback__"
+			if _last_previewed_glb == res_fallback:
+				return
+			_clear_3d_target_preview()
+			_last_previewed_glb = res_fallback
+			_target_model_holder.rotation_degrees = Vector3.ZERO
+			var mesh_inst = MeshInstance3D.new()
+			var mesh = SphereMesh.new()
+			mesh.radius = 0.55
+			mesh.height = 1.35
+			mesh.radial_segments = 6
+			mesh.rings = 3
+			mesh_inst.mesh = mesh
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(0.98, 0.57, 0.24)
+			mat.metallic = 0.35
+			mat.roughness = 0.3
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mesh_inst.material_override = mat
+			mesh_inst.position = Vector3(0, -0.1, 0)
+			_target_model_holder.add_child(mesh_inst)
+			return
+		else:
+			_clear_3d_target_preview()
+			_last_previewed_glb = ""
+			return
 		
 	if glb_path == _last_previewed_glb:
 		return
@@ -3464,13 +3630,17 @@ func _update_3d_target_preview(entity):
 		# Aplicar la rotación original (offsets de inclinación/rotación) desde el modelo del juego
 		var applied_rot = Vector3(0, 180, 0)
 		if is_instance_valid(entity):
-			if is_instance_valid(entity._3d_model) and entity._3d_model.get_child_count() > 0:
+			if "_3d_model" in entity and is_instance_valid(entity._3d_model) and entity._3d_model.get_child_count() > 0:
 				var orig_mesh = entity._3d_model.get_child(0)
 				if is_instance_valid(orig_mesh):
 					applied_rot = orig_mesh.rotation_degrees
+			elif "model_node" in entity and is_instance_valid(entity.model_node):
+				applied_rot = entity.model_node.rotation_degrees
 			elif entity.has_meta("rot_y_deg") or entity.has_meta("rotY"):
 				var r_y = float(entity.get_meta("rot_y_deg") if entity.has_meta("rot_y_deg") else entity.get_meta("rotY", 0.0))
 				applied_rot = Vector3(0, r_y, 0)
+			elif "rot_y" in entity:
+				applied_rot = Vector3(0, float(entity.rot_y), 0)
 				
 		model.rotation_degrees = applied_rot
 		

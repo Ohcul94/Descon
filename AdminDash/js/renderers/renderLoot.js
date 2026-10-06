@@ -231,10 +231,8 @@ function renderEnemyLootDetail() {
                     </div>
                     <div style="text-align: center; background: rgba(255,255,255,0.03); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
                         <div style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase;">Drops Promedio</div>
-                        <div style="font-size: 1.3rem; font-weight: bold; color: var(--primary);"><select id="asset-picker-select" size="12" style="flex:1; overflow-y:auto; padding:8px 12px; width:100%; background:rgba(255,255,255,0.02); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:8px;">
-                <!-- Options will be filled dynamically -->
-            </select></div>
-                </div>
+                        <div style="font-size: 1.3rem; font-weight: bold; color: var(--primary);">${avgDrops}</div>
+                    </div>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
@@ -510,16 +508,23 @@ window.renderCrafting = function() {
                                 <button class="btn btn-primary" style="padding:8px 15px; font-size:0.75rem; flex-shrink:0; background:var(--accent); border-color:var(--accent); white-space:nowrap;" onclick="openAssetPicker(${idx}, 'resource')">🖼 SELECCIONAR ASSET</button>
                             </div>
                         </div>
-                        <div class="field" style="width: 100%;"><label>Modelo 3D (asset .glb del nodo recolectable)</label>
-                            <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
-                                <div style="flex-grow:1; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:8px 12px; font-family:'JetBrains Mono'; font-size:0.75rem; color:${res.assetPath ? 'var(--primary)' : 'rgba(255,255,255,0.25)'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${res.assetPath || '-- Sin modelo 3D (se usa cristal genérico) --'}</div>
-                                <button class="btn btn-primary" style="padding:8px 15px; font-size:0.75rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000; white-space:nowrap;" onclick="triggerAssetUpload(${idx}, 'resource_glb')">🧱 SELECCIONAR GLB</button>
-                                ${res.assetPath ? `<button style="padding:8px 10px; font-size:0.7rem; background:none; border:1px solid rgba(255,68,68,0.3); color:#ff6b6b; border-radius:6px; cursor:pointer; flex-shrink:0;" onclick="config.shopItems.resources[${idx}].assetPath=''; renderCrafting();">✕ Quitar</button>` : ''}
+                        <div class="field" style="width: 100%;"><label>Modelo 3D (Nodo recolectable en el mapa)</label>
+                            <div style="display: flex; gap: 10px; align-items: center; width: 100%; flex-wrap: wrap;">
+                                <input type="text" value="${res.assetPath || ''}" placeholder="res://assets/....glb (vacío = cristal genérico)"
+                                       oninput="config.shopItems.resources[${idx}].assetPath = this.value;"
+                                       onchange="renderCrafting();"
+                                       style="flex: 1 1 200px; background:rgba(255,255,255,0.03); border:1px solid rgba(251,146,60,0.3); border-radius:6px; padding:8px 12px; font-family:'JetBrains Mono'; font-size:0.75rem; color:${res.assetPath ? '#fb923c' : 'rgba(255,255,255,0.35)'}; margin:0;">
+                                <button class="btn btn-primary" style="padding:8px 15px; font-size:0.75rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000; font-weight:bold; white-space:nowrap;" onclick="triggerAssetUpload(${idx}, 'resource_glb')">🧱 SUBIR GLB</button>
+                                ${res.assetPath ? `<button style="padding:8px 10px; font-size:0.7rem; background:none; border:1px solid rgba(255,68,68,0.3); color:#ff6b6b; border-radius:6px; cursor:pointer; flex-shrink:0;" onclick="config.shopItems.resources[${idx}].assetPath=''; renderCrafting();">✕</button>` : ''}
+                                <div style="display:flex; align-items:center; gap:8px; background:rgba(251,146,60,0.08); padding:5px 10px; border-radius:6px; border:1px solid rgba(251,146,60,0.35); flex-shrink:0;">
+                                    <input type="checkbox" id="res-canfloat-${idx}" ${res.canFloat === true ? 'checked' : ''} onchange="config.shopItems.resources[${idx}].canFloat = this.checked;" style="cursor:pointer; margin:0;">
+                                    <label for="res-canfloat-${idx}" style="margin:0; font-size:0.72rem; color:#fb923c; font-weight:bold; cursor:pointer; user-select:none;">🛸 Flotación / Levitación</label>
+                                </div>
                             </div>
                         </div>
                         
                         <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
-                            <div class="field" style="width: 70px; margin:0; flex-shrink: 0;"><label>Escala</label><input type="number" step="0.1" min="0.1" value="${res.iconScale || 1.0}" style="width: 100%;" onchange="config.shopItems.resources[${idx}].iconScale = parseFloat(this.value) || 1.0;"></div>
+                            <div class="field" style="width: 80px; margin:0; flex-shrink: 0;"><label>Escala</label><input type="number" step="0.1" min="0.05" value="${res.iconScale !== undefined ? res.iconScale : (res.scale !== undefined ? res.scale : 1.0)}" style="width: 100%; font-weight:bold; color:#fb923c;" oninput="const v = parseFloat(this.value) || 1.0; config.shopItems.resources[${idx}].scale = v; config.shopItems.resources[${idx}].iconScale = v;" onchange="const v = parseFloat(this.value) || 1.0; config.shopItems.resources[${idx}].scale = v; config.shopItems.resources[${idx}].iconScale = v;"></div>
                             <div class="field" style="width: 50px; margin:0; flex-shrink: 0;"><label>Color</label><input type="color" value="${res.color || '#ffffff'}" style="height:38px; width:100%; padding:0; border:none; background:none; cursor:pointer;" onchange="config.shopItems.resources[${idx}].color = this.value;"></div>
                             <div class="field" style="width: 90px; margin:0; flex-shrink: 0;"><label>Límite Stack</label><input type="number" min="1" value="${res.maxStack || 1}" onchange="config.shopItems.resources[${idx}].maxStack = parseInt(this.value) || 1;"></div>
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Hubs)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.hubs || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.hubs = parseInt(this.value) || 0;"></div>

@@ -163,7 +163,7 @@ func _get_active_hud_target() -> Node2D:
 	return null
 
 func _is_target_valid_for_skill(target: Node2D) -> bool:
-	if not is_instance_valid(target) or target.is_dead: return false
+	if not is_instance_valid(target) or target.get("is_dead") == true or target.get("is_resource_node") == true: return false
 	if target.get("in_strange_dimension") == true or target.get("is_in_strange_dimension") == true: return false
 	var s_name = current_skill.get("skill_name", "")
 	var filters = current_skill.get("filters", {})

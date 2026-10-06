@@ -2414,13 +2414,36 @@ func _set_portal_icon(type: String):
 			else:
 				scene = load("res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb")
 		"resource":
-			if is_instance_valid(active_resource_node) and active_resource_node.get("icon_scene"):
-				scene = active_resource_node.get("icon_scene")
+			if is_instance_valid(active_resource_node):
+				if active_resource_node.get("icon_scene"):
+					scene = active_resource_node.get("icon_scene")
+				elif active_resource_node.get("asset_path") and ResourceLoader.exists(active_resource_node.asset_path):
+					scene = load(active_resource_node.asset_path)
 			if scene == null:
 				scene = MODEL_LOOT_ICON
 	if scene:
 		var model = scene.instantiate()
-		model.scale = Vector3(1.5, 1.5, 1.5)
+		for child_light in model.find_children("*", "Light3D", true):
+			child_light.queue_free()
+		
+		# Auto-centrado y auto-escalado AAA para que el asset llene el botón
+		var aabb = AABB()
+		var first = true
+		for mesh in model.find_children("*", "MeshInstance3D", true):
+			if first:
+				aabb = mesh.get_aabb()
+				first = false
+			else:
+				aabb = aabb.merge(mesh.get_aabb())
+		var max_dim = max(aabb.size.x, max(aabb.size.y, aabb.size.z))
+		var scale_ui = 1.0
+		if max_dim > 0.001:
+			scale_ui = 1.4 / max_dim
+		else:
+			scale_ui = 2.0
+		
+		model.scale = Vector3.ONE * scale_ui
+		model.position = -aabb.get_center() * scale_ui
 		model.rotation_degrees = Vector3(0, -90, 0)
 		holder.add_child(model)
 
