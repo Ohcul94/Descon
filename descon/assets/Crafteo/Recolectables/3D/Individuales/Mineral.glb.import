@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://d13sqs4r4f7ma"
-path="res://.godot/imported/Cristales.glb-84dd14b6bc6a45d3565e3b249c92427e.scn"
+uid="uid://ccxx61s1std2u"
+path="res://.godot/imported/Mineral.glb-33c1fd1f434f2f3267a11d41874592e3.scn"
 
 [deps]
 
-source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Cristales.glb"
-dest_files=["res://.godot/imported/Cristales.glb-84dd14b6bc6a45d3565e3b249c92427e.scn"]
+source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Mineral.glb"
+dest_files=["res://.godot/imported/Mineral.glb-33c1fd1f434f2f3267a11d41874592e3.scn"]
 
 [params]
 

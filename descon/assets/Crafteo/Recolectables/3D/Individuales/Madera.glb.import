@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dueldqr24suoc"
-path="res://.godot/imported/Maderas.glb-2f41d1de3c704f3ca80c9e2cd42e6673.scn"
+uid="uid://bl6jffb2q4rtv"
+path="res://.godot/imported/Madera.glb-9380452454d6db504248baf4ce454818.scn"
 
 [deps]
 
-source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Maderas.glb"
-dest_files=["res://.godot/imported/Maderas.glb-2f41d1de3c704f3ca80c9e2cd42e6673.scn"]
+source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Madera.glb"
+dest_files=["res://.godot/imported/Madera.glb-9380452454d6db504248baf4ce454818.scn"]
 
 [params]
 

@@ -214,7 +214,8 @@ function renderMapDetail() {
                 <div class="card" style="width:100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                         <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold; letter-spacing:1px; margin:0;">🛰️ RADAR TÁCTICO DEL MAPA</label>
-                        <div style="display:flex; align-items:center; gap:5px;">
+                        <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+                            <button class="btn btn-secondary" id="radar-structures-btn" onclick="toggleRadarStructures()" title="Mostrar/ocultar paredes, decoración y CSG/colisiones (se editan en Godot)" style="padding:2px 8px; font-size:0.65rem; height:24px; line-height:1; white-space:nowrap;">${window.radarShowStructures === true ? '🚫 Ocultar estructuras' : '🧱 Ver estructuras'}</button>
                             <button class="btn btn-secondary" onclick="window.zoomRadarIn()" title="Acercar (Zoom In)" style="padding:2px 8px; font-size:0.85rem; font-weight:bold; height:24px; line-height:1; min-width:24px;">＋</button>
                             <span id="radar-zoom-badge" style="font-size:0.65rem; font-family:'JetBrains Mono', monospace; color:var(--accent); min-width:38px; text-align:center;">100%</span>
                             <button class="btn btn-secondary" onclick="window.zoomRadarOut()" title="Alejar (Zoom Out)" style="padding:2px 8px; font-size:0.85rem; font-weight:bold; height:24px; line-height:1; min-width:24px;">－</button>
@@ -235,6 +236,7 @@ function renderMapDetail() {
                     </div>
                     <div id="map-radar-mode-hint" style="font-size:0.65rem; color:#888; text-align:center; width:100%;">
                         🖱️ <strong>Rueda</strong>: Zoom In/Out | <strong>Clic Derecho / Fondo</strong>: Desplazar mapa (Pan) | <strong>Clic Izq</strong>: Arrastrar items | <strong>CTRL+D</strong>: Duplicar | <strong>SUPR</strong>: Eliminar
+                        <br><span style="color:#64748b;">Paredes, decoración y colisiones (CSG) no se muestran: se editan en Godot (botón "🧱 Ver estructuras" para revisarlas)</span>
                     </div>
                 </div>
             </div>
@@ -448,7 +450,7 @@ ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? 
                         const resLib = (config.shopItems && Array.isArray(config.shopItems.resources)) ? config.shopItems.resources : [];
                         const mat = resLib.find(x => x.id === r.resourceId) || null;
                         const rName = mat ? mat.name : (r.resourceId ? `ID ${r.resourceId}` : 'Sin material asignado');
-                        const gatherTime = mat && mat.gatherTime !== undefined ? mat.gatherTime : 3;
+                        const gatherTime = window.fmtGatherTime ? window.fmtGatherTime(mat && mat.gatherTime !== undefined ? mat.gatherTime : 3000) : '3s';
                         const matOk = !!(mat && mat.recolectable);
                         const isRandomMode = r.spawnMode === 'random' || r.spawnMode === 'random_global' || r.spawnMode === 'random_zone';
                         const rMode = isRandomMode ? (r.radius > 0 ? '⭕ Área' : '🌍 Global') : (r.spawnMode === 'polygon' ? '📐 Polígono' : '📍 Fijo');
@@ -460,7 +462,7 @@ ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? 
                                  onclick="selectMapItem('resource', ${idx}); toggleMapCard('resource-${idx}')">
                                 <span style="font-size:1rem;">🌿</span>
                                 <span id="resource-name-${idx}" style="flex:1; color:#fb923c; font-weight:bold; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${rName}</span>
-                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">${rMode} ×${r.count || 1} · ${r.amount || 1}u · ⏱${gatherTime}s</span>
+                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">${rMode} ×${r.count || 1} · ${r.amount || 1}u · ⏱${gatherTime}</span>
                                 ${matOk ? '' : `<span style="font-size:0.6rem; color:#ff4444; padding:2px 6px; border:1px solid rgba(255,68,68,0.4); border-radius:4px; white-space:nowrap;" title="El material no está marcado como Recolectable">⚠️ SIN RECOLECTAR</span>`}
                                 <span style="color:#fb923c; font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
                                 <button style="background:none; border:none; color:#fb923c; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Duplicar (Ctrl+D)" onclick="event.stopPropagation(); duplicateMapItem('resource', ${idx})">⧉</button>
@@ -476,7 +478,7 @@ ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? 
                                             renderMapDetail();
                                             selectMapItem('resource', idx);
                                         }, '#fb923c', `map-resource-${idx}`)}
-                                        <div style="font-size:0.6rem; color:#64748b; margin-top:5px;">⏱ Tiempo de recolección: <strong style="color:#fb923c;">${gatherTime}s</strong> (se configura en Crafteo → Materiales)</div>
+                                        <div style="font-size:0.6rem; color:#64748b; margin-top:5px;">⏱ Tiempo de recolección: <strong style="color:#fb923c;">${gatherTime}</strong> (se configura en Crafteo → Materiales)</div>
                                     </div>
                                     <div class="field">
                                         <label>Cant. Nodos (slots)</label>
@@ -534,14 +536,15 @@ ${(r.spawnMode === 'random' || r.spawnMode === 'random_zone') && r.radius > 0 ? 
                                          </div>
                                      </div>
                                      ` : ''}
-                                     <div class="field" style="grid-column: span 2;">
-                                         <label>Asset 3D del Nodo (ruta .glb)</label>
-                                         <div style="display:flex; gap:6px; align-items:center;">
-                                             <input type="text" value="${r.assetPath || ''}" placeholder="res://assets/....glb (vacío = genérico teñido con el color del material)"
+                                      <div class="field" style="grid-column: span 2;">
+                                          <label>Asset 3D del Nodo (ruta .glb)</label>
+                                          <div style="display:flex; gap:6px; align-items:center;">
+                                              <input type="text" value="${r.assetPath || ''}" placeholder="res://assets/....glb (vacío = modelo 3D del material)"
                                                     oninput="config.mapsConfig['${selectedMapId}'].resources[${idx}].assetPath = this.value" style="flex:1; margin:0;">
-                                             <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="triggerMapResourceAssetPick('${selectedMapId}', ${idx}, 'assetPath')">📁</button>
-                                         </div>
-                                     </div>
+                                              <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000;" onclick="triggerMapResourceAssetPick('${selectedMapId}', ${idx}, 'assetPath')">📁</button>
+                                          </div>
+                                          ${!r.assetPath && mat && mat.assetPath ? `<div style="font-size:0.6rem; color:#fb923c; margin-top:4px;">↳ Usará el modelo del material: <span style="font-family:'JetBrains Mono', monospace;">${mat.assetPath}</span></div>` : (r.assetPath ? '' : `<div style="font-size:0.6rem; color:#64748b; margin-top:4px;">↳ Sin modelo: se usará un cristal naranja genérico.</div>`)}
+                                      </div>
                                      <div class="field" style="grid-column: span 2;">
                                          <label>Icono / Foto del Nodo (imagen)</label>
                                          <div style="display:flex; gap:6px; align-items:center;">

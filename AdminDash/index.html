@@ -691,7 +691,11 @@
                 <div class="card" style="width: 100%;">
                     <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
                         <span>📦 MATERIALES / RECURSOS</span>
-                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addCraftingResource()">+ AGREGAR MATERIAL</button>
+                        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+                            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.7rem;" onclick="setAllCraftCards(false)" title="Expandir todas las tarjetas">▶ Expandir todo</button>
+                            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.7rem;" onclick="setAllCraftCards(true)" title="Colapsar todas las tarjetas">▼ Colapsar todo</button>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addCraftingResource()">+ AGREGAR MATERIAL</button>
+                        </div>
                     </h3>
                     <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Crea o modifica los materiales de recolección y crafteo del juego.</p>
                     <div id="crafting-resources-list" style="display: flex; flex-direction: column; gap: 15px;">
@@ -705,7 +709,11 @@
                 <div class="card" style="width: 100%;">
                     <h3 style="color: var(--accent); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
                         <span>⚒️ RECETAS DE CRAFTEO</span>
-                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addCraftingRecipe()">+ AGREGAR RECETA</button>
+                        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+                            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.7rem;" onclick="setAllCraftCards(false)" title="Expandir todas las tarjetas">▶ Expandir todo</button>
+                            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.7rem;" onclick="setAllCraftCards(true)" title="Colapsar todas las tarjetas">▼ Colapsar todo</button>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addCraftingRecipe()">+ AGREGAR RECETA</button>
+                        </div>
                     </h3>
                     <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Configura las recetas de crafteo, ingredientes requeridos y costos.</p>
                     <div id="crafting-recipes-list" style="display: flex; flex-direction: column; gap: 1.5rem;">
@@ -1019,19 +1027,19 @@
 
     <!-- Scripts Modularizados del Panel -->
     <script src="js/definitions.js?v=1.25"></script>
-    <script src="js/renderers/renderRequirements.js?v=1.25"></script>
+    <script src="js/renderers/renderRequirements.js?v=1.26"></script>
     <script src="js/renderers/renderItems.js?v=1.24"></script>
     <script src="js/renderers/renderEnemies.js?v=1.25"></script>
     <script src="js/renderers/renderMechanics.js?v=1.24"></script>
-    <script src="js/renderers/renderMaps.js?v=1.25"></script>
+    <script src="js/renderers/renderMaps.js?v=1.27"></script>
     <script src="js/renderers/renderSkills.js?v=1.24"></script>
     <script src="js/renderers/renderPlayers.js?v=1.24"></script>
     <script src="js/renderers/renderBattlePass.js?v=1.24"></script>
-    <script src="js/renderers/renderLoot.js?v=1.25"></script>
-    <script src="js/renderers/renderModes.js?v=1.30"></script>
+    <script src="js/renderers/renderLoot.js?v=1.27"></script>
+    <script src="js/renderers/renderModes.js?v=1.31"></script>
     <script src="js/renderers/renderRankingsReports.js?v=1.24"></script>
     <script src="js/renderers.js?v=1.24"></script>
-    <script src="js/app.js?v=1.30"></script>
+    <script src="js/app.js?v=1.31"></script>
 
 </body>
 </html>

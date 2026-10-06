@@ -23,9 +23,12 @@ function getMaterial(state, resourceId) {
     return getMaterials(state).find(m => String(m.id) === id) || null;
 }
 
+// Tiempo de recolección en MILISEGUNDOS (como el resto del sistema).
+// Los valores < 100 se interpretan como segundos legacy y se convierten.
 function getGatherTime(mat) {
     const t = Number(mat.gatherTime);
-    return (isFinite(t) && t > 0) ? t : 3;
+    if (!isFinite(t) || t <= 0) return 3000;
+    return Math.round(t < 100 ? t * 1000 : t);
 }
 
 function getZoneCfg(state, zone) {
@@ -355,7 +358,7 @@ class ResourceNodeManager {
                 }
 
                 // El canal debe haber durado el tiempo configurado (con 200ms de tolerancia)
-                const gatherMs = getGatherTime(mat) * 1000;
+                const gatherMs = getGatherTime(mat);
                 const elapsed = Date.now() - node.collecting.startedAt;
                 if (elapsed < gatherMs - 200) {
                     return socket.emit('resourceCollectCancelled', { nodeId: node.id, reason: 'too_fast' });

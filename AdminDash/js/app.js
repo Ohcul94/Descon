@@ -3277,6 +3277,36 @@ window.toggleWaveCollapse = function (idx) {
     renderModes();
 };
 
+// ─── Visibilidad de estructuras (paredes / decoración / CSG) en el radar de Cartografía ───
+// Se editan en Godot (MapEditor3D): en el radar solo ensucian el lienzo.
+// NO borra datos, solo deja de dibujarlos/seleccionarlos hasta que se activen de nuevo.
+window.radarShowStructures = (function () {
+    try { return localStorage.getItem('adminDash_radarShowStructures') === '1'; } catch (e) { return false; }
+})();
+window.isStructureMapObject = function (obj) {
+    if (!obj) return false;
+    if (obj.type === 'wall' || obj.type === 'decor') return true;
+    return obj.label === 'CSGBox3D';
+};
+window.radarObjectVisible = function (obj) {
+    return window.radarShowStructures || !window.isStructureMapObject(obj);
+};
+window.updateRadarStructuresBtn = function () {
+    const b = document.getElementById('radar-structures-btn');
+    if (!b) return;
+    b.innerText = window.radarShowStructures ? '🚫 Ocultar estructuras' : '🧱 Ver estructuras';
+    b.title = window.radarShowStructures
+        ? 'Ocultar paredes, decoración y CSG/colisiones (se editan en Godot)'
+        : 'Mostrar paredes, decoración y CSG/colisiones (se editan en Godot)';
+    b.style.borderColor = window.radarShowStructures ? 'var(--accent)' : 'rgba(255,255,255,0.2)';
+    b.style.color = window.radarShowStructures ? 'var(--accent)' : '#888';
+};
+window.toggleRadarStructures = function () {
+    window.radarShowStructures = !window.radarShowStructures;
+    try { localStorage.setItem('adminDash_radarShowStructures', window.radarShowStructures ? '1' : '0'); } catch (e) { /* sin storage */ }
+    window.updateRadarStructuresBtn();
+};
+
 function initMapRadar() {
     const canvas = document.getElementById('map-radar-canvas');
     if (!canvas) return;
@@ -3306,6 +3336,7 @@ function initMapRadar() {
         }
     };
     updateZoomBadge();
+    if (window.updateRadarStructuresBtn) window.updateRadarStructuresBtn();
 
     // Función para limitar zoom entre 100% y 500% y restringir paneo dentro del mapa
     const clampPanAndZoom = () => {
@@ -3479,6 +3510,7 @@ function initMapRadar() {
         const objects = m.objects || [];
         for (let i = 0; i < objects.length; i++) {
             const obj = objects[i];
+            if (!window.radarObjectVisible(obj)) continue;
             const pos = worldToCanvas(obj.x || 0, obj.y || 0);
             if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 14) {
                 isDragging = true;
@@ -3665,6 +3697,7 @@ function initMapRadar() {
                 let hoveringItem = false;
                 const objects = m.objects || [];
                 for (let i = 0; i < objects.length; i++) {
+                    if (!window.radarObjectVisible(objects[i])) continue;
                     const pos = worldToCanvas(objects[i].x || 0, objects[i].y || 0);
                     if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 14) {
                         hoveringItem = true;
@@ -4081,6 +4114,7 @@ function initMapRadar() {
         };
         const objects = m.objects || [];
         objects.forEach((obj, idx) => {
+            if (!window.radarObjectVisible(obj)) return;
             const pos = worldToCanvas(obj.x || 0, obj.y || 0);
             const isSelected = isDragging && dragItem && dragItem.type === 'map-obj' && dragItem.index === idx;
             const isHighlighted = window._highlightedMapObj === idx;

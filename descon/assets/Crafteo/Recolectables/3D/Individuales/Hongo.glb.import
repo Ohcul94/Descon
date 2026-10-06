@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cu7qhocofws8i"
-path="res://.godot/imported/Minerales.glb-d76b222e6e8c757358f5ff2201c6f735.scn"
+uid="uid://go83p60fqgkg"
+path="res://.godot/imported/Hongo.glb-6e5b9a6634eaf6f12d262f0dd1c87ca4.scn"
 
 [deps]
 
-source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Minerales.glb"
-dest_files=["res://.godot/imported/Minerales.glb-d76b222e6e8c757358f5ff2201c6f735.scn"]
+source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Hongo.glb"
+dest_files=["res://.godot/imported/Hongo.glb-6e5b9a6634eaf6f12d262f0dd1c87ca4.scn"]
 
 [params]
 

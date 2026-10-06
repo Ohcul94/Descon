@@ -78,8 +78,12 @@ func _build_model() -> void:
 	if not is_instance_valid(world_root_3d):
 		return
 	model_node = null
-	if asset_path != "":
-		var res = load(asset_path)
+	# El nodo puede definir su propio asset; si no, se usa el modelo 3D del material
+	var model_path = asset_path
+	if model_path == "":
+		model_path = _material_asset_path()
+	if model_path != "":
+		var res = load(model_path)
 		if res is PackedScene:
 			icon_scene = res
 			model_node = res.instantiate()
@@ -115,6 +119,24 @@ func _build_model() -> void:
 	light.omni_range = 9.0
 	light.position.y = 1.2
 	world_root_3d.add_child(light)
+
+func _material_asset_path() -> String:
+	var res_id = str(data.get("resourceId", ""))
+	if res_id == "":
+		return ""
+	var gc = get_node_or_null("/root/GameConstants")
+	if gc == null:
+		return ""
+	var shop = gc.get("SHOP_ITEMS")
+	if typeof(shop) != TYPE_DICTIONARY:
+		return ""
+	var res_list = shop.get("resources", [])
+	if typeof(res_list) != TYPE_ARRAY:
+		return ""
+	for r in res_list:
+		if typeof(r) == TYPE_DICTIONARY and str(r.get("id", "")) == res_id:
+			return str(r.get("assetPath", ""))
+	return ""
 
 func _process(delta: float):
 	if is_single_world:
@@ -206,10 +228,11 @@ func _interact():
 		NetworkManager.send_event("startCollectResource", { "nodeId": node_id })
 
 # --- Canal de recolección (confirmado por el servidor) ---
-func begin_channel(p_gather_time: float) -> void:
+func begin_channel(p_gather_time_ms: float) -> void:
 	if not is_active or collecting:
 		return
-	gather_time = maxf(0.5, p_gather_time)
+	# El servidor envía el tiempo en milisegundos
+	gather_time = maxf(100.0, p_gather_time_ms) / 1000.0
 	collect_elapsed = 0.0
 	collecting = true
 	queue_redraw()

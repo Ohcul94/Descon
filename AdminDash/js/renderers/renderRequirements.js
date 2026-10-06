@@ -375,8 +375,8 @@ window.renderSearchableResourceSelect = function(currentValue, onChangeCallback,
             row.appendChild(titleSpan);
 
             const metaSpan = document.createElement('span');
-            const gt = r.gatherTime !== undefined ? r.gatherTime : 3;
-            metaSpan.innerText = (r.recolectable ? `⏱ Recolecta en ${gt}s` : '⚠️ Ya no es recolectable') +
+            const gt = window.fmtGatherTime ? window.fmtGatherTime(r.gatherTime) : '3s';
+            metaSpan.innerText = (r.recolectable ? `⏱ Recolecta en ${gt}` : '⚠️ Ya no es recolectable') +
                 (r.maxStack ? ` · Stack ${r.maxStack}` : '');
             metaSpan.style.color = '#64748b';
             metaSpan.style.fontSize = '0.68rem';

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bd4gdkt2orfwu"
-path="res://.godot/imported/Comestibles.glb-717a8dfaac66220240904a6b9f6a0e49.scn"
+uid="uid://id2xj26mljvc"
+path="res://.godot/imported/Cristal.glb-bfe3af693361220c3a2a9cb206157ee6.scn"
 
 [deps]
 
-source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Comestibles.glb"
-dest_files=["res://.godot/imported/Comestibles.glb-717a8dfaac66220240904a6b9f6a0e49.scn"]
+source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Cristal.glb"
+dest_files=["res://.godot/imported/Cristal.glb-bfe3af693361220c3a2a9cb206157ee6.scn"]
 
 [params]
 

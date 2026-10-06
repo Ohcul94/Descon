@@ -1695,10 +1695,10 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
     input.type = 'file';
 
     // Tipos que NO deben copiar el archivo — solo resuelven la ruta res://
-    const resolveOnlyTypes = ['resource', 'recipe', 'ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'skill_sound', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon', 'ammo_sound', 'enemy_icon', 'enemy_glb', 'mechanic_sound', 'defense_sound', 'movement_sound', 'mechanic_instance_sound'];
+    const resolveOnlyTypes = ['resource', 'resource_glb', 'recipe', 'ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'skill_sound', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon', 'ammo_sound', 'enemy_icon', 'enemy_glb', 'mechanic_sound', 'defense_sound', 'movement_sound', 'mechanic_instance_sound'];
     const isResolveOnly = resolveOnlyTypes.includes(type);
 
-    if (type === 'ship_glb' || type === 'housing_glb' || type === 'enemy_glb') {
+    if (type.endsWith('_glb')) {
         input.accept = '.glb';
     } else if (type.includes('sound')) {
         input.accept = '.ogg,.wav,.mp3,audio/*';
@@ -1721,6 +1721,9 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                 if (result.success && result.path) {
                     if (type === 'resource') {
                         config.shopItems.resources[idx].icon = result.path;
+                    } else if (type === 'resource_glb') {
+                        if (!config.shopItems.resources[idx]) config.shopItems.resources[idx] = {};
+                        config.shopItems.resources[idx].assetPath = result.path;
                     } else if (type === 'recipe') {
                         config.craftingRecipes[idx].icon = result.path;
                     } else if (type === 'ship_icon') {
@@ -1800,7 +1803,7 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         renderEnemyDetail();
                     } else if (type === 'talent_icon') {
                         renderTalentCreator();
-                    } else if (type === 'resource' || type === 'recipe') {
+                    } else if (type === 'resource' || type === 'resource_glb' || type === 'recipe') {
                         renderCrafting();
                     }
                 } else {

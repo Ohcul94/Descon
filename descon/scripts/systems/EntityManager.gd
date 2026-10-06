@@ -4998,7 +4998,7 @@ func _on_resource_collect_started(data: Dictionary):
 		return
 	var node = resource_nodes[id]
 	if is_instance_valid(node):
-		node.begin_channel(float(data.get("gatherTime", 3.0)))
+		node.begin_channel(float(data.get("gatherTime", 3000.0)))
 
 func _on_resource_collect_cancelled(data: Dictionary):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("nodeId"):

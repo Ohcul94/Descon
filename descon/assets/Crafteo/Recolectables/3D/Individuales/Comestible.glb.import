@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cel0pnqydul71"
-path="res://.godot/imported/Hongos.glb-f08d42d4cfca514904dc2ef3b2032266.scn"
+uid="uid://du4etk274da11"
+path="res://.godot/imported/Comestible.glb-b9f2d4453b8899b1733fa520319a1b8e.scn"
 
 [deps]
 
-source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Hongos.glb"
-dest_files=["res://.godot/imported/Hongos.glb-f08d42d4cfca514904dc2ef3b2032266.scn"]
+source_file="res://assets/Crafteo/Recolectables/3D/Individuales/Comestible.glb"
+dest_files=["res://.godot/imported/Comestible.glb-b9f2d4453b8899b1733fa520319a1b8e.scn"]
 
 [params]
 

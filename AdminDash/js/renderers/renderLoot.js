@@ -265,6 +265,62 @@ function saveCollapsedCraftingGroups() {
     try { localStorage.setItem(CRAFTING_COLLAPSE_KEY, JSON.stringify(Array.from(collapsedCraftingGroups))); } catch (e) { /* sin almacenamiento */ }
 }
 
+// ─── Colapso individual de cada tarjeta (materiales / recetas) dentro de las ramas ───
+const CRAFT_CARD_KEY = 'adminDash_craftCardsCollapsed';
+let collapsedCraftCards = new Set();
+try {
+    const storedCards = JSON.parse(localStorage.getItem(CRAFT_CARD_KEY) || '[]');
+    if (Array.isArray(storedCards)) collapsedCraftCards = new Set(storedCards);
+} catch (e) { /* estado corrupto: se ignora */ }
+function saveCollapsedCraftCards() {
+    try { localStorage.setItem(CRAFT_CARD_KEY, JSON.stringify(Array.from(collapsedCraftCards))); } catch (e) { /* sin almacenamiento */ }
+}
+window.toggleCraftCard = function (el) {
+    const key = (el && el.getAttribute) ? el.getAttribute('data-key') : String(el);
+    if (!key) return;
+    if (collapsedCraftCards.has(key)) collapsedCraftCards.delete(key);
+    else collapsedCraftCards.add(key);
+    saveCollapsedCraftCards();
+    renderCrafting();
+};
+window.setAllCraftCards = function (collapsed) {
+    collapsedCraftCards = new Set();
+    if (!collapsed) {
+        (config.shopItems.resources || []).forEach((r, i) => collapsedCraftCards.add('res:' + (r.id || i)));
+        (config.craftingRecipes || []).forEach((r, i) => collapsedCraftCards.add('recipe:' + (r.id || i)));
+    }
+    saveCollapsedCraftCards();
+    renderCrafting();
+};
+function craftCardKey(kind, item, idx) {
+    return kind + ':' + (item && item.id !== undefined && item.id !== '' ? item.id : idx);
+}
+function craftCardAttr(key) {
+    return String(key).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+// Fila de cabecera con flecha: clic = colapsar / expandir esa tarjeta
+function craftCardHeaderHTML(key, collapsed, innerHTML, rightPad = 40) {
+    return `<div class="craft-card-header" data-key="${craftCardAttr(key)}" onclick="toggleCraftCard(this)" title="Click para colapsar / expandir"
+        style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; padding:0.45rem ${rightPad}px 0.45rem 0.6rem; border-radius:8px; background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.1); margin-bottom:${collapsed ? '0' : '12px'};"
+        onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+        <span class="chevron" style="font-size:0.65rem; color:#888; width:14px; text-align:center; flex-shrink:0;">${collapsed ? '▶' : '▼'}</span>
+        ${innerHTML}
+    </div>`;
+}
+
+// ─── Tiempo de recolección (almacenado en MILISEGUNDOS, como el resto del sistema) ───
+// Valores < 100 se interpretan como segundos legacy (configs viejas) y se convierten.
+window.toGatherMs = function (value) {
+    const n = parseFloat(value);
+    if (!isFinite(n) || n <= 0) return 3000;
+    return Math.round(n < 100 ? n * 1000 : n);
+};
+window.fmtGatherTime = function (value) {
+    const ms = window.toGatherMs(value);
+    const secs = ms / 1000;
+    return (Number.isInteger(secs) ? secs : Math.round(secs * 10) / 10) + 's';
+};
+
 window.renderCrafting = function() {
     // Inicializar secciones si no existen
     if (!config.shopItems) config.shopItems = {};
@@ -420,9 +476,22 @@ window.renderCrafting = function() {
             const resIconWeb = resolveAssetWebUrl(res.icon);
             const previewImgHTML = resIconWeb ? `<img src="${resIconWeb}" style="width:130px; height:130px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); display: block;" onerror="this.style.display='none';">` : `<div style="width:130px; height:130px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">Sin Icono</div>`;
 
+            const cardKey = craftCardKey('res', res, idx);
+            const cardCollapsed = collapsedCraftCards.has(cardKey);
+            const cardHeaderInner = `
+                ${resIconWeb ? `<img src="${resIconWeb}" style="width:22px; height:22px; object-fit:contain; border-radius:4px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); flex-shrink:0;" onerror="this.style.display='none';">` : `<span style="width:8px; flex-shrink:0;"></span>`}
+                <span style="font-weight:bold; color:#e2e8f0; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${res.name || 'Sin nombre'}</span>
+                <span style="color:#64748b; font-size:0.68rem; font-family:'JetBrains Mono', monospace; white-space:nowrap;">${res.id || ''}</span>
+                ${res.recolectable ? `<span style="font-size:0.6rem; color:#fb923c; border:1px solid rgba(251,146,60,0.4); border-radius:4px; padding:1px 6px; white-space:nowrap;">⏱ ${window.fmtGatherTime ? window.fmtGatherTime(res.gatherTime) : '3s'}</span>` : ''}
+                <span style="flex:1"></span>
+                <span style="font-size:0.65rem; color:#64748b; white-space:nowrap;">${cardCollapsed ? 'Expandir' : 'Colapsar'}</span>
+            `;
+            if (cardCollapsed) div.style.padding = '0.7rem 1.5rem';
+
             div.innerHTML = `
                 <button style="position:absolute; top:8px; right:8px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:16px;" onclick="removeCraftingResource(${idx})">✕</button>
-                <div style="display: flex; gap: 20px; align-items: flex-start;">
+                ${craftCardHeaderHTML(cardKey, cardCollapsed, cardHeaderInner, 40)}
+                <div style="display: ${cardCollapsed ? 'none' : 'flex'}; gap: 20px; align-items: flex-start;">
                     <!-- Preview Image -->
                     <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                         ${previewImgHTML}
@@ -441,6 +510,13 @@ window.renderCrafting = function() {
                                 <button class="btn btn-primary" style="padding:8px 15px; font-size:0.75rem; flex-shrink:0; background:var(--accent); border-color:var(--accent); white-space:nowrap;" onclick="openAssetPicker(${idx}, 'resource')">🖼 SELECCIONAR ASSET</button>
                             </div>
                         </div>
+                        <div class="field" style="width: 100%;"><label>Modelo 3D (asset .glb del nodo recolectable)</label>
+                            <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+                                <div style="flex-grow:1; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:8px 12px; font-family:'JetBrains Mono'; font-size:0.75rem; color:${res.assetPath ? 'var(--primary)' : 'rgba(255,255,255,0.25)'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${res.assetPath || '-- Sin modelo 3D (se usa cristal genérico) --'}</div>
+                                <button class="btn btn-primary" style="padding:8px 15px; font-size:0.75rem; flex-shrink:0; background:#fb923c; border-color:#fb923c; color:#000; white-space:nowrap;" onclick="triggerAssetUpload(${idx}, 'resource_glb')">🧱 SELECCIONAR GLB</button>
+                                ${res.assetPath ? `<button style="padding:8px 10px; font-size:0.7rem; background:none; border:1px solid rgba(255,68,68,0.3); color:#ff6b6b; border-radius:6px; cursor:pointer; flex-shrink:0;" onclick="config.shopItems.resources[${idx}].assetPath=''; renderCrafting();">✕ Quitar</button>` : ''}
+                            </div>
+                        </div>
                         
                         <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
                             <div class="field" style="width: 70px; margin:0; flex-shrink: 0;"><label>Escala</label><input type="number" step="0.1" min="0.1" value="${res.iconScale || 1.0}" style="width: 100%;" onchange="config.shopItems.resources[${idx}].iconScale = parseFloat(this.value) || 1.0;"></div>
@@ -450,7 +526,7 @@ window.renderCrafting = function() {
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Ohcu)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.ohcu || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.ohcu = parseInt(this.value) || 0;"></div>
                             <div class="field" style="margin:0; flex-shrink: 0;"><label>No Comerciable</label><input type="checkbox" ${res.soulbound ? 'checked' : ''} onchange="config.shopItems.resources[${idx}].soulbound = this.checked;"></div>
                             <div class="field" style="margin:0; flex-shrink: 0;"><label>Recolectable</label><input type="checkbox" ${res.recolectable ? 'checked' : ''} onchange="config.shopItems.resources[${idx}].recolectable = this.checked; renderCrafting();"></div>
-                            ${res.recolectable ? `<div class="field" style="width: 120px; margin:0; flex-shrink: 0;"><label>Tiempo Recolectar (s)</label><input type="number" min="0.5" step="0.5" value="${res.gatherTime !== undefined ? res.gatherTime : 3}" onchange="config.shopItems.resources[${idx}].gatherTime = parseFloat(this.value) || 3;"></div>` : ''}
+                            ${res.recolectable ? `<div class="field" style="width: 140px; margin:0; flex-shrink: 0;"><label>Tiempo Recolectar (ms)</label><input type="number" min="100" step="100" value="${toGatherMs(res.gatherTime)}" onchange="config.shopItems.resources[${idx}].gatherTime = Math.max(100, parseInt(this.value) || 3000);"></div>` : ''}
                         </div>
 
                         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
@@ -576,9 +652,22 @@ window.renderCrafting = function() {
             const recipeIconWeb = resolveAssetWebUrl(recipeDisplayIcon);
             const recipePreviewImgHTML = recipeIconWeb ? `<img src="${recipeIconWeb}" style="width:110px; height:110px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); display: block;" onerror="this.style.display='none';">` : `<div style="width:110px; height:110px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">Sin Icono</div>`;
 
+            const cardKey = craftCardKey('recipe', recipe, idx);
+            const cardCollapsed = collapsedCraftCards.has(cardKey);
+            const cardHeaderInner = `
+                ${recipeIconWeb ? `<img src="${recipeIconWeb}" style="width:22px; height:22px; object-fit:contain; border-radius:4px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); flex-shrink:0;" onerror="this.style.display='none';">` : `<span style="width:8px; flex-shrink:0;"></span>`}
+                <span style="font-weight:bold; color:#e2e8f0; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${recipe.name || 'Sin nombre'}</span>
+                <span style="color:#64748b; font-size:0.68rem; font-family:'JetBrains Mono', monospace; white-space:nowrap;">${recipe.id || ''}</span>
+                <span style="font-size:0.6rem; color:var(--primary); border:1px solid rgba(0,210,255,0.3); border-radius:4px; padding:1px 6px; white-space:nowrap;">${(recipe.ingredients || []).length} ingrediente${(recipe.ingredients || []).length === 1 ? '' : 's'}</span>
+                <span style="flex:1"></span>
+                <span style="font-size:0.65rem; color:#64748b; white-space:nowrap;">${cardCollapsed ? 'Expandir' : 'Colapsar'}</span>
+            `;
+            if (cardCollapsed) div.style.padding = '0.7rem 1.5rem';
+
             div.innerHTML = `
                 <button style="position:absolute; top:12px; right:12px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:18px;" onclick="removeCraftingRecipe(${idx})">✕ ELIMINAR RECETA</button>
-                <div style="display: flex; gap: 20px; align-items: flex-start;">
+                ${craftCardHeaderHTML(cardKey, cardCollapsed, cardHeaderInner, 185)}
+                <div style="display: ${cardCollapsed ? 'none' : 'flex'}; gap: 20px; align-items: flex-start;">
                     <!-- Preview Image + Asset Picker para la receta -->
                     <div style="flex-shrink: 0; display: flex; flex-direction:column; align-items: center; justify-content: center; gap:8px;">
                         ${recipePreviewImgHTML}
@@ -668,7 +757,8 @@ window.addCraftingResource = function() {
         type: "resource",
         tags: [],
         recolectable: false,
-        gatherTime: 3
+        gatherTime: 3000,
+        assetPath: ""
     });
     renderCrafting();
 };
