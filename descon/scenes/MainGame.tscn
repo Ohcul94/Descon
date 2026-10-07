@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://e4r7v2y3m5l6" path="res://scenes/ui/ChatUI.tscn" id="11_chat"]
 [ext_resource type="Script" uid="uid://c81cexbe61c8n" path="res://scripts/systems/CombatSystem.gd" id="12_combat"]
 [ext_resource type="Script" uid="uid://b1r2co7tcgg1y" path="res://scripts/systems/TalentSystem.gd" id="13_talents"]
+[ext_resource type="PackedScene" uid="uid://map_ui_scene_001" path="res://scenes/ui/PlayerMapUI.tscn" id="14_player_map"]
 
 [node name="MainGame" type="Node2D" unique_id=1027512409]
 script = ExtResource("1_world")
@@ -75,6 +76,9 @@ layer = 2
 visible = false
 
 [node name="PlayerInventory" parent="HUD" unique_id=1683379226 instance=ExtResource("10_player_inv")]
+visible = false
+
+[node name="PlayerMap" parent="HUD" unique_id=1683379227 instance=ExtResource("14_player_map")]
 visible = false
 
 [node name="ChatUI" parent="HUD" unique_id=1107118506 instance=ExtResource("11_chat")]

@@ -806,6 +806,14 @@ func _on_icon_pressed(id: String):
 		toggle_player_inventory()
 		return
 
+	if id == "Map":
+		toggle_player_map()
+		return
+
+	if id == "Logistics":
+		toggle_logistics_menu()
+		return
+
 	if id == "EscMenu":
 		toggle_esc_menu()
 		if is_instance_valid(_esc_menu):
@@ -2456,6 +2464,30 @@ func toggle_player_inventory():
 		else:
 			_player_inventory.visible = !_player_inventory.visible
 		_update_icon_state("Inventory", _player_inventory.visible)
+
+var _player_map = null
+
+func toggle_player_map():
+	if not is_instance_valid(_player_map):
+		var map_node = get_tree().get_first_node_in_group("player_map_ui")
+		if is_instance_valid(map_node):
+			_player_map = map_node
+		else:
+			var res = load("res://scenes/ui/PlayerMapUI.tscn")
+			if res:
+				_player_map = res.instantiate()
+			else:
+				_player_map = Control.new()
+				_player_map.set_script(load("res://scripts/ui/PlayerMapUI.gd"))
+			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+			hud_parent.add_child(_player_map)
+
+	if is_instance_valid(_player_map):
+		if _player_map.has_method("toggle"):
+			_player_map.toggle()
+		else:
+			_player_map.visible = !_player_map.visible
+		_update_icon_state("Map", _player_map.visible)
 
 func toggle_logistics_menu():
 	var inv = get_tree().get_first_node_in_group("main_inventory_ui")

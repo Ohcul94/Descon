@@ -156,7 +156,7 @@ func _setup_squad_and_events_icons():
 		grid_container.get_node("IconStay").queue_free()
 
 # Iconos que abren menús/modales (no toggle de UI)
-var _menu_icon_ids: Array = ["EscMenu", "Inventory", "Housing", "Events"]
+var _menu_icon_ids: Array = ["EscMenu", "Inventory", "Map", "Logistics", "Housing", "Events", "BattlePass"]
 
 func _get_icon_category(btn_name: String) -> String:
 	var id = btn_name.replace("Icon", "")
@@ -251,7 +251,9 @@ func _setup_touch_buttons():
 	touch_btns.append_array([
 		{"id": "CombatMeter", "icon": "📊", "tip": "Métricas de Combate"},
 		{"id": "TopLeft", "icon": "📈", "tip": "Diagnósticos (FPS/MS)"},
-		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (V)"},
+		{"id": "Inventory", "icon": "🎒", "tip": "Equipamiento (V)"},
+		{"id": "Map", "icon": "🗺️", "tip": "Mapa Galáctico (M)"},
+		{"id": "Logistics", "icon": "🏢", "tip": "Logística y Flota (F1)"},
 		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"},
 		{"id": "BattlePass", "icon": "🎟️", "tip": "Pase de Batalla (F4)"}
 	])
@@ -304,14 +306,16 @@ func _update_icon_tooltips():
 		tooltip_lbl.visible = false
 
 	var names = {
-		"Inventory": "Inventario", 
-		"EscMenu": "Menu", 
+		"Inventory": "Equipamiento", 
+		"Map": "Mapa Galáctico",
+		"Logistics": "Logística y Flota",
+		"EscMenu": "Sistema", 
 		"Events": "Eventos",
 		"AdminPanel": "Admin", "Admin": "Admin",
 		"Squad": "Equipo", "Party": "Equipo", "Chat": "Chat",
-		"Stats": "Estadísticas", "Map": "Mapa", "Radar": "Minimapa", "RadarWindow": "Minimapa",
+		"Stats": "Estadísticas", "Radar": "Minimapa", "RadarWindow": "Minimapa",
 		"PvP": "Modo combate", "Talents": "Talentos", "Skills": "Habilidades",
-		"Housing": "Housing", "CamEdit": "Cámara Libre",
+		"Housing": "Housing", "BattlePass": "Pase de Batalla", "CamEdit": "Cámara Libre",
 		"CombatMeter": "Métricas",
 		"TopLeft": "Diagnósticos"
 	}

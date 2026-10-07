@@ -18,6 +18,7 @@ const DungeonBuilderScript = preload("res://scripts/systems/DungeonBuilder.gd")
 @onready var ui_chat = get_node_or_null("HUD/ChatUI")
 @onready var ui_inventory = get_node_or_null("HUD/Inventory")
 @onready var ui_player_inventory = get_node_or_null("HUD/PlayerInventory")
+@onready var ui_player_map = get_node_or_null("HUD/PlayerMap")
 @onready var local_player = $Player 
 @onready var combat_system = $CombatSystem
 var talent_system = null
