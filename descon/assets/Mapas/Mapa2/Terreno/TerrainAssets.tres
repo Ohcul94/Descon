@@ -1,7 +1,7 @@
 [gd_resource type="Terrain3DAssets" format=3 uid="uid://c6y788isvsets"]
 
-[ext_resource type="Texture2D" uid="uid://c88j3oj0lf6om" path="res://demo/assets/textures/rock023_alb_ht.png" id="1_rock_albedo"]
-[ext_resource type="Texture2D" uid="uid://c307hdmos4gtm" path="res://demo/assets/textures/rock023_nrm_rgh.png" id="2_rock_normal"]
+[ext_resource type="Texture2D" uid="uid://b8lehdwa30kgf" path="res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png" id="1_rock_albedo"]
+[ext_resource type="Texture2D" uid="uid://mxkpn5b3g87q" path="res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png" id="2_rock_normal"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qq8xe"]
 transparency = 4

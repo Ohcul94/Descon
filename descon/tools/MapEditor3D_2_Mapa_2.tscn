@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
 [ext_resource type="PackedScene" uid="uid://diy8ycm00f4tx" path="res://assets/Puertas/3D/Puerta2/Puerta2.glb" id="2_4m0oc"]
-[ext_resource type="Texture2D" uid="uid://c88j3oj0lf6om" path="res://demo/assets/textures/rock023_alb_ht.png" id="2_87pmd"]
-[ext_resource type="Texture2D" uid="uid://c307hdmos4gtm" path="res://demo/assets/textures/rock023_nrm_rgh.png" id="3_k8upu"]
+[ext_resource type="Texture2D" uid="uid://b8lehdwa30kgf" path="res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png" id="2_87pmd"]
+[ext_resource type="Texture2D" uid="uid://mxkpn5b3g87q" path="res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png" id="3_k8upu"]
 [ext_resource type="PackedScene" uid="uid://d04w8a62xw4gf" path="res://assets/Altares/3D/Altar1/Altar1.glb" id="5_k8upu"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]

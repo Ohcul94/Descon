@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://diy8ycm00f4tx" path="res://assets/Puertas/3D/Puerta2/Puerta2.glb" id="3_gwsj2"]
 [ext_resource type="Material" uid="uid://bocr7b25akcwp" path="res://VFX/models/m_BlueWild_shield1.tres" id="4_gygkr"]
 [ext_resource type="PackedScene" uid="uid://c5dvhmxe8phuu" path="res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb" id="5_gygkr"]
-[ext_resource type="Texture2D" uid="uid://c307hdmos4gtm" path="res://demo/assets/textures/rock023_nrm_rgh.png" id="6_0kf13"]
+[ext_resource type="Texture2D" uid="uid://mxkpn5b3g87q" path="res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png" id="6_0kf13"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
