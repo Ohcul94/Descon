@@ -257,15 +257,10 @@ func _create_item_row(item: Dictionary):
 	hbox.add_child(icon_color)
 	
 	# Icono gráfico del ítem
-	var icon_path = _get_item_icon(item)
-	if icon_path != "":
-		var tex_rect = TextureRect.new()
-		tex_rect.texture = load(icon_path)
-		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tex_rect.custom_minimum_size = Vector2(28, 28)
-		tex_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		hbox.add_child(tex_rect)
+	var icon_rect = ModelIconGenerator.make_icon_rect(item, _get_item_icon(item), Vector2(28, 28))
+	if icon_rect:
+		icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hbox.add_child(icon_rect)
 	
 	# Nombre y Tipo del ítem
 	var vbox_text = VBoxContainer.new()

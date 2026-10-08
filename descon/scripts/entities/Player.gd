@@ -621,12 +621,31 @@ func _unhandled_input(event):
 	if event is InputEventMouseButton:
 		# v2.6: Bloqueo de SEGURIDAD para evitar click-through a cualquier menú abierto
 		var ui_blocking = false
-		for group in ["inventory_ui", "admin_panel_ui", "battlepass_ui"]:
+		var modal_groups = [
+			"inventory_ui", "player_inventory_ui", "stats_ui", "player_stats_ui",
+			"clan_ui", "player_clan_ui", "talents_ui", "player_talents_ui",
+			"map_ui", "player_map_ui", "inspect_ui", "player_inspect_ui",
+			"party_ui", "player_party_ui", "quests_ui", "player_quests_ui",
+			"vault_ui", "trade_ui", "market_ui", "admin_panel_ui", "battlepass_ui"
+		]
+		for group in modal_groups:
 			for node in get_tree().get_nodes_in_group(group):
-				if node.visible:
-					# v2.7: Si el menú está visible y bloquea mouse, impedimos movimiento
-					if node.mouse_filter == Control.MOUSE_FILTER_STOP:
+				if not is_instance_valid(node) or not node.visible: continue
+				if "window_panel" in node and is_instance_valid(node.window_panel) and node.window_panel.visible:
+					if node.window_panel.get_global_rect().has_point(event.position):
 						ui_blocking = true; break
+				elif node is Control and node.mouse_filter == Control.MOUSE_FILTER_STOP and node.get_global_rect().has_point(event.position):
+					ui_blocking = true; break
+				elif node is CanvasLayer:
+					for c in node.get_children():
+						if c is Control and c.visible:
+							if "window_panel" in c and is_instance_valid(c.window_panel) and c.window_panel.visible:
+								if c.window_panel.get_global_rect().has_point(event.position):
+									ui_blocking = true; break
+							elif c.mouse_filter == Control.MOUSE_FILTER_STOP and c.get_global_rect().has_point(event.position):
+								ui_blocking = true; break
+					if ui_blocking: break
+			if ui_blocking: break
 		
 		if ui_blocking: return
 

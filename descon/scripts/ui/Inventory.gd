@@ -128,7 +128,7 @@ func _ready():
 	await get_tree().process_frame
 	
 	# v300.01: Módulos modularizados como ventanas independientes -> eliminar de F1 (Logística)
-	for tab_name in ["Talentos", "Clan", "Mapa", "Estadisticas", "Hangar", "Equipamiento", "Equipo", "Squad"]:
+	for tab_name in ["Talentos", "Clan", "Mapa", "Estadisticas", "Hangar", "Equipamiento", "Equipo", "Squad", "Misiones"]:
 		var old_tab = get_node_or_null("Window/TabContainer/" + tab_name)
 		if old_tab:
 			old_tab.queue_free()
@@ -766,18 +766,8 @@ func _show_result_modal(title, msg):
 
 func _update_quests_ui():
 	var qt = get_node_or_null("Window/TabContainer/Misiones")
-	if not qt:
-		var tabs = get_node_or_null("Window/TabContainer")
-		if tabs:
-			qt = Control.new(); qt.name = "Misiones"; tabs.add_child(qt)
-			qt.set_script(QuestsTabScript)
-			if qt.has_method("setup"): qt.setup(self)
-	
-	if is_open and qt:
-		# Refrescar estado de misiones (progreso de recolección sincroniza con inventario)
-		if NetworkManager:
-			NetworkManager.send_event("getQuestsState", {})
-		if qt.has_method("update_ui"): qt.update_ui()
+	if qt:
+		qt.queue_free()
 
 func _update_estadisticas_ui():
 	var et = get_node_or_null("Window/TabContainer/Estadisticas")

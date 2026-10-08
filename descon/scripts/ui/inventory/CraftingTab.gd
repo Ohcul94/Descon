@@ -360,20 +360,17 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 	var tex_container = CenterContainer.new()
 	v.add_child(tex_container)
 	
-	var icon_tex = TextureRect.new()
 	var base_scale = float(recipe.get("iconScale", 1.0))
-	icon_tex.custom_minimum_size = Vector2(48, 48) * base_scale
-	icon_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon_tex.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	icon_tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
-		var tex = InventoryCache.get_texture(icon_path)
-		if not tex:
-			tex = load(icon_path)
-		if tex:
-			icon_tex.texture = tex
-	tex_container.add_child(icon_tex)
+	var recipe_item = { "id": recipe.get("resultItemId", ""), "icon": icon_path }
+	var icon_tex = ModelIconGenerator.make_icon_rect(recipe_item, icon_path, Vector2(48, 48) * base_scale)
+	if icon_tex:
+		icon_tex.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		icon_tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		tex_container.add_child(icon_tex)
+	else:
+		var icon_spacer = Control.new()
+		icon_spacer.custom_minimum_size = Vector2(48, 48) * base_scale
+		tex_container.add_child(icon_spacer)
 	
 	var name_lbl = Label.new()
 	name_lbl.text = recipe.get("name", "Receta")
@@ -432,17 +429,13 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 		ing_v.add_child(ing_row)
 		
 		var ing_icon_path = mat_info.get("icon", "")
-		var ing_icon_tex = TextureRect.new()
-		ing_icon_tex.custom_minimum_size = Vector2(16, 16)
-		ing_icon_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ing_icon_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		if not ing_icon_path.is_empty() and ResourceLoader.exists(ing_icon_path):
-			var tex = InventoryCache.get_texture(ing_icon_path)
-			if not tex:
-				tex = load(ing_icon_path)
-			if tex:
-				ing_icon_tex.texture = tex
-		ing_row.add_child(ing_icon_tex)
+		var ing_icon_tex = ModelIconGenerator.make_icon_rect(mat_info, str(ing_icon_path), Vector2(16, 16))
+		if ing_icon_tex:
+			ing_row.add_child(ing_icon_tex)
+		else:
+			var ing_icon_spacer = Control.new()
+			ing_icon_spacer.custom_minimum_size = Vector2(16, 16)
+			ing_row.add_child(ing_icon_spacer)
 		
 		var ing_name_lbl = Label.new()
 		ing_name_lbl.text = mat_name
@@ -698,20 +691,16 @@ func _create_material_card(res: Dictionary, parent: Control):
 	var tex_container = CenterContainer.new()
 	v.add_child(tex_container)
 	
-	var icon_tex = TextureRect.new()
 	var base_scale = float(res.get("iconScale", 1.0))
-	icon_tex.custom_minimum_size = Vector2(48, 48) * base_scale
-	icon_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon_tex.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	icon_tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
-		var tex = InventoryCache.get_texture(icon_path)
-		if not tex:
-			tex = load(icon_path)
-		if tex:
-			icon_tex.texture = tex
-	tex_container.add_child(icon_tex)
+	var icon_tex = ModelIconGenerator.make_icon_rect(res, str(icon_path), Vector2(48, 48) * base_scale)
+	if icon_tex:
+		icon_tex.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		icon_tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		tex_container.add_child(icon_tex)
+	else:
+		var icon_spacer = Control.new()
+		icon_spacer.custom_minimum_size = Vector2(48, 48) * base_scale
+		tex_container.add_child(icon_spacer)
 	
 	var name_lbl = Label.new()
 	name_lbl.text = res.get("name", "Material")

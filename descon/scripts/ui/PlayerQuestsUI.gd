@@ -1,14 +1,15 @@
 extends Control
 
 # ==============================================================================
-# PlayerStatsUI.gd - Módulo Standalone de Estadísticas del Piloto (Atajo: 'C')
+# PlayerQuestsUI.gd - Módulo Standalone de Diario de Misiones (Atajo: 'L')
 # ==============================================================================
-# - Ventana flotante/arrastrable "ESTADÍSTICAS DEL PILOTO"
-# - Visualización dinámica de HP, Escudo, Daño, Regen, Munición y modificadores
+# - Ventana flotante/arrastrable "DIARIO DE MISIONES GALÁCTICAS"
+# - Reutiliza QuestsTab.gd sin duplicación de código
 # - Compatible con Touch & Mouse drag
+# - Sincronía autoritativa en tiempo real con NetworkManager y el servidor
 # ==============================================================================
 
-const EstadisticasTabScript = preload("res://scripts/ui/inventory/EstadisticasTab.gd")
+const QuestsTabScript = preload("res://scripts/ui/inventory/QuestsTab.gd")
 
 var is_open: bool = false
 var is_dragging: bool = false
@@ -16,17 +17,34 @@ var drag_offset: Vector2 = Vector2.ZERO
 
 var window_panel: PanelContainer = null
 var header_bar: Control = null
-var stats_tab_instance: Control = null
+var quests_tab_instance: Control = null
+var active_modales: Array = []
 
 
 func _ready():
-	add_to_group("stats_ui")
-	add_to_group("player_stats_ui")
+	add_to_group("quests_ui")
+	add_to_group("player_quests_ui")
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
 
 	_build_ui_structure()
+	_connect_signals()
+
+
+func _connect_signals():
+	if NetworkManager:
+		if NetworkManager.has_signal("config_updated"):
+			if not NetworkManager.config_updated.is_connected(_on_server_config_updated):
+				NetworkManager.config_updated.connect(_on_server_config_updated)
+		if NetworkManager.has_signal("admin_config_updated"):
+			if not NetworkManager.admin_config_updated.is_connected(_on_server_config_updated):
+				NetworkManager.admin_config_updated.connect(_on_server_config_updated)
+
+
+func _on_server_config_updated(_cfg: Dictionary = {}):
+	if is_open:
+		update_ui()
 
 
 func _build_ui_structure():
@@ -38,8 +56,8 @@ func _build_ui_structure():
 
 	# Ventana flotante principal
 	window_panel = PanelContainer.new()
-	window_panel.name = "StatsWindow"
-	window_panel.custom_minimum_size = Vector2(430, 680)
+	window_panel.name = "QuestsWindow"
+	window_panel.custom_minimum_size = Vector2(860, 580)
 	window_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	window_panel.gui_input.connect(func(ev):
 		if ev is InputEventMouseButton or ev is InputEventScreenTouch:
@@ -47,13 +65,15 @@ func _build_ui_structure():
 	)
 
 	var sb_win = StyleBoxFlat.new()
-	sb_win.bg_color = Color(0.012, 0.022, 0.038, 0.96)
+	sb_win.bg_color = Color(0.012, 0.022, 0.038, 0.98)
 	sb_win.border_width_left = 2; sb_win.border_width_top = 2
 	sb_win.border_width_right = 2; sb_win.border_width_bottom = 2
-	sb_win.border_color = Color(0.0, 0.8, 1.0, 0.75)
+	sb_win.border_color = Color(0.0, 0.85, 1.0, 0.8)
 	sb_win.set_corner_radius_all(8)
-	sb_win.shadow_color = Color(0, 0, 0, 0.75)
-	sb_win.shadow_size = 25
+	sb_win.corner_detail = 12
+	sb_win.anti_aliasing = true
+	sb_win.shadow_color = Color(0, 0, 0, 0.35)
+	sb_win.shadow_size = 8
 	window_panel.add_theme_stylebox_override("panel", sb_win)
 	add_child(window_panel)
 
@@ -62,8 +82,8 @@ func _build_ui_structure():
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_top", 10)
 	margin.add_theme_constant_override("margin_bottom", 12)
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
 	window_panel.add_child(margin)
 
 	var main_vbox = VBoxContainer.new()
@@ -76,7 +96,7 @@ func _build_ui_structure():
 	var sb_header = StyleBoxFlat.new()
 	sb_header.bg_color = Color(0.01, 0.05, 0.09, 0.9)
 	sb_header.border_width_bottom = 1
-	sb_header.border_color = Color(0.0, 0.8, 1.0, 0.5)
+	sb_header.border_color = Color(0.2, 0.8, 1.0, 0.5)
 	sb_header.corner_radius_top_left = 6
 	sb_header.corner_radius_top_right = 6
 	header_bar.add_theme_stylebox_override("panel", sb_header)
@@ -88,14 +108,14 @@ func _build_ui_structure():
 	header_bar.add_child(h_box)
 
 	var icon_title = Label.new()
-	icon_title.text = " 📊 "
+	icon_title.text = " 📜 "
 	icon_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	h_box.add_child(icon_title)
 
 	var title_lbl = Label.new()
-	title_lbl.text = "ESTADÍSTICAS DEL PILOTO"
+	title_lbl.text = "DIARIO DE MISIONES GALÁCTICAS"
 	title_lbl.add_theme_font_size_override("font_size", 12)
-	title_lbl.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	title_lbl.add_theme_color_override("font_color", Color(0.3, 0.85, 1.0))
 	title_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	h_box.add_child(title_lbl)
 
@@ -116,21 +136,20 @@ func _build_ui_structure():
 	btn_close.pressed.connect(toggle)
 	h_box.add_child(btn_close)
 
-	# Instancia del módulo de Estadísticas
-	stats_tab_instance = Control.new()
-	stats_tab_instance.name = "EstadisticasTabModule"
-	stats_tab_instance.set_script(EstadisticasTabScript)
-	stats_tab_instance.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stats_tab_instance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if stats_tab_instance.has_method("setup"):
-		stats_tab_instance.setup(self)
-	main_vbox.add_child(stats_tab_instance)
+	# Instancia del módulo de Misiones (QuestsTab como VBoxContainer directo)
+	quests_tab_instance = QuestsTabScript.new()
+	quests_tab_instance.name = "QuestsTabModule"
+	quests_tab_instance.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	quests_tab_instance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if quests_tab_instance.has_method("setup"):
+		quests_tab_instance.setup(self)
+	main_vbox.add_child(quests_tab_instance)
 
 
 func update_ui():
 	if not is_open: return
-	if is_instance_valid(stats_tab_instance) and stats_tab_instance.has_method("update_ui"):
-		stats_tab_instance.update_ui()
+	if is_instance_valid(quests_tab_instance) and quests_tab_instance.has_method("update_ui"):
+		quests_tab_instance.update_ui()
 
 
 func toggle():
@@ -139,6 +158,8 @@ func toggle():
 
 	if is_open:
 		_reposition_window()
+		if NetworkManager:
+			NetworkManager.send_event("getQuestsState", {})
 		update_ui()
 		if get_parent():
 			get_parent().move_child(self, get_parent().get_child_count() - 1)
@@ -149,8 +170,8 @@ func toggle():
 
 func _reposition_window():
 	var vp_size = get_viewport_rect().size
-	var target_w = min(430.0, vp_size.x * 0.95)
-	var target_h = min(680.0, vp_size.y * 0.92)
+	var target_w = min(860.0, vp_size.x * 0.95)
+	var target_h = min(580.0, vp_size.y * 0.90)
 	window_panel.custom_minimum_size = Vector2(target_w, target_h)
 	window_panel.size = Vector2(target_w, target_h)
 	var pos_x = max(10.0, (vp_size.x - target_w) / 2.0)
@@ -191,7 +212,7 @@ func _input(event: InputEvent):
 	var focus_node = get_viewport().gui_get_focus_owner()
 	if focus_node is LineEdit or focus_node is TextEdit: return
 
-	if event.is_action_pressed("ui_stats") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_C):
+	if event.is_action_pressed("ui_quests") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_L):
 		toggle()
 		get_viewport().set_input_as_handled()
 		return

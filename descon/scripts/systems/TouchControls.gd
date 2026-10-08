@@ -156,7 +156,7 @@ func _setup_squad_and_events_icons():
 		grid_container.get_node("IconStay").queue_free()
 
 # Iconos que abren menús/modales (no toggle de UI)
-var _menu_icon_ids: Array = ["EscMenu", "Inventory", "Map", "Logistics", "Housing", "Events", "BattlePass"]
+var _menu_icon_ids: Array = ["EscMenu", "Inventory", "Map", "Logistics", "Housing", "Events", "BattlePass", "Quests"]
 
 func _get_icon_category(btn_name: String) -> String:
 	var id = btn_name.replace("Icon", "")
@@ -257,6 +257,7 @@ func _setup_touch_buttons():
 		{"id": "Inventory", "icon": "🎒", "tip": "Equipamiento (V)"},
 		{"id": "Talents", "icon": "🧬", "tip": "Talentos (T)"},
 		{"id": "Clan", "icon": "🛡️", "tip": "Clan / Flota (G)"},
+		{"id": "Quests", "icon": "📜", "tip": "Misiones (L)"},
 		{"id": "Map", "icon": "🗺️", "tip": "Mapa Galáctico (M)"},
 		{"id": "Logistics", "icon": "🏢", "tip": "Logística y Flota (F1)"},
 		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"},
@@ -313,6 +314,7 @@ func _update_icon_tooltips():
 	var names = {
 		"Inventory": "Equipamiento", 
 		"Map": "Mapa Galáctico",
+		"Quests": "Misiones",
 		"Logistics": "Logística y Flota",
 		"EscMenu": "Sistema", 
 		"Events": "Eventos",

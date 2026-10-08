@@ -503,7 +503,8 @@ class ResourceNodeManager {
                     base: mat.base || 0,
                     color: mat.color || '#ffffff',
                     rarity: mat.rarity || 0,
-                    icon: mat.icon || ''
+                    icon: mat.icon || '',
+                    assetPath: mat.assetPath || ''
                 };
 
                 const amount = Math.max(1, parseInt(node.amount) || 1);

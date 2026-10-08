@@ -12,7 +12,7 @@ var default_keys = {
 	"slot_1": KEY_Q, "slot_2": KEY_W, "slot_3": KEY_E, "slot_4": KEY_R,
 	"slot_5": KEY_A, "slot_6": KEY_D, "slot_7": KEY_F,
 	"ui_inventory": KEY_V, "ui_logistics": KEY_F1, "ui_menu": KEY_ESCAPE, "ui_events": KEY_F2, "ui_housing": KEY_F3, "ui_battlepass": KEY_F4,
-	"ui_talents": KEY_T, "ui_clan": KEY_G,
+	"ui_talents": KEY_T, "ui_clan": KEY_G, "ui_quests": KEY_L,
 	"ui_map": KEY_TAB, "ui_party": KEY_P, "ui_pvp_toggle": KEY_Z, "ui_stats": KEY_C,
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto

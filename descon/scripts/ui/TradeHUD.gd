@@ -233,16 +233,11 @@ func create_item_slot(item_data, context = "inventory"):
 		if emergency_map.has(search_id): icon_path = emergency_map[search_id]
 	
 	var has_icon = false
-	if icon_path != "" and ResourceLoader.exists(icon_path):
-		var tex_res = load(icon_path)
-		if tex_res:
-			var tex = TextureRect.new()
-			tex.texture = tex_res
-			tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			margin.add_child(tex)
-			has_icon = true
+	var slot_item = item_data if item_data is Dictionary else { "id": item_id, "icon": icon_path }
+	var tex_rect = ModelIconGenerator.make_icon_rect(slot_item, icon_path)
+	if tex_rect:
+		margin.add_child(tex_rect)
+		has_icon = true
 			
 	if not has_icon:
 		var lbl = Label.new()

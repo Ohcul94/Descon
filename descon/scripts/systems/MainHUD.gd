@@ -410,7 +410,7 @@ func _input(event: InputEvent):
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
 	for ui in ui_nodes:
 		if ui.visible:
-			if event.is_action_pressed("ui_events") or event.is_action_pressed("ui_inventory") or event.is_action_pressed("ui_logistics") or event.is_action_pressed("ui_party") or event.is_action_pressed("ui_housing"):
+			if event.is_action_pressed("ui_events") or event.is_action_pressed("ui_inventory") or event.is_action_pressed("ui_logistics") or event.is_action_pressed("ui_party") or event.is_action_pressed("ui_housing") or event.is_action_pressed("ui_inspect") or event.is_action_pressed("ui_quests") or (event is InputEventKey and (event.keycode == KEY_Y or event.keycode == KEY_L)):
 				break
 			return
 
@@ -452,6 +452,11 @@ func _input(event: InputEvent):
 
 	if event.is_action_pressed("ui_inspect") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Y):
 		toggle_player_inspect()
+		get_viewport().set_input_as_handled()
+		return
+
+	if event.is_action_pressed("ui_quests") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_L):
+		toggle_player_quests()
 		get_viewport().set_input_as_handled()
 		return
 
@@ -806,6 +811,10 @@ func _on_icon_pressed(id: String):
 
 	if id == "Inspect":
 		toggle_player_inspect()
+		return
+
+	if id == "Quests" or id == "Misiones":
+		toggle_player_quests()
 		return
 
 	if id == "Logistics":
@@ -1338,10 +1347,33 @@ func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool
 		if s_hud and s_hud.visible:
 			if s_hud.get_global_rect().has_point(p): return true
 
-	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
-	for ui in ui_nodes:
-		if ui is Control and ui.visible:
-			if ui.get_global_rect().has_point(p): return true
+	# Ventanas modales y tácticas flotantes (Inventario, Stats, Clan, Talentos, Mapa, Inspeccionar, Misiones, Baúl, Trade, etc.)
+	var floating_groups = [
+		"inventory_ui", "player_inventory_ui", "stats_ui", "player_stats_ui",
+		"clan_ui", "player_clan_ui", "talents_ui", "player_talents_ui",
+		"map_ui", "player_map_ui", "inspect_ui", "player_inspect_ui",
+		"party_ui", "player_party_ui", "quests_ui", "player_quests_ui",
+		"vault_ui", "trade_ui", "market_ui", "events_ui", "battlepass_ui"
+	]
+	for grp in floating_groups:
+		var grp_nodes = get_tree().get_nodes_in_group(grp)
+		for ui in grp_nodes:
+			if not is_instance_valid(ui) or not ui.visible: continue
+			if ui is Control:
+				# Si tiene window_panel flotante (la ventana real), verificar el rectángulo de la ventana
+				if "window_panel" in ui and is_instance_valid(ui.window_panel) and ui.window_panel.visible:
+					if ui.window_panel.get_global_rect().has_point(p):
+						return true
+				elif ui.mouse_filter != Control.MOUSE_FILTER_IGNORE and ui.get_global_rect().has_point(p):
+					return true
+			elif ui is CanvasLayer:
+				for c in ui.get_children():
+					if c is Control and c.visible:
+						if "window_panel" in c and is_instance_valid(c.window_panel) and c.window_panel.visible:
+							if c.window_panel.get_global_rect().has_point(p):
+								return true
+						elif c.mouse_filter != Control.MOUSE_FILTER_IGNORE and c.get_global_rect().has_point(p):
+							return true
 
 	if _esc_menu and _esc_menu.visible:
 		if _esc_menu.get_global_rect().has_point(p): return true
@@ -2608,6 +2640,30 @@ func toggle_player_inspect():
 			_player_inspect.inspect_current_target()
 		else:
 			_player_inspect.visible = !_player_inspect.visible
+
+var _player_quests = null
+
+func toggle_player_quests():
+	if not is_instance_valid(_player_quests):
+		var quests_node = get_tree().get_first_node_in_group("player_quests_ui")
+		if is_instance_valid(quests_node):
+			_player_quests = quests_node
+		else:
+			var res = load("res://scenes/ui/PlayerQuestsUI.tscn")
+			if res:
+				_player_quests = res.instantiate()
+			else:
+				_player_quests = Control.new()
+				_player_quests.set_script(load("res://scripts/ui/PlayerQuestsUI.gd"))
+			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+			hud_parent.add_child(_player_quests)
+
+	if is_instance_valid(_player_quests):
+		if _player_quests.has_method("toggle"):
+			_player_quests.toggle()
+		else:
+			_player_quests.visible = !_player_quests.visible
+		_update_icon_state("Quests", _player_quests.visible)
 
 func toggle_logistics_menu():
 	var inv = get_tree().get_first_node_in_group("main_inventory_ui")

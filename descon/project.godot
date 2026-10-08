@@ -24,6 +24,7 @@ PartyManager="*res://scripts/systems/PartyManager.gd"
 RecordingOverlay="*res://scripts/RecordingOverlay.gd"
 VFXSystem="*res://scripts/systems/VFXManager.gd"
 SettingsManager="*res://scripts/autoloads/SettingsManager.gd"
+ModelIconGenerator="*res://scripts/autoloads/ModelIconGenerator.gd"
 
 [display]
 

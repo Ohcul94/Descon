@@ -232,20 +232,33 @@ function registerInventoryHandlers(socket, io, state) {
     socket.on('inspectPlayer', async (data) => {
         if (!socket.dbUser) return;
         try {
-            const targetUsername = typeof data === 'string' ? data : (data.username || data.name || data.id);
-            if (!targetUsername) return;
+            const searchName = typeof data === 'string' ? data : (data.username || data.name || '');
+            const searchId = typeof data === 'object' ? (data.id || data.socketId || '') : '';
+            if (!searchName && !searchId) return;
 
             let targetPlayer = null;
             let targetSocketId = null;
 
-            for (const [sId, p] of Object.entries(state.players)) {
-                if (sId === String(targetUsername) ||
-                    (p.username && p.username.toLowerCase() === String(targetUsername).toLowerCase()) ||
-                    (p.id && String(p.id) === String(targetUsername)) ||
-                    (p.db_id && String(p.db_id) === String(targetUsername))) {
-                    targetPlayer = p;
-                    targetSocketId = sId;
-                    break;
+            // 1. Búsqueda directa por Socket ID si existe
+            if (searchId && state.players[searchId]) {
+                targetPlayer = state.players[searchId];
+                targetSocketId = String(searchId);
+            }
+
+            // 2. Búsqueda en los jugadores conectados (RAM)
+            if (!targetPlayer) {
+                const searchLower = String(searchName || searchId).toLowerCase();
+                for (const [sId, p] of Object.entries(state.players)) {
+                    if (sId === String(searchId) || sId === String(searchName) ||
+                        (p.socketId && (p.socketId === String(searchId) || p.socketId === String(searchName))) ||
+                        (p.user && (p.user.toLowerCase() === searchLower || String(p.user).toLowerCase() === String(searchName).toLowerCase())) ||
+                        (p.username && (p.username.toLowerCase() === searchLower || String(p.username).toLowerCase() === String(searchName).toLowerCase())) ||
+                        (p.id && (String(p.id) === String(searchId) || String(p.id) === String(searchName))) ||
+                        (p.dbId && (String(p.dbId) === String(searchId) || String(p.dbId) === String(searchName)))) {
+                        targetPlayer = p;
+                        targetSocketId = sId;
+                        break;
+                    }
                 }
             }
 
@@ -261,25 +274,60 @@ function registerInventoryHandlers(socket, io, state) {
             }
 
             const isAdmin = security.isAdminSocket(socket);
-            let equip = targetUser.gameData.equipped || { w: [], s: [], e: [], x: [] };
-            if (!isAdmin) {
-                equip = visibilityGuard.sanitizeEquipForClient(equip, state.SERVER_CONFIG);
+
+            // Obtener nave activa del objetivo
+            const targetShipId = Number(targetPlayer.currentShipId || targetUser.gameData.currentShipId || targetPlayer.type || 1);
+            const shipKey = String(targetShipId);
+
+            // Obtener el equipamiento de la nave actual desde equippedByShip o RAM
+            let rawEquip = getShipEquip(targetUser, shipKey);
+            if (!rawEquip || (!rawEquip.w?.length && !rawEquip.s?.length && !rawEquip.e?.length && !rawEquip.x?.length)) {
+                if (targetPlayer.equippedByShip && targetPlayer.equippedByShip[shipKey]) {
+                    rawEquip = targetPlayer.equippedByShip[shipKey];
+                } else if (targetPlayer.equipped) {
+                    rawEquip = targetPlayer.equipped;
+                }
+            }
+            if (!rawEquip) {
+                rawEquip = targetUser.gameData.equipped || { w: [], s: [], e: [], x: [] };
             }
 
-            const skills = targetUser.gameData.skills || targetUser.gameData.equippedSkills || {};
+            let equip = rawEquip;
+            if (!isAdmin) {
+                equip = visibilityGuard.sanitizeEquipForClient(rawEquip, state.SERVER_CONFIG);
+            }
+
+            // Extraer habilidades equipadas en las esferas del piloto objetivo
+            const rawSpheres = Array.isArray(targetPlayer.spheres) ? targetPlayer.spheres : (targetUser.gameData.spheres || []);
+            const skillsList = [];
+            for (const slot of rawSpheres) {
+                if (slot && slot.equipped) {
+                    skillsList.push(slot.equipped);
+                }
+            }
+
+            const shipModels = state.SERVER_CONFIG?.shipModels || [];
+            const model = shipModels.find(s => Number(s.id) === targetShipId);
+
+            const hpVal = (targetPlayer.hp !== undefined && targetPlayer.hp !== null) ? targetPlayer.hp : (targetUser.gameData.hp ?? model?.hp ?? 1000);
+            const maxHpVal = (targetPlayer.maxHp !== undefined && targetPlayer.maxHp !== null) ? targetPlayer.maxHp : (targetUser.gameData.maxHp ?? model?.hp ?? 1000);
+            const shieldVal = (targetPlayer.shield !== undefined && targetPlayer.shield !== null) ? targetPlayer.shield : (targetUser.gameData.shield ?? model?.shield ?? 500);
+            const maxShieldVal = (targetPlayer.maxShield !== undefined && targetPlayer.maxShield !== null) ? targetPlayer.maxShield : (targetUser.gameData.maxShield ?? model?.shield ?? 500);
 
             socket.emit('playerInspectData', {
                 success: true,
-                username: targetUser.username,
+                username: targetPlayer.user || targetUser.username || searchName,
                 clanTag: targetPlayer.clanTag || '',
-                currentShipId: targetUser.gameData.currentShipId || 1,
-                level: targetUser.gameData.level || 1,
-                hp: targetPlayer.hp || targetUser.gameData.hp,
-                maxHp: targetPlayer.maxHp || targetUser.gameData.maxHp,
-                shield: targetPlayer.shield || targetUser.gameData.shield,
-                maxShield: targetPlayer.maxShield || targetUser.gameData.maxShield,
+                currentShipId: targetShipId,
+                shipName: model ? model.name : `Nave #${targetShipId}`,
+                shipSlots: model ? (model.slots || { w: 1, s: 1, e: 1, x: 1 }) : { w: 1, s: 1, e: 1, x: 1 },
+                level: targetPlayer.level || targetUser.gameData.level || 1,
+                hp: hpVal,
+                maxHp: maxHpVal,
+                shield: shieldVal,
+                maxShield: maxShieldVal,
                 equipped: equip,
-                skills: skills
+                skills: skillsList
             });
         } catch (e) {
             console.error('[INSPECT-PLAYER ERROR]', e);

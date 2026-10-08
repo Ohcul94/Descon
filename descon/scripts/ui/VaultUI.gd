@@ -580,14 +580,9 @@ func _refresh_vault():
 			slot_panel.add_child(margin)
 			
 			# Imagen del ítem (TextureRect) a pantalla completa de slot
-			var icon_path = _get_item_icon(item)
-			if icon_path != "":
-				var tex_rect = TextureRect.new()
-				tex_rect.texture = load(icon_path)
-				tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				margin.add_child(tex_rect)
+			var icon_rect = ModelIconGenerator.make_icon_rect(item, _get_item_icon(item))
+			if icon_rect:
+				margin.add_child(icon_rect)
 				
 			# Eventos de ratón
 			var inst_id = item.get("instanceId", "")
@@ -658,14 +653,9 @@ func _refresh_inventory():
 			slot_panel.add_child(margin)
 			
 			# Imagen del ítem (TextureRect) a pantalla completa
-			var icon_path = _get_item_icon(item)
-			if icon_path != "":
-				var tex_rect = TextureRect.new()
-				tex_rect.texture = load(icon_path)
-				tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				margin.add_child(tex_rect)
+			var icon_rect = ModelIconGenerator.make_icon_rect(item, _get_item_icon(item))
+			if icon_rect:
+				margin.add_child(icon_rect)
 				
 			# Eventos de ratón
 			var inst_id = item.get("instanceId", "")

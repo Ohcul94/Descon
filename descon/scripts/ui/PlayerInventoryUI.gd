@@ -1285,15 +1285,9 @@ func _create_slot_card(slot_type: String, slot_index: int, item_data, theme_colo
 	p.add_child(center)
 
 	if item_data != null:
-		var icon_path = _resolve_item_icon(item_data)
-		if icon_path != "":
-			var tex_rect = TextureRect.new()
-			tex_rect.texture = _load_cached_texture(icon_path)
-			tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			tex_rect.custom_minimum_size = Vector2(36, 36)
-			tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			center.add_child(tex_rect)
+		var slot_icon_rect = ModelIconGenerator.make_icon_rect(item_data, _resolve_item_icon(item_data), Vector2(36, 36))
+		if slot_icon_rect:
+			center.add_child(slot_icon_rect)
 		else:
 			var fallback_lbl = Label.new()
 			fallback_lbl.text = slot_type.to_upper() + str(slot_index + 1)
@@ -1389,14 +1383,9 @@ func _create_bag_slot_cell(item: Dictionary) -> PanelContainer:
 	p.add_theme_stylebox_override("panel", sb)
 
 	var icon_path = _resolve_item_icon(item)
-	if icon_path != "":
-		var tex_rect = TextureRect.new()
-		tex_rect.texture = _load_cached_texture(icon_path)
-		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tex_rect.custom_minimum_size = Vector2(38, 38)
-		tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		p.add_child(tex_rect)
+	var icon_rect = ModelIconGenerator.make_icon_rect(item, icon_path, Vector2(38, 38))
+	if icon_rect:
+		p.add_child(icon_rect)
 
 	var amount = int(item.get("amount", 1))
 	if amount > 1:
