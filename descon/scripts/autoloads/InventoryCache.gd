@@ -207,3 +207,62 @@ static func get_cached_script(path: String) -> Script:
 			_scripts[path] = res
 			return res
 	return null
+
+# Obtener ícono de ítem (Texture2D)
+static func get_item_icon(item: Dictionary) -> Texture2D:
+	if item.is_empty():
+		return null
+
+	var icon_path = str(item.get("icon", ""))
+	if icon_path != "" and icon_path != "null":
+		var tex = get_texture(icon_path)
+		if tex != null:
+			return tex
+
+	var item_id = str(item.get("id", "")).to_lower()
+	var emergency_map = {
+		"las1": "res://assets/Armas/Arma1/Arma1.png", "las2": "res://assets/Armas/Arma2/Arma2.png", "las3": "res://assets/Armas/Arma3/Arma3.png",
+		"las4": "res://assets/Armas/Arma4/Arma4.png", "las5": "res://assets/Armas/Arma5/Arma5.png", "las6": "res://assets/Armas/Arma6/Arma6.png",
+		"sh1": "res://assets/Escudos/Escudo1/Escudo1.png", "sh2": "res://assets/Escudos/Escudo2/Escudo2.png", "sh3": "res://assets/Escudos/Escudo3/Escudo3.png",
+		"sh4": "res://assets/Escudos/Escudo4/Escudo4.png", "sh5": "res://assets/Escudos/Escudo5/Escudo5.png", "sh6": "res://assets/Escudos/Escudo6/Escudo6.png",
+		"en1": "res://assets/Motores/Motor1/Motor1.png", "en2": "res://assets/Motores/Motor2/Motor2.png", "en3": "res://assets/Motores/Motor3/Motor3.png",
+		"esf_az": "res://assets/Esferas/EsferaAzul1.png", "esf_ro": "res://assets/Esferas/EsferaRoja1.png",
+		"esf_ve": "res://assets/Esferas/EsferaVerde1.png", "esf_am": "res://assets/Esferas/EsferaAmarilla1.png"
+	}
+	if emergency_map.has(item_id):
+		return get_texture(emergency_map[item_id])
+
+	if item_id.begins_with("las"):
+		var num = item_id.replace("las", "")
+		return get_texture("res://assets/Armas/Arma" + num + "/Arma" + num + ".png")
+	elif item_id.begins_with("sh"):
+		var num = item_id.replace("sh", "")
+		return get_texture("res://assets/Escudos/Escudo" + num + "/Escudo" + num + ".png")
+	elif item_id.begins_with("en"):
+		var num = item_id.replace("en", "")
+		return get_texture("res://assets/Motores/Motor" + num + "/Motor" + num + ".png")
+
+	# Búsqueda en GameConstants.SHOP_ITEMS si está disponible
+	if typeof(GameConstants) != TYPE_NIL and "SHOP_ITEMS" in GameConstants:
+		var shop = GameConstants.SHOP_ITEMS
+		for cat_key in shop:
+			var category = shop[cat_key]
+			if category is Dictionary:
+				for sub_key in category:
+					var sub_list = category[sub_key]
+					if sub_list is Array:
+						for shop_item in sub_list:
+							if str(shop_item.get("id", "")).to_lower() == item_id:
+								var ic = str(shop_item.get("icon", ""))
+								if ic != "":
+									var t = get_texture(ic)
+									if t: return t
+			elif category is Array:
+				for shop_item in category:
+					if str(shop_item.get("id", "")).to_lower() == item_id:
+						var ic = str(shop_item.get("icon", ""))
+						if ic != "":
+							var t = get_texture(ic)
+							if t: return t
+
+	return null

@@ -498,7 +498,7 @@ func _create_equip_card(item: Dictionary, cat_label: String, border_col: Color):
 
 	var item_name = str(item.get("name", item.get("id", "Módulo")))
 	var item_tier = int(item.get("tier", item.get("level", 1)))
-	var icon_tex = InventoryCache.get_item_icon(item)
+	var icon_tex = _get_item_icon(item)
 
 	var icon_rect = TextureRect.new()
 	icon_rect.custom_minimum_size = Vector2(38, 38)
@@ -524,6 +524,50 @@ func _create_equip_card(item: Dictionary, cat_label: String, border_col: Color):
 
 	p.tooltip_text = "%s (%s)\nTier %d" % [item_name, cat_label, item_tier]
 	equip_grid.add_child(p)
+
+
+func _get_item_icon(item: Dictionary) -> Texture2D:
+	if item.is_empty():
+		return null
+	var icon_path = str(item.get("icon", ""))
+	if icon_path != "" and icon_path != "null" and ResourceLoader.exists(icon_path):
+		var t = InventoryCache.get_texture(icon_path)
+		if t: return t
+		return load(icon_path)
+
+	var search_id = str(item.get("id", "")).to_lower()
+	var emergency_map = {
+		"las1": "res://assets/Armas/Arma1/Arma1.png", "las2": "res://assets/Armas/Arma2/Arma2.png", "las3": "res://assets/Armas/Arma3/Arma3.png",
+		"las4": "res://assets/Armas/Arma4/Arma4.png", "las5": "res://assets/Armas/Arma5/Arma5.png", "las6": "res://assets/Armas/Arma6/Arma6.png",
+		"sh1": "res://assets/Escudos/Escudo1/Escudo1.png", "sh2": "res://assets/Escudos/Escudo2/Escudo2.png", "sh3": "res://assets/Escudos/Escudo3/Escudo3.png",
+		"sh4": "res://assets/Escudos/Escudo4/Escudo4.png", "sh5": "res://assets/Escudos/Escudo5/Escudo5.png", "sh6": "res://assets/Escudos/Escudo6/Escudo6.png",
+		"en1": "res://assets/Motores/Motor1/Motor1.png", "en2": "res://assets/Motores/Motor2/Motor2.png", "en3": "res://assets/Motores/Motor3/Motor3.png",
+		"esf_az": "res://assets/Esferas/EsferaAzul1.png", "esf_ro": "res://assets/Esferas/EsferaRoja1.png",
+		"esf_ve": "res://assets/Esferas/EsferaVerde1.png", "esf_am": "res://assets/Esferas/EsferaAmarilla1.png"
+	}
+	if emergency_map.has(search_id):
+		var p = emergency_map[search_id]
+		var t = InventoryCache.get_texture(p)
+		if t: return t
+		if ResourceLoader.exists(p): return load(p)
+
+	var guessed_path = ""
+	if search_id.begins_with("las"):
+		var n = search_id.replace("las", "")
+		guessed_path = "res://assets/Armas/Arma" + n + "/Arma" + n + ".png"
+	elif search_id.begins_with("sh"):
+		var n = search_id.replace("sh", "")
+		guessed_path = "res://assets/Escudos/Escudo" + n + "/Escudo" + n + ".png"
+	elif search_id.begins_with("en"):
+		var n = search_id.replace("en", "")
+		guessed_path = "res://assets/Motores/Motor" + n + "/Motor" + n + ".png"
+
+	if guessed_path != "":
+		var t = InventoryCache.get_texture(guessed_path)
+		if t: return t
+		if ResourceLoader.exists(guessed_path): return load(guessed_path)
+
+	return null
 
 
 func toggle():
