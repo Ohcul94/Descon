@@ -127,11 +127,12 @@ func _ready():
 	# v302.6: Inicialización inmediata (Eliminado await 1.0s que causaba lag en carga de Hangar)
 	await get_tree().process_frame
 	
-	# v300.01: Inicialización de Módulos (Refactorización Modular)
-	var hangar_node = get_node_or_null("Window/TabContainer/Hangar")
-	if hangar_node:
-		hangar_node.queue_free()
-	
+	# v300.01: Módulos modularizados como ventanas independientes -> eliminar de F1 (Logística)
+	for tab_name in ["Talentos", "Clan", "Mapa", "Estadisticas", "Hangar", "Equipamiento", "Equipo", "Squad"]:
+		var old_tab = get_node_or_null("Window/TabContainer/" + tab_name)
+		if old_tab:
+			old_tab.queue_free()
+
 	var spheres_node = get_node_or_null("Window/TabContainer/Esferas")
 	if spheres_node:
 		spheres_node.set_script(SpheresTabScript)
@@ -141,26 +142,6 @@ func _ready():
 	if shop_node:
 		shop_node.set_script(ShopTabScript)
 		if shop_node.has_method("setup"): shop_node.setup(self)
-
-	var talents_node = get_node_or_null("Window/TabContainer/Talentos")
-	if talents_node:
-		talents_node.set_script(TalentsTabScript)
-		if talents_node.has_method("setup"): talents_node.setup(self)
-
-	var party_node = get_node_or_null("Window/TabContainer/Equipo")
-	if party_node:
-		party_node.set_script(PartyTabScript)
-		if party_node.has_method("setup"): party_node.setup(self)
-
-	var clan_node = get_node_or_null("Window/TabContainer/Clan")
-	if clan_node:
-		clan_node.set_script(ClanTabScript)
-		if clan_node.has_method("setup"): clan_node.setup(self)
-
-	var map_node = get_node_or_null("Window/TabContainer/Mapa")
-	if map_node:
-		map_node.set_script(MapTabScript)
-		if map_node.has_method("setup"): map_node.setup(self)
 	
 	# v219.67: Asegurar creación de pestañas dinámicas (Fix desaparición Mapa/Clan)
 	_update_weapons_ui()
@@ -463,54 +444,6 @@ func _input(event):
 
 	if event.is_action_pressed("ui_logistics") or (event is InputEventKey and event.pressed and event.keycode == KEY_F1):
 		toggle(); get_viewport().set_input_as_handled()
-	
-	# Atajo de teclado para abrir directamente la pestaña de Estadísticas
-	if event.is_action_pressed("ui_stats"):
-		var tabs = get_node_or_null("Window/TabContainer")
-		var is_on_stats = false
-		if tabs and is_open:
-			is_on_stats = (tabs.get_child(tabs.current_tab).name == "Estadisticas")
-		
-		if is_open and is_on_stats:
-			toggle()
-		else:
-			if tabs:
-				for i in range(tabs.get_child_count()):
-					if tabs.get_child(i).name == "Estadisticas":
-						if tabs.current_tab != i:
-							tabs.current_tab = i
-						break
-			if not is_open:
-				toggle()
-			else:
-				_update_active_tab_ui()
-		get_viewport().set_input_as_handled()
-	
-	if event is InputEventKey and event.pressed and event.keycode == KEY_M:
-		var tabs = get_node_or_null("Window/TabContainer")
-		var is_on_map = false
-		if tabs and is_open:
-			is_on_map = (tabs.get_child(tabs.current_tab).name == "Mapa")
-		
-		if is_open and is_on_map:
-			toggle()
-		else:
-			# v314.0: Asegurar que la pestaña Mapa esté seleccionada ANTES de abrir,
-			# evitando que toggle() cargue innecesariamente el Hangar 3D y congele el juego.
-			if tabs:
-				for i in range(tabs.get_child_count()):
-					if tabs.get_child(i).name == "Mapa":
-						if tabs.current_tab != i:
-							tabs.current_tab = i
-						var mt = tabs.get_child(i)
-						if mt and "selected_zone_id" in mt:
-							mt.selected_zone_id = -1
-						break
-			if not is_open:
-				toggle()
-			else:
-				_update_active_tab_ui()
-		get_viewport().set_input_as_handled()
 
 func toggle():
 	is_open = !is_open
@@ -685,15 +618,8 @@ func _on_clan_member_status(data):
 
 func _update_clan_ui():
 	var ct = get_node_or_null("Window/TabContainer/Clan")
-	if not ct:
-		var tabs = get_node_or_null("Window/TabContainer")
-		if tabs:
-			ct = Control.new(); ct.name = "Clan"; tabs.add_child(ct)
-			ct.set_script(ClanTabScript)
-			if ct.has_method("setup"): ct.setup(self)
-			if NetworkManager: NetworkManager.send_event("getClanData", {})
-	
-	if is_open and ct and ct.has_method("update_ui"): ct.update_ui()
+	if ct:
+		ct.queue_free()
 
 func _update_weapons_ui():
 	# v700: pestaña renombrada de "Armas" a "Municiones"
@@ -718,14 +644,8 @@ func _update_weapons_ui():
 
 func _update_map_ui():
 	var mt = get_node_or_null("Window/TabContainer/Mapa")
-	if not mt:
-		var tabs = get_node_or_null("Window/TabContainer")
-		if tabs:
-			mt = Control.new(); mt.name = "Mapa"; tabs.add_child(mt)
-			mt.set_script(MapTabScript)
-			if mt.has_method("setup"): mt.setup(self)
-	
-	if is_open and mt and mt.has_method("update_ui"): mt.update_ui()
+	if mt:
+		mt.queue_free()
 
 func _update_crafting_ui():
 	var ct = get_node_or_null("Window/TabContainer/Crafteo")
@@ -861,11 +781,5 @@ func _update_quests_ui():
 
 func _update_estadisticas_ui():
 	var et = get_node_or_null("Window/TabContainer/Estadisticas")
-	if not et:
-		var tabs = get_node_or_null("Window/TabContainer")
-		if tabs:
-			et = Control.new(); et.name = "Estadisticas"; tabs.add_child(et)
-			et.set_script(EstadisticasTabScript)
-			if et.has_method("setup"): et.setup(self)
-	
-	if is_open and et and et.has_method("update_ui"): et.update_ui()
+	if et:
+		et.queue_free()

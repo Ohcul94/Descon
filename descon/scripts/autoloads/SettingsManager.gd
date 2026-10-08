@@ -12,12 +12,14 @@ var default_keys = {
 	"slot_1": KEY_Q, "slot_2": KEY_W, "slot_3": KEY_E, "slot_4": KEY_R,
 	"slot_5": KEY_A, "slot_6": KEY_D, "slot_7": KEY_F,
 	"ui_inventory": KEY_V, "ui_logistics": KEY_F1, "ui_menu": KEY_ESCAPE, "ui_events": KEY_F2, "ui_housing": KEY_F3, "ui_battlepass": KEY_F4,
+	"ui_talents": KEY_T, "ui_clan": KEY_G,
 	"ui_map": KEY_TAB, "ui_party": KEY_P, "ui_pvp_toggle": KEY_Z, "ui_stats": KEY_C,
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
 	"toggle_free_camera": KEY_O, # Atajo para cámara libre 3D
 	"chat_toggle": KEY_ENTER, # Atajo para chat
-	"loot_claim": KEY_Y, # Atajo para abrir cofres de botín
+	"loot_claim": KEY_SPACE, # Atajo para abrir cofres de botín y recolectar
+	"ui_inspect": KEY_Y, # Atajo para inspeccionar jugador objetivo
 	"stay_still": KEY_S # Atajo para quedarse quieto (detener navegación)
 }
 var cast_mode_cache: int = 1 # v267.10: Cache local del modo de casteo
@@ -302,6 +304,10 @@ func load_settings():
 		if action == "ui_inventory" and val == KEY_F1:
 			val = KEY_V
 			config_file.set_value("keys", action, KEY_V)
+		# Recolectar / abrir cofres: migrar de Y a ESPACIO por defecto si tenía Y
+		if action == "loot_claim" and val == KEY_Y:
+			val = KEY_SPACE
+			config_file.set_value("keys", action, KEY_SPACE)
 		_apply_key_to_inputmap(action, val)
 	
 	if err == OK:

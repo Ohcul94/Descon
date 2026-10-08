@@ -55,11 +55,3 @@ layout_mode = 2
 [node name="Tienda" type="Control" parent="Window/TabContainer"]
 visible = false
 layout_mode = 2
-
-[node name="Talentos" type="Control" parent="Window/TabContainer"]
-visible = false
-layout_mode = 2
-
-[node name="Equipo" type="Control" parent="Window/TabContainer"]
-visible = false
-layout_mode = 2

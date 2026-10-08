@@ -11,6 +11,11 @@
 [ext_resource type="Script" uid="uid://c81cexbe61c8n" path="res://scripts/systems/CombatSystem.gd" id="12_combat"]
 [ext_resource type="Script" uid="uid://b1r2co7tcgg1y" path="res://scripts/systems/TalentSystem.gd" id="13_talents"]
 [ext_resource type="PackedScene" uid="uid://map_ui_scene_001" path="res://scenes/ui/PlayerMapUI.tscn" id="14_player_map"]
+[ext_resource type="PackedScene" uid="uid://talents_ui_scene_001" path="res://scenes/ui/PlayerTalentsUI.tscn" id="15_player_talents"]
+[ext_resource type="PackedScene" uid="uid://clan_ui_scene_001" path="res://scenes/ui/PlayerClanUI.tscn" id="16_player_clan"]
+[ext_resource type="PackedScene" uid="uid://stats_ui_scene_001" path="res://scenes/ui/PlayerStatsUI.tscn" id="17_player_stats"]
+[ext_resource type="PackedScene" uid="uid://party_ui_scene_001" path="res://scenes/ui/PlayerPartyUI.tscn" id="18_player_party"]
+[ext_resource type="PackedScene" uid="uid://inspect_ui_scene_001" path="res://scenes/ui/PlayerInspectUI.tscn" id="19_player_inspect"]
 
 [node name="MainGame" type="Node2D" unique_id=1027512409]
 script = ExtResource("1_world")
@@ -79,6 +84,21 @@ visible = false
 visible = false
 
 [node name="PlayerMap" parent="HUD" unique_id=1683379227 instance=ExtResource("14_player_map")]
+visible = false
+
+[node name="PlayerTalents" parent="HUD" unique_id=1683379228 instance=ExtResource("15_player_talents")]
+visible = false
+
+[node name="PlayerClan" parent="HUD" unique_id=1683379229 instance=ExtResource("16_player_clan")]
+visible = false
+
+[node name="PlayerStats" parent="HUD" unique_id=1683379230 instance=ExtResource("17_player_stats")]
+visible = false
+
+[node name="PlayerParty" parent="HUD" unique_id=1683379231 instance=ExtResource("18_player_party")]
+visible = false
+
+[node name="PlayerInspect" parent="HUD" unique_id=1683379232 instance=ExtResource("19_player_inspect")]
 visible = false
 
 [node name="ChatUI" parent="HUD" unique_id=1107118506 instance=ExtResource("11_chat")]

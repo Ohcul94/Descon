@@ -172,6 +172,10 @@ func _build_ui_structure():
 	window_panel.name = "MuInventoryWindow"
 	window_panel.custom_minimum_size = Vector2(430, 680)
 	window_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	window_panel.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton or ev is InputEventScreenTouch:
+			get_viewport().set_input_as_handled()
+	)
 	
 	var sb_win = StyleBoxFlat.new()
 	sb_win.bg_color = Color(0.012, 0.022, 0.035, 0.97)
@@ -1828,18 +1832,32 @@ func _reposition_window():
 
 
 func _on_header_gui_input(event: InputEvent):
+	var handled = false
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			is_dragging = true
 			drag_offset = window_panel.global_position - event.global_position
 		else:
 			is_dragging = false
-	elif event is InputEventMouseMotion and is_dragging:
-		var new_pos = event.global_position + drag_offset
+		handled = true
+	elif event is InputEventScreenTouch:
+		if event.pressed:
+			is_dragging = true
+			drag_offset = window_panel.global_position - event.position
+		else:
+			is_dragging = false
+		handled = true
+	elif (event is InputEventMouseMotion or event is InputEventScreenDrag) and is_dragging:
+		var event_pos = event.global_position if "global_position" in event else event.position
+		var new_pos = event_pos + drag_offset
 		var vp_size = get_viewport_rect().size
 		new_pos.x = clampf(new_pos.x, 0, vp_size.x - window_panel.size.x)
 		new_pos.y = clampf(new_pos.y, 0, vp_size.y - window_panel.size.y)
 		window_panel.global_position = new_pos
+		handled = true
+
+	if handled:
+		get_viewport().set_input_as_handled()
 
 
 func _input(event: InputEvent):

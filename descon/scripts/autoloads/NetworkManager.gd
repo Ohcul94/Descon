@@ -78,6 +78,7 @@ signal freeze_event(data) # v268.40
 signal ship_equip_data(data)
 signal environment_damaged(data) # v266.350: Daño Ambiental
 signal trade_invitation_received(data) # v300.100
+signal player_inspect_data(data)
 signal trade_started(data)
 signal trade_partner_update(data)
 signal trade_partner_ready(data)
@@ -384,6 +385,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"windPush": wind_push.emit(e_data)
 		"statusEffectsSync": status_effects_sync.emit(e_data)
 		"gameNotification": game_notification.emit(e_data)
+		"playerInspectData": player_inspect_data.emit(e_data)
 		"shipEquipData": ship_equip_data.emit(e_data)
 		"clearEnemyProjectiles": clear_enemy_projectiles.emit(e_data)
 		"adminConfigUpdated", "adminConfigLoaded": 

@@ -450,6 +450,11 @@ func _input(event: InputEvent):
 		toggle_housing_panel()
 		get_viewport().set_input_as_handled()
 
+	if event.is_action_pressed("ui_inspect") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Y):
+		toggle_player_inspect()
+		get_viewport().set_input_as_handled()
+		return
+
 	if event.is_action_pressed("ui_pvp_toggle"):
 		var requested_status = !_pvp_status
 		if NetworkManager:
@@ -738,30 +743,7 @@ func _on_minimize_pressed(id: String):
 
 func _on_icon_pressed(id: String):
 	if id == "Stats":
-		var inv = get_tree().get_first_node_in_group("main_inventory_ui")
-		if not is_instance_valid(inv):
-			for node in get_tree().get_nodes_in_group("inventory_ui"):
-				if "is_open" in node and node.has_method("toggle"):
-					inv = node
-					break
-		if is_instance_valid(inv) and "is_open" in inv:
-			if inv.is_open:
-				var tabs = inv.get_node_or_null("Window/TabContainer")
-				if tabs:
-					for i in range(tabs.get_child_count()):
-						if tabs.get_child(i).name == "Estadisticas":
-							tabs.current_tab = i
-							break
-			else:
-				if inv.has_method("toggle"):
-					inv.toggle()
-				await get_tree().process_frame
-				var tabs2 = inv.get_node_or_null("Window/TabContainer")
-				if tabs2:
-					for i in range(tabs2.get_child_count()):
-						if tabs2.get_child(i).name == "Estadisticas":
-							tabs2.current_tab = i
-							break
+		toggle_player_stats()
 		return
 
 	if id == "CamEdit":
@@ -808,6 +790,22 @@ func _on_icon_pressed(id: String):
 
 	if id == "Map":
 		toggle_player_map()
+		return
+
+	if id == "Talents":
+		toggle_player_talents()
+		return
+
+	if id == "Clan":
+		toggle_player_clan()
+		return
+
+	if id == "Party" or id == "Squad":
+		toggle_player_party()
+		return
+
+	if id == "Inspect":
+		toggle_player_inspect()
 		return
 
 	if id == "Logistics":
@@ -2488,6 +2486,128 @@ func toggle_player_map():
 		else:
 			_player_map.visible = !_player_map.visible
 		_update_icon_state("Map", _player_map.visible)
+
+var _player_talents = null
+
+func toggle_player_talents():
+	if not is_instance_valid(_player_talents):
+		var talents_node = get_tree().get_first_node_in_group("player_talents_ui")
+		if is_instance_valid(talents_node):
+			_player_talents = talents_node
+		else:
+			var res = load("res://scenes/ui/PlayerTalentsUI.tscn")
+			if res:
+				_player_talents = res.instantiate()
+			else:
+				_player_talents = Control.new()
+				_player_talents.set_script(load("res://scripts/ui/PlayerTalentsUI.gd"))
+			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+			hud_parent.add_child(_player_talents)
+
+	if is_instance_valid(_player_talents):
+		if _player_talents.has_method("toggle"):
+			_player_talents.toggle()
+		else:
+			_player_talents.visible = !_player_talents.visible
+		_update_icon_state("Talents", _player_talents.visible)
+
+var _player_clan = null
+
+func toggle_player_clan():
+	if not is_instance_valid(_player_clan):
+		var clan_node = get_tree().get_first_node_in_group("player_clan_ui")
+		if is_instance_valid(clan_node):
+			_player_clan = clan_node
+		else:
+			var res = load("res://scenes/ui/PlayerClanUI.tscn")
+			if res:
+				_player_clan = res.instantiate()
+			else:
+				_player_clan = Control.new()
+				_player_clan.set_script(load("res://scripts/ui/PlayerClanUI.gd"))
+			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+			hud_parent.add_child(_player_clan)
+
+	if is_instance_valid(_player_clan):
+		if _player_clan.has_method("toggle"):
+			_player_clan.toggle()
+		else:
+			_player_clan.visible = !_player_clan.visible
+		_update_icon_state("Clan", _player_clan.visible)
+
+var _player_stats = null
+
+func toggle_player_stats():
+	if not is_instance_valid(_player_stats):
+		var stats_node = get_tree().get_first_node_in_group("player_stats_ui")
+		if is_instance_valid(stats_node):
+			_player_stats = stats_node
+		else:
+			var res = load("res://scenes/ui/PlayerStatsUI.tscn")
+			if res:
+				_player_stats = res.instantiate()
+			else:
+				_player_stats = Control.new()
+				_player_stats.set_script(load("res://scripts/ui/PlayerStatsUI.gd"))
+			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+			hud_parent.add_child(_player_stats)
+
+	if is_instance_valid(_player_stats):
+		if _player_stats.has_method("toggle"):
+			_player_stats.toggle()
+		else:
+			_player_stats.visible = !_player_stats.visible
+		_update_icon_state("Stats", _player_stats.visible)
+
+var _player_party = null
+
+func toggle_player_party():
+	if not is_instance_valid(_player_party):
+		var party_node = get_tree().get_first_node_in_group("player_party_ui")
+		if is_instance_valid(party_node):
+			_player_party = party_node
+		else:
+			var res = load("res://scenes/ui/PlayerPartyUI.tscn")
+			if res:
+				_player_party = res.instantiate()
+			else:
+				_player_party = Control.new()
+				_player_party.set_script(load("res://scripts/ui/PlayerPartyUI.gd"))
+			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+			hud_parent.add_child(_player_party)
+
+	if is_instance_valid(_player_party):
+		if _player_party.has_method("toggle"):
+			_player_party.toggle()
+		else:
+			_player_party.visible = !_player_party.visible
+		_update_icon_state("Squad", _player_party.visible)
+		_update_icon_state("Party", _player_party.visible)
+
+var _player_inspect = null
+
+func toggle_player_inspect():
+	if not is_instance_valid(_player_inspect):
+		var inspect_node = get_tree().get_first_node_in_group("player_inspect_ui")
+		if is_instance_valid(inspect_node):
+			_player_inspect = inspect_node
+		else:
+			var res = load("res://scenes/ui/PlayerInspectUI.tscn")
+			if res:
+				_player_inspect = res.instantiate()
+			else:
+				_player_inspect = Control.new()
+				_player_inspect.set_script(load("res://scripts/ui/PlayerInspectUI.gd"))
+			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+			hud_parent.add_child(_player_inspect)
+
+	if is_instance_valid(_player_inspect):
+		if _player_inspect.has_method("toggle"):
+			_player_inspect.toggle()
+		elif _player_inspect.has_method("inspect_current_target"):
+			_player_inspect.inspect_current_target()
+		else:
+			_player_inspect.visible = !_player_inspect.visible
 
 func toggle_logistics_menu():
 	var inv = get_tree().get_first_node_in_group("main_inventory_ui")

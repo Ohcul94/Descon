@@ -312,12 +312,14 @@ func _setup_ui():
 		"auto_target_self": "AUTO-LANZAR HABILIDADES",
 		"stay_still": "QUEDARSE QUIETO (DETENER NAVEGACIÓN)",
 		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (V)", "ui_logistics": "MENÚ DE LOGÍSTICA / FLOTA (F1)", "ui_battlepass": "PASE DE BATALLA (F4)",
+		"ui_talents": "ÁRBOL DE TALENTOS (T)", "ui_clan": "CLAN / FLOTA (G)",
 		"ui_events": "MENÚ DE EVENTOS (F2)",
 		"ui_housing": "MENÚ DE HOUSING (F3)",
 		"ui_map": "MAPA GRANDE (TAB)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (Z)", "ui_stats": "ESTADÍSTICAS (C)",
 		"portal_jump": "INGRESAR AL PORTAL",
 		"toggle_free_camera": "MODO CÁMARA LIBRE 3D",
-		"loot_claim": "ABRIR BOTÍN / COFRE",
+		"loot_claim": "ABRIR BOTÍN / RECOLECTAR (ESPACIO)",
+		"ui_inspect": "INSPECCIONAR JUGADOR (Y)",
 		"chat_toggle": "ABRIR / CERRAR CHAT"
 	}
 	_action_labels = slots.duplicate()

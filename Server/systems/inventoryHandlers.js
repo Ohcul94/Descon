@@ -228,6 +228,65 @@ function registerInventoryHandlers(socket, io, state) {
         } catch (e) { console.error('[SHIP-EQUIP ERROR]', e); }
     });
 
+    // INSPECCIÓN DE JUGADOR (Equipamiento y Habilidades)
+    socket.on('inspectPlayer', async (data) => {
+        if (!socket.dbUser) return;
+        try {
+            const targetUsername = typeof data === 'string' ? data : (data.username || data.name || data.id);
+            if (!targetUsername) return;
+
+            let targetPlayer = null;
+            let targetSocketId = null;
+
+            for (const [sId, p] of Object.entries(state.players)) {
+                if (sId === String(targetUsername) ||
+                    (p.username && p.username.toLowerCase() === String(targetUsername).toLowerCase()) ||
+                    (p.id && String(p.id) === String(targetUsername)) ||
+                    (p.db_id && String(p.db_id) === String(targetUsername))) {
+                    targetPlayer = p;
+                    targetSocketId = sId;
+                    break;
+                }
+            }
+
+            if (!targetPlayer) {
+                socket.emit('playerInspectData', { success: false, msg: 'Jugador no encontrado o fuera de línea' });
+                return;
+            }
+
+            const targetUser = getPlayerRAMAdapter(targetPlayer);
+            if (!targetUser) {
+                socket.emit('playerInspectData', { success: false, msg: 'Error al obtener datos del jugador' });
+                return;
+            }
+
+            const isAdmin = security.isAdminSocket(socket);
+            let equip = targetUser.gameData.equipped || { w: [], s: [], e: [], x: [] };
+            if (!isAdmin) {
+                equip = visibilityGuard.sanitizeEquipForClient(equip, state.SERVER_CONFIG);
+            }
+
+            const skills = targetUser.gameData.skills || targetUser.gameData.equippedSkills || {};
+
+            socket.emit('playerInspectData', {
+                success: true,
+                username: targetUser.username,
+                clanTag: targetPlayer.clanTag || '',
+                currentShipId: targetUser.gameData.currentShipId || 1,
+                level: targetUser.gameData.level || 1,
+                hp: targetPlayer.hp || targetUser.gameData.hp,
+                maxHp: targetPlayer.maxHp || targetUser.gameData.maxHp,
+                shield: targetPlayer.shield || targetUser.gameData.shield,
+                maxShield: targetPlayer.maxShield || targetUser.gameData.maxShield,
+                equipped: equip,
+                skills: skills
+            });
+        } catch (e) {
+            console.error('[INSPECT-PLAYER ERROR]', e);
+            socket.emit('playerInspectData', { success: false, msg: 'Error al inspeccionar jugador' });
+        }
+    });
+
     // COMPRA DE ÍTEMS
     socket.on('buyItem', async (data) => {
         if (!socket.dbUser) return;
