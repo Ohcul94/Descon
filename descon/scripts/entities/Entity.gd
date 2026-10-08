@@ -802,6 +802,15 @@ func _process(delta):
 
 	visible = true; show()
 	if _ui_wrapper: _ui_wrapper.visible = true
+	
+	# Sigilo: mantener el HUD al día cada frame. Se recalcula quién puede verme
+	# (por si entré a un grupo/flota después) y se re-aplica la opacidad plena
+	# de barras, números, tag, flota y rol para esos aliados.
+	if _is_currently_invisible or _is_currently_camouflaged:
+		if _compute_stealth_ally_status() != _is_ally:
+			_update_invisibility_visuals(_is_currently_invisible, _is_currently_camouflaged)
+		else:
+			_sync_stealth_hud_opacity()
 
 	# v219.65: Redibujado Inteligente (Interpolación mejorada y rápida basada en delta)
 	var speed_hp = max(abs(current_hp - _display_hp) * 15.0, max_hp * 0.5)
@@ -4317,31 +4326,50 @@ func play_burrow_emerge(emerge_duration_s: float = 0.65) -> void:
 		tw2.tween_property(sprite, "modulate:a", 1.0, emerge_duration_s * 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tw2.tween_callback(done_cb)
 
-func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
-	_is_currently_invisible = invisible
-	_is_currently_camouflaged = camouflaged
-	var is_local = is_in_group("player")
-	var in_party = false
-	var same_clan = false
-	
+# ¿Quién puede verme en sigilo? (yo, mi grupo de misión o mi flota)
+func _compute_stealth_ally_status() -> bool:
+	if is_in_group("player"):
+		return true
+
 	# v3.5: Verificar si somos del mismo grupo usando PartyManager (basado en nombres)
 	var pm = get_node_or_null("/root/PartyManager")
 	if pm and pm.current_party and pm.current_party.has("names"):
 		var ent_name_upper = username.to_upper()
 		for n in pm.current_party["names"]:
 			if str(n).to_upper() == ent_name_upper:
-				in_party = true
-				break
-				
+				return true
+
 	# v3.6: Verificar si somos del mismo clan (SOLO si ambos tienen clan válido)
 	var local_player = get_tree().get_first_node_in_group("player")
 	if is_instance_valid(local_player):
-		var my_tag = local_player.clan_tag.strip_edges()
+		var my_tag = str(local_player.clan_tag).strip_edges()
 		var target_tag = clan_tag.strip_edges()
 		if my_tag != "" and target_tag != "" and my_tag == target_tag:
-			same_clan = true
+			return true
+	return false
 
-	_is_ally = (is_local or in_party or same_clan)
+# El HUD (barras, números, tag, flota y rol) es hijo de la entidad y hereda su
+# modulate de sigilo (tinte cian + alfa 0.3), lo que lo dejaba al 21% de opacidad.
+# Para quien SÍ puede ver la nave se neutraliza al 100%; para el resto, oculto.
+func _sync_stealth_hud_opacity() -> void:
+	if not is_instance_valid(_ui_wrapper):
+		return
+	if not (_is_currently_invisible or _is_currently_camouflaged):
+		return
+	if _is_ally:
+		var m: Color = modulate
+		_ui_wrapper.modulate = Color(
+			1.0 / max(m.r, 0.001),
+			1.0 / max(m.g, 0.001),
+			1.0 / max(m.b, 0.001),
+			1.0 / max(m.a, 0.001))
+	else:
+		_ui_wrapper.modulate = Color(1.0, 1.0, 1.0, 0.0)
+
+func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
+	_is_currently_invisible = invisible
+	_is_currently_camouflaged = camouflaged
+	_is_ally = _compute_stealth_ally_status()
 	var is_ally = _is_ally
 
 	if invisible or camouflaged:
@@ -4384,11 +4412,11 @@ func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
 				else:
 					_apply_material_recursive(s, null, false)
 			
-		# HUD y Textos: SOLO para aliados
+		# HUD y Textos: SOLO para aliados (tag, flota, rol, barras y números a opacidad total)
 		if is_instance_valid(name_tag): name_tag.visible = is_ally
-		if is_instance_valid(_ui_wrapper): 
+		if is_instance_valid(_ui_wrapper):
 			_ui_wrapper.visible = is_ally
-			_ui_wrapper.modulate.a = 0.7 if is_ally else 0.0
+		_sync_stealth_hud_opacity()
 	else:
 		# Estado normal
 		visible = true
@@ -4410,9 +4438,9 @@ func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
 			sprite.visible = not is_single
 			sprite.modulate.a = 1.0
 		if is_instance_valid(name_tag): name_tag.visible = true
-		if is_instance_valid(_ui_wrapper): 
+		if is_instance_valid(_ui_wrapper):
 			_ui_wrapper.visible = true
-			_ui_wrapper.modulate.a = 1.0
+			_ui_wrapper.modulate = Color(1, 1, 1, 1)
 
 func _update_strange_dimension_visuals(active: bool) -> void:
 	in_strange_dimension = active
@@ -4509,7 +4537,7 @@ func _update_strange_dimension_visuals(active: bool) -> void:
 		if is_instance_valid(name_tag): name_tag.visible = true
 		if is_instance_valid(_ui_wrapper):
 			_ui_wrapper.visible = true
-			_ui_wrapper.modulate.a = 1.0
+			_ui_wrapper.modulate = Color(1, 1, 1, 1)
 			
 		for child in get_children():
 			if child is CollisionShape2D or child is CollisionPolygon2D:
@@ -4899,6 +4927,8 @@ func deactivate_for_pooling():
 	modulate = Color.WHITE
 	if is_instance_valid(sprite):
 		sprite.modulate = Color.WHITE
+	if is_instance_valid(_ui_wrapper):
+		_ui_wrapper.modulate = Color(1, 1, 1, 1)
 
 func activate_from_pool():
 	invalidate_map_cache()

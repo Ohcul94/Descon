@@ -567,97 +567,156 @@ func _send_event_direct(p_ename: String, p_val: Variant):
 		socket.send_text(pack)
 
 func show_pvp_warning(target_zone_id: Variant, pvp_mode: String):
-	# Construir modal independiente premium con la misma estética de viaje
+	# Si ya existe un modal previo abierto, liberarlo
+	var existing = get_tree().root.get_node_or_null("PvpWarningCanvas")
+	if is_instance_valid(existing):
+		existing.queue_free()
+
+	# Construir modal independiente premium con la misma estética Sci-Fi del juego
 	var canvas_layer = CanvasLayer.new()
 	canvas_layer.name = "PvpWarningCanvas"
-	canvas_layer.layer = 125
+	canvas_layer.layer = 140
 	get_tree().root.add_child(canvas_layer)
 	
-	var overlay = Control.new()
+	# 1. Overlay a pantalla completa con atenuación y bloqueo de clics externos
+	var overlay = PanelContainer.new()
 	overlay.name = "PvpWarningOverlay"
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	canvas_layer.add_child(overlay)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	var sb_dim = StyleBoxFlat.new()
+	sb_dim.bg_color = Color(0.0, 0.0, 0.0, 0.65)
+	overlay.add_theme_stylebox_override("panel", sb_dim)
+	canvas_layer.add_child(overlay)
 	
-	# Panel del modal centrado
-	var p = PanelContainer.new()
-	p.custom_minimum_size = Vector2(430, 240)
-	overlay.add_child(p)
-	
-	p.anchor_left = 0.5
-	p.anchor_right = 0.5
-	p.anchor_top = 0.5
-	p.anchor_bottom = 0.5
-	p.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	p.grow_vertical = Control.GROW_DIRECTION_BOTH
-	p.offset_left = -p.custom_minimum_size.x / 2.0
-	p.offset_right = p.custom_minimum_size.x / 2.0
-	p.offset_top = -p.custom_minimum_size.y / 2.0
-	p.offset_bottom = p.custom_minimum_size.y / 2.0
-	
-	# Estilo oscuro y borde cian neón/rojo
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.08, 0.0, 0.0, 0.98) if pvp_mode == "inferno" else Color(0.01, 0.04, 0.08, 0.98)
-	sb.border_width_top = 4
-	sb.border_color = Color(1.0, 0.0, 0.0) if pvp_mode == "inferno" else (Color(1.0, 0.2, 0.2) if pvp_mode == "full_drop" else (Color(1.0, 0.5, 0.1) if pvp_mode == "partial_drop" else Color(0.9, 0.5, 0.1)))
-	p.add_theme_stylebox_override("panel", sb)
-	
-	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 18)
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	p.add_child(v)
-	
-	# Margen superior
-	var margin_top = Control.new()
-	margin_top.custom_minimum_size.y = 5
-	v.add_child(margin_top)
-	
-	# Título
-	var tl = Label.new()
-	tl.text = "🔥 INFIERNO - ¡NO HAY RETORNO! 🔥" if pvp_mode == "inferno" else ("🚨 ADVERTENCIA CRÍTICA 🚨" if (pvp_mode == "full_drop" or pvp_mode == "partial_drop") else "🚨 ADVERTENCIA DE SEGURIDAD 🚨")
-	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tl.modulate = Color(1.0, 0.0, 0.0) if pvp_mode == "inferno" else (Color(1.0, 0.2, 0.2) if (pvp_mode == "full_drop" or pvp_mode == "partial_drop") else Color(0.9, 0.5, 0.1))
-	tl.add_theme_font_size_override("font_size", 13)
-	v.add_child(tl)
-	
-	# Descripción
-	var rt = RichTextLabel.new()
-	rt.bbcode_enabled = true
+	# 2. CenterContainer para centrado geométrico perfecto en cualquier resolución
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+
+	# 3. Determinar colores y textos de advertencia según el modo PvP
+	var warn_color = Color(0.9, 0.5, 0.1)
+	var title_text = "🚨 ADVERTENCIA DE SEGURIDAD 🚨"
 	var desc = ""
-	if pvp_mode == "mandatory":
-		desc = "[center]El sector al que intentas entrar es una:\n\n[color=#ff5555][b]🔥 ZONA DE COMBATE PVP OBLIGATORIO 🔥[/b][/color]\n\n¿Estás seguro de que deseas ingresar?[/center]"
+
+	if pvp_mode == "inferno":
+		warn_color = Color(1.0, 0.1, 0.1)
+		title_text = "🔥 INFIERNO - ¡NO HAY RETORNO! 🔥"
+		desc = "[center][color=#ff0000][b]🔥 ¡ZONA INFIERNO! 🔥[/b][/color]\n\n[color=#ff4444][b]⚠️ PVP OBLIGATORIO ⚠️[/b][/color]\n\nSi eres derrotado en este mapa:\n[color=red][b]• Pierdes TODO tu inventario\n• Pierdes TODOS tus items equipados\n• ¡TU NAVE SERÁ DESTRUIDA PERMANENTEMENTE!\n• Serás enviado al Lobby con la nave por defecto[/b][/color]\n\n[color=#ff6666][b]¿ESTÁS ABSOLUTAMENTE SEGURO DE INGRESAR?[/b][/color][/center]"
 	elif pvp_mode == "full_drop":
+		warn_color = Color(1.0, 0.2, 0.2)
+		title_text = "🚨 ADVERTENCIA CRÍTICA 🚨"
 		desc = "[center]¡ATENCIÓN PILOTO! El sector tiene:\n[color=#ff3333][b]⚡ PVP OBLIGATORIO Y PÉRDIDA TOTAL DE ITEMS ⚡[/b][/color]\n\nSi eres derrotado en este mapa, [color=yellow][b]perderás y dropearás absolutamente todo[/b][/color] lo que tengas equipado y en el inventario.\n\n¿Deseas ingresar bajo tu propio riesgo?[/center]"
 	elif pvp_mode == "partial_drop":
+		warn_color = Color(1.0, 0.5, 0.1)
+		title_text = "🚨 ADVERTENCIA CRÍTICA 🚨"
 		desc = "[center]¡ATENCIÓN PILOTO! El sector tiene:\n[color=#ffaa33][b]⚡ PVP OBLIGATORIO Y PÉRDIDA DE INVENTARIO ⚡[/b][/color]\n\nSi eres derrotado en este mapa, [color=yellow][b]perderás todo tu inventario[/b][/color], pero conservarás los items equipados.\n\n¿Deseas ingresar bajo tu propio riesgo?[/center]"
-	elif pvp_mode == "inferno":
-		desc = "[center][color=#ff0000][b]🔥 ¡ZONA INFIERNO! 🔥[/b][/color]\n\n[color=#ff4444][b]⚠️ PVP OBLIGATORIO ⚠️[/b][/color]\n\nSi eres derrotado en este mapa:\n[color=red][b]• Pierdes TODO tu inventario\n• Pierdes TODOS tus items equipados\n• ¡TU NAVE SERÁ DESTRUIDA PERMANENTEMENTE!\n• Serás enviado al Lobby con la nave por defecto[/b][/color]\n\n[color=#ff6666][b]¿ESTÁS ABSOLUTAMENTE SEGURO DE INGRESAR?[/b][/color][/center]"
-	rt.text = desc
+	elif pvp_mode == "mandatory":
+		warn_color = Color(0.9, 0.5, 0.1)
+		title_text = "🚨 ADVERTENCIA DE SEGURIDAD 🚨"
+		desc = "[center]El sector al que intentas entrar es una:\n\n[color=#ff5555][b]🔥 ZONA DE COMBATE PVP OBLIGATORIO 🔥[/b][/color]\n\n¿Estás seguro de que deseas ingresar?[/center]"
+	else:
+		desc = "[center]El sector al que intentas entrar es una zona de combate.\n\n¿Estás seguro de que deseas ingresar?[/center]"
+
+	# 4. Contenedor Premium Sci-Fi
+	var p = PanelContainer.new()
+	p.custom_minimum_size = Vector2(480, 260)
+	p.mouse_filter = Control.MOUSE_FILTER_STOP
+	center.add_child(p)
+
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.02, 0.008, 0.01, 0.98) if pvp_mode == "inferno" else Color(0.012, 0.022, 0.038, 0.98)
+	sb.border_width_left = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_width_top = 4
+	sb.border_color = warn_color
+	sb.set_corner_radius_all(8)
+	sb.corner_detail = 12
+	sb.anti_aliasing = true
+	sb.shadow_color = Color(0, 0, 0, 0.8)
+	sb.shadow_size = 25
+	p.add_theme_stylebox_override("panel", sb)
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_bottom", 20)
+	p.add_child(margin)
+
+	var v = VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 16)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(v)
+
+	# Título centrado
+	var tl = Label.new()
+	tl.text = title_text
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tl.add_theme_color_override("font_color", warn_color)
+	tl.add_theme_font_size_override("font_size", 13)
+	v.add_child(tl)
+
+	# Descripción centrada
+	var rt = RichTextLabel.new()
+	rt.bbcode_enabled = true
 	rt.fit_content = true
+	rt.scroll_active = false
 	rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rt.text = desc
 	v.add_child(rt)
-	
-	# Contenedor de Botones
+
+	# Contenedor de Botones centrado
 	var hb = HBoxContainer.new()
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 25)
+	hb.add_theme_constant_override("separation", 22)
 	v.add_child(hb)
-	
+
+	# Botón ENTRAR con estética Sci-Fi acorde al color de advertencia
 	var bc = Button.new()
-	bc.text = "  ENTRAR  "
-	bc.custom_minimum_size = Vector2(130, 42)
+	bc.text = "ENTRAR"
+	bc.custom_minimum_size = Vector2(130, 38)
 	bc.add_theme_font_size_override("font_size", 10)
+	var sb_bc = StyleBoxFlat.new()
+	sb_bc.bg_color = Color(warn_color.r * 0.35, warn_color.g * 0.35, warn_color.b * 0.35, 0.5)
+	sb_bc.border_width_left = 1; sb_bc.border_width_top = 1; sb_bc.border_width_right = 1; sb_bc.border_width_bottom = 1
+	sb_bc.border_color = warn_color
+	sb_bc.set_corner_radius_all(5)
+	bc.add_theme_stylebox_override("normal", sb_bc)
+	var sb_bch = StyleBoxFlat.new()
+	sb_bch.bg_color = Color(warn_color.r * 0.55, warn_color.g * 0.55, warn_color.b * 0.55, 0.75)
+	sb_bch.border_width_left = 1; sb_bch.border_width_top = 1; sb_bch.border_width_right = 1; sb_bch.border_width_bottom = 1
+	sb_bch.border_color = warn_color.lightened(0.2)
+	sb_bch.set_corner_radius_all(5)
+	bc.add_theme_stylebox_override("hover", sb_bch)
+	bc.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
 	bc.pressed.connect(func():
 		_send_event_direct("changeZone", target_zone_id)
 		canvas_layer.queue_free()
 	)
 	hb.add_child(bc)
-	
+
+	# Botón CANCELAR Sci-Fi neutro/oscuro
 	var bx = Button.new()
-	bx.text = " CANCELAR "
-	bx.custom_minimum_size = Vector2(130, 42)
+	bx.text = "CANCELAR"
+	bx.custom_minimum_size = Vector2(130, 38)
 	bx.add_theme_font_size_override("font_size", 10)
+	var sb_bx = StyleBoxFlat.new()
+	sb_bx.bg_color = Color(0.08, 0.12, 0.16, 0.7)
+	sb_bx.border_width_left = 1; sb_bx.border_width_top = 1; sb_bx.border_width_right = 1; sb_bx.border_width_bottom = 1
+	sb_bx.border_color = Color(0.3, 0.45, 0.6, 0.5)
+	sb_bx.set_corner_radius_all(5)
+	bx.add_theme_stylebox_override("normal", sb_bx)
+	var sb_bxh = StyleBoxFlat.new()
+	sb_bxh.bg_color = Color(0.14, 0.18, 0.24, 0.85)
+	sb_bxh.border_width_left = 1; sb_bxh.border_width_top = 1; sb_bxh.border_width_right = 1; sb_bxh.border_width_bottom = 1
+	sb_bxh.border_color = Color(0.5, 0.7, 0.9, 0.7)
+	sb_bxh.set_corner_radius_all(5)
+	bx.add_theme_stylebox_override("hover", sb_bxh)
+	bx.add_theme_color_override("font_color", Color(0.8, 0.85, 0.9))
 	bx.pressed.connect(func():
 		canvas_layer.queue_free()
 	)
