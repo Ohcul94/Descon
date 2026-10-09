@@ -193,6 +193,7 @@ var static_models_to_cache = [
 	"res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb",
 	"res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb",
 	"res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb",
+	"res://assets/Enemigos/3D/Bosses/Boss10/ArañaRobotica.glb",
 	
 	"res://assets/Pilares/3D/Pilar1/Pilar1.glb",
 	

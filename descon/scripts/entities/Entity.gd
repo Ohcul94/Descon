@@ -2589,6 +2589,10 @@ func _setup_enemy_visuals():
 				glb_path = "res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"
 				enemy_rot_offset = 0.0
 				_enemy_scale = 8.0
+			110: # Araña Robótica (Boss10)
+				glb_path = "res://assets/Enemigos/3D/Bosses/Boss10/ArañaRobotica.glb"
+				enemy_rot_offset = 0.0
+				_enemy_scale = 1.8
 			200: # Pilar Protector
 				glb_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
 				enemy_rot_offset = 0.0
