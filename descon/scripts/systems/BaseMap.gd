@@ -2433,7 +2433,6 @@ func _spawn_map_rats(root: Node3D) -> void:
 			print("[BaseMap] Rata ", rat.name, " descartada y=", spawn_y)
 			rat.queue_free()
 			continue
-		_attach_critter_cull(rat)
 		placed.append(rat.global_position if rat.global_position != Vector3.ZERO else rat.position)
 	print("[BaseMap] Ratas ambientales spawneadas: ", placed.size(), " (intentos=", attempts, ")")
 

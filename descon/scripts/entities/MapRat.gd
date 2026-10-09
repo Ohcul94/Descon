@@ -40,17 +40,17 @@ static func _ensure_shared() -> void:
 	if _mesh_shared_ok:
 		return
 	_sm_body = StandardMaterial3D.new()
-	_sm_body.albedo_color = Color(0.40, 0.36, 0.32)
-	_sm_body.roughness = 0.78
+	_sm_body.albedo_color = Color(0.58, 0.48, 0.38)
+	_sm_body.roughness = 0.72
 	_sm_skin = StandardMaterial3D.new()
-	_sm_skin.albedo_color = Color(0.72, 0.50, 0.46)
-	_sm_skin.roughness = 0.55
+	_sm_skin.albedo_color = Color(0.88, 0.65, 0.60)
+	_sm_skin.roughness = 0.50
 	_sm_dark = StandardMaterial3D.new()
-	_sm_dark.albedo_color = Color(0.04, 0.04, 0.04)
+	_sm_dark.albedo_color = Color(0.08, 0.08, 0.08)
 	_sm_dark.roughness = 0.35
 	_sm_nose = StandardMaterial3D.new()
-	_sm_nose.albedo_color = Color(0.82, 0.52, 0.52)
-	_sm_nose.roughness = 0.5
+	_sm_nose.albedo_color = Color(0.95, 0.58, 0.58)
+	_sm_nose.roughness = 0.45
 	_mesh_body = SphereMesh.new()
 	_mesh_body.radius = 0.20
 	_mesh_body.height = 0.40
@@ -115,8 +115,8 @@ func setup_rat(p_root: Node3D, p_terrain: Node3D, p_bounds: AABB) -> void:
 	rng.randomize()
 	_measure()
 	_ensure_shared()
-	size = rng.randf_range(0.32, 0.44)
-	walk_speed = size * rng.randf_range(1.8, 2.9)
+	size = rng.randf_range(1.4, 2.1)
+	walk_speed = size * rng.randf_range(2.2, 3.4)
 	_build()
 	idle_time = rng.randf_range(0.4, 2.2)
 	_next_sniff_at = rng.randf_range(6.0, 15.0)
