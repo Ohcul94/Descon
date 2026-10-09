@@ -200,6 +200,10 @@ func _ready():
 	_setup_target_frame()
 	clear_target()
 
+	# v906.0: Precargar el mapa galáctico (PlayerMapUI) al entrar al mundo para que la
+	# primera pulsación de M no pague parseo de escena + construcción de UI (tildón).
+	_ensure_player_map.call_deferred()
+
 func _inject_components():
 	# 1. Componente de Habilidades
 	if skills_hud and skills_hud.get_script() != load("res://scripts/systems/SkillsHUD.gd"):
@@ -654,6 +658,14 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			if node:
 				node.visible = bool(config[win_id])
 				_update_icon_state(win_id, node.visible)
+		# v901.0: Paneles aún sin config guardada => visibles por defecto (checkeados en la lista 👁️)
+		for win_id in _default_wins:
+			if config.has(win_id) or win_id == "CamEdit":
+				continue # CamEdit tiene 3 estados y lo gobierna SettingsManager
+			var def_node = _get_hud_node(win_id)
+			if def_node:
+				def_node.visible = true
+				_update_icon_state(win_id, true)
 		# CenterStats oculto definitivamente — datos ahora en pestaña Estadísticas
 		if center_stats:
 			center_stats.visible = false
@@ -2497,20 +2509,25 @@ func toggle_player_inventory():
 
 var _player_map = null
 
+func _ensure_player_map():
+	# v906.0: Solo crear/reutilizar la instancia (usado también por la precarga en _ready)
+	if is_instance_valid(_player_map):
+		return
+	var map_node = get_tree().get_first_node_in_group("player_map_ui")
+	if is_instance_valid(map_node):
+		_player_map = map_node
+		return
+	var res = load("res://scenes/ui/PlayerMapUI.tscn")
+	if res:
+		_player_map = res.instantiate()
+	else:
+		_player_map = Control.new()
+		_player_map.set_script(load("res://scripts/ui/PlayerMapUI.gd"))
+	var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
+	hud_parent.add_child(_player_map)
+
 func toggle_player_map():
-	if not is_instance_valid(_player_map):
-		var map_node = get_tree().get_first_node_in_group("player_map_ui")
-		if is_instance_valid(map_node):
-			_player_map = map_node
-		else:
-			var res = load("res://scenes/ui/PlayerMapUI.tscn")
-			if res:
-				_player_map = res.instantiate()
-			else:
-				_player_map = Control.new()
-				_player_map.set_script(load("res://scripts/ui/PlayerMapUI.gd"))
-			var hud_parent = get_parent() if (get_parent() and get_parent() is CanvasLayer) else self
-			hud_parent.add_child(_player_map)
+	_ensure_player_map()
 
 	if is_instance_valid(_player_map):
 		if _player_map.has_method("toggle"):

@@ -21,7 +21,11 @@ func _init():
 	visible = false
 
 func _ready():
-	terrain_cache_by_zone.clear()
+	# v906.0: NO limpiar terrain_cache_by_zone aquí. La textura de la zona activa ya la
+	# genera el Minimap al entrar al mundo; vaciarla al instanciar el diálogo (primera
+	# pulsación de TAB) obligaba a regenerar 65k muestras de terreno + recargar escenas
+	# MapEditor3D: ese era el tildón de la primera apertura. Las entradas se validan con
+	# is_instance_valid en get_or_create_terrain_texture().
 	_build_ui()
 
 func _build_ui():

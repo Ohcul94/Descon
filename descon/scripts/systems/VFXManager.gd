@@ -708,6 +708,21 @@ func _run_shader_warmup():
 		if not queue.has(p): queue.append(p)
 	for p in static_models_to_cache:
 		if not queue.has(p): queue.append(p)
+
+	# v906.0: Precarga de MAPAS GRANDES en pantalla de carga (misma cola que VFX).
+	# - PlayerMapUI.tscn: mapa galáctico (M), antes se hacía load() a demanda.
+	# - MapEditor3D_*.tscn: escenas de terreno por sector que WorldMapDialog instancia
+	#   al ver zonas remotas (get_or_create_terrain_texture/get_zone_rect).
+	# Solo se parsean en background; NO se añaden a `scenes` para no instanciarlos en
+	# la fase GPU de compilación de shaders.
+	var map_assets = ["res://scenes/ui/PlayerMapUI.tscn"]
+	var tools_dir = DirAccess.open("res://tools")
+	if tools_dir:
+		for f in tools_dir.get_files():
+			if f.begins_with("MapEditor3D_") and f.ends_with(".tscn"):
+				map_assets.append("res://tools/" + f)
+	for p in map_assets:
+		if not queue.has(p): queue.append(p)
 	
 	# Compilar shaders gráficos instanciando efectos fuera de cámara
 	var scenes = [

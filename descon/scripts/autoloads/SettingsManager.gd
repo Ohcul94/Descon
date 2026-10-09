@@ -13,7 +13,7 @@ var default_keys = {
 	"slot_5": KEY_A, "slot_6": KEY_D, "slot_7": KEY_F,
 	"ui_inventory": KEY_V, "ui_logistics": KEY_F1, "ui_menu": KEY_ESCAPE, "ui_events": KEY_F2, "ui_housing": KEY_F3, "ui_battlepass": KEY_F4,
 	"ui_talents": KEY_T, "ui_clan": KEY_G, "ui_quests": KEY_L,
-	"ui_map": KEY_TAB, "ui_party": KEY_P, "ui_pvp_toggle": KEY_Z, "ui_stats": KEY_C,
+	"ui_map": KEY_TAB, "ui_galaxy_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_Z, "ui_stats": KEY_C,
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
 	"toggle_free_camera": KEY_O, # Atajo para cámara libre 3D
@@ -291,15 +291,21 @@ func save_settings():
 	config_file.save(SETTINGS_PATH)
 
 func load_settings():
+	# v901.2: Partir siempre de un ConfigFile limpio (reflejar solo el archivo en disco,
+	# sin claves residuales de la sesión anterior) para que los defaults apliquen bien.
+	config_file = ConfigFile.new()
 	var err = config_file.load(SETTINGS_PATH)
 	
 	# Aplicar todas las teclas del mapeo, usando el default si no existe en el archivo
 	for action in default_keys:
 		var default_val = default_keys[action]
 		var val = config_file.get_value("keys", action, default_val)
-		# Mapa grande: forzar TAB (los cfg viejos podían tener M u otra tecla)
-		if action == "ui_map":
+		# Mapa grande: los cfg viejos tenían M en ui_map (antes abría el mapa galáctico).
+		# Solo se migra ese valor heredado a TAB; si el jugador eligió otra tecla, se respeta.
+		if action == "ui_map" and val == KEY_M:
 			val = KEY_TAB
+			config_file.set_value("keys", action, KEY_TAB)
+			config_file.save(SETTINGS_PATH)
 		# Inventario estilo Mu Online: migrar de F1 viejo a V por defecto si tenía F1
 		if action == "ui_inventory" and val == KEY_F1:
 			val = KEY_V

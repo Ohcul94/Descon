@@ -89,6 +89,7 @@ var _smoothed_yaw: float = 0.0
 var _camera_initialized: bool = false
 var _classic_cam_smoothed_y: float = -999.0
 @export var terrain_collision_height_threshold: float = 0.8
+@export var ambient_rat_count: int = 8
 @export var max_ship_terrain_height: float = 0.8
 
 
@@ -2206,6 +2207,12 @@ func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: V
 	obj.add_child(light)
 	
 	sub_viewport.add_child(obj)
+	# Reproducir en bucle las animaciones propias de decorativos animados (arboles/plantas)
+	var _asset_file := asset_path.get_file().to_lower()
+	if _asset_file.contains("arbol") or _asset_file.contains("planta"):
+		_start_model_loop_animations(obj)
+	if _asset_file.contains("piedras_apiladas"):
+		_spawn_rock_critters(obj)
 	# v600.0: Registrar como occluder si es alto (pared/objeto que puede tapar). Seguro: solo overlay dither.
 	if is_instance_valid(_occluder_fader):
 		var is_tall = y_offset > 0.35 or scale_3d.x > 0.7 or scale_3d.y > 0.7
@@ -2213,6 +2220,175 @@ func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: V
 		if is_tall or asset_path.contains("Pared") or asset_path.contains("Torre") or asset_path.contains("Pilar") or asset_path.contains("Altar"):
 			_occluder_fader.register_occluder(obj)
 	return obj
+
+
+# Reproducir en bucle las animaciones de un modelo instanciado (desfase aleatorio por instancia)
+func _start_model_loop_animations(model: Node) -> void:
+	var players: Array[AnimationPlayer] = []
+	_collect_animation_players(model, players)
+	for player in players:
+		var host := player.get_parent()
+		if host == null:
+			continue
+		var clip_index := 0
+		for lib_name in player.get_animation_library_list():
+			var lib := player.get_animation_library(lib_name)
+			if lib == null:
+				continue
+			for anim_name in lib.get_animation_list():
+				var anim := lib.get_animation(anim_name)
+				if anim == null:
+					continue
+				anim.loop_mode = Animation.LOOP_LINEAR
+				var target := player
+				var play_key: StringName = anim_name
+				if lib_name != &"":
+					play_key = StringName(String(lib_name) + "/" + String(anim_name))
+				if clip_index > 0:
+					# Un solo clip por AnimationPlayer: los clips van a un player propio
+					target = AnimationPlayer.new()
+					target.root_node = player.root_node
+					var own_lib := AnimationLibrary.new()
+					own_lib.add_animation(anim_name, anim)
+					target.add_animation_library(&"", own_lib)
+					play_key = anim_name
+					host.add_child(target)
+				target.play(play_key)
+				var length: float = anim.get_length()
+				if length > 0.0:
+					target.seek(randf() * length, true)
+				clip_index += 1
+
+
+func _collect_animation_players(node: Node, out: Array[AnimationPlayer]) -> void:
+	if node is AnimationPlayer:
+		out.append(node)
+	for child in node.get_children():
+		_collect_animation_players(child, out)
+
+
+# Buscar instancias de modelos animados (arbol/planta) dentro de la escena del mapa
+func _start_scene_loop_animations(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	var src := String(node.scene_file_path)
+	if src == "" and node.has_meta("asset_path"):
+		src = str(node.get_meta("asset_path"))
+	var low := src.to_lower()
+	if low.contains("arbol") or low.contains("planta"):
+		_start_model_loop_animations(node)
+		return
+	for child in node.get_children():
+		_start_scene_loop_animations(child)
+
+
+func _spawn_rock_critters(rock: Node3D) -> void:
+	if not is_instance_valid(rock):
+		return
+	if rock.get_node_or_null("CritterNav") != null:
+		return
+	var mi := _find_mesh_instance_recursive(rock)
+	if mi == null or mi.mesh == null:
+		return
+	var nav := StaticBody3D.new()
+	nav.name = "CritterNav"
+	nav.collision_layer = 1 << 29
+	nav.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	cs.shape = mi.mesh.create_trimesh_shape()
+	nav.add_child(cs)
+	rock.add_child(nav)
+	var count := randi_range(1, 2)
+	for i in count:
+		var path := "res://scripts/entities/RockCritter_Spider.gd" if randi() % 2 == 0 else "res://scripts/entities/RockCritter_Worm.gd"
+		var bug: Node3D = (load(path) as GDScript).new()
+		bug.name = "Critter"
+		rock.add_child(bug)
+		bug.setup(rock)
+
+
+func _find_mesh_instance_recursive(node: Node) -> MeshInstance3D:
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		return node as MeshInstance3D
+	for c in node.get_children():
+		var r := _find_mesh_instance_recursive(c)
+		if r != null:
+			return r
+	return null
+
+
+func _spawn_map_rats(root: Node3D) -> void:
+	if not is_instance_valid(root):
+		return
+	if root.get_node_or_null("AmbientRats") != null:
+		return
+	var bounds := _compute_content_aabb(root)
+	if bounds.size.x < 4.0 or bounds.size.z < 4.0:
+		print("[BaseMap] Ratas omitidas: bounds de contenido demasiado pequeños")
+		return
+	var rat_script: GDScript = load("res://scripts/entities/MapRat.gd")
+	if rat_script == null:
+		return
+	var container := Node3D.new()
+	container.name = "AmbientRats"
+	root.add_child(container)
+	var terrain := _find_terrain_node_recursive(root)
+	if is_instance_valid(terrain):
+		# Terrain3D cubre piso Y montaña; expandimos bounds para incluirla
+		bounds = bounds.grow(bounds.get_longest_axis_size() * 0.35)
+	var min_sep := 28.0
+	var placed: Array[Vector3] = []
+	var wanted := maxi(0, ambient_rat_count)
+	var attempts := 0
+	while placed.size() < wanted and attempts < wanted * 30:
+		attempts += 1
+		var x := randf_range(bounds.position.x + bounds.size.x * 0.06, bounds.end.x - bounds.size.x * 0.06)
+		var z := randf_range(bounds.position.z + bounds.size.z * 0.06, bounds.end.z - bounds.size.z * 0.06)
+		var too_close := false
+		for p in placed:
+			if Vector2(x, z).distance_to(Vector2(p.x, p.z)) < min_sep:
+				too_close = true
+				break
+		if too_close:
+			continue
+		var rat: Node3D = rat_script.new()
+		rat.name = "Rat_%d" % placed.size()
+		container.add_child(rat)
+		rat.call("setup_rat", root, terrain, bounds)
+		rat.call("place_now")
+		if is_nan(rat.position.y) or absf(rat.position.y) > 500.0:
+			rat.queue_free()
+			continue
+		placed.append(rat.position)
+	print("[BaseMap] Ratas ambientales spawneadas: ", placed.size(), " (intentos=", attempts, ")")
+
+
+func _compute_content_aabb(root: Node3D) -> AABB:
+	var total := AABB()
+	var first := true
+	var skip_names := ["camera", "light", "groundplane", "gridvisual", "mapboundary", "eventmarkers", "worldenvironment", "skydome", "terraincolliders", "luces", "critternav", "critter", "ambientrats"]
+	var stack: Array[Node] = [root]
+	while stack.size() > 0:
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D:
+			var nl := String(n.name).to_lower()
+			var skip := false
+			for s in skip_names:
+				if s in nl:
+					skip = true
+					break
+			if not skip:
+				var mi := n as MeshInstance3D
+				var wa: AABB = mi.global_transform * mi.get_aabb()
+				if first:
+					total = wa
+					first = false
+				else:
+					total = total.merge(wa)
+		for c in n.get_children():
+			if c is Node3D:
+				stack.append(c)
+	return total
 
 # Crear UI interactiva flotante de acciones (portal / vault / market / loot)
 func _create_portal_jump_ui():
@@ -2957,6 +3133,10 @@ func _spawn_objects_from_custom_scene():
 	_setup_terrain_2d_colliders()
 		
 	var target_root = custom_scene_instance
+	
+	# Reproducir en bucle las animaciones de decorativos animados (arboles/plantas)
+	# instanciados directamente en la escena del mapa (no pasan por _instantiate_map_object_3d).
+	_start_scene_loop_animations(target_root)
 		
 	# Función lambda local para buscar metadatos de tipo de objeto de manera ultra flexible
 	# Soportando variantes como "Obj Type", "objtype", "ObjType", "obj_type", etc.
@@ -3079,6 +3259,10 @@ func _spawn_objects_from_custom_scene():
 		var scale_val = child.scale.x
 		var rot_y = rad_to_deg(child.rotation.y)
 		var y_offset = pos_3d.y
+		
+		var _critter_path = str(child.get_meta("asset_path", child.name))
+		if _critter_path.to_lower().contains("piedras_apiladas"):
+			_spawn_rock_critters(child)
 		
 		# v600.X: Registrar en OccluderFader CUALQUIER objeto del mapa local que no sea un colisionador puro.
 		# Así nos aseguramos de que "market", "door" y objetos sin colisionadores personalizados también se hagan transparentes al tapar la cámara.
@@ -3387,3 +3571,7 @@ func _spawn_objects_from_custom_scene():
 				
 			_:
 				pass
+	
+	# Ratas ambientales: solo en Mapa 3 (piso + montañas via Terrain3D)
+	if is_instance_valid(custom_scene_instance) and String(custom_scene_instance.scene_file_path).to_lower().contains("mapa_3"):
+		_spawn_map_rats(target_root)

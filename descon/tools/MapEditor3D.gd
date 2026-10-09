@@ -62,6 +62,7 @@ class_name MapEditor3D
 
 
 
+
 ## NODOS INTERNOS
 var objects_root: Node3D = null
 
@@ -85,7 +86,7 @@ const ASSET_COLLIDER_PRESETS = {
 		"colType": "circle",
 		"radius_3d": 0.024,
 		"height_3d": 0.01,
-		"col_y": -0.11,
+		"col_y": 0.0,
 		"colWidth": 2.4,
 		"colHeight": 1.70
 	},
@@ -112,7 +113,7 @@ const ASSET_COLLIDER_PRESETS = {
 		"colType": "circle",
 		"radius_3d": 0.060,
 		"height_3d": 0.01,
-		"col_y": -0.065,
+		"col_y": 0.0,
 		"colWidth": 6.0,
 		"colHeight": 4.24
 	},
@@ -1460,6 +1461,7 @@ func load_from_server():
 		grid_visual.material_override = mat
 
 	print("MapEditor3D: ✅ Cargado mapa Zona ", zone_id, " (", map_data.get("name", "Sin Nombre"), ") Tamaño: ", width_val, "x", height_val)
+	call_deferred("_start_all_ambient_animations")
 
 
 func _clear_event_markers():

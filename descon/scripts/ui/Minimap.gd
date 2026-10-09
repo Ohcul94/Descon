@@ -187,20 +187,38 @@ func _ready():
 	btn_world_map.pressed.connect(toggle_world_map)
 	add_child(btn_world_map)
 
+	# v906.0: Precarga de mapas grandes al entrar al mundo:
+	# 1) Instanciar ya el diálogo del mapa grande (evita el coste de _build_ui en la
+	#    primera pulsación de TAB) y 2) precalentar su textura de terreno de la zona
+	#    actual para que abrir el mapa no regeneré 65k muestras de relieve en vivo.
+	_ensure_world_map_dialog.call_deferred()
+	_precache_world_map_texture.call_deferred()
+
+func _ensure_world_map_dialog() -> void:
+	if is_instance_valid(world_map_dialog):
+		return
+	world_map_dialog = WORLD_MAP_SCRIPT.new()
+	get_tree().root.add_child(world_map_dialog)
+
+func _precache_world_map_texture() -> void:
+	# Diferido 2 frames: no bloquea el frame de entrada al mundo
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var player = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(player) or not ("current_zone" in player):
+		return
+	var z = str(player.current_zone)
+	if WorldMapDialog.terrain_cache_by_zone.has(z) and is_instance_valid(WorldMapDialog.terrain_cache_by_zone[z]):
+		return
+	var wr = WorldMapDialog.get_zone_rect(z, get_tree())
+	WorldMapDialog.get_or_create_terrain_texture(z, wr, get_tree())
+
 func toggle_world_map(zone_id_to_show: String = ""):
-	if not is_instance_valid(world_map_dialog):
-		world_map_dialog = WORLD_MAP_SCRIPT.new()
-		var canvas_root = get_tree().root
-		canvas_root.add_child(world_map_dialog)
-	
+	_ensure_world_map_dialog()
 	world_map_dialog.toggle(zone_id_to_show)
 
 func open_world_map(zone_id_to_show: String = ""):
-	if not is_instance_valid(world_map_dialog):
-		world_map_dialog = WORLD_MAP_SCRIPT.new()
-		var canvas_root = get_tree().root
-		canvas_root.add_child(world_map_dialog)
-	
+	_ensure_world_map_dialog()
 	world_map_dialog.open(zone_id_to_show)
 
 func _update_parent_window_size():

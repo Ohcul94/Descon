@@ -894,7 +894,15 @@ func _input(event: InputEvent):
 	var focus_node = get_viewport().gui_get_focus_owner()
 	if focus_node is LineEdit or focus_node is TextEdit: return
 
-	if event.is_action_pressed("ui_map") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_M):
+	# v901.1: ui_map (TAB por defecto) ya NO abre este mapa: es exclusiva del Mapa Grande
+	# (WorldMapDialog). El mapa galáctico usa su propia acción rebindingeable ui_galaxy_map (M).
+	if InputMap.has_action("ui_galaxy_map"):
+		if event.is_action_pressed("ui_galaxy_map"):
+			toggle()
+			get_viewport().set_input_as_handled()
+			return
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_M:
+		# Respaldo si la acción aún no existe en el InputMap
 		toggle()
 		get_viewport().set_input_as_handled()
 		return

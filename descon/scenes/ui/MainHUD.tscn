@@ -568,23 +568,11 @@ grow_vertical = 0
 theme_override_constants/separation = 12
 alignment = 0
 
-[node name="IconChat" type="Button" parent="ControlBar"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-tooltip_text = "CHAT"
-text = "💬"
-
 [node name="IconStats" type="Button" parent="ControlBar"]
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
-tooltip_text = "STATS"
-text = "🧬"
-
-[node name="IconRadarWindow" type="Button" parent="ControlBar"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-tooltip_text = "RADAR"
-text = "🛰️"
+tooltip_text = "ESTADISTICAS"
+text = "📊"
 
 [node name="IconSkills" type="Button" parent="ControlBar"]
 custom_minimum_size = Vector2(30, 30)
