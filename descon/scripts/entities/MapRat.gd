@@ -33,77 +33,90 @@ static var _mesh_ear: SphereMesh
 static var _mesh_haunch: SphereMesh
 static var _mesh_shin: CylinderMesh
 static var _mesh_foot: SphereMesh
-static var _mesh_tail: SphereMesh
+static var _mesh_tail: CylinderMesh
 
 
 static func _ensure_shared() -> void:
 	if _mesh_shared_ok:
 		return
 	_sm_body = StandardMaterial3D.new()
-	_sm_body.albedo_color = Color(0.58, 0.48, 0.38)
-	_sm_body.roughness = 0.72
+	_sm_body.albedo_color = Color(0.28, 0.24, 0.22) # Pelaje marrón grisáceo oscuro de rata silvestre
+	_sm_body.roughness = 0.85
 	_sm_skin = StandardMaterial3D.new()
-	_sm_skin.albedo_color = Color(0.88, 0.65, 0.60)
-	_sm_skin.roughness = 0.50
+	_sm_skin.albedo_color = Color(0.78, 0.55, 0.52) # Piel rosada desaturada natural (hocico, patas, cola)
+	_sm_skin.roughness = 0.65
 	_sm_dark = StandardMaterial3D.new()
-	_sm_dark.albedo_color = Color(0.08, 0.08, 0.08)
-	_sm_dark.roughness = 0.35
+	_sm_dark.albedo_color = Color(0.04, 0.04, 0.04) # Ojos negros brillantes
+	_sm_dark.roughness = 0.15
 	_sm_nose = StandardMaterial3D.new()
-	_sm_nose.albedo_color = Color(0.95, 0.58, 0.58)
-	_sm_nose.roughness = 0.45
+	_sm_nose.albedo_color = Color(0.85, 0.48, 0.48)
+	_sm_nose.roughness = 0.55
+	
+	# Cuerpo ahusado y alargado
 	_mesh_body = SphereMesh.new()
-	_mesh_body.radius = 0.20
-	_mesh_body.height = 0.40
+	_mesh_body.radius = 0.12
+	_mesh_body.height = 0.32
 	_mesh_body.radial_segments = 10
 	_mesh_body.rings = 6
 	_mesh_body.material = _sm_body
+
+	# Cabeza cónica y afinada hacia el hocico
 	_mesh_head = SphereMesh.new()
-	_mesh_head.radius = 0.13
-	_mesh_head.height = 0.26
+	_mesh_head.radius = 0.08
+	_mesh_head.height = 0.18
 	_mesh_head.radial_segments = 8
 	_mesh_head.rings = 5
 	_mesh_head.material = _sm_body
+
 	_mesh_nose = SphereMesh.new()
-	_mesh_nose.radius = 0.04
-	_mesh_nose.height = 0.08
-	_mesh_nose.radial_segments = 5
-	_mesh_nose.rings = 3
+	_mesh_nose.radius = 0.02
+	_mesh_nose.height = 0.04
+	_mesh_nose.radial_segments = 6
+	_mesh_nose.rings = 4
 	_mesh_nose.material = _sm_nose
+
 	_mesh_eye = SphereMesh.new()
-	_mesh_eye.radius = 0.03
-	_mesh_eye.height = 0.06
-	_mesh_eye.radial_segments = 5
-	_mesh_eye.rings = 3
+	_mesh_eye.radius = 0.018
+	_mesh_eye.height = 0.036
+	_mesh_eye.radial_segments = 6
+	_mesh_eye.rings = 4
 	_mesh_eye.material = _sm_dark
+
+	# Orejas redondeadas delgadas
 	_mesh_ear = SphereMesh.new()
-	_mesh_ear.radius = 0.10
-	_mesh_ear.height = 0.20
-	_mesh_ear.radial_segments = 7
-	_mesh_ear.rings = 4
-	_mesh_ear.material = _sm_body
+	_mesh_ear.radius = 0.05
+	_mesh_ear.height = 0.10
+	_mesh_ear.radial_segments = 8
+	_mesh_ear.rings = 5
+	_mesh_ear.material = _sm_skin
+
 	_mesh_haunch = SphereMesh.new()
-	_mesh_haunch.radius = 0.055
-	_mesh_haunch.height = 0.11
+	_mesh_haunch.radius = 0.04
+	_mesh_haunch.height = 0.09
 	_mesh_haunch.radial_segments = 7
 	_mesh_haunch.rings = 4
-	_mesh_haunch.material = _sm_skin
+	_mesh_haunch.material = _sm_body
+
 	_mesh_shin = CylinderMesh.new()
-	_mesh_shin.top_radius = 0.016
-	_mesh_shin.bottom_radius = 0.010
-	_mesh_shin.height = 0.16
+	_mesh_shin.top_radius = 0.010
+	_mesh_shin.bottom_radius = 0.007
+	_mesh_shin.height = 0.12
 	_mesh_shin.radial_segments = 5
 	_mesh_shin.material = _sm_skin
+
 	_mesh_foot = SphereMesh.new()
-	_mesh_foot.radius = 0.018
-	_mesh_foot.height = 0.036
+	_mesh_foot.radius = 0.012
+	_mesh_foot.height = 0.032
 	_mesh_foot.radial_segments = 5
 	_mesh_foot.rings = 3
 	_mesh_foot.material = _sm_skin
-	_mesh_tail = SphereMesh.new()
-	_mesh_tail.radius = 0.028
-	_mesh_tail.height = 0.056
-	_mesh_tail.radial_segments = 5
-	_mesh_tail.rings = 3
+
+	# Segmentos cilíndricos de cola anillada larga
+	_mesh_tail = CylinderMesh.new()
+	_mesh_tail.top_radius = 0.012
+	_mesh_tail.bottom_radius = 0.016
+	_mesh_tail.height = 0.14
+	_mesh_tail.radial_segments = 6
 	_mesh_tail.material = _sm_skin
 	_mesh_shared_ok = true
 
@@ -115,11 +128,12 @@ func setup_rat(p_root: Node3D, p_terrain: Node3D, p_bounds: AABB) -> void:
 	rng.randomize()
 	_measure()
 	_ensure_shared()
-	size = rng.randf_range(1.4, 2.1)
-	walk_speed = size * rng.randf_range(2.2, 3.4)
+	# Tamaño proporcionado a la escala del mapa: roedor ágil y pequeño
+	size = rng.randf_range(0.45, 0.65)
+	walk_speed = size * rng.randf_range(3.2, 4.8)
 	_build()
-	idle_time = rng.randf_range(0.4, 2.2)
-	_next_sniff_at = rng.randf_range(6.0, 15.0)
+	idle_time = rng.randf_range(0.3, 1.8)
+	_next_sniff_at = rng.randf_range(4.0, 10.0)
 
 
 func place_now() -> void:
@@ -338,63 +352,72 @@ func _build() -> void:
 	body_node = Node3D.new()
 	add_child(body_node)
 
-	var body := _mk(_mesh_body, Vector3(0.0, L * 0.24, 0.0), Vector3(L, L * 0.88, L * 1.95))
+	# Cuerpo arqueado y esbelto de rata: más estrecho adelante, ensanchado en las caderas traseras
+	var body := _mk(_mesh_body, Vector3(0.0, L * 0.18, -L * 0.05), Vector3(L * 0.82, L * 0.75, L * 2.3))
 	body_node.add_child(body)
 
 	head_node = Node3D.new()
-	head_node.position = Vector3(0.0, L * 0.27, L * 0.27)
+	head_node.position = Vector3(0.0, L * 0.19, L * 0.28)
 	body_node.add_child(head_node)
 
-	var head := _mk(_mesh_head, Vector3.ZERO, Vector3(L * 0.88, L * 0.82, L * 1.25))
+	# Cabeza alargada
+	var head := _mk(_mesh_head, Vector3.ZERO, Vector3(L * 0.72, L * 0.68, L * 1.5))
 	head_node.add_child(head)
 
-	var snout := _mk(_mesh_head, Vector3(0.0, -L * 0.04, L * 0.13), Vector3(L * 0.45, L * 0.40, L * 0.55))
+	# Hocico puntiagudo característico de roedor
+	var snout := _mk(_mesh_head, Vector3(0.0, -L * 0.02, L * 0.14), Vector3(L * 0.38, L * 0.32, L * 0.70))
 	head_node.add_child(snout)
 
-	var nose := _mk(_mesh_nose, Vector3(0.0, -L * 0.03, L * 0.20), Vector3(L * 0.9, L * 0.9, L * 0.9))
+	# Nariz pequeña rosada
+	var nose := _mk(_mesh_nose, Vector3(0.0, -L * 0.02, L * 0.22), Vector3(L * 0.8, L * 0.8, L * 0.8))
 	head_node.add_child(nose)
 
+	# Ojos laterales oscuros
 	for side in [-1.0, 1.0]:
-		var eye := _mk(_mesh_eye, Vector3(side * L * 0.075, L * 0.035, L * 0.095), Vector3(L, L, L))
+		var eye := _mk(_mesh_eye, Vector3(side * L * 0.065, L * 0.035, L * 0.08), Vector3(L, L, L))
 		head_node.add_child(eye)
 
-		var ear := _mk(_mesh_ear, Vector3(side * L * 0.095, L * 0.11, -L * 0.03), Vector3(L * 1.05, L * 1.05, L * 0.40), Vector3(0.0, side * 0.25, -side * 0.30))
+		# Orejas redondeadas y translúcidas bien posicionadas arriba y atrás
+		var ear := _mk(_mesh_ear, Vector3(side * L * 0.075, L * 0.09, -L * 0.03), Vector3(L * 1.1, L * 1.1, L * 0.25), Vector3(-0.15, side * 0.35, -side * 0.25))
 		head_node.add_child(ear)
 		ears.append(ear)
 
+	# Patas: delanteras más cortas, traseras musculosas y flexionadas cerca del suelo
 	var leg_data := [
-		[-1.0, 1.0],
-		[1.0, 1.0],
-		[-1.0, -1.0],
-		[1.0, -1.0],
+		[-1.0, 1.0],  # Delantera izq
+		[1.0, 1.0],   # Delantera der
+		[-1.0, -1.0], # Trasera izq
+		[1.0, -1.0],  # Trasera der
 	]
 	for ld in leg_data:
 		var side: float = ld[0]
 		var fz: float = ld[1]
 		var is_back := fz < 0.0
 		var hip := Node3D.new()
-		hip.position = Vector3(side * L * (0.10 if is_back else 0.09), L * 0.20, fz * L * (0.15 if is_back else 0.16))
+		hip.position = Vector3(side * L * (0.085 if is_back else 0.07), L * 0.14, fz * L * (0.17 if is_back else 0.14))
 		add_child(hip)
 		hips.append(hip)
 		leg_sides.append(side)
 
 		if is_back:
-			var haunch := _mk(_mesh_haunch, Vector3(side * L * 0.015, -L * 0.015, -L * 0.01), Vector3(L * 0.70, L * 1.05, L * 1.15))
+			var haunch := _mk(_mesh_haunch, Vector3(side * L * 0.015, -L * 0.01, -L * 0.01), Vector3(L * 0.65, L * 0.95, L * 1.1))
 			hip.add_child(haunch)
 
-		var shin_h := L * (0.16 if is_back else 0.13)
-		var shin := _mk(_mesh_shin, Vector3(side * L * 0.03, -shin_h * 0.55, fz * L * 0.008), Vector3(L, shin_h / (L * 0.16), L), Vector3(-fz * 0.10, 0.0, -side * 0.14))
+		var shin_h := L * (0.13 if is_back else 0.10)
+		var shin := _mk(_mesh_shin, Vector3(side * L * 0.02, -shin_h * 0.50, fz * L * 0.005), Vector3(L, shin_h / (L * 0.12), L), Vector3(-fz * 0.12, 0.0, -side * 0.10))
 		hip.add_child(shin)
 
-		var foot := _mk(_mesh_foot, Vector3(side * L * 0.045, -shin_h * 1.02, fz * L * 0.03), Vector3(L * 0.95, L * 0.40, L * (2.1 if is_back else 1.8)))
+		var foot := _mk(_mesh_foot, Vector3(side * L * 0.025, -shin_h * 0.98, fz * L * 0.025), Vector3(L * 0.80, L * 0.35, L * (1.9 if is_back else 1.5)))
 		hip.add_child(foot)
 
-	var tail_radii := [1.15, 1.0, 0.88, 0.75]
-	for i in tail_radii.size():
+	# Cola auténtica de rata: larga, delgada y segmentada (7 eslabones continuos con curvatura natural)
+	var seg_count := 7
+	for i in seg_count:
 		var seg := Node3D.new()
-		seg.position = Vector3(0.0, L * 0.14, -L * (0.30 + 0.075 * float(i)))
+		seg.position = Vector3(0.0, L * 0.12, -L * (0.28 + 0.10 * float(i)))
 		add_child(seg)
-		var tip := _mk(_mesh_tail, Vector3.ZERO, Vector3(L * tail_radii[i], L * tail_radii[i], L * 1.55))
+		var taper: float = 1.0 - (float(i) / float(seg_count)) * 0.65
+		var tip := _mk(_mesh_tail, Vector3.ZERO, Vector3(L * taper, L * taper, L * 0.9), Vector3(PI * 0.5, 0.0, 0.0))
 		seg.add_child(tip)
 		tail_segs.append(seg)
 
@@ -405,44 +428,48 @@ func _animate(delta: float) -> void:
 	if _sniffing:
 		want = 0.0
 	elif walking:
-		want = 0.45
-	_amp = lerpf(_amp, want, minf(1.0, delta * 8.0))
+		want = 0.55
+	_amp = lerpf(_amp, want, minf(1.0, delta * 10.0))
 	var gait := [0.0, PI, PI, 0.0]
 	for i in hips.size():
 		var s := sin(phase + gait[i])
 		hips[i].rotation.x = s * _amp
-		hips[i].rotation.z = leg_sides[i] * maxf(0.0, s) * _amp * 0.55
+		hips[i].rotation.z = leg_sides[i] * maxf(0.0, s) * _amp * 0.45
 	var bob := 0.0
 	if walking and not _sniffing:
-		bob = absf(sin(phase * 2.0)) * L * 0.04
-	body_node.position.y = lerpf(body_node.position.y, bob, minf(1.0, delta * 10.0))
-	var tail_speed := 1.0 if walking else 0.45
+		bob = absf(sin(phase * 2.0)) * L * 0.035
+	body_node.position.y = lerpf(body_node.position.y, bob, minf(1.0, delta * 12.0))
+	
+	# Ondulación fluida de la cola según la velocidad de carrera o curiosidad
+	var tail_speed := 1.2 if walking else 0.5
 	if _sniffing:
-		tail_speed = 0.3
+		tail_speed = 0.35
 	for i in tail_segs.size():
 		var f := float(i + 1) / float(tail_segs.size())
-		var sway := sin(phase * 0.85 - f * 2.4) * L * 0.14 * tail_speed
-		tail_segs[i].position.x = lerpf(tail_segs[i].position.x, sway, minf(1.0, delta * 9.0))
+		var sway := sin(phase * 0.95 - f * 2.2) * L * (0.05 + 0.15 * f) * tail_speed
+		var sag := sin(phase * 1.9 - f * 1.5) * L * 0.02 * f
+		tail_segs[i].position.x = lerpf(tail_segs[i].position.x, sway, minf(1.0, delta * 10.0))
+		tail_segs[i].position.y = lerpf(tail_segs[i].position.y, L * 0.12 - (f * f * L * 0.05) + sag, minf(1.0, delta * 10.0))
 	if _sniffing:
-		var sniff_nod := sin(phase * 9.0) * 0.16 + 0.06
-		head_node.rotation.x = lerpf(head_node.rotation.x, sniff_nod, minf(1.0, delta * 12.0))
-		head_node.rotation.y = lerpf(head_node.rotation.y, sin(phase * 4.3) * 0.24, minf(1.0, delta * 8.0))
+		var sniff_nod := sin(phase * 11.0) * 0.18 + 0.08
+		head_node.rotation.x = lerpf(head_node.rotation.x, sniff_nod, minf(1.0, delta * 14.0))
+		head_node.rotation.y = lerpf(head_node.rotation.y, sin(phase * 5.0) * 0.28, minf(1.0, delta * 9.0))
 	elif walking:
-		var hp := absf(sin(phase * 2.0)) * 0.05
+		var hp := absf(sin(phase * 2.0)) * 0.04
 		head_node.rotation.x = lerpf(head_node.rotation.x, hp, minf(1.0, delta * 8.0))
 		head_node.rotation.y = lerpf(head_node.rotation.y, 0.0, minf(1.0, delta * 8.0))
 	else:
-		var hpi := sin(phase * 0.9) * 0.10
+		var hpi := sin(phase * 0.9) * 0.08
 		head_node.rotation.x = lerpf(head_node.rotation.x, hpi, minf(1.0, delta * 8.0))
-		head_node.rotation.y = lerpf(head_node.rotation.y, sin(phase * 0.5) * 0.12, minf(1.0, delta * 6.0))
+		head_node.rotation.y = lerpf(head_node.rotation.y, sin(phase * 0.5) * 0.15, minf(1.0, delta * 6.0))
 	_ear_timer -= delta
 	if _ear_timer <= 0.0:
-		_ear_timer = rng.randf_range(1.2, 3.5)
+		_ear_timer = rng.randf_range(1.0, 3.0)
 		_ear_twitch = 1.0
-	_ear_twitch = maxf(0.0, _ear_twitch - delta * 5.0)
-	var ear_boost := 1.30 if _sniffing else 1.0
+	_ear_twitch = maxf(0.0, _ear_twitch - delta * 6.0)
+	var ear_boost := 1.25 if _sniffing else 1.0
 	for e in ears:
-		e.scale = Vector3(size * 1.05, (1.0 + _ear_twitch * 0.45) * ear_boost * size * 1.05, size * 0.40)
+		e.scale = Vector3(size * 1.05, (1.0 + _ear_twitch * 0.40) * ear_boost * size * 1.05, size * 0.30)
 	if not walking and not _sniffing:
-		var br := 1.0 + sin(phase * 0.6) * 0.02
+		var br := 1.0 + sin(phase * 0.8) * 0.015
 		body_node.scale = Vector3(br, br, 1.0)
