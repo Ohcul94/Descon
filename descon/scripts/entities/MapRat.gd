@@ -127,6 +127,38 @@ func place_now() -> void:
 	_place_initial()
 
 
+func _place_initial() -> void:
+	var inset_x := world_aabb.size.x * 0.08
+	var inset_z := world_aabb.size.z * 0.08
+	var found := false
+	for i in 25:
+		var rx := rng.randf_range(world_aabb.position.x + inset_x, world_aabb.end.x - inset_x)
+		var rz := rng.randf_range(world_aabb.position.z + inset_z, world_aabb.end.z - inset_z)
+		var g := _sample_ground(rx, rz)
+		var gy: float = g["y"]
+		if not is_nan(gy):
+			pos = Vector3(rx, gy, rz)
+			_g_y = gy
+			var norm: Vector3 = g["normal"]
+			up = norm.normalized() if norm.length_squared() > 0.001 else Vector3.UP
+			_g_n = up
+			found = true
+			break
+	if not found:
+		var c := world_aabb.get_center()
+		var g := _sample_ground(c.x, c.z)
+		var gy: float = g["y"] if not is_nan(g["y"]) else 0.0
+		pos = Vector3(c.x, gy, c.z)
+		_g_y = gy
+		up = Vector3.UP
+		_g_n = Vector3.UP
+
+	yaw = rng.randf_range(0.0, TAU)
+	_apply_transform()
+	_placed = true
+	_pick_target()
+
+
 func _measure() -> void:
 	world_aabb = bounds_override
 
@@ -151,12 +183,15 @@ func _sample_ground(x: float, z: float) -> Dictionary:
 		var hz := _terrain_h(x, z + s)
 		if not is_nan(hx) and not is_nan(hz):
 			normal = Vector3(-(hx - th) / s, 1.0, -(hz - th) / s).normalized()
-	var space := get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(Vector3(x, base_y + 25.0, z), Vector3(x, base_y - 1.5, z), RAY_MASK)
-	var hit := space.intersect_ray(q)
-	if not hit.is_empty() and hit["position"].y > base_y + 0.02:
-		var hn: Vector3 = hit["normal"]
-		return {"y": hit["position"].y, "normal": hn.normalized() if hn.length_squared() > 0.001 else Vector3.UP}
+	var ws := get_world_3d()
+	if ws != null:
+		var space := ws.direct_space_state
+		if space != null:
+			var q := PhysicsRayQueryParameters3D.create(Vector3(x, base_y + 25.0, z), Vector3(x, base_y - 1.5, z), RAY_MASK)
+			var hit := space.intersect_ray(q)
+			if not hit.is_empty() and hit["position"].y > base_y + 0.02:
+				var hn: Vector3 = hit["normal"]
+				return {"y": hit["position"].y, "normal": hn.normalized() if hn.length_squared() > 0.001 else Vector3.UP}
 	return {"y": base_y, "normal": normal}
 
 
@@ -179,7 +214,7 @@ func _spot_ok(x: float, z: float) -> bool:
 		return false
 	if absf(hx - th) > 2.4 or absf(hz - th) > 2.4:
 		return false
-	if absf(th - pos.y) > 30.0:
+	if _placed and absf(th - pos.y) > 30.0:
 		return false
 	return true
 
@@ -187,7 +222,7 @@ func _spot_ok(x: float, z: float) -> bool:
 func _pick_target() -> void:
 	var inset_x := world_aabb.size.x * 0.05
 	var inset_z := world_aabb.size.z * 0.05
-	for i in 10:
+	for i in 12:
 		var x := rng.randf_range(world_aabb.position.x + inset_x, world_aabb.end.x - inset_x)
 		var z := rng.randf_range(world_aabb.position.z + inset_z, world_aabb.end.z - inset_z)
 		if not _spot_ok(x, z):

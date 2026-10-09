@@ -111,6 +111,10 @@ var _was_mobile_camera_edit: int = 0
 # v600.0: OccluderFader - paredes/objetos que se hacen transparentes (A+B dither) cuando tapan la cámara
 var _occluder_fader: OccluderFader = null
 const OccluderFaderScript = preload("res://scripts/systems/OccluderFader.gd")
+const MAP_RAT_SCRIPT = preload("res://scripts/entities/MapRat.gd")
+const ROCK_SPIDER_SCRIPT = preload("res://scripts/entities/RockCritter_Spider.gd")
+const ROCK_WORM_SCRIPT = preload("res://scripts/entities/RockCritter_Worm.gd")
+const CRITTER_CULL_DIST := 140.0
 var custom_scene_instance: Node = null
 
 
@@ -2258,6 +2262,33 @@ func _start_model_loop_animations(model: Node) -> void:
 				if length > 0.0:
 					target.seek(randf() * length, true)
 				clip_index += 1
+	# Culling: pausar animaciones del árbol cuando sale de pantalla (no renderiza)
+	if model is Node3D and players.size() > 0:
+		_attach_tree_anim_cull(model as Node3D, players)
+
+
+func _attach_tree_anim_cull(tree: Node3D, players: Array[AnimationPlayer]) -> void:
+	if tree.get_node_or_null("AnimScreenCull") != null:
+		return
+	var mi := _find_mesh_instance_recursive(tree)
+	if mi == null:
+		return
+	var notifier := VisibleOnScreenNotifier3D.new()
+	notifier.name = "AnimScreenCull"
+	notifier.aabb = (tree.global_transform.affine_inverse() * (mi.global_transform * mi.get_aabb())).grow(0.5)
+	tree.add_child(notifier)
+	# IMPORTANTE: NO tocar tree.visible. El notifier es hijo del árbol: si se oculta el árbol,
+	# el notifier deja de detectar y el árbol no vuelve nunca. Godot ya hace frustum culling solo.
+	notifier.screen_exited.connect(func():
+		for p in players:
+			if is_instance_valid(p) and p.is_playing():
+				p.pause()
+	)
+	notifier.screen_entered.connect(func():
+		for p in players:
+			if is_instance_valid(p) and not p.is_playing():
+				p.play()
+	)
 
 
 func _collect_animation_players(node: Node, out: Array[AnimationPlayer]) -> void:
@@ -2300,11 +2331,51 @@ func _spawn_rock_critters(rock: Node3D) -> void:
 	rock.add_child(nav)
 	var count := randi_range(1, 2)
 	for i in count:
-		var path := "res://scripts/entities/RockCritter_Spider.gd" if randi() % 2 == 0 else "res://scripts/entities/RockCritter_Worm.gd"
-		var bug: Node3D = (load(path) as GDScript).new()
+		var bug: Node3D = (ROCK_SPIDER_SCRIPT if randi() % 2 == 0 else ROCK_WORM_SCRIPT).new()
 		bug.name = "Critter"
 		rock.add_child(bug)
 		bug.setup(rock)
+		_attach_critter_cull(bug)
+
+
+func _attach_critter_cull(critter: Node3D) -> void:
+	if not is_instance_valid(critter):
+		return
+	var notifier := VisibleOnScreenNotifier3D.new()
+	notifier.name = "ScreenCull"
+	var aabb := AABB()
+	var first := true
+	var stack: Array[Node] = [critter]
+	while stack.size() > 0:
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D:
+			var wa: AABB = (n as MeshInstance3D).global_transform * (n as MeshInstance3D).get_aabb()
+			if first:
+				aabb = wa
+				first = false
+			else:
+				aabb = aabb.merge(wa)
+		for c in n.get_children():
+			if c is Node3D:
+				stack.append(c)
+	if first:
+		aabb = AABB(critter.global_position - Vector3.ONE, Vector3.ONE * 2.0)
+	# AABB local al notifier (hijo del critter) con margen para evitar culling prematuro al rotar/caminar
+	var local_box: AABB = critter.global_transform.affine_inverse() * aabb if critter is Node3D else AABB(Vector3.ONE * -1, Vector3.ONE * 2)
+	notifier.aabb = local_box.grow(1.5)
+	critter.add_child(notifier)
+	# IMPORTANTE: NO tocar critter.visible (ocultaría al notifier hijo y el bicho no volvería nunca).
+	# Solo se congela la lógica fuera de pantalla; el render ya lo descarta el frustum culling.
+	notifier.screen_exited.connect(func():
+		if is_instance_valid(critter):
+			critter.set_physics_process(false)
+			critter.set_process(false)
+	)
+	notifier.screen_entered.connect(func():
+		if is_instance_valid(critter):
+			critter.set_physics_process(true)
+			critter.set_process(true)
+	)
 
 
 func _find_mesh_instance_recursive(node: Node) -> MeshInstance3D:
@@ -2322,19 +2393,18 @@ func _spawn_map_rats(root: Node3D) -> void:
 		return
 	if root.get_node_or_null("AmbientRats") != null:
 		return
+	print("[BaseMap] _spawn_map_rats: iniciando. root=", root.name, " zone_id=", zone_id)
 	var bounds := _compute_content_aabb(root)
+	print("[BaseMap] _spawn_map_rats: bounds=", bounds)
 	if bounds.size.x < 4.0 or bounds.size.z < 4.0:
 		print("[BaseMap] Ratas omitidas: bounds de contenido demasiado pequeños")
-		return
-	var rat_script: GDScript = load("res://scripts/entities/MapRat.gd")
-	if rat_script == null:
 		return
 	var container := Node3D.new()
 	container.name = "AmbientRats"
 	root.add_child(container)
 	var terrain := _find_terrain_node_recursive(root)
+	print("[BaseMap] _spawn_map_rats: terrain=", terrain)
 	if is_instance_valid(terrain):
-		# Terrain3D cubre piso Y montaña; expandimos bounds para incluirla
 		bounds = bounds.grow(bounds.get_longest_axis_size() * 0.35)
 	var min_sep := 28.0
 	var placed: Array[Vector3] = []
@@ -2351,15 +2421,20 @@ func _spawn_map_rats(root: Node3D) -> void:
 				break
 		if too_close:
 			continue
-		var rat: Node3D = rat_script.new()
+		var rat: Node3D = MAP_RAT_SCRIPT.new()
 		rat.name = "Rat_%d" % placed.size()
 		container.add_child(rat)
 		rat.call("setup_rat", root, terrain, bounds)
 		rat.call("place_now")
-		if is_nan(rat.position.y) or absf(rat.position.y) > 500.0:
+		var spawn_y: float = rat.global_position.y
+		if rat.get("pos") != null and rat.get("pos") is Vector3:
+			spawn_y = rat.get("pos").y
+		if is_nan(spawn_y) or absf(spawn_y) > 500.0:
+			print("[BaseMap] Rata ", rat.name, " descartada y=", spawn_y)
 			rat.queue_free()
 			continue
-		placed.append(rat.position)
+		_attach_critter_cull(rat)
+		placed.append(rat.global_position if rat.global_position != Vector3.ZERO else rat.position)
 	print("[BaseMap] Ratas ambientales spawneadas: ", placed.size(), " (intentos=", attempts, ")")
 
 
@@ -3573,5 +3648,14 @@ func _spawn_objects_from_custom_scene():
 				pass
 	
 	# Ratas ambientales: solo en Mapa 3 (piso + montañas via Terrain3D)
-	if is_instance_valid(custom_scene_instance) and String(custom_scene_instance.scene_file_path).to_lower().contains("mapa_3"):
+	var zid := str(zone_id)
+	if "." in zid and zid.is_valid_float():
+		zid = str(int(float(zid)))
+	var scene_src := ""
+	if is_instance_valid(custom_scene_instance):
+		scene_src = String(custom_scene_instance.scene_file_path).to_lower()
+	if zid == "3" or "mapa_3" in scene_src:
+		print("[BaseMap] Gate de ratas OK (zone_id=", zone_id, " scene=", scene_src, ")")
 		_spawn_map_rats(target_root)
+	else:
+		print("[BaseMap] Gate de ratas SKIP (zone_id=", zone_id, " scene=", scene_src, ")")

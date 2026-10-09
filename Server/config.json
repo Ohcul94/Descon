@@ -20,14 +20,14 @@
     },
     "ambienceLib": {
         "blindness_hazard": {
-            "desc": "Oscurece la pantalla de todos los jugadores peri\u00f3dicamente.",
+            "desc": "Oscurece la pantalla de todos los jugadores periódicamente.",
             "fields": [
                 "spawnInterval",
                 "duration",
                 "radius"
             ],
-            "icon": "\ud83d\udc41\ufe0f\u200d\ud83d\udde8\ufe0f",
-            "label": "Ceguera de Vac\u00edo"
+            "icon": "👁️‍🗨️",
+            "label": "Ceguera de Vacío"
         },
         "extreme_aggression": {
             "desc": "Enemigos acechan a toda distancia y con stats potenciados.",
@@ -37,26 +37,26 @@
                 "healthMult",
                 "respawnSpeedBonus"
             ],
-            "icon": "\ud83d\udc79",
+            "icon": "👹",
             "label": "Agresividad Extrema"
         },
         "freeze_hazard": {
-            "desc": "Ralentiza a los jugadores y ti\u00f1e el mapa de blanco.",
+            "desc": "Ralentiza a los jugadores y tiñe el mapa de blanco.",
             "fields": [
                 "spawnInterval",
                 "duration",
                 "slowPercentage",
                 "slowFixed"
             ],
-            "icon": "\u2744\ufe0f",
-            "label": "Congelaci\u00f3n de Vac\u00edo"
+            "icon": "❄️",
+            "label": "Congelación de Vacío"
         },
         "gravity": {
             "desc": "Reduce la velocidad de dash.",
             "fields": [
                 "dashPenalty"
             ],
-            "icon": "\ud83e\ude90",
+            "icon": "🪐",
             "label": "Gravedad Alta"
         },
         "healing_penalty": {
@@ -65,26 +65,26 @@
                 "penaltyPercentage",
                 "penaltyFixed"
             ],
-            "icon": "\ud83d\udc89",
-            "label": "Penalizador de Curaci\u00f3n"
+            "icon": "💉",
+            "label": "Penalizador de Curación"
         },
         "interferencia_hazard": {
-            "desc": "Bloquea los slots de combate y genera est\u00e1tica visual.",
+            "desc": "Bloquea los slots de combate y genera estática visual.",
             "fields": [
                 "spawnInterval",
                 "duration",
                 "shakeIntensity",
                 "staticIntensity"
             ],
-            "icon": "\ud83d\udce1",
-            "label": "Interferencia de Vac\u00edo"
+            "icon": "📡",
+            "label": "Interferencia de Vacío"
         },
         "multiplicador": {
-            "desc": "Multiplica la vida, escudo, velocidad y da\u00f1o de los enemigos.",
+            "desc": "Multiplica la vida, escudo, velocidad y daño de los enemigos.",
             "fields": [
                 "multiplier"
             ],
-            "icon": "\ud83e\uddec",
+            "icon": "🧬",
             "label": "Multiplicador"
         },
         "nebula": {
@@ -93,20 +93,20 @@
                 "slowPercentage",
                 "visibility"
             ],
-            "icon": "\ud83c\udf2b\ufe0f",
+            "icon": "🌫️",
             "label": "Nebulosa"
         },
         "radiation": {
-            "desc": "Da\u00f1o constante por intervalos de tiempo.",
+            "desc": "Daño constante por intervalos de tiempo.",
             "fields": [
                 "damage",
                 "intervalMs"
             ],
-            "icon": "\u2622\ufe0f",
-            "label": "Radiaci\u00f3n"
+            "icon": "☢️",
+            "label": "Radiación"
         },
         "vortex_hazard": {
-            "desc": "Crea v\u00f3rtices debajo de los jugadores que los succionan y da\u00f1an.",
+            "desc": "Crea vórtices debajo de los jugadores que los succionan y dañan.",
             "fields": [
                 "spawnInterval",
                 "duration",
@@ -115,8 +115,8 @@
                 "damageInterval",
                 "radius"
             ],
-            "icon": "\ud83c\udf2a\ufe0f",
-            "label": "V\u00f3rtices de Acecho"
+            "icon": "🌪️",
+            "label": "Vórtices de Acecho"
         }
     },
     "ammoMechLib": {
@@ -126,25 +126,25 @@
                 "damagePerSecond",
                 "radius"
             ],
-            "icon": "\ud83d\udca5",
-            "label": "Da\u00f1o de \u00c1rea"
+            "icon": "💥",
+            "label": "Daño de Área"
         },
         "bleed": {
-            "desc": "Da\u00f1o por segundo durante un tiempo.",
+            "desc": "Daño por segundo durante un tiempo.",
             "fields": [
                 "damagePerSecond",
                 "duration"
             ],
-            "icon": "\ud83e\ude78",
+            "icon": "🩸",
             "label": "Sangrado"
         },
         "critical": {
-            "desc": "Probabilidad de da\u00f1o extra.",
+            "desc": "Probabilidad de daño extra.",
             "fields": [
                 "chance"
             ],
-            "icon": "\ud83d\udc8e",
-            "label": "Golpe Cr\u00edtico"
+            "icon": "💎",
+            "label": "Golpe Crítico"
         },
         "stun": {
             "desc": "Inmoviliza al objetivo.",
@@ -152,8 +152,8 @@
                 "duration",
                 "chance"
             ],
-            "icon": "\u26a1",
-            "label": "Par\u00e1lisis"
+            "icon": "⚡",
+            "label": "Parálisis"
         }
     },
     "ammoMultipliers": {
@@ -852,56 +852,56 @@
     "craftingCategories": [
         {
             "color": "#82c9d9",
-            "icon": "\ud83d\uddfa\ufe0f",
+            "icon": "🗺️",
             "id": "cat_mapas",
             "name": "Mapas"
         },
         {
             "color": "#ff4655",
-            "icon": "\u2694\ufe0f",
+            "icon": "⚔️",
             "id": "cat_armas",
             "name": "Armas"
         },
         {
             "color": "#044271",
-            "icon": "\ud83c\udff7\ufe0f",
+            "icon": "🏷️",
             "id": "cat_defesa",
             "name": "Defensas"
         },
         {
             "color": "#25c322",
-            "icon": "\ud83c\udff7\ufe0f",
+            "icon": "🏷️",
             "id": "cat_cura",
             "name": "Curaciones"
         },
         {
             "color": "#e18dec",
-            "icon": "\ud83c\udff7\ufe0f",
+            "icon": "🏷️",
             "id": "cat_municion",
             "name": "Municiones"
         },
         {
             "color": "#ffe666",
-            "icon": "\ud83c\udff7\ufe0f",
+            "icon": "🏷️",
             "id": "cat_motor",
             "name": "Motores"
         },
         {
             "color": "#000000",
-            "icon": "\ud83c\udff7\ufe0f",
+            "icon": "🏷️",
             "id": "cat_esfera",
             "name": "Esferas"
         },
         {
             "color": "#9fa2a3",
-            "icon": "\ud83c\udff7\ufe0f",
+            "icon": "🏷️",
             "id": "cat_nave",
             "name": "Naves"
         },
         {
             "id": "cat_recolectable",
             "name": "Recolectables",
-            "icon": "\ud83c\udff7\ufe0f",
+            "icon": "🏷️",
             "color": "#331805"
         }
     ],
@@ -1279,7 +1279,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\u2728",
+            "icon": "✨",
             "label": "Aura Curativa",
             "sound": "",
             "soundMaxDist": 800,
@@ -1287,7 +1287,7 @@
             "soundVolumePercent": 50
         },
         "boss_colors": {
-            "desc": "El Boss y los jugadores cercanos reciben colores. Solo los del color del Boss pueden da\u00f1arlo.",
+            "desc": "El Boss y los jugadores cercanos reciben colores. Solo los del color del Boss pueden dañarlo.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1298,8 +1298,8 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83c\udfa8",
-            "label": "Mec\u00e1nica de Colores",
+            "icon": "🎨",
+            "label": "Mecánica de Colores",
             "sound": "",
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
@@ -1325,7 +1325,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\uddfc",
+            "icon": "🗼",
             "label": "Pilares del Boss",
             "sound": "",
             "soundMaxDist": 1000,
@@ -1333,7 +1333,7 @@
             "soundVolumePercent": 50
         },
         "boss_water_orbs": {
-            "desc": "Invoca orbes que viajan al boss. Interceptarlas hace da\u00f1o pero evita que el boss se cure.",
+            "desc": "Invoca orbes que viajan al boss. Interceptarlas hace daño pero evita que el boss se cure.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1348,7 +1348,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udca7",
+            "icon": "💧",
             "label": "Orbes de Agua",
             "sound": "",
             "soundMaxDist": 1000,
@@ -1370,8 +1370,8 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udc65",
-            "label": "Duplicaci\u00f3n Defensiva",
+            "icon": "👥",
+            "label": "Duplicación Defensiva",
             "sound": "",
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
@@ -1393,7 +1393,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udc64",
+            "icon": "👤",
             "label": "Invisibilidad / Camuflaje",
             "sound": "",
             "soundMaxDist": 800,
@@ -1401,7 +1401,7 @@
             "soundVolumePercent": 50
         },
         "invulnerability": {
-            "desc": "Se vuelve inmune a todo da\u00f1o por un tiempo.",
+            "desc": "Se vuelve inmune a todo daño por un tiempo.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1412,7 +1412,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udc8e",
+            "icon": "💎",
             "label": "Invulnerabilidad Temporal",
             "sound": "",
             "soundMaxDist": 800,
@@ -1420,7 +1420,7 @@
             "soundVolumePercent": 50
         },
         "life_steal": {
-            "desc": "Igual que el Robador de Escudo pero roba VIDA al jugador por ticks y se la transfiere al enemigo. Aros y n\u00fameros en verde.",
+            "desc": "Igual que el Robador de Escudo pero roba VIDA al jugador por ticks y se la transfiere al enemigo. Aros y números en verde.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1441,7 +1441,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udc9a",
+            "icon": "💚",
             "label": "Robador de Vida",
             "sound": "",
             "soundMaxDist": 1200,
@@ -1449,7 +1449,7 @@
             "soundVolumePercent": 50
         },
         "reflect": {
-            "desc": "Devuelve da\u00f1o recibido al atacante.",
+            "desc": "Devuelve daño recibido al atacante.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1459,7 +1459,7 @@
                 "reflect_mult",
                 "startDelay"
             ],
-            "icon": "\ud83d\udee1\ufe0f",
+            "icon": "🛡️",
             "label": "Escudo Reflectante",
             "sound": "",
             "soundMaxDist": 800,
@@ -1467,7 +1467,7 @@
             "soundVolumePercent": 50
         },
         "shield_steal": {
-            "desc": "Dispara un proyectil celestial que se vincula al jugador impactado, rob\u00e1ndole escudo por ticks y transfiri\u00e9ndose al enemigo.",
+            "desc": "Dispara un proyectil celestial que se vincula al jugador impactado, robándole escudo por ticks y transfiriéndose al enemigo.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1488,7 +1488,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udca0",
+            "icon": "💠",
             "label": "Robador de Escudo",
             "sound": "",
             "soundMaxDist": 1200,
@@ -1496,7 +1496,7 @@
             "soundVolumePercent": 50
         },
         "sobrecarga": {
-            "desc": "Acumula energ\u00eda verde (casteo) y al completarse detona una explosi\u00f3n verde que cura al enemigo (y opcionalmente a aliados en rango). Con el checkbox activo la explosi\u00f3n tambi\u00e9n da\u00f1a a los jugadores cercanos.",
+            "desc": "Acumula energía verde (casteo) y al completarse detona una explosión verde que cura al enemigo (y opcionalmente a aliados en rango). Con el checkbox activo la explosión también daña a los jugadores cercanos.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1515,14 +1515,14 @@
                 "damage",
                 "cooldown"
             ],
-            "icon": "\u26a1",
+            "icon": "⚡",
             "label": "Sobrecarga",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumePercent": 50
         },
         "strange_dimension": {
-            "desc": "El enemigo activa un portal tenebroso que lo transporta a una dimensi\u00f3n paralela violeta durante unos segundos.",
+            "desc": "El enemigo activa un portal tenebroso que lo transporta a una dimensión paralela violeta durante unos segundos.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1536,14 +1536,14 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83c\udf0c",
-            "label": "Dimensi\u00f3n Extra\u00f1a",
+            "icon": "🌌",
+            "label": "Dimensión Extraña",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumePercent": 50
         },
         "wall_dome": {
-            "desc": "Crea una c\u00fapula protectora que bloquea proyectiles del exterior.",
+            "desc": "Crea una cúpula protectora que bloquea proyectiles del exterior.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -1555,8 +1555,8 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udee1\ufe0f",
-            "label": "Muro de Energ\u00eda",
+            "icon": "🛡️",
+            "label": "Muro de Energía",
             "sound": "",
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
@@ -2560,7 +2560,7 @@
                     "type": "sniper"
                 }
             ],
-            "name": "Lord Tit\u00e1n",
+            "name": "Lord Titán",
             "posY": 3,
             "rageTimer": 20,
             "rankingPoints": 100,
@@ -2671,7 +2671,7 @@
                     "type": "chase"
                 }
             ],
-            "name": "Ancient Tit\u00e1n",
+            "name": "Ancient Titán",
             "posY": 3,
             "rageTimer": 20,
             "rankingPoints": 200,
@@ -3340,7 +3340,7 @@
                     "type": "chase"
                 }
             ],
-            "name": "Tit\u00e1n Carmes\u00ed",
+            "name": "Titán Carmesí",
             "posY": 0.1,
             "rageTimer": 20,
             "rankingPoints": 600,
@@ -3405,7 +3405,7 @@
                     "type": "chase"
                 }
             ],
-            "name": "Drag\u00f3n Demon\u00edaco",
+            "name": "Dragón Demoníaco",
             "posY": 0.1,
             "rageTimer": 20,
             "rankingPoints": 600,
@@ -3470,7 +3470,7 @@
                     "type": "chase"
                 }
             ],
-            "name": "Drag\u00f3n Crom\u00e1tico",
+            "name": "Dragón Cromático",
             "posY": 0.1,
             "rageTimer": 20,
             "rankingPoints": 700,
@@ -6733,7 +6733,7 @@
                 {
                     "count": 10,
                     "enemyId": "1",
-                    "label": "Zona de Invasi\u00f3n1",
+                    "label": "Zona de Invasión1",
                     "radius": 500,
                     "x": 4800,
                     "y": 1094
@@ -6741,7 +6741,7 @@
                 {
                     "count": 10,
                     "enemyId": "1",
-                    "label": "Zona de Invasi\u00f3n2",
+                    "label": "Zona de Invasión2",
                     "radius": 500,
                     "x": 8633,
                     "y": 3994
@@ -6749,7 +6749,7 @@
                 {
                     "count": 10,
                     "enemyId": "1",
-                    "label": "Zona de Invasi\u00f3n3",
+                    "label": "Zona de Invasión3",
                     "radius": 500,
                     "x": 4817,
                     "y": 6861
@@ -6757,7 +6757,7 @@
                 {
                     "count": 10,
                     "enemyId": "1",
-                    "label": "Zona de Invasi\u00f3n4",
+                    "label": "Zona de Invasión4",
                     "radius": 500,
                     "x": 700,
                     "y": 4011
@@ -6924,7 +6924,7 @@
             {
                 "costHubs": 1000,
                 "costOhcu": 0,
-                "desc": "Craftea un L\u00e1ser LF-2 usando minerales.",
+                "desc": "Craftea un Láser LF-2 usando minerales.",
                 "id": "recipe_las2",
                 "ingredients": [
                     {
@@ -6936,7 +6936,7 @@
                         "itemId": "mat_copper"
                     }
                 ],
-                "name": "L\u00e1ser LF-2",
+                "name": "Láser LF-2",
                 "resultAmount": 1,
                 "resultCategory": "weapons",
                 "resultItemId": "las2"
@@ -6984,7 +6984,7 @@
             {
                 "costHubs": 500,
                 "costOhcu": 0,
-                "desc": "Sintetiza un N\u00facleo de Plasma a partir de hierro y cobre.",
+                "desc": "Sintetiza un Núcleo de Plasma a partir de hierro y cobre.",
                 "id": "recipe_plasma",
                 "ingredients": [
                     {
@@ -6996,7 +6996,7 @@
                         "itemId": "mat_copper"
                     }
                 ],
-                "name": "N\u00facleo de Plasma",
+                "name": "Núcleo de Plasma",
                 "resultAmount": 1,
                 "resultCategory": "resources",
                 "resultItemId": "mat_plasma"
@@ -7313,7 +7313,7 @@
                         "type": "8"
                     }
                 ],
-                "name": "Fase 3: Incursi\u00f3n Pesada",
+                "name": "Fase 3: Incursión Pesada",
                 "rewardMultiplier": 2
             },
             {
@@ -7404,7 +7404,7 @@
             "allowedHours": [],
             "ambience": [],
             "color": "#ffffff",
-            "desc": "Zona segura de reuni\ufffd\ufffdn y comercio.",
+            "desc": "Zona segura de reuni��n y comercio.",
             "friendlyFire": false,
             "height": 15839.1923828125,
             "minLevel": 1,
@@ -7532,7 +7532,7 @@
                             "width": 46.39
                         }
                     ],
-                    "label": "Ba\u00fal Personal",
+                    "label": "Baúl Personal",
                     "rotY": 131.6,
                     "scale": 2,
                     "type": "chest",
@@ -7610,7 +7610,7 @@
             "allowedHours": [],
             "ambience": [],
             "color": "#00ff00",
-            "desc": "Zona de entrenamiento b\u00e1sico y recolecci\u00f3n.",
+            "desc": "Zona de entrenamiento básico y recolección.",
             "friendlyFire": false,
             "height": 18101.93359375,
             "hideDefaultGround": true,
@@ -7973,11 +7973,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 35.9,
-                    "scale": 38.03,
+                    "rotY": 0.9,
+                    "scale": 36.03,
                     "type": "wall",
-                    "x": -1313.46,
-                    "y": -3613.25,
+                    "x": -1556.25,
+                    "y": -3727.92,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8001,11 +8001,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 52.6,
-                    "scale": 35.89,
+                    "rotY": 129.6,
+                    "scale": 37.24,
                     "type": "wall",
-                    "x": -1527.8,
-                    "y": -3539.93,
+                    "x": -1795.63,
+                    "y": -3508.01,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8029,11 +8029,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": -69.0,
-                    "scale": 24.51,
+                    "rotY": -143.1,
+                    "scale": 24.11,
                     "type": "wall",
-                    "x": -1636.6,
-                    "y": -3402.78,
+                    "x": -1638.52,
+                    "y": -3352.16,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 6.0,
@@ -8057,11 +8057,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": 144.2,
-                    "scale": 20.47,
+                    "rotY": 36.4,
+                    "scale": 21.16,
                     "type": "wall",
-                    "x": -1402.95,
-                    "y": -3558.94,
+                    "x": -1527.32,
+                    "y": -3507.87,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 6.0,
@@ -8085,18 +8085,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
                     "label": "Piedra_Mediana",
-                    "rotY": 139.8,
-                    "scale": 18.49,
+                    "rotY": 102.0,
+                    "scale": 19.08,
                     "type": "wall",
-                    "x": -1113.69,
-                    "y": -3447.94,
-                    "yOffset": 0.502,
+                    "x": -1255.45,
+                    "y": -3260.75,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 4.0,
                     "colHeight": 2.83,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.025,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8113,18 +8113,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
                     "label": "Piedra_Mediana",
-                    "rotY": 69.9,
-                    "scale": 23.1,
+                    "rotY": 83.0,
+                    "scale": 24.61,
                     "type": "wall",
-                    "x": -1177.91,
-                    "y": -3519.5,
-                    "yOffset": 0.642,
+                    "x": -1417.59,
+                    "y": -3369.71,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 4.0,
                     "colHeight": 2.83,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.025,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8141,18 +8141,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": 27.7,
-                    "scale": 45.0,
+                    "rotY": 31.1,
+                    "scale": 49.17,
                     "type": "wall",
                     "x": -1248.43,
                     "y": -2998.54,
-                    "yOffset": 3.644,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8169,18 +8169,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": 8.0,
-                    "scale": 37.35,
+                    "rotY": 41.1,
+                    "scale": 36.42,
                     "type": "wall",
-                    "x": -166.21,
-                    "y": -3490.37,
-                    "yOffset": 4.246,
+                    "x": -158.96,
+                    "y": -3451.15,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8197,18 +8197,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": 130.8,
-                    "scale": 18.36,
+                    "rotY": -140.1,
+                    "scale": 19.69,
                     "type": "wall",
-                    "x": -708.4,
-                    "y": -3462.23,
-                    "yOffset": 0.907,
+                    "x": -519.85,
+                    "y": -3251.54,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8225,18 +8225,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": -125.2,
-                    "scale": 23.14,
+                    "rotY": -18.1,
+                    "scale": 24.81,
                     "type": "wall",
-                    "x": -212.59,
-                    "y": -3727.72,
-                    "yOffset": 1.159,
+                    "x": -184.05,
+                    "y": -3798.32,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8253,31 +8253,31 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": 146.5,
-                    "scale": 21.84,
+                    "rotY": 66.7,
+                    "scale": 22.97,
                     "type": "decor",
-                    "x": -339.78,
-                    "y": -3677.34,
+                    "x": -182.5,
+                    "y": -3642.81,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": -29.8,
-                    "scale": 16.94,
+                    "rotY": -104.3,
+                    "scale": 16.73,
                     "type": "decor",
-                    "x": -849.43,
-                    "y": -3454.74,
+                    "x": -821.98,
+                    "y": -3183.74,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -140.0,
-                    "scale": 39.5,
+                    "rotY": 154.6,
+                    "scale": 45.24,
                     "type": "wall",
-                    "x": -1641.73,
-                    "y": -2339.86,
+                    "x": -1604.06,
+                    "y": -2300.87,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8301,11 +8301,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -67.0,
-                    "scale": 38.22,
+                    "rotY": 179.9,
+                    "scale": 42.24,
                     "type": "wall",
-                    "x": -1218.2,
-                    "y": -2462.42,
+                    "x": -1241.27,
+                    "y": -2416.63,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8329,11 +8329,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 73.3,
-                    "scale": 37.3,
+                    "rotY": -152.5,
+                    "scale": 38.72,
                     "type": "wall",
-                    "x": -1263.83,
-                    "y": -2636.7,
+                    "x": -1151.67,
+                    "y": -2689.74,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8357,18 +8357,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -90.3,
-                    "scale": 31.59,
+                    "rotY": 20.7,
+                    "scale": 31.54,
                     "type": "wall",
-                    "x": -896.14,
-                    "y": -2481.61,
-                    "yOffset": 3.568,
+                    "x": -856.81,
+                    "y": -2488.85,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8385,18 +8385,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": 120.1,
-                    "scale": 35.31,
+                    "rotY": -15.3,
+                    "scale": 34.86,
                     "type": "wall",
-                    "x": -1479.47,
-                    "y": -2612.15,
-                    "yOffset": 4.006,
+                    "x": -1543.67,
+                    "y": -2655.5,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8413,18 +8413,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
                     "label": "Piedra_Mediana",
-                    "rotY": 15.0,
-                    "scale": 18.26,
+                    "rotY": 135.5,
+                    "scale": 19.28,
                     "type": "wall",
-                    "x": -1714.2,
-                    "y": -2197.22,
-                    "yOffset": 0.495,
+                    "x": -1760.0,
+                    "y": -2144.47,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 4.0,
                     "colHeight": 2.83,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.025,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8441,18 +8441,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
                     "label": "Piedra_Mediana",
-                    "rotY": 154.5,
-                    "scale": 16.15,
+                    "rotY": 27.9,
+                    "scale": 15.4,
                     "type": "wall",
-                    "x": -1618.98,
-                    "y": -2455.06,
-                    "yOffset": 0.431,
+                    "x": -1669.49,
+                    "y": -2485.6,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 4.0,
                     "colHeight": 2.83,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.025,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8469,18 +8469,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -178.5,
-                    "scale": 55.0,
+                    "rotY": -49.1,
+                    "scale": 56.0,
                     "type": "wall",
                     "x": 4075.65,
                     "y": -868.81,
-                    "yOffset": 6.069,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8497,18 +8497,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -27.8,
-                    "scale": 35.16,
+                    "rotY": -36.4,
+                    "scale": 35.76,
                     "type": "wall",
-                    "x": 358.47,
-                    "y": -1791.42,
-                    "yOffset": 3.988,
+                    "x": 538.79,
+                    "y": -1770.9,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8525,8 +8525,8 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 161.3,
-                    "scale": 31.87,
+                    "rotY": -0.6,
+                    "scale": 33.61,
                     "type": "wall",
                     "x": 422.66,
                     "y": -2204.67,
@@ -8553,11 +8553,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 72.3,
-                    "scale": 31.35,
+                    "rotY": 2.3,
+                    "scale": 29.68,
                     "type": "wall",
-                    "x": 247.52,
-                    "y": -1835.41,
+                    "x": 147.42,
+                    "y": -1756.13,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8581,8 +8581,8 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": -73.0,
-                    "scale": 22.42,
+                    "rotY": 90.1,
+                    "scale": 23.32,
                     "type": "wall",
                     "x": 2043.71,
                     "y": -2103.18,
@@ -8609,11 +8609,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": -55.4,
-                    "scale": 19.66,
+                    "rotY": -3.2,
+                    "scale": 21.38,
                     "type": "wall",
-                    "x": 60.19,
-                    "y": -1873.73,
+                    "x": -22.13,
+                    "y": -1905.59,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 6.0,
@@ -8637,18 +8637,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": -69.7,
-                    "scale": 15.47,
+                    "rotY": -86.9,
+                    "scale": 15.67,
                     "type": "decor",
-                    "x": 185.83,
-                    "y": -1883.22,
+                    "x": 194.63,
+                    "y": -1945.44,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": 106.1,
-                    "scale": 15.45,
+                    "rotY": 153.4,
+                    "scale": 15.79,
                     "type": "decor",
                     "x": 25.25,
                     "y": -2330.31,
@@ -8657,8 +8657,8 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 178.3,
-                    "scale": 60.0,
+                    "rotY": -170.9,
+                    "scale": 56.0,
                     "type": "wall",
                     "x": 4924.36,
                     "y": -3213.99,
@@ -8685,8 +8685,8 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 16.5,
-                    "scale": 90.0,
+                    "rotY": -133.6,
+                    "scale": 56.0,
                     "type": "wall",
                     "x": 3023.83,
                     "y": -2435.36,
@@ -8713,18 +8713,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": 79.7,
-                    "scale": 22.94,
+                    "rotY": -162.4,
+                    "scale": 24.22,
                     "type": "wall",
                     "x": 2143.07,
                     "y": -3779.33,
-                    "yOffset": 1.149,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8741,18 +8741,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": -114.8,
-                    "scale": 23.51,
+                    "rotY": 139.3,
+                    "scale": 22.7,
                     "type": "wall",
                     "x": 1119.52,
                     "y": -3152.62,
-                    "yOffset": 1.538,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8769,11 +8769,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 170.8,
-                    "scale": 35.89,
+                    "rotY": -10.8,
+                    "scale": 38.16,
                     "type": "wall",
-                    "x": -1101.26,
-                    "y": 130.62,
+                    "x": -1024.37,
+                    "y": 154.64,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8797,11 +8797,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -162.1,
-                    "scale": 38.77,
+                    "rotY": -97.6,
+                    "scale": 39.97,
                     "type": "wall",
-                    "x": -1387.57,
-                    "y": 116.24,
+                    "x": -1397.54,
+                    "y": 61.84,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8825,11 +8825,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -158.1,
-                    "scale": 36.75,
+                    "rotY": 45.6,
+                    "scale": 41.3,
                     "type": "wall",
-                    "x": -1455.81,
-                    "y": 363.23,
+                    "x": -1359.96,
+                    "y": 384.08,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -8853,18 +8853,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -116.1,
-                    "scale": 31.31,
+                    "rotY": -11.0,
+                    "scale": 32.09,
                     "type": "wall",
-                    "x": -1598.98,
-                    "y": 164.16,
-                    "yOffset": 3.535,
+                    "x": -1700.35,
+                    "y": 243.34,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8881,18 +8881,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -86.9,
-                    "scale": 30.66,
+                    "rotY": 175.4,
+                    "scale": 34.76,
                     "type": "wall",
-                    "x": -1082.37,
-                    "y": 510.11,
-                    "yOffset": 3.458,
+                    "x": -1024.85,
+                    "y": 534.54,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8909,18 +8909,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": -137.2,
-                    "scale": 19.12,
+                    "rotY": 16.4,
+                    "scale": 19.77,
                     "type": "wall",
-                    "x": -1728.69,
-                    "y": -66.52,
-                    "yOffset": 0.948,
+                    "x": -1739.1,
+                    "y": -96.11,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8937,18 +8937,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": -49.5,
-                    "scale": 19.83,
+                    "rotY": 61.1,
+                    "scale": 19.75,
                     "type": "wall",
-                    "x": -1801.68,
-                    "y": 129.4,
-                    "yOffset": 0.985,
+                    "x": -1883.95,
+                    "y": 102.45,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -8965,41 +8965,41 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": 41.7,
-                    "scale": 14.81,
+                    "rotY": 107.9,
+                    "scale": 15.18,
                     "type": "decor",
-                    "x": -1691.88,
-                    "y": 121.09,
+                    "x": -1671.03,
+                    "y": 54.2,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": 77.7,
-                    "scale": 17.4,
+                    "rotY": -7.6,
+                    "scale": 18.84,
                     "type": "decor",
-                    "x": -1582.99,
-                    "y": 391.12,
+                    "x": -1624.87,
+                    "y": 428.73,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": -27.3,
-                    "scale": 14.59,
+                    "rotY": -24.1,
+                    "scale": 14.5,
                     "type": "decor",
-                    "x": -877.57,
-                    "y": -1.37,
+                    "x": -872.14,
+                    "y": -6.95,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 49.8,
-                    "scale": 37.48,
+                    "rotY": -168.1,
+                    "scale": 36.8,
                     "type": "wall",
-                    "x": 1355.22,
-                    "y": -64.09,
+                    "x": 1405.31,
+                    "y": -16.37,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -9023,8 +9023,8 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -168.4,
-                    "scale": 34.07,
+                    "rotY": 35.0,
+                    "scale": 36.48,
                     "type": "wall",
                     "x": 972.81,
                     "y": -102.86,
@@ -9051,18 +9051,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": 11.8,
-                    "scale": 31.75,
+                    "rotY": 8.2,
+                    "scale": 32.56,
                     "type": "wall",
-                    "x": 1383.13,
-                    "y": -469.48,
-                    "yOffset": 3.586,
+                    "x": 1408.24,
+                    "y": -471.7,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9079,11 +9079,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": -175.8,
-                    "scale": 22.05,
+                    "rotY": -3.8,
+                    "scale": 24.0,
                     "type": "wall",
-                    "x": 1154.94,
-                    "y": -428.07,
+                    "x": 1135.7,
+                    "y": -453.65,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 6.0,
@@ -9107,38 +9107,38 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": -71.9,
-                    "scale": 17.99,
+                    "rotY": -86.4,
+                    "scale": 18.4,
                     "type": "decor",
-                    "x": 1285.06,
-                    "y": -132.53,
+                    "x": 1245.36,
+                    "y": -170.82,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": 156.1,
-                    "scale": 18.62,
+                    "rotY": 4.1,
+                    "scale": 20.0,
                     "type": "decor",
-                    "x": 1122.45,
-                    "y": -316.12,
+                    "x": 1109.69,
+                    "y": -297.05,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": 147.2,
-                    "scale": 37.09,
+                    "rotY": 20.8,
+                    "scale": 41.02,
                     "type": "wall",
-                    "x": 2162.79,
-                    "y": -429.15,
-                    "yOffset": 4.226,
+                    "x": 2140.29,
+                    "y": -484.31,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9155,18 +9155,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": 66.5,
-                    "scale": 35.57,
+                    "rotY": 119.3,
+                    "scale": 40.15,
                     "type": "wall",
-                    "x": 2228.34,
-                    "y": -268.42,
-                    "yOffset": 4.037,
+                    "x": 2249.99,
+                    "y": -215.33,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9183,11 +9183,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 153.2,
-                    "scale": 35.22,
+                    "rotY": 150.1,
+                    "scale": 34.97,
                     "type": "wall",
-                    "x": 2703.89,
-                    "y": 732.92,
+                    "x": 2732.47,
+                    "y": 711.53,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -9211,11 +9211,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -163.4,
-                    "scale": 38.53,
+                    "rotY": 68.2,
+                    "scale": 36.32,
                     "type": "wall",
-                    "x": 2191.74,
-                    "y": 848.82,
+                    "x": 2095.89,
+                    "y": 837.72,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -9239,18 +9239,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": 108.4,
-                    "scale": 35.49,
+                    "rotY": 5.5,
+                    "scale": 39.06,
                     "type": "wall",
-                    "x": 2337.42,
-                    "y": 584.51,
-                    "yOffset": 4.027,
+                    "x": 2354.72,
+                    "y": 533.12,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9267,18 +9267,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -153.9,
-                    "scale": 36.0,
+                    "rotY": 167.5,
+                    "scale": 36.87,
                     "type": "wall",
-                    "x": 2408.28,
-                    "y": 884.01,
-                    "yOffset": 4.087,
+                    "x": 2471.63,
+                    "y": 924.03,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9295,18 +9295,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": -12.6,
-                    "scale": 22.47,
+                    "rotY": 168.2,
+                    "scale": 24.19,
                     "type": "wall",
-                    "x": 2141.72,
-                    "y": 650.17,
-                    "yOffset": 1.124,
+                    "x": 2131.1,
+                    "y": 645.4,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9323,18 +9323,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": -75.6,
-                    "scale": 21.26,
+                    "rotY": -7.5,
+                    "scale": 20.4,
                     "type": "wall",
-                    "x": 2330.79,
-                    "y": 679.71,
-                    "yOffset": 1.061,
+                    "x": 2326.49,
+                    "y": 724.22,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9351,11 +9351,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": 97.7,
-                    "scale": 25.6,
+                    "rotY": -84.1,
+                    "scale": 26.23,
                     "type": "wall",
-                    "x": 394.05,
-                    "y": 1374.09,
+                    "x": 386.85,
+                    "y": 1351.52,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 6.0,
@@ -9379,11 +9379,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": 29.4,
-                    "scale": 23.61,
+                    "rotY": -145.2,
+                    "scale": 25.08,
                     "type": "wall",
-                    "x": 252.69,
-                    "y": 1594.71,
+                    "x": 226.89,
+                    "y": 1629.9,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 6.0,
@@ -9407,31 +9407,31 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": 27.9,
-                    "scale": 17.06,
+                    "rotY": -31.9,
+                    "scale": 17.36,
                     "type": "decor",
-                    "x": 457.44,
-                    "y": 1443.28,
+                    "x": 568.66,
+                    "y": 1442.17,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": 65.3,
-                    "scale": 16.35,
+                    "rotY": -174.9,
+                    "scale": 15.53,
                     "type": "decor",
-                    "x": 337.98,
-                    "y": 1479.19,
+                    "x": 368.72,
+                    "y": 1508.87,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -51.0,
-                    "scale": 33.34,
+                    "rotY": 155.6,
+                    "scale": 35.13,
                     "type": "wall",
-                    "x": 224.08,
-                    "y": 1288.84,
+                    "x": 235.54,
+                    "y": 1190.96,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -9455,11 +9455,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -84.2,
-                    "scale": 35.18,
+                    "rotY": 105.8,
+                    "scale": 33.04,
                     "type": "wall",
-                    "x": 222.82,
-                    "y": 1402.4,
+                    "x": 108.48,
+                    "y": 1454.88,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -9483,232 +9483,232 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
+                    "rotY": 43.6,
+                    "scale": 33.49,
+                    "type": "wall",
+                    "x": 1979.29,
+                    "y": 2161.48,
+                    "yOffset": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colY": 0.0,
+                    "colH": 0.01,
+                    "colliders": [
+                        {
+                            "type": "circle",
+                            "width": 2.6,
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "y": -0.11,
+                            "h": 0.01
+                        }
+                    ]
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "label": "Arbol_2",
+                    "rotY": 164.3,
+                    "scale": 40.12,
+                    "type": "wall",
+                    "x": 1952.27,
+                    "y": 1878.74,
+                    "yOffset": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colY": 0.0,
+                    "colH": 0.01,
+                    "colliders": [
+                        {
+                            "type": "circle",
+                            "width": 2.6,
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "y": -0.11,
+                            "h": 0.01
+                        }
+                    ]
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
+                    "label": "Arbol_2",
+                    "rotY": 48.7,
+                    "scale": 40.9,
+                    "type": "wall",
+                    "x": 1624.11,
+                    "y": 2037.69,
+                    "yOffset": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.6,
+                    "colHeight": 1.84,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colY": 0.0,
+                    "colH": 0.01,
+                    "colliders": [
+                        {
+                            "type": "circle",
+                            "width": 2.6,
+                            "height": 1.84,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "y": -0.11,
+                            "h": 0.01
+                        }
+                    ]
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "label": "Arbol_1",
+                    "rotY": -67.2,
+                    "scale": 33.07,
+                    "type": "wall",
+                    "x": 2389.75,
+                    "y": 1929.96,
+                    "yOffset": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colY": 0.0,
+                    "colH": 0.01,
+                    "colliders": [
+                        {
+                            "type": "circle",
+                            "width": 2.4,
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "y": 0.0,
+                            "h": 0.01
+                        }
+                    ]
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "label": "Arbol_1",
+                    "rotY": 97.0,
+                    "scale": 35.21,
+                    "type": "wall",
+                    "x": 1647.04,
+                    "y": 2316.05,
+                    "yOffset": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colY": 0.0,
+                    "colH": 0.01,
+                    "colliders": [
+                        {
+                            "type": "circle",
+                            "width": 2.4,
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "y": 0.0,
+                            "h": 0.01
+                        }
+                    ]
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
+                    "label": "Piedra_Mediana",
+                    "rotY": 162.0,
+                    "scale": 22.36,
+                    "type": "wall",
+                    "x": 2144.87,
+                    "y": 2008.89,
+                    "yOffset": 0.0,
+                    "colType": "circle",
+                    "colWidth": 4.0,
+                    "colHeight": 2.83,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colY": 0.0,
+                    "colH": 0.01,
+                    "colliders": [
+                        {
+                            "type": "circle",
+                            "width": 4.0,
+                            "height": 2.83,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "y": -0.025,
+                            "h": 0.01
+                        }
+                    ]
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
+                    "label": "Piedra_Mediana",
+                    "rotY": 79.4,
+                    "scale": 19.61,
+                    "type": "wall",
+                    "x": 1719.57,
+                    "y": 1783.4,
+                    "yOffset": 0.0,
+                    "colType": "circle",
+                    "colWidth": 4.0,
+                    "colHeight": 2.83,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colY": 0.0,
+                    "colH": 0.01,
+                    "colliders": [
+                        {
+                            "type": "circle",
+                            "width": 4.0,
+                            "height": 2.83,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "y": -0.025,
+                            "h": 0.01
+                        }
+                    ]
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "label": "Arbol_1",
+                    "rotY": 31.7,
+                    "scale": 37.79,
+                    "type": "wall",
+                    "x": -1289.66,
+                    "y": 2525.24,
+                    "yOffset": 0.0,
+                    "colType": "circle",
+                    "colWidth": 2.4,
+                    "colHeight": 1.7,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.0,
+                    "colY": 0.0,
+                    "colH": 0.01,
+                    "colliders": [
+                        {
+                            "type": "circle",
+                            "width": 2.4,
+                            "height": 1.7,
+                            "offsetX": 0.0,
+                            "offsetY": 0.0,
+                            "y": 0.0,
+                            "h": 0.01
+                        }
+                    ]
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
+                    "label": "Arbol_1",
                     "rotY": 135.4,
-                    "scale": 34.28,
-                    "type": "wall",
-                    "x": 1903.64,
-                    "y": 2126.82,
-                    "yOffset": 3.885,
-                    "colType": "circle",
-                    "colWidth": 2.6,
-                    "colHeight": 1.84,
-                    "colOffsetX": 0.0,
-                    "colOffsetY": 0.0,
-                    "colY": -0.11,
-                    "colH": 0.01,
-                    "colliders": [
-                        {
-                            "type": "circle",
-                            "width": 2.6,
-                            "height": 1.84,
-                            "offsetX": 0.0,
-                            "offsetY": 0.0,
-                            "y": -0.11,
-                            "h": 0.01
-                        }
-                    ]
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
-                    "label": "Arbol_2",
-                    "rotY": 39.7,
-                    "scale": 36.71,
-                    "type": "wall",
-                    "x": 1945.52,
-                    "y": 1938.3,
-                    "yOffset": 4.17,
-                    "colType": "circle",
-                    "colWidth": 2.6,
-                    "colHeight": 1.84,
-                    "colOffsetX": 0.0,
-                    "colOffsetY": 0.0,
-                    "colY": -0.11,
-                    "colH": 0.01,
-                    "colliders": [
-                        {
-                            "type": "circle",
-                            "width": 2.6,
-                            "height": 1.84,
-                            "offsetX": 0.0,
-                            "offsetY": 0.0,
-                            "y": -0.11,
-                            "h": 0.01
-                        }
-                    ]
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
-                    "label": "Arbol_2",
-                    "rotY": 19.3,
-                    "scale": 38.09,
-                    "type": "wall",
-                    "x": 1738.83,
-                    "y": 2118.24,
-                    "yOffset": 4.361,
-                    "colType": "circle",
-                    "colWidth": 2.6,
-                    "colHeight": 1.84,
-                    "colOffsetX": 0.0,
-                    "colOffsetY": 0.0,
-                    "colY": -0.11,
-                    "colH": 0.01,
-                    "colliders": [
-                        {
-                            "type": "circle",
-                            "width": 2.6,
-                            "height": 1.84,
-                            "offsetX": 0.0,
-                            "offsetY": 0.0,
-                            "y": -0.11,
-                            "h": 0.01
-                        }
-                    ]
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
-                    "label": "Arbol_1",
-                    "rotY": 88.5,
-                    "scale": 34.61,
-                    "type": "wall",
-                    "x": 2271.3,
-                    "y": 1945.9,
-                    "yOffset": 0.0,
-                    "colType": "circle",
-                    "colWidth": 2.4,
-                    "colHeight": 1.7,
-                    "colOffsetX": 0.0,
-                    "colOffsetY": 0.0,
-                    "colY": 0.0,
-                    "colH": 0.01,
-                    "colliders": [
-                        {
-                            "type": "circle",
-                            "width": 2.4,
-                            "height": 1.7,
-                            "offsetX": 0.0,
-                            "offsetY": 0.0,
-                            "y": 0.0,
-                            "h": 0.01
-                        }
-                    ]
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
-                    "label": "Arbol_1",
-                    "rotY": -81.8,
-                    "scale": 33.4,
-                    "type": "wall",
-                    "x": 1666.49,
-                    "y": 2217.33,
-                    "yOffset": 0.0,
-                    "colType": "circle",
-                    "colWidth": 2.4,
-                    "colHeight": 1.7,
-                    "colOffsetX": 0.0,
-                    "colOffsetY": 0.0,
-                    "colY": 0.0,
-                    "colH": 0.01,
-                    "colliders": [
-                        {
-                            "type": "circle",
-                            "width": 2.4,
-                            "height": 1.7,
-                            "offsetX": 0.0,
-                            "offsetY": 0.0,
-                            "y": 0.0,
-                            "h": 0.01
-                        }
-                    ]
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
-                    "label": "Piedra_Mediana",
-                    "rotY": -47.2,
-                    "scale": 21.84,
-                    "type": "wall",
-                    "x": 2095.33,
-                    "y": 1934.05,
-                    "yOffset": 0.604,
-                    "colType": "circle",
-                    "colWidth": 4.0,
-                    "colHeight": 2.83,
-                    "colOffsetX": 0.0,
-                    "colOffsetY": 0.0,
-                    "colY": -0.025,
-                    "colH": 0.01,
-                    "colliders": [
-                        {
-                            "type": "circle",
-                            "width": 4.0,
-                            "height": 2.83,
-                            "offsetX": 0.0,
-                            "offsetY": 0.0,
-                            "y": -0.025,
-                            "h": 0.01
-                        }
-                    ]
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
-                    "label": "Piedra_Mediana",
-                    "rotY": 86.8,
-                    "scale": 20.21,
-                    "type": "wall",
-                    "x": 1823.13,
-                    "y": 1836.13,
-                    "yOffset": 0.582,
-                    "colType": "circle",
-                    "colWidth": 4.0,
-                    "colHeight": 2.83,
-                    "colOffsetX": 0.0,
-                    "colOffsetY": 0.0,
-                    "colY": -0.025,
-                    "colH": 0.01,
-                    "colliders": [
-                        {
-                            "type": "circle",
-                            "width": 4.0,
-                            "height": 2.83,
-                            "offsetX": 0.0,
-                            "offsetY": 0.0,
-                            "y": -0.025,
-                            "h": 0.01
-                        }
-                    ]
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
-                    "label": "Arbol_1",
-                    "rotY": -74.7,
-                    "scale": 38.91,
-                    "type": "wall",
-                    "x": -1259.5,
-                    "y": 2481.1,
-                    "yOffset": 0.0,
-                    "colType": "circle",
-                    "colWidth": 2.4,
-                    "colHeight": 1.7,
-                    "colOffsetX": 0.0,
-                    "colOffsetY": 0.0,
-                    "colY": 0.0,
-                    "colH": 0.01,
-                    "colliders": [
-                        {
-                            "type": "circle",
-                            "width": 2.4,
-                            "height": 1.7,
-                            "offsetX": 0.0,
-                            "offsetY": 0.0,
-                            "y": 0.0,
-                            "h": 0.01
-                        }
-                    ]
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
-                    "label": "Arbol_1",
-                    "rotY": -133.7,
-                    "scale": 39.69,
+                    "scale": 45.26,
                     "type": "wall",
                     "x": -779.01,
                     "y": 2584.73,
@@ -9735,18 +9735,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -143.7,
-                    "scale": 33.63,
+                    "rotY": -149.6,
+                    "scale": 34.84,
                     "type": "wall",
                     "x": -469.56,
                     "y": 2229.83,
-                    "yOffset": 3.808,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9763,18 +9763,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -106.2,
-                    "scale": 33.8,
+                    "rotY": 156.6,
+                    "scale": 36.29,
                     "type": "wall",
-                    "x": -1291.7,
-                    "y": 2157.29,
-                    "yOffset": 3.828,
+                    "x": -1296.14,
+                    "y": 2157.84,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9791,18 +9791,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": 55.6,
-                    "scale": 22.59,
+                    "rotY": 102.0,
+                    "scale": 24.56,
                     "type": "wall",
-                    "x": -1029.82,
-                    "y": 2124.59,
-                    "yOffset": 1.13,
+                    "x": -1025.55,
+                    "y": 2124.06,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9819,18 +9819,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb",
                     "label": "Piedras_Apiladas_Medianas",
-                    "rotY": -68.3,
-                    "scale": 20.33,
+                    "rotY": -69.8,
+                    "scale": 20.57,
                     "type": "wall",
                     "x": -979.24,
                     "y": 2441.62,
-                    "yOffset": 1.011,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 5.0,
                     "colHeight": 3.54,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.045,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9847,8 +9847,8 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": 1.0,
-                    "scale": 18.37,
+                    "rotY": 110.9,
+                    "scale": 18.88,
                     "type": "decor",
                     "x": -691.65,
                     "y": 2045.91,
@@ -9857,21 +9857,21 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb",
                     "label": "Piedras_Apiladas_Chiquitas",
-                    "rotY": -108.6,
-                    "scale": 18.55,
+                    "rotY": -109.2,
+                    "scale": 17.66,
                     "type": "decor",
-                    "x": -1200.58,
-                    "y": 2394.86,
+                    "x": -1171.55,
+                    "y": 2352.37,
                     "yOffset": 0.0
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 1.7,
-                    "scale": 40.55,
+                    "rotY": 139.6,
+                    "scale": 38.3,
                     "type": "wall",
-                    "x": 1040.37,
-                    "y": 4527.06,
+                    "x": 1141.42,
+                    "y": 4417.55,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -9895,11 +9895,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": 142.4,
-                    "scale": 35.08,
+                    "rotY": -55.1,
+                    "scale": 32.69,
                     "type": "wall",
-                    "x": 725.87,
-                    "y": 4519.21,
+                    "x": 590.85,
+                    "y": 4527.8,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -9923,11 +9923,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb",
                     "label": "Arbol_1",
-                    "rotY": -42.4,
-                    "scale": 35.99,
+                    "rotY": 97.0,
+                    "scale": 36.04,
                     "type": "wall",
-                    "x": 1390.24,
-                    "y": 4502.74,
+                    "x": 1505.77,
+                    "y": 4525.05,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.4,
@@ -9951,18 +9951,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": 106.9,
-                    "scale": 37.04,
+                    "rotY": 3.7,
+                    "scale": 34.3,
                     "type": "wall",
-                    "x": 775.33,
-                    "y": 4741.58,
-                    "yOffset": 4.249,
+                    "x": 623.51,
+                    "y": 4808.33,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -9979,18 +9979,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb",
                     "label": "Arbol_2",
-                    "rotY": -105.9,
-                    "scale": 33.61,
+                    "rotY": -70.7,
+                    "scale": 33.45,
                     "type": "wall",
-                    "x": 910.72,
-                    "y": 4607.45,
-                    "yOffset": 3.806,
+                    "x": 951.37,
+                    "y": 4657.98,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 2.6,
                     "colHeight": 1.84,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.11,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -10007,11 +10007,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": -105.5,
-                    "scale": 20.26,
+                    "rotY": -62.6,
+                    "scale": 19.62,
                     "type": "wall",
-                    "x": 789.32,
-                    "y": 4442.97,
+                    "x": 837.84,
+                    "y": 4452.79,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 6.0,
@@ -10035,11 +10035,11 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb",
                     "label": "Piedras_Apiladas_Grandes",
-                    "rotY": 53.2,
-                    "scale": 21.8,
+                    "rotY": 161.6,
+                    "scale": 22.58,
                     "type": "wall",
-                    "x": 942.08,
-                    "y": 4402.29,
+                    "x": 919.9,
+                    "y": 4308.12,
                     "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 6.0,
@@ -10063,18 +10063,18 @@
                 {
                     "assetPath": "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb",
                     "label": "Piedra_Mediana2",
-                    "rotY": 59.2,
-                    "scale": 100.0,
+                    "rotY": 109.8,
+                    "scale": 97.31,
                     "type": "wall",
                     "x": 4782.78,
                     "y": -2363.81,
-                    "yOffset": 0.03,
+                    "yOffset": 0.0,
                     "colType": "circle",
                     "colWidth": 4.0,
                     "colHeight": 2.83,
                     "colOffsetX": 0.0,
                     "colOffsetY": 0.0,
-                    "colY": -0.025,
+                    "colY": 0.0,
                     "colH": 0.01,
                     "colliders": [
                         {
@@ -10579,7 +10579,7 @@
                 }
             ],
             "color": "#aa0000",
-            "desc": "Sector de invasi\u00f3n: Hordas detectadas.",
+            "desc": "Sector de invasión: Hordas detectadas.",
             "friendlyFire": false,
             "giveInvulnerabilityOnEntry": true,
             "height": 10000,
@@ -10815,7 +10815,7 @@
         "9": {
             "ambience": [],
             "color": "#aa00ff",
-            "desc": "Zona de combate t\u00e1ctico y enfrentamiento por equipos. Destruye el nexo enemigo.",
+            "desc": "Zona de combate táctico y enfrentamiento por equipos. Destruye el nexo enemigo.",
             "friendlyFire": false,
             "height": 10000,
             "minLevel": 1,
@@ -10989,7 +10989,7 @@
                 }
             ],
             "color": "#ff0055",
-            "desc": "Sector Prohibido: Alta radiaci\u00f3n y presencia de la flota oscura. Solo para misiones de extracci\u00f3n.",
+            "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.",
             "friendlyFire": false,
             "height": 10000,
             "minLevel": 10,
@@ -11000,7 +11000,7 @@
                 "path": "",
                 "volumePercent": 60
             },
-            "name": "Zona de Extracci\u00f3n",
+            "name": "Zona de Extracción",
             "objects": [
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
@@ -11352,7 +11352,7 @@
     },
     "mechanicsLib": {
         "ascension": {
-            "desc": "Inversa de la Zambullida: el objetivo vuela hacia el cielo tras un casteo, el \u00e1rea de ca\u00edda se marca en el piso y al aterrizar recibe da\u00f1o en el \u00e1rea.",
+            "desc": "Inversa de la Zambullida: el objetivo vuela hacia el cielo tras un casteo, el área de caída se marca en el piso y al aterrizar recibe daño en el área.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11371,15 +11371,15 @@
                 "warnDelayMs",
                 "warnTimeMs"
             ],
-            "icon": "\ud83c\udf88",
-            "label": "Ascensi\u00f3n Tel\u00farica",
+            "icon": "🎈",
+            "label": "Ascensión Telúrica",
             "sound": "",
             "soundMaxDist": 1500,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "aura_damage": {
-            "desc": "Da\u00f1a a los jugadores cercanos continuamente.",
+            "desc": "Daña a los jugadores cercanos continuamente.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11393,15 +11393,15 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udd25",
-            "label": "Aura de Vac\u00edo",
+            "icon": "🔥",
+            "label": "Aura de Vacío",
             "sound": "",
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "bomb": {
-            "desc": "Lanza bombas en c\u00edrculo que explotan tras un retardo.",
+            "desc": "Lanza bombas en círculo que explotan tras un retardo.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11418,7 +11418,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udca3",
+            "icon": "💣",
             "label": "Lanzador de Bombas",
             "sound": "",
             "soundMaxDist": 1200,
@@ -11426,7 +11426,7 @@
             "soundVolumePercent": 50
         },
         "burrow": {
-            "desc": "El enemigo se hunde bajo tierra, viaja en l\u00ednea recta hacia un objetivo seleccionable (por proximidad, aleatorio, menos vida, m\u00e1s vida, mayor da\u00f1o causado, mayor curaci\u00f3n, m\u00e1s esferas o por color de esfera) y emerge rompiendo el suelo: c\u00edrculo de da\u00f1o \u00fanico o zona persistente + debuffs configurables.",
+            "desc": "El enemigo se hunde bajo tierra, viaja en línea recta hacia un objetivo seleccionable (por proximidad, aleatorio, menos vida, más vida, mayor daño causado, mayor curación, más esferas o por color de esfera) y emerge rompiendo el suelo: círculo de daño único o zona persistente + debuffs configurables.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11449,15 +11449,15 @@
                 "debuffsList",
                 "startDelay"
             ],
-            "icon": "\ud83d\udd73\ufe0f",
-            "label": "Zambullida Tel\u00farrica",
+            "icon": "🕳️",
+            "label": "Zambullida Telúrrica",
             "sound": "",
             "soundMaxDist": 1400,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "choque_devastador": {
-            "desc": "El enemigo carga en l\u00ednea recta da\u00f1ando todo lo que embiste. Muestra un marcador direccional en el piso antes de cargar.",
+            "desc": "El enemigo carga en línea recta dañando todo lo que embiste. Muestra un marcador direccional en el piso antes de cargar.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11475,14 +11475,14 @@
                 "warnTimeMs",
                 "startDelay"
             ],
-            "icon": "\ud83d\udca5",
+            "icon": "💥",
             "label": "Choque Devastador",
             "sound": "",
             "soundMaxDist": 1400,
             "soundVolumePercent": 50
         },
         "circle_cast": {
-            "desc": "Ataque circular que se carga siguiendo al enemigo y explota da\u00f1ando a todos.",
+            "desc": "Ataque circular que se carga siguiendo al enemigo y explota dañando a todos.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11495,15 +11495,15 @@
                 "lockTimeMs",
                 "startDelay"
             ],
-            "icon": "\u2b55",
-            "label": "Explosi\u00f3n Circular",
+            "icon": "⭕",
+            "label": "Explosión Circular",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "cone_cast": {
-            "desc": "Ataque en cono que se carga y al completarse da\u00f1a/stunea.",
+            "desc": "Ataque en cono que se carga y al completarse daña/stunea.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11521,7 +11521,7 @@
                 "aimDelayMs",
                 "startDelay"
             ],
-            "icon": "\ud83d\udcd0",
+            "icon": "📐",
             "label": "Ataque en Cono Casteable",
             "sound": "",
             "soundMaxDist": 1200,
@@ -11548,14 +11548,14 @@
                 "targetMode",
                 "targetSphereColor"
             ],
-            "icon": "\ud83c\udf31",
+            "icon": "🌱",
             "label": "Enraizada",
             "sound": "",
             "soundMaxDist": 1400,
             "soundVolumePercent": 50
         },
         "execution": {
-            "desc": "Tras un tiempo de casteo, lanza una calavera inquebrantable sobre los objetivos: impacto = muerte instant\u00e1nea (ignora escudo y vida).",
+            "desc": "Tras un tiempo de casteo, lanza una calavera inquebrantable sobre los objetivos: impacto = muerte instantánea (ignora escudo y vida).",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11572,15 +11572,15 @@
                 "isPointAndClick",
                 "turnSpeed"
             ],
-            "icon": "\ud83d\udc80",
-            "label": "Ejecuci\u00f3n Directa",
+            "icon": "💀",
+            "label": "Ejecución Directa",
             "sound": "",
             "soundMaxDist": 1500,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "fireball": {
-            "desc": "Invoca una esfera de fuego tipo sol que comienza a moverse dentro de un \u00e1rea determinada, da\u00f1ando a todo lo que toca durante su duraci\u00f3n. Tama\u00f1o, \u00e1rea, da\u00f1o, cadencia, duraci\u00f3n y enfriamiento los define el Admin. Opcionalmente atrae a los jugadores de su rango y les pega golpes de rayos por tick.",
+            "desc": "Invoca una esfera de fuego tipo sol que comienza a moverse dentro de un área determinada, dañando a todo lo que toca durante su duración. Tamaño, área, daño, cadencia, duración y enfriamiento los define el Admin. Opcionalmente atrae a los jugadores de su rango y les pega golpes de rayos por tick.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11602,15 +11602,15 @@
                 "pullStrength",
                 "ray_damage"
             ],
-            "icon": "\u2600\ufe0f",
-            "label": "Bola de Fuego Din\u00e1mica",
+            "icon": "☀️",
+            "label": "Bola de Fuego Dinámica",
             "sound": "",
             "soundMaxDist": 1600,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "hook": {
-            "desc": "Atrae al objetivo, lo da\u00f1a y lo paraliza.",
+            "desc": "Atrae al objetivo, lo daña y lo paraliza.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11629,7 +11629,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\u2693",
+            "icon": "⚓",
             "label": "Gancho Abisal",
             "sound": "",
             "soundMaxDist": 1200,
@@ -11655,7 +11655,7 @@
                 "turnSpeed",
                 "isHoming"
             ],
-            "icon": "\u2744\ufe0f",
+            "icon": "❄️",
             "label": "Misil de Hielo",
             "sound": "",
             "soundMaxDist": 1500,
@@ -11663,7 +11663,7 @@
             "soundVolumePercent": 50
         },
         "ice_storm": {
-            "desc": "Invoca una tormenta de hielo persistente que da\u00f1a y ralentiza a los jugadores en el \u00e1rea.",
+            "desc": "Invoca una tormenta de hielo persistente que daña y ralentiza a los jugadores en el área.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11682,7 +11682,7 @@
                 "slowDuration",
                 "startDelay"
             ],
-            "icon": "\u2744\ufe0f",
+            "icon": "❄️",
             "label": "Tormenta de Hielo",
             "sound": "",
             "soundMaxDist": 1400,
@@ -11690,7 +11690,7 @@
             "soundVolumePercent": 50
         },
         "laser": {
-            "desc": "Ataque lineal b\u00e1sico de alta cadencia.",
+            "desc": "Ataque lineal básico de alta cadencia.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11706,8 +11706,8 @@
                 "isHoming",
                 "turnSpeed"
             ],
-            "icon": "\ud83d\udd2b",
-            "label": "L\u00e1ser Est\u00e1ndar",
+            "icon": "🔫",
+            "label": "Láser Estándar",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
@@ -11733,14 +11733,14 @@
                 "lockTimeMs",
                 "isHoming"
             ],
-            "icon": "\u00f0\u0178\u201d\u2020",
-            "label": "Mega L\u00e1ser",
+            "icon": "ðŸ”†",
+            "label": "Mega Láser",
             "sound": "",
             "soundMaxDist": 1400,
             "soundVolumePercent": 50
         },
         "melee_slash": {
-            "desc": "Corte cuerpo a cuerpo instant\u00e1neo: el enemigo levanta el hacha (anticipaci\u00f3n) y pega en el \u00e1rea en forma de arco o giro 360\u00b0. Pega directo, no carga un \u00e1rea.",
+            "desc": "Corte cuerpo a cuerpo instantáneo: el enemigo levanta el hacha (anticipación) y pega en el área en forma de arco o giro 360°. Pega directo, no carga un área.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11756,15 +11756,15 @@
                 "pushForce",
                 "debuffsList"
             ],
-            "icon": "\ud83e\ude93",
-            "label": "Hachazo \ud83e\ude93",
+            "icon": "🪓",
+            "label": "Hachazo 🪓",
             "sound": "",
             "soundMaxDist": 800,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "meteor": {
-            "desc": "Invocan meteoritos desde el cielo: tras un aviso en el piso, caen sobre los objetivos seleccionados, infligen da\u00f1o en \u00e1rea y pueden aplicar debuffs configurables. Configurable: cantidad, altura, velocidad de ca\u00edda, tama\u00f1o, radio de explosi\u00f3n, da\u00f1o, tiempo de aviso, criterio de selecci\u00f3n de objetivos y efectos al impactar.",
+            "desc": "Invocan meteoritos desde el cielo: tras un aviso en el piso, caen sobre los objetivos seleccionados, infligen daño en área y pueden aplicar debuffs configurables. Configurable: cantidad, altura, velocidad de caída, tamaño, radio de explosión, daño, tiempo de aviso, criterio de selección de objetivos y efectos al impactar.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11788,7 +11788,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\u2604\ufe0f",
+            "icon": "☄️",
             "label": "Lluvia de Meteoritos",
             "sound": "",
             "soundMaxDist": 1600,
@@ -11796,7 +11796,7 @@
             "soundVolumePercent": 50
         },
         "mine": {
-            "desc": "Explosivo est\u00e1tico que se activa por cercan\u00eda.",
+            "desc": "Explosivo estático que se activa por cercanía.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11812,7 +11812,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udca3",
+            "icon": "💣",
             "label": "Mina de Proximidad",
             "sound": "",
             "soundMaxDist": 1000,
@@ -11836,7 +11836,7 @@
                 "turnSpeed",
                 "isHoming"
             ],
-            "icon": "\ud83d\ude80",
+            "icon": "🚀",
             "label": "Misil Rastreador",
             "sound": "",
             "soundMaxDist": 1500,
@@ -11844,7 +11844,7 @@
             "soundVolumePercent": 50
         },
         "orbital_strike": {
-            "desc": "C\u00edrculos que giran y luego se disparan.",
+            "desc": "Círculos que giran y luego se disparan.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11862,7 +11862,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83c\udf00",
+            "icon": "🌀",
             "label": "Ataque Orbital",
             "sound": "",
             "soundMaxDist": 1400,
@@ -11870,7 +11870,7 @@
             "soundVolumePercent": 50
         },
         "polymorph": {
-            "desc": "Lanza proyectiles c\u00fabicos que transforman al jugador. Configurable: cantidad, velocidad, homing, da\u00f1o, duraci\u00f3n, si bloquea movimiento/habilidades y selecci\u00f3n de objetivo (proximidad, aleatorio, m\u00e1s esferas o por color de esfera).",
+            "desc": "Lanza proyectiles cúbicos que transforman al jugador. Configurable: cantidad, velocidad, homing, daño, duración, si bloquea movimiento/habilidades y selección de objetivo (proximidad, aleatorio, más esferas o por color de esfera).",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11891,7 +11891,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\uddfa\ufe0f",
+            "icon": "🗺️",
             "label": "Polimorfia",
             "sound": "",
             "soundMaxDist": 1200,
@@ -11899,7 +11899,7 @@
             "soundVolumePercent": 50
         },
         "reflect": {
-            "desc": "Devuelve da\u00f1o recibido al atacante.",
+            "desc": "Devuelve daño recibido al atacante.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11911,7 +11911,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udee1\ufe0f",
+            "icon": "🛡️",
             "label": "Escudo Reflectante",
             "sound": "",
             "soundMaxDist": 800,
@@ -11939,15 +11939,15 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83d\udca4",
-            "label": "Sue\u00f1o Inducido",
+            "icon": "💤",
+            "label": "Sueño Inducido",
             "sound": "",
             "soundMaxDist": 1000,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "spin_ring": {
-            "desc": "Tira un c\u00edrculo alrededor del enemigo que gira. Si impacta, da\u00f1a al objetivo, le da velocidad al due\u00f1o y puede aplicar slow.",
+            "desc": "Tira un círculo alrededor del enemigo que gira. Si impacta, daña al objetivo, le da velocidad al dueño y puede aplicar slow.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11967,7 +11967,7 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83c\udf00",
+            "icon": "🌀",
             "label": "Giro Enloquecido",
             "sound": "",
             "soundMaxDist": 1000,
@@ -11975,7 +11975,7 @@
             "soundVolumePercent": 50
         },
         "strange_dimension": {
-            "desc": "El enemigo abre un portal tenebroso, selecciona objetivos seg\u00fan la configuraci\u00f3n de target y los transporta a una dimensi\u00f3n paralela violeta durante unos segundos, devolvi\u00e9ndolos al finalizar.",
+            "desc": "El enemigo abre un portal tenebroso, selecciona objetivos según la configuración de target y los transporta a una dimensión paralela violeta durante unos segundos, devolviéndolos al finalizar.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -11989,14 +11989,14 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83c\udf0c",
-            "label": "Dimensi\u00f3n Extra\u00f1a",
+            "icon": "🌌",
+            "label": "Dimensión Extraña",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumePercent": 50
         },
         "summoning": {
-            "desc": "Invoca una cantidad de esbirros de tu elecci\u00f3n por vida o por tiempo.",
+            "desc": "Invoca una cantidad de esbirros de tu elección por vida o por tiempo.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -12011,8 +12011,8 @@
                 "castTimeMs",
                 "castInterruptible"
             ],
-            "icon": "\ud83e\udddf",
-            "label": "Invocaci\u00f3n",
+            "icon": "🧟",
+            "label": "Invocación",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
@@ -12035,7 +12035,7 @@
                 "startDelay",
                 "debuffsList"
             ],
-            "icon": "\ud83d\udd2e",
+            "icon": "🔮",
             "label": "Domo de Supervivencia",
             "sound": "",
             "soundMaxDist": 1500,
@@ -12043,7 +12043,7 @@
             "soundVolumePercent": 50
         },
         "whip_summon": {
-            "desc": "El enemigo canaliza un l\u00e1tigo m\u00edstico que azota N veces consecutivas al objetivo a una cadencia configurable.",
+            "desc": "El enemigo canaliza un látigo místico que azota N veces consecutivas al objetivo a una cadencia configurable.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -12060,14 +12060,14 @@
                 "targetMode",
                 "targetSphereColor"
             ],
-            "icon": "\ud83e\udea2",
-            "label": "L\u00e1tigo Dominante",
+            "icon": "🪢",
+            "label": "Látigo Dominante",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumePercent": 50
         },
         "wind_wall": {
-            "desc": "El enemigo carga una pared de viento visible y, al completarla, la dispara hacia afuera: expulsa al jugador, le hace da\u00f1o y puede aplicarle efectos extra configurables.",
+            "desc": "El enemigo carga una pared de viento visible y, al completarla, la dispara hacia afuera: expulsa al jugador, le hace daño y puede aplicarle efectos extra configurables.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -12084,15 +12084,15 @@
                 "cooldown",
                 "startDelay"
             ],
-            "icon": "\ud83c\udf2a\ufe0f",
-            "label": "Aluvi\u00f3n de Viento",
+            "icon": "🌪️",
+            "label": "Aluvión de Viento",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "worm_boomerang": {
-            "desc": "Lanza un abanico de gusanos que se alejan, se detienen y regresan al origen da\u00f1ando.",
+            "desc": "Lanza un abanico de gusanos que se alejan, se detienen y regresan al origen dañando.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -12108,8 +12108,8 @@
                 "cooldown",
                 "startDelay"
             ],
-            "icon": "\ud83e\udeb1",
-            "label": "Gusanos Bumer\u00e1n",
+            "icon": "🪱",
+            "label": "Gusanos Bumerán",
             "sound": "",
             "soundMaxDist": 1200,
             "soundVolumeDb": 0,
@@ -12123,14 +12123,14 @@
                 "speed",
                 "stopDist"
             ],
-            "icon": "\u26e9\ufe0f",
+            "icon": "⛩️",
             "label": "Avanzar al Altar",
             "sound": "",
             "soundMaxDist": 800,
             "soundVolumePercent": 50
         },
         "aura_speed": {
-            "desc": "Aumenta la velocidad en un \u00e1rea circular.",
+            "desc": "Aumenta la velocidad en un área circular.",
             "fields": [
                 "activationHP",
                 "radius",
@@ -12141,7 +12141,7 @@
                 "affectsEnemies",
                 "affectsBosses"
             ],
-            "icon": "\ud83c\udf2c\ufe0f",
+            "icon": "🌬️",
             "label": "Aura de Impulso",
             "sound": "",
             "soundMaxDist": 1000,
@@ -12149,13 +12149,13 @@
             "soundVolumePercent": 50
         },
         "boss": {
-            "desc": "Cerebro de Boss con fases de combate (l\u00e1ser, embestida y misiles).",
+            "desc": "Cerebro de Boss con fases de combate (láser, embestida y misiles).",
             "fields": [
                 "speed",
                 "stopDist",
                 "startDelay"
             ],
-            "icon": "\ud83d\udc80",
+            "icon": "💀",
             "label": "Cerebro de Boss (Fases)",
             "sound": "",
             "soundMaxDist": 800,
@@ -12168,7 +12168,7 @@
                 "speed",
                 "chargeCooldown"
             ],
-            "icon": "\u26a1",
+            "icon": "⚡",
             "label": "Embestida (Dash)",
             "sound": "",
             "soundMaxDist": 1000,
@@ -12181,8 +12181,8 @@
                 "speed",
                 "stopDist"
             ],
-            "icon": "\ud83c\udfc3",
-            "label": "Persecuci\u00f3n Directa",
+            "icon": "🏃",
+            "label": "Persecución Directa",
             "sound": "",
             "soundMaxDist": 800,
             "soundVolumeDb": 0,
@@ -12197,7 +12197,7 @@
                 "duration",
                 "explodeOnDeath"
             ],
-            "icon": "\ud83d\udca3",
+            "icon": "💣",
             "label": "Kamikaze",
             "sound": "",
             "soundMaxDist": 1000,
@@ -12205,15 +12205,15 @@
             "soundVolumePercent": 50
         },
         "nearest_target": {
-            "desc": "Detecta y persigue al objetivo m\u00e1s pr\u00f3ximo (jugadores o altar) en un radio de visi\u00f3n en p\u00edxeles.",
+            "desc": "Detecta y persigue al objetivo más próximo (jugadores o altar) en un radio de visión en píxeles.",
             "fields": [
                 "speed",
                 "stopDist",
                 "visionRange",
                 "targetPriority"
             ],
-            "icon": "\ud83d\udc41\ufe0f",
-            "label": "Buscar Objetivo m\u00e1s Cercano",
+            "icon": "👁️",
+            "label": "Buscar Objetivo más Cercano",
             "sound": "",
             "soundMaxDist": 800,
             "soundVolumePercent": 50
@@ -12224,15 +12224,15 @@
                 "speed",
                 "orbitRadius"
             ],
-            "icon": "\ud83d\udd04",
-            "label": "\u00f3rbita Circular",
+            "icon": "🔄",
+            "label": "órbita Circular",
             "sound": "",
             "soundMaxDist": 800,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
         },
         "prowler": {
-            "desc": "Movimiento de patrulla aut\u00f3noma en un rango circular configurable.",
+            "desc": "Movimiento de patrulla autónoma en un rango circular configurable.",
             "fields": [
                 "speed",
                 "patrolRange",
@@ -12240,7 +12240,7 @@
                 "changeInterval",
                 "changeType"
             ],
-            "icon": "\ud83d\udc3e",
+            "icon": "🐾",
             "label": "Merodeador",
             "sound": "",
             "soundMaxDist": 800,
@@ -12248,12 +12248,12 @@
             "soundVolumePercent": 50
         },
         "sniper": {
-            "desc": "Mantiene una distancia segura alej\u00e1ndose si te acercas.",
+            "desc": "Mantiene una distancia segura alejándose si te acercas.",
             "fields": [
                 "speed",
                 "idealDist"
             ],
-            "icon": "\ud83c\udfaf",
+            "icon": "🎯",
             "label": "Francotirador (Kiting)",
             "sound": "",
             "soundMaxDist": 800,
@@ -12268,7 +12268,7 @@
                 "amplitude",
                 "frequency"
             ],
-            "icon": "\u21a9\ufe0f",
+            "icon": "↩️",
             "label": "Movimiento ZigZag",
             "sound": "",
             "soundMaxDist": 800,
@@ -12475,7 +12475,7 @@
     },
     "questsConfig": [
         {
-            "desc": "Derrota a 5 enemigos regulares para demostrar tu val\u00eda en \u00f3rbita.",
+            "desc": "Derrota a 5 enemigos regulares para demostrar tu valía en órbita.",
             "id": "quest_1",
             "name": "El Despertar del Piloto",
             "portalGate": "",
@@ -12509,9 +12509,9 @@
             "type": "story"
         },
         {
-            "desc": "Explora el Mapa 2 y recoge datos t\u00e1cticos de la zona para el Hangar.",
+            "desc": "Explora el Mapa 2 y recoge datos tácticos de la zona para el Hangar.",
             "id": "quest_3",
-            "name": "Reconocimiento en \u00d3rbita",
+            "name": "Reconocimiento en Órbita",
             "portalGate": "",
             "reward": {
                 "exp": 100,
@@ -12526,9 +12526,9 @@
             "type": "story"
         },
         {
-            "desc": "Elimina 8 Enemigos 2 que patrullan las rutas del Mapa 2 y demuestra tu punter\u00eda.",
+            "desc": "Elimina 8 Enemigos 2 que patrullan las rutas del Mapa 2 y demuestra tu puntería.",
             "id": "quest_4",
-            "name": "Cacer\u00eda Menor",
+            "name": "Cacería Menor",
             "portalGate": "",
             "reward": {
                 "exp": 120,
@@ -12545,7 +12545,7 @@
         {
             "desc": "Junta 5 Celis Comunes. En el Mapa 2 los Enemigos 2 las sueltan con frecuencia (50%).",
             "id": "quest_5",
-            "name": "Recolecci\u00f3n de Celis",
+            "name": "Recolección de Celis",
             "portalGate": "",
             "reward": {
                 "exp": 150,
@@ -12587,9 +12587,9 @@
             "type": "story"
         },
         {
-            "desc": "Enfrenta al boss Stellar Guardian en el Mapa 2. Solo los m\u00e1s audaces lo derriban.",
+            "desc": "Enfrenta al boss Stellar Guardian en el Mapa 2. Solo los más audaces lo derriban.",
             "id": "quest_7",
-            "name": "El Guardi\u00e1n Estelar",
+            "name": "El Guardián Estelar",
             "portalGate": "",
             "reward": {
                 "exp": 300,
@@ -12613,9 +12613,9 @@
             "type": "story"
         },
         {
-            "desc": "Explora el Mapa 3. El vac\u00edo all\u00ed es m\u00e1s hostil: mant\u00e9n los escudos activos.",
+            "desc": "Explora el Mapa 3. El vacío allí es más hostil: mantén los escudos activos.",
             "id": "quest_8",
-            "name": "Umbral Carmes\u00ed",
+            "name": "Umbral Carmesí",
             "portalGate": "",
             "reward": {
                 "exp": 200,
@@ -12630,7 +12630,7 @@
             "type": "story"
         },
         {
-            "desc": "Abate 10 Enemigos 4 en el Mapa 3 y abre camino hacia el coraz\u00f3n de la zona.",
+            "desc": "Abate 10 Enemigos 4 en el Mapa 3 y abre camino hacia el corazón de la zona.",
             "id": "quest_9",
             "name": "Hostiles del Mapa 3",
             "portalGate": "",
@@ -12669,9 +12669,9 @@
             "type": "story"
         },
         {
-            "desc": "Elimina 5 Enemigos 8. Son m\u00e1s resistentes: prepara munici\u00f3n y escudos.",
+            "desc": "Elimina 5 Enemigos 8. Son más resistentes: prepara munición y escudos.",
             "id": "quest_11",
-            "name": "\u00c9lites del Vac\u00edo",
+            "name": "Élites del Vacío",
             "portalGate": "",
             "reward": {
                 "exp": 350,
@@ -12691,9 +12691,9 @@
             "type": "story"
         },
         {
-            "desc": "Derrota al Ancient Tit\u00e1n en el centro del Mapa 3. Su escudo regenerativo no perdona.",
+            "desc": "Derrota al Ancient Titán en el centro del Mapa 3. Su escudo regenerativo no perdona.",
             "id": "quest_12",
-            "name": "El Ancient Tit\u00e1n",
+            "name": "El Ancient Titán",
             "portalGate": "",
             "reward": {
                 "exp": 400,
@@ -12717,9 +12717,9 @@
             "type": "story"
         },
         {
-            "desc": "Desaf\u00eda al Tit\u00e1n Carmes\u00ed, se\u00f1or del Mapa 3. Su furia de hielo y meteoros pondr\u00e1 a prueba tu tripulaci\u00f3n.",
+            "desc": "Desafía al Titán Carmesí, señor del Mapa 3. Su furia de hielo y meteoros pondrá a prueba tu tripulación.",
             "id": "quest_13",
-            "name": "Tit\u00e1n Carmes\u00ed",
+            "name": "Titán Carmesí",
             "portalGate": "",
             "reward": {
                 "exp": 500,
@@ -12743,7 +12743,7 @@
             "type": "story"
         },
         {
-            "desc": "Cada d\u00eda cuenta: derriba 12 Enemigos 2 en el Mapa 2 para mantener despejada la ruta.",
+            "desc": "Cada día cuenta: derriba 12 Enemigos 2 en el Mapa 2 para mantener despejada la ruta.",
             "id": "quest_14",
             "name": "Ronda de Vigilancia",
             "portalGate": "",
@@ -12760,9 +12760,9 @@
             "type": "daily"
         },
         {
-            "desc": "Junta 4 Celis Comunes hoy mismo. Farm\u00e9alas donde m\u00e1s te convenga.",
+            "desc": "Junta 4 Celis Comunes hoy mismo. Farméalas donde más te convenga.",
             "id": "quest_15",
-            "name": "Suministros R\u00e1pidos",
+            "name": "Suministros Rápidos",
             "portalGate": "",
             "reward": {
                 "exp": 90,
@@ -12782,7 +12782,7 @@
             "type": "daily"
         },
         {
-            "desc": "Re\u00fane 12 Celis Comunes a lo largo de la semana. El Mapa 2 es m\u00e1s generoso (50% de drop).",
+            "desc": "Reúne 12 Celis Comunes a lo largo de la semana. El Mapa 2 es más generoso (50% de drop).",
             "id": "quest_16",
             "name": "Acopio Semanal",
             "portalGate": "",
@@ -12804,9 +12804,9 @@
             "type": "weekly"
         },
         {
-            "desc": "Derrota una vez m\u00e1s al Lord Tit\u00e1n en el Mapa 2. Su n\u00facleo de energ\u00eda es una recompensa valiosa.",
+            "desc": "Derrota una vez más al Lord Titán en el Mapa 2. Su núcleo de energía es una recompensa valiosa.",
             "id": "quest_17",
-            "name": "Caza de Tit\u00e1n",
+            "name": "Caza de Titán",
             "portalGate": "",
             "reward": {
                 "exp": 350,
@@ -12836,7 +12836,7 @@
     "rankingConfig": {
         "categories": [
             {
-                "icon": "\ud83d\udc7e",
+                "icon": "👾",
                 "id": "monsters_killed",
                 "name": "Monstruos Matados",
                 "resetInterval": "weekly",
@@ -12868,7 +12868,7 @@
                 ]
             },
             {
-                "icon": "\ud83c\udfaf",
+                "icon": "🎯",
                 "id": "events_completed",
                 "name": "Eventos Completados",
                 "resetInterval": "monthly",
@@ -12900,7 +12900,7 @@
                 ]
             },
             {
-                "icon": "\u2b50",
+                "icon": "⭐",
                 "id": "level",
                 "name": "Nivel Alcanzado",
                 "resetInterval": "never",
@@ -13238,7 +13238,7 @@
                     "explosionRadius": 100,
                     "id": "am_el1",
                     "mechanics": [],
-                    "name": "Electr\u00f3n T1",
+                    "name": "Electrón T1",
                     "prices": {
                         "hubs": 4000,
                         "ohcu": 40
@@ -13270,7 +13270,7 @@
                     "explosionRadius": 120,
                     "id": "am_el2",
                     "mechanics": [],
-                    "name": "Electr\u00f3n T2",
+                    "name": "Electrón T2",
                     "prices": {
                         "hubs": 8000,
                         "ohcu": 10
@@ -13288,7 +13288,7 @@
                     "hidden": true,
                     "id": "am_el3",
                     "mechanics": [],
-                    "name": "Electr\u00f3n T3",
+                    "name": "Electrón T3",
                     "prices": {
                         "hubs": 16000,
                         "ohcu": 20
@@ -13306,7 +13306,7 @@
                     "hidden": true,
                     "id": "am_el4",
                     "mechanics": [],
-                    "name": "Electr\u00f3n T4",
+                    "name": "Electrón T4",
                     "prices": {
                         "hubs": 32000,
                         "ohcu": 40
@@ -13324,7 +13324,7 @@
                     "hidden": true,
                     "id": "am_el5",
                     "mechanics": [],
-                    "name": "Electr\u00f3n T5",
+                    "name": "Electrón T5",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 100
@@ -13342,7 +13342,7 @@
                     "hidden": true,
                     "id": "am_el6",
                     "mechanics": [],
-                    "name": "Electr\u00f3n T6",
+                    "name": "Electrón T6",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 200
@@ -13567,7 +13567,7 @@
                             "type": "bleed"
                         }
                     ],
-                    "name": "L\u00e1ser T1",
+                    "name": "Láser T1",
                     "prices": {
                         "hubs": 1000,
                         "ohcu": 10
@@ -13584,7 +13584,7 @@
                     "hidden": false,
                     "id": "am_l2",
                     "mechanics": [],
-                    "name": "L\u00e1ser T2",
+                    "name": "Láser T2",
                     "prices": {
                         "hubs": 2000,
                         "ohcu": 2
@@ -13598,7 +13598,7 @@
                     "hidden": true,
                     "id": "am_l3",
                     "mechanics": [],
-                    "name": "L\u00e1ser T3",
+                    "name": "Láser T3",
                     "prices": {
                         "hubs": 3000,
                         "ohcu": 4
@@ -13612,7 +13612,7 @@
                     "hidden": true,
                     "id": "am_l4",
                     "mechanics": [],
-                    "name": "L\u00e1ser T4",
+                    "name": "Láser T4",
                     "prices": {
                         "hubs": 4000,
                         "ohcu": 6
@@ -13626,7 +13626,7 @@
                     "hidden": true,
                     "id": "am_l5",
                     "mechanics": [],
-                    "name": "L\u00e1ser T5",
+                    "name": "Láser T5",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 10
@@ -13640,7 +13640,7 @@
                     "hidden": true,
                     "id": "am_l6",
                     "mechanics": [],
-                    "name": "L\u00e1ser T6",
+                    "name": "Láser T6",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 20
@@ -14085,7 +14085,7 @@
         "engines": [
             {
                 "base": 10,
-                "desc": "Propulsi\u00f3n qu\u00edmica.",
+                "desc": "Propulsión química.",
                 "dmgMod": 5,
                 "dmgModType": "flat",
                 "hpMod": 5,
@@ -14103,7 +14103,7 @@
             },
             {
                 "base": 40,
-                "desc": "Est\u00e1ndar i\u00f3nico.",
+                "desc": "Estándar iónico.",
                 "dmgMod": 20,
                 "dmgModType": "flat",
                 "hpMod": 20,
@@ -14156,7 +14156,7 @@
             {
                 "desc": "Mayor alcance de escaneo.",
                 "id": "ext2",
-                "name": "Radar T\u00e1ctico",
+                "name": "Radar Táctico",
                 "prices": {
                     "hubs": 100000,
                     "ohcu": 100
@@ -14166,7 +14166,7 @@
         "resources": [
             {
                 "color": "#cbcbcc",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Mapas/Mapa1/Mapa1.png",
                 "id": "mat_map1",
                 "maxStack": 5,
@@ -14183,7 +14183,7 @@
             },
             {
                 "color": "#73744e",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Mapas/Mapa2/Mapa2.png",
                 "id": "mat_map2",
                 "name": "Mapa Inusual",
@@ -14199,7 +14199,7 @@
             },
             {
                 "color": "#455869",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Mapas/Mapa3/Mapa3.png",
                 "id": "mat_map3",
                 "name": "Mapa Raro",
@@ -14215,7 +14215,7 @@
             },
             {
                 "color": "#3f3c51",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Mapas/Mapa4/Mapa4.png",
                 "id": "mat_map4",
                 "name": "Mapa Epico",
@@ -14231,7 +14231,7 @@
             },
             {
                 "color": "#824130",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Mapas/Mapa5/Mapa5.png",
                 "id": "mat_map5",
                 "name": "Mapa Legendario",
@@ -14247,7 +14247,7 @@
             },
             {
                 "color": "#c99943",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Mapas/Mapa6/Mapa6.png",
                 "id": "mat_map6",
                 "name": "Mapa Mitico",
@@ -14279,7 +14279,7 @@
             },
             {
                 "color": "#59593d",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Celics/Celic2/Celic2.png",
                 "id": "mat_celi2",
                 "name": "Celi Inusual",
@@ -14295,7 +14295,7 @@
             },
             {
                 "color": "#3a4c5b",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Celics/Celic3/Celic3.png",
                 "id": "mat_celi3",
                 "name": "Celi Raro",
@@ -14311,7 +14311,7 @@
             },
             {
                 "color": "#2b2739",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Celics/Celic4/Celic4.png",
                 "id": "mat_celi4",
                 "name": "Celi Epico",
@@ -14327,7 +14327,7 @@
             },
             {
                 "color": "#7f3c2c",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Celics/Celic5/Celic5.png",
                 "id": "mat_celi5",
                 "name": "Celi Legendario",
@@ -14343,7 +14343,7 @@
             },
             {
                 "color": "#ca933a",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Celics/Celic6/Celic6.png",
                 "id": "mat_celi6",
                 "name": "Celi Mitico",
@@ -14359,7 +14359,7 @@
             },
             {
                 "color": "#bcbcbd",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Linfis/Linfi1/Linfi1.png",
                 "id": "mat_linfis1",
                 "name": "Linfis Comun",
@@ -14375,7 +14375,7 @@
             },
             {
                 "color": "#6a6947",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Linfis/Linfi2/Linfi2.png",
                 "id": "mat_linfis2",
                 "name": "Linfis Inusual",
@@ -14391,7 +14391,7 @@
             },
             {
                 "color": "#3f5261",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Linfis/Linfi3/Linfi3.png",
                 "id": "mat_linfis3",
                 "name": "Linfis Raro",
@@ -14407,7 +14407,7 @@
             },
             {
                 "color": "#545066",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Linfis/Linfi4/Linfi4.png",
                 "id": "mat_linfis4",
                 "name": "Linfis Epico",
@@ -14423,7 +14423,7 @@
             },
             {
                 "color": "#8b4130",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Linfis/Linfi5/Linfi5.png",
                 "id": "mat_linfis5",
                 "name": "Linfis Legendario",
@@ -14439,7 +14439,7 @@
             },
             {
                 "color": "#c79038",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Linfis/Linfi6/Linfi6.png",
                 "id": "mat_linfis6",
                 "name": "Linfis Mitico",
@@ -14455,7 +14455,7 @@
             },
             {
                 "color": "#c3c3c4",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Rotucks/Rotuck1/Rotuck1.png",
                 "id": "mat_rotuk1",
                 "name": "Rotuk Comun",
@@ -14471,7 +14471,7 @@
             },
             {
                 "color": "#636344",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Rotucks/Rotuck2/Rotuck2.png",
                 "id": "mat_rotuk2",
                 "name": "Rotuk Inusual",
@@ -14487,7 +14487,7 @@
             },
             {
                 "color": "#435768",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Rotucks/Rotuck3/Rotuck3.png",
                 "id": "mat_rotuk3",
                 "name": "Rotuk Raro",
@@ -14503,7 +14503,7 @@
             },
             {
                 "color": "#5d4b5f",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Rotucks/Rotuck4/Rotuck4.png",
                 "id": "mat_rotuk4",
                 "name": "Rotuk Epico",
@@ -14519,7 +14519,7 @@
             },
             {
                 "color": "#894130",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Rotucks/Rotuck5/Rotuck5.png",
                 "id": "mat_rotuk5",
                 "name": "Rotuk Legendario",
@@ -14535,7 +14535,7 @@
             },
             {
                 "color": "#c7913b",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Rotucks/Rotuck6/Rotuck6.png",
                 "id": "mat_rotuk6",
                 "name": "Rotuk Mitico",
@@ -14551,7 +14551,7 @@
             },
             {
                 "color": "#a0403c",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Esferilio/Esferilio Rojo/Esferilio Rojo.png",
                 "id": "mat_esfera_ataque",
                 "maxStack": 10,
@@ -14568,7 +14568,7 @@
             },
             {
                 "color": "#2f8782",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Esferilio/Esferilio Azul/Esferilio Azul.png",
                 "id": "mat_esfera_defensa",
                 "maxStack": 10,
@@ -14585,7 +14585,7 @@
             },
             {
                 "color": "#527e2d",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Esferilio/Esferilio Verde/Esferilio Verde.png",
                 "id": "mat_esfera_curacion",
                 "maxStack": 10,
@@ -14602,7 +14602,7 @@
             },
             {
                 "color": "#bfcd42",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "icon": "res://assets/Crafteo/Esferilio/Esferilio Amarillo/Esferilio Amarillo.png",
                 "id": "mat_esfera_utilidad",
                 "maxStack": 10,
@@ -14716,7 +14716,7 @@
             {
                 "id": "rec_recolectable_comestible",
                 "name": "Comestible",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "prices": {
                     "hubs": 100,
                     "ohcu": 0
@@ -14739,7 +14739,7 @@
             {
                 "id": "rec_recolectable_mineral",
                 "name": "Mineral",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "prices": {
                     "hubs": 100,
                     "ohcu": 0
@@ -14760,7 +14760,7 @@
             {
                 "id": "rec_recolectable_madera",
                 "name": "Madera",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "prices": {
                     "hubs": 100,
                     "ohcu": 0
@@ -14780,7 +14780,7 @@
             {
                 "id": "rec_recolectable_cristal",
                 "name": "Cristal",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "prices": {
                     "hubs": 100,
                     "ohcu": 0
@@ -14800,7 +14800,7 @@
             {
                 "id": "rec_recolectable_hongo",
                 "name": "Hongo",
-                "desc": "Descripci\u00f3n del nuevo material.",
+                "desc": "Descripción del nuevo material.",
                 "prices": {
                     "hubs": 100,
                     "ohcu": 0
@@ -14821,7 +14821,7 @@
         "shields": [
             {
                 "base": 10,
-                "desc": "Protecci\u00f3n b\u00e1sica.",
+                "desc": "Protección básica.",
                 "dmgMod": 30,
                 "dmgModType": "flat",
                 "hpMod": 5,
@@ -14925,7 +14925,7 @@
             },
             {
                 "color": "#4f902c",
-                "desc": "Esfera de CURACI\u00d3N. Amplifica tus habilidades de restauraci\u00f3n.",
+                "desc": "Esfera de CURACIÓN. Amplifica tus habilidades de restauración.",
                 "icon": "res://assets/Esferas/EsferaVerde1.png",
                 "id": "esfera_verde",
                 "maxStack": 1,
@@ -14963,12 +14963,12 @@
         "weapons": [
             {
                 "base": 10,
-                "desc": "L\u00e1ser b\u00e1sico.",
+                "desc": "Láser básico.",
                 "hpMod": 5,
                 "hpModType": "flat",
                 "icon": "res://assets/Armas/Arma1/Arma1.png",
                 "id": "las1",
-                "name": "L\u00e1ser 1",
+                "name": "Láser 1",
                 "prices": {
                     "hubs": 2000,
                     "ohcu": 200
@@ -14984,7 +14984,7 @@
                 "hpModType": "flat",
                 "icon": "res://assets/Armas/Arma2/Arma2.png",
                 "id": "las2",
-                "name": "L\u00e1ser 2",
+                "name": "Láser 2",
                 "prices": {
                     "hubs": 6000,
                     "ohcu": 600
@@ -15001,12 +15001,12 @@
         ]
     },
     "skillsData": {
-        "AUTO-REPARACI\u00d3N": {
+        "AUTO-REPARACIÓN": {
             "amount": 10,
             "canTargetOthers": true,
             "castTimeMs": 500,
             "cd": 8000,
-            "desc": "Drones de reparaci\u00f3n restauran la integridad del casco.",
+            "desc": "Drones de reparación restauran la integridad del casco.",
             "icon": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
             "id": "SK-HEAL-01",
             "range": 500,
@@ -15037,14 +15037,14 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Curaci\u00f3n"
+            "type": "Curación"
         },
         "BALIZA DE CURACION": {
             "aimType": 2,
             "canTargetOthers": false,
             "castTimeMs": 500,
             "cd": 2000,
-            "desc": "Despliega una baliza que emite ondas de curaci\u00f3n peri\u00f3dicas a los aliados cercanos.",
+            "desc": "Despliega una baliza que emite ondas de curación periódicas a los aliados cercanos.",
             "duration": 8000,
             "heal_amount": 250,
             "icon": "res://assets/Skills/Iconos/Cura/Baliza Curativa/Baliza Curativa.png",
@@ -15088,7 +15088,7 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Curaci\u00f3n"
+            "type": "Curación"
         },
         "BARRERA DE VIENTO": {
             "canTargetOthers": false,
@@ -15120,7 +15120,7 @@
             "canTargetOthers": false,
             "castTimeMs": 0,
             "cd": 1500,
-            "desc": "Teletransportaci\u00f3n instant\u00e1nea al punto seleccionado.",
+            "desc": "Teletransportación instantánea al punto seleccionado.",
             "icon": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
             "id": "SK-UTIL-04",
             "range": 500,
@@ -15197,7 +15197,7 @@
             "canTargetOthers": false,
             "castTimeMs": 100,
             "cd": 10000,
-            "desc": "Lanza una esfera de energ\u00eda oscura que da\u00f1a y aterroriza al objetivo, invirtiendo su movimiento.",
+            "desc": "Lanza una esfera de energía oscura que daña y aterroriza al objetivo, invirtiendo su movimiento.",
             "duration": 1000,
             "icon": "res://assets/Skills/Iconos/Ataque/Miedo/Miedo.png",
             "id": "SK-ATK-02",
@@ -15275,7 +15275,7 @@
             "canTargetOthers": true,
             "castTimeMs": 0,
             "cd": 4000,
-            "desc": "Dispara un gancho que viaja hacia el enemigo, da\u00f1\u00e1ndolo y arrastr\u00e1ndote hasta \u00e9l.",
+            "desc": "Dispara un gancho que viaja hacia el enemigo, dañándolo y arrastrándote hasta él.",
             "duration": 2000,
             "icon": "res://assets/Skills/Iconos/Ataque/Hookshot/Hookshot.png",
             "id": "SK-ATK-03",
@@ -15302,7 +15302,7 @@
             "canTargetOthers": false,
             "castTimeMs": 0,
             "cd": 12000,
-            "desc": "Propulsi\u00f3n instant\u00e1nea hacia adelante para evasi\u00f3n r\u00e1pida.",
+            "desc": "Propulsión instantánea hacia adelante para evasión rápida.",
             "icon": "res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png",
             "id": "SK-UTIL-02",
             "range": 500,
@@ -15326,7 +15326,7 @@
             "canTargetOthers": false,
             "castTimeMs": 0,
             "cd": 2000,
-            "desc": "Te vuelve inmune a todo da\u00f1o durante 2 segundos.",
+            "desc": "Te vuelve inmune a todo daño durante 2 segundos.",
             "duration": 2,
             "icon": "res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png",
             "id": "SK-UTIL-03",
@@ -15368,7 +15368,7 @@
             },
             "type": "Utilidad"
         },
-        "NANO-REGENERACI\u00d3N": {
+        "NANO-REGENERACIÓN": {
             "amount": 300,
             "canTargetOthers": true,
             "castTimeMs": 0,
@@ -15394,13 +15394,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Curaci\u00f3n"
+            "type": "Curación"
         },
         "PROVOCACION": {
             "canTargetOthers": false,
             "castTimeMs": 0,
             "cd": 2000,
-            "desc": "Provoca a todos los enemigos en el \u00e1rea elegida, forz\u00e1ndolos a atacarte por un tiempo determinado.",
+            "desc": "Provoca a todos los enemigos en el área elegida, forzándolos a atacarte por un tiempo determinado.",
             "icon": "res://assets/Skills/Iconos/Ataque/Provocacion/Provocacion.png",
             "id": "SK-DEF-06",
             "name": "PROVOCACION",
@@ -15433,7 +15433,7 @@
             "canTargetOthers": true,
             "castTimeMs": 0,
             "cd": 1200,
-            "desc": "Crea un campo de resonancia que refleja da\u00f1o hostil.",
+            "desc": "Crea un campo de resonancia que refleja daño hostil.",
             "duration": 3000,
             "icon": "res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png",
             "id": "SK-ATK-01",
@@ -15472,12 +15472,12 @@
             },
             "type": "Ataque"
         },
-        "REGENERACI\u00d3N ALFA": {
+        "REGENERACIÓN ALFA": {
             "amount": 2,
             "canTargetOthers": false,
             "castTimeMs": 500,
             "cd": 3000,
-            "desc": "Un pulso de alta energ\u00eda que deposita un n\u00facleo en el suelo para restaurar 1500 HP de casco al recogerlo.",
+            "desc": "Un pulso de alta energía que deposita un núcleo en el suelo para restaurar 1500 HP de casco al recogerlo.",
             "duration": 6000,
             "icon": "res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png",
             "id": "SK-HEAL-03",
@@ -15510,16 +15510,16 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Curaci\u00f3n"
+            "type": "Curación"
         },
-        "RESURRECCI\u00d3N": {
+        "RESURRECCIÓN": {
             "canTargetOthers": true,
             "castTimeMs": 0,
             "cd": 2000,
-            "desc": "Canaliza un haz de energ\u00eda en el \u00e1rea seleccionada para resucitar a los aliados ca\u00eddos.",
+            "desc": "Canaliza un haz de energía en el área seleccionada para resucitar a los aliados caídos.",
             "icon": "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
             "id": "SK-UTIL-06",
-            "name": "RESURRECCI\u00d3N",
+            "name": "RESURRECCIÓN",
             "radius": 200,
             "range": 500,
             "requirements": [
@@ -15570,7 +15570,7 @@
             "canTargetOthers": false,
             "castTimeMs": 0,
             "cd": 3000,
-            "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el \u00e1rea.",
+            "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
             "duration": 6,
             "icon": "res://assets/Skills/Iconos/Defensa/Bomba de Humo/Bomba de Humo.png",
             "id": "SK-DEF-03",
@@ -15679,13 +15679,13 @@
             },
             "type": "Utilidad"
         },
-        "V\u00cdNCULO VITAL": {
+        "VÍNCULO VITAL": {
             "amount": 250,
             "breakRange": 500,
             "canTargetOthers": true,
             "castTimeMs": 0,
             "cd": 4000,
-            "desc": "Enlaza un rayo curativo continuo a un aliado que restaura HP peri\u00f3dicamente. El lazo se corta si se alejan demasiado.",
+            "desc": "Enlaza un rayo curativo continuo a un aliado que restaura HP periódicamente. El lazo se corta si se alejan demasiado.",
             "duration": 3000,
             "icon": "res://assets/Skills/Iconos/Cura/Vinculo Vital/Vinculo Vital.png",
             "id": "SK-HEAL-04",
@@ -15726,32 +15726,32 @@
                 "players": true
             },
             "tickInterval": 1000,
-            "type": "Curaci\u00f3n"
+            "type": "Curación"
         }
     },
     "talentsConfig": {
         "categories": [
             {
                 "color": "#0011ff",
-                "emoji": "\ud83d\udee0\ufe0f",
+                "emoji": "🛠️",
                 "id": "fender",
                 "name": "Defensa"
             },
             {
                 "color": "#ff3131",
-                "emoji": "\u2694\ufe0f",
+                "emoji": "⚔️",
                 "id": "attack",
                 "name": "Ataque"
             },
             {
                 "color": "#ffea00",
-                "emoji": "\ud83d\udd2c",
+                "emoji": "🔬",
                 "id": "utility",
                 "name": "Utilidad"
             },
             {
                 "color": "#29bd00",
-                "emoji": "\ud83d\udd2e",
+                "emoji": "🔮",
                 "id": "healing",
                 "name": "Curacion"
             }
@@ -16620,29 +16620,29 @@
         "talents": [
             {
                 "category": "attack",
-                "desc": "Nodo maestro de combate. +4% Da\u00f1o Total por nivel.",
+                "desc": "Nodo maestro de combate. +4% Daño Total por nivel.",
                 "effects": {
                     "dmg_pct": 0.04
                 },
-                "icon": "\u2694\ufe0f",
+                "icon": "⚔️",
                 "id": "atk_root",
                 "maxLevel": 4,
                 "name": "ATAQUE"
             },
             {
                 "category": "attack",
-                "desc": "Mejora el da\u00f1o de cada arma y las municiones por separado.",
+                "desc": "Mejora el daño de cada arma y las municiones por separado.",
                 "effects": {},
                 "gear": true,
-                "icon": "\ud83d\udca5",
+                "icon": "💥",
                 "id": "atk_stats",
                 "maxLevel": 3,
-                "name": "DA\u00d1O",
+                "name": "DAÑO",
                 "smalls": []
             },
             {
                 "category": "attack",
-                "desc": "+1% Da\u00f1o de cada arma por nivel.",
+                "desc": "+1% Daño de cada arma por nivel.",
                 "effects": {
                     "weapon:las1:base": 0.01,
                     "weapon:las2:base": 0.01
@@ -16654,31 +16654,31 @@
             },
             {
                 "category": "attack",
-                "desc": "Mejoras de Electr\u00f3n: casteo y enfriamiento.",
+                "desc": "Mejoras de Electrón: casteo y enfriamiento.",
                 "effects": {},
                 "icon": "res://assets/Municiones/Iconos/electron/Electron.png",
                 "id": "atk_am_electron",
                 "maxLevel": 3,
-                "name": "MUNICI\u00d3N ELECTR\u00d3N"
+                "name": "MUNICIÓN ELECTRÓN"
             },
             {
                 "category": "attack",
-                "desc": "-5% Velocidad de casteo de Electr\u00f3n por nivel.",
+                "desc": "-5% Velocidad de casteo de Electrón por nivel.",
                 "effects": {
                     "ammo:electron:castTimeMs": -0.05
                 },
-                "icon": "\u23f3",
+                "icon": "⏳",
                 "id": "atk_am_electron_cast",
                 "maxLevel": 2,
                 "name": "CASTEO"
             },
             {
                 "category": "attack",
-                "desc": "-5% CD de Electr\u00f3n por nivel.",
+                "desc": "-5% CD de Electrón por nivel.",
                 "effects": {
                     "ammo:electron:cooldown": -0.05
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "atk_am_electron_cd",
                 "maxLevel": 2,
                 "name": "ENFRIAMIENTO"
@@ -16690,7 +16690,7 @@
                 "icon": "res://assets/Municiones/Iconos/emp/Emp.png",
                 "id": "atk_am_emp",
                 "maxLevel": 3,
-                "name": "MUNICI\u00d3N EMP"
+                "name": "MUNICIÓN EMP"
             },
             {
                 "category": "attack",
@@ -16698,7 +16698,7 @@
                 "effects": {
                     "ammo:emp:castTimeMs": -0.05
                 },
-                "icon": "\u23f3",
+                "icon": "⏳",
                 "id": "atk_am_emp_cast",
                 "maxLevel": 2,
                 "name": "CASTEO"
@@ -16709,7 +16709,7 @@
                 "effects": {
                     "ammo:emp:cooldown": -0.05
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "atk_am_emp_cd",
                 "maxLevel": 2,
                 "name": "ENFRIAMIENTO"
@@ -16721,7 +16721,7 @@
                 "icon": "res://assets/Municiones/Iconos/heal/Heal.png",
                 "id": "atk_am_heal",
                 "maxLevel": 3,
-                "name": "MUNICI\u00d3N DRONES"
+                "name": "MUNICIÓN DRONES"
             },
             {
                 "category": "attack",
@@ -16729,7 +16729,7 @@
                 "effects": {
                     "ammo:heal:castTimeMs": -0.05
                 },
-                "icon": "\u23f3",
+                "icon": "⏳",
                 "id": "atk_am_heal_cast",
                 "maxLevel": 2,
                 "name": "CASTEO"
@@ -16740,38 +16740,38 @@
                 "effects": {
                     "ammo:heal:cooldown": -0.05
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "atk_am_heal_cd",
                 "maxLevel": 2,
                 "name": "ENFRIAMIENTO"
             },
             {
                 "category": "attack",
-                "desc": "Mejoras de L\u00e1ser: casteo y enfriamiento.",
+                "desc": "Mejoras de Láser: casteo y enfriamiento.",
                 "effects": {},
                 "icon": "res://assets/Municiones/Iconos/laser/Laser.png",
                 "id": "atk_am_laser",
                 "maxLevel": 3,
-                "name": "MUNICI\u00d3N L\u00c1SER"
+                "name": "MUNICIÓN LÁSER"
             },
             {
                 "category": "attack",
-                "desc": "-5% Velocidad de casteo de L\u00e1ser por nivel.",
+                "desc": "-5% Velocidad de casteo de Láser por nivel.",
                 "effects": {
                     "ammo:laser:castTimeMs": -0.05
                 },
-                "icon": "\u23f3",
+                "icon": "⏳",
                 "id": "atk_am_laser_cast",
                 "maxLevel": 2,
                 "name": "CASTEO"
             },
             {
                 "category": "attack",
-                "desc": "-5% CD de L\u00e1ser por nivel.",
+                "desc": "-5% CD de Láser por nivel.",
                 "effects": {
                     "ammo:laser:cooldown": -0.05
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "atk_am_laser_cd",
                 "maxLevel": 2,
                 "name": "ENFRIAMIENTO"
@@ -16783,7 +16783,7 @@
                 "icon": "res://assets/Municiones/Iconos/melee/Melee.png",
                 "id": "atk_am_melee",
                 "maxLevel": 3,
-                "name": "MUNICI\u00d3N PLASMA"
+                "name": "MUNICIÓN PLASMA"
             },
             {
                 "category": "attack",
@@ -16791,7 +16791,7 @@
                 "effects": {
                     "ammo:melee:castTimeMs": -0.05
                 },
-                "icon": "\u23f3",
+                "icon": "⏳",
                 "id": "atk_am_melee_cast",
                 "maxLevel": 2,
                 "name": "CASTEO"
@@ -16802,7 +16802,7 @@
                 "effects": {
                     "ammo:melee:cooldown": -0.05
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "atk_am_melee_cd",
                 "maxLevel": 2,
                 "name": "ENFRIAMIENTO"
@@ -16814,7 +16814,7 @@
                 "icon": "res://assets/Municiones/Iconos/mine/Mine.png",
                 "id": "atk_am_mine",
                 "maxLevel": 3,
-                "name": "MUNICI\u00d3N MINA"
+                "name": "MUNICIÓN MINA"
             },
             {
                 "category": "attack",
@@ -16822,7 +16822,7 @@
                 "effects": {
                     "ammo:mine:castTimeMs": -0.05
                 },
-                "icon": "\u23f3",
+                "icon": "⏳",
                 "id": "atk_am_mine_cast",
                 "maxLevel": 2,
                 "name": "CASTEO"
@@ -16833,7 +16833,7 @@
                 "effects": {
                     "ammo:mine:cooldown": -0.05
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "atk_am_mine_cd",
                 "maxLevel": 2,
                 "name": "ENFRIAMIENTO"
@@ -16845,7 +16845,7 @@
                 "icon": "res://assets/Municiones/Iconos/missile/Missile.png",
                 "id": "atk_am_missile",
                 "maxLevel": 3,
-                "name": "MUNICI\u00d3N MISIL"
+                "name": "MUNICIÓN MISIL"
             },
             {
                 "category": "attack",
@@ -16853,7 +16853,7 @@
                 "effects": {
                     "ammo:missile:castTimeMs": -0.05
                 },
-                "icon": "\u23f3",
+                "icon": "⏳",
                 "id": "atk_am_missile_cast",
                 "maxLevel": 2,
                 "name": "CASTEO"
@@ -16864,38 +16864,38 @@
                 "effects": {
                     "ammo:missile:cooldown": -0.05
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "atk_am_missile_cd",
                 "maxLevel": 2,
                 "name": "ENFRIAMIENTO"
             },
             {
                 "category": "attack",
-                "desc": "Mejoras de Sif\u00f3n: casteo y enfriamiento.",
+                "desc": "Mejoras de Sifón: casteo y enfriamiento.",
                 "effects": {},
                 "icon": "res://assets/Municiones/Iconos/siphon/Siphon.png",
                 "id": "atk_am_siphon",
                 "maxLevel": 3,
-                "name": "MUNICI\u00d3N SIF\u00d3N"
+                "name": "MUNICIÓN SIFÓN"
             },
             {
                 "category": "attack",
-                "desc": "-5% Velocidad de casteo de Sif\u00f3n por nivel.",
+                "desc": "-5% Velocidad de casteo de Sifón por nivel.",
                 "effects": {
                     "ammo:siphon:castTimeMs": -0.05
                 },
-                "icon": "\u23f3",
+                "icon": "⏳",
                 "id": "atk_am_siphon_cast",
                 "maxLevel": 2,
                 "name": "CASTEO"
             },
             {
                 "category": "attack",
-                "desc": "-5% CD de Sif\u00f3n por nivel.",
+                "desc": "-5% CD de Sifón por nivel.",
                 "effects": {
                     "ammo:siphon:cooldown": -0.05
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "atk_am_siphon_cd",
                 "maxLevel": 2,
                 "name": "ENFRIAMIENTO"
@@ -16904,14 +16904,14 @@
                 "category": "attack",
                 "desc": "Mejoras de habilidades de Ataque.",
                 "effects": {},
-                "icon": "\ud83c\udf00",
+                "icon": "🌀",
                 "id": "attack_skills",
                 "maxLevel": 3,
                 "name": "RUTAS DE HABILIDAD"
             },
             {
                 "category": "attack",
-                "desc": "Maestr\u00eda de REFLECT-OMEGA. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de REFLECT-OMEGA. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-ATK-01:cd": -0.03
                 },
@@ -16926,7 +16926,7 @@
                 "effects": {
                     "skill:SK-ATK-01:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "attack_sk1_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
@@ -16937,14 +16937,14 @@
                 "effects": {
                     "skill:SK-ATK-01:amount": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "attack_sk1_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "attack",
-                "desc": "Maestr\u00eda de ESFERA DE TERROR. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de ESFERA DE TERROR. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-ATK-02:cd": -0.03
                 },
@@ -16959,7 +16959,7 @@
                 "effects": {
                     "skill:SK-ATK-02:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "attack_sk2_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
@@ -16970,14 +16970,14 @@
                 "effects": {
                     "skill:SK-ATK-02:amount": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "attack_sk2_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "attack",
-                "desc": "Maestr\u00eda de PROVOCACION. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de PROVOCACION. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-DEF-06:cd": -0.03
                 },
@@ -16992,18 +16992,18 @@
                 "effects": {
                     "skill:SK-DEF-06:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "attack_sk3_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "attack",
-                "desc": "+5% Duraci\u00f3n Provocaci\u00f3n de PROVOCACION por nivel.",
+                "desc": "+5% Duración Provocación de PROVOCACION por nivel.",
                 "effects": {
                     "skill:SK-DEF-06:taunt_duration": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "attack_sk3_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
@@ -17015,7 +17015,7 @@
                     "hp_pct": 0.05,
                     "sh_pct": 0.05
                 },
-                "icon": "\ud83d\udee1\ufe0f",
+                "icon": "🛡️",
                 "id": "def_root",
                 "maxLevel": 4,
                 "name": "DEFENSA"
@@ -17027,67 +17027,67 @@
                     "hp_pct": 0.03,
                     "sh_pct": 0.03
                 },
-                "icon": "\ud83d\udca0",
+                "icon": "💠",
                 "id": "def_stats",
                 "maxLevel": 3,
                 "name": "CASCO REFORZADO",
                 "smalls": [
                     {
-                        "desc": "+4% Regeneraci\u00f3n de vida por nivel.",
+                        "desc": "+4% Regeneración de vida por nivel.",
                         "effects": {
                             "hp_regen": 0.04
                         },
-                        "icon": "\ud83d\udd27",
+                        "icon": "🔧",
                         "id": "def_stats_s1",
                         "maxLevel": 5,
                         "name": "REGEN DE COMBATE"
                     },
                     {
-                        "desc": "+5% Regeneraci\u00f3n de escudo por nivel.",
+                        "desc": "+5% Regeneración de escudo por nivel.",
                         "effects": {
                             "shield_regen": 0.05
                         },
-                        "icon": "\ud83d\udd0b",
+                        "icon": "🔋",
                         "id": "def_stats_s2",
                         "maxLevel": 5,
-                        "name": "CAPACITOR DIN\u00c1MICO"
+                        "name": "CAPACITOR DINÁMICO"
                     }
                 ]
             },
             {
                 "category": "fender",
-                "desc": "+4% Regeneraci\u00f3n de vida por nivel.",
+                "desc": "+4% Regeneración de vida por nivel.",
                 "effects": {
                     "hp_regen": 0.04
                 },
-                "icon": "\ud83d\udd27",
+                "icon": "🔧",
                 "id": "def_stats_s1",
                 "maxLevel": 2,
                 "name": "REGEN DE COMBATE"
             },
             {
                 "category": "fender",
-                "desc": "+5% Regeneraci\u00f3n de escudo por nivel.",
+                "desc": "+5% Regeneración de escudo por nivel.",
                 "effects": {
                     "shield_regen": 0.05
                 },
-                "icon": "\ud83d\udd0b",
+                "icon": "🔋",
                 "id": "def_stats_s2",
                 "maxLevel": 2,
-                "name": "CAPACITOR DIN\u00c1MICO"
+                "name": "CAPACITOR DINÁMICO"
             },
             {
                 "category": "fender",
                 "desc": "Mejoras de habilidades de Defensa.",
                 "effects": {},
-                "icon": "\ud83c\udf00",
+                "icon": "🌀",
                 "id": "fender_skills",
                 "maxLevel": 3,
                 "name": "PROTOCOLOS DEFENSIVOS"
             },
             {
                 "category": "fender",
-                "desc": "Maestr\u00eda de BARRERA DE VIENTO. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de BARRERA DE VIENTO. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-DEF-05:cd": -0.03
                 },
@@ -17102,25 +17102,25 @@
                 "effects": {
                     "skill:SK-DEF-05:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "fender_sk1_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "fender",
-                "desc": "+5% Duraci\u00f3n de BARRERA DE VIENTO por nivel.",
+                "desc": "+5% Duración de BARRERA DE VIENTO por nivel.",
                 "effects": {
                     "skill:SK-DEF-05:duration": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "fender_sk1_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "fender",
-                "desc": "Maestr\u00eda de ESCUDO CELULAR. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de ESCUDO CELULAR. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-DEF-01:cd": -0.03
                 },
@@ -17135,7 +17135,7 @@
                 "effects": {
                     "skill:SK-DEF-01:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "fender_sk2_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
@@ -17146,14 +17146,14 @@
                 "effects": {
                     "skill:SK-DEF-01:amount": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "fender_sk2_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "fender",
-                "desc": "Maestr\u00eda de FROST-TRAIL. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de FROST-TRAIL. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-DEF-04:cd": -0.03
                 },
@@ -17168,25 +17168,25 @@
                 "effects": {
                     "skill:SK-DEF-04:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "fender_sk3_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "fender",
-                "desc": "+5% Duraci\u00f3n de FROST-TRAIL por nivel.",
+                "desc": "+5% Duración de FROST-TRAIL por nivel.",
                 "effects": {
                     "skill:SK-DEF-04:duration": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "fender_sk3_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "fender",
-                "desc": "Maestr\u00eda de SMOKE-BOMB. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de SMOKE-BOMB. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-DEF-03:cd": -0.03
                 },
@@ -17201,133 +17201,133 @@
                 "effects": {
                     "skill:SK-DEF-03:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "fender_sk4_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "fender",
-                "desc": "+5% Duraci\u00f3n de SMOKE-BOMB por nivel.",
+                "desc": "+5% Duración de SMOKE-BOMB por nivel.",
                 "effects": {
                     "skill:SK-DEF-03:duration": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "fender_sk4_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "healing",
-                "desc": "Nodo maestro de restauraci\u00f3n. +6% Curaci\u00f3n por nivel.",
+                "desc": "Nodo maestro de restauración. +6% Curación por nivel.",
                 "effects": {
                     "heal_pct": 0.06
                 },
-                "icon": "\ud83d\udd2e",
+                "icon": "🔮",
                 "id": "heal_root",
                 "maxLevel": 4,
-                "name": "CURACI\u00d3N"
+                "name": "CURACIÓN"
             },
             {
                 "category": "healing",
-                "desc": "Stats de nave curativos. +3% Curaci\u00f3n por nivel.",
+                "desc": "Stats de nave curativos. +3% Curación por nivel.",
                 "effects": {
                     "heal_pct": 0.03
                 },
-                "icon": "\ud83d\udc9a",
+                "icon": "💚",
                 "id": "heal_stats",
                 "maxLevel": 3,
                 "name": "PULSO VITAL",
                 "smalls": [
                     {
-                        "desc": "+3% Regeneraci\u00f3n de vida por nivel.",
+                        "desc": "+3% Regeneración de vida por nivel.",
                         "effects": {
                             "hp_regen": 0.03
                         },
-                        "icon": "\ud83c\udf3f",
+                        "icon": "🌿",
                         "id": "heal_stats_s1",
                         "maxLevel": 5,
                         "name": "METABOLISMO COMBATIVO"
                     },
                     {
-                        "desc": "+2% Vida m\u00e1xima por nivel.",
+                        "desc": "+2% Vida máxima por nivel.",
                         "effects": {
                             "hp_pct": 0.02
                         },
-                        "icon": "\u2764\ufe0f",
+                        "icon": "❤️",
                         "id": "heal_stats_s2",
                         "maxLevel": 5,
-                        "name": "N\u00daCLEO VITAL"
+                        "name": "NÚCLEO VITAL"
                     }
                 ]
             },
             {
                 "category": "healing",
-                "desc": "+3% Regeneraci\u00f3n de vida por nivel.",
+                "desc": "+3% Regeneración de vida por nivel.",
                 "effects": {
                     "hp_regen": 0.03
                 },
-                "icon": "\ud83c\udf3f",
+                "icon": "🌿",
                 "id": "heal_stats_s1",
                 "maxLevel": 2,
                 "name": "METABOLISMO COMBATIVO"
             },
             {
                 "category": "healing",
-                "desc": "+2% Vida m\u00e1xima por nivel.",
+                "desc": "+2% Vida máxima por nivel.",
                 "effects": {
                     "hp_pct": 0.02
                 },
-                "icon": "\u2764\ufe0f",
+                "icon": "❤️",
                 "id": "heal_stats_s2",
                 "maxLevel": 2,
-                "name": "N\u00daCLEO VITAL"
+                "name": "NÚCLEO VITAL"
             },
             {
                 "category": "healing",
-                "desc": "Mejoras de habilidades de Curaci\u00f3n.",
+                "desc": "Mejoras de habilidades de Curación.",
                 "effects": {},
-                "icon": "\ud83c\udf00",
+                "icon": "🌀",
                 "id": "healing_skills",
                 "maxLevel": 3,
-                "name": "PROTOCOLOS M\u00c9DICOS"
+                "name": "PROTOCOLOS MÉDICOS"
             },
             {
                 "category": "healing",
-                "desc": "Maestr\u00eda de AUTO-REPARACI\u00d3N. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de AUTO-REPARACIÓN. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-HEAL-01:cd": -0.03
                 },
                 "icon": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
                 "id": "healing_sk1",
                 "maxLevel": 3,
-                "name": "AUTO-REPARACI\u00d3N"
+                "name": "AUTO-REPARACIÓN"
             },
             {
                 "category": "healing",
-                "desc": "-4% Enfriamiento de AUTO-REPARACI\u00d3N por nivel.",
+                "desc": "-4% Enfriamiento de AUTO-REPARACIÓN por nivel.",
                 "effects": {
                     "skill:SK-HEAL-01:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "healing_sk1_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "healing",
-                "desc": "+5% Potencia de AUTO-REPARACI\u00d3N por nivel.",
+                "desc": "+5% Potencia de AUTO-REPARACIÓN por nivel.",
                 "effects": {
                     "skill:SK-HEAL-01:amount": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "healing_sk1_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "healing",
-                "desc": "Maestr\u00eda de BALIZA DE CURACION. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de BALIZA DE CURACION. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-HEAL-05:cd": -0.03
                 },
@@ -17342,117 +17342,117 @@
                 "effects": {
                     "skill:SK-HEAL-05:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "healing_sk2_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "healing",
-                "desc": "+5% Sanaci\u00f3n de BALIZA DE CURACION por nivel.",
+                "desc": "+5% Sanación de BALIZA DE CURACION por nivel.",
                 "effects": {
                     "skill:SK-HEAL-05:heal_amount": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "healing_sk2_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "healing",
-                "desc": "Maestr\u00eda de NANO-REGENERACI\u00d3N. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de NANO-REGENERACIÓN. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-HEAL-02:cd": -0.03
                 },
                 "icon": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
                 "id": "healing_sk3",
                 "maxLevel": 3,
-                "name": "NANO-REGENERACI\u00d3N"
+                "name": "NANO-REGENERACIÓN"
             },
             {
                 "category": "healing",
-                "desc": "-4% Enfriamiento de NANO-REGENERACI\u00d3N por nivel.",
+                "desc": "-4% Enfriamiento de NANO-REGENERACIÓN por nivel.",
                 "effects": {
                     "skill:SK-HEAL-02:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "healing_sk3_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "healing",
-                "desc": "+5% Potencia de NANO-REGENERACI\u00d3N por nivel.",
+                "desc": "+5% Potencia de NANO-REGENERACIÓN por nivel.",
                 "effects": {
                     "skill:SK-HEAL-02:amount": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "healing_sk3_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "healing",
-                "desc": "Maestr\u00eda de REGENERACI\u00d3N ALFA. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de REGENERACIÓN ALFA. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-HEAL-03:cd": -0.03
                 },
                 "icon": "res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png",
                 "id": "healing_sk4",
                 "maxLevel": 3,
-                "name": "REGENERACI\u00d3N ALFA"
+                "name": "REGENERACIÓN ALFA"
             },
             {
                 "category": "healing",
-                "desc": "-4% Enfriamiento de REGENERACI\u00d3N ALFA por nivel.",
+                "desc": "-4% Enfriamiento de REGENERACIÓN ALFA por nivel.",
                 "effects": {
                     "skill:SK-HEAL-03:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "healing_sk4_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "healing",
-                "desc": "+5% Potencia de REGENERACI\u00d3N ALFA por nivel.",
+                "desc": "+5% Potencia de REGENERACIÓN ALFA por nivel.",
                 "effects": {
                     "skill:SK-HEAL-03:amount": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "healing_sk4_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "healing",
-                "desc": "Maestr\u00eda de V\u00cdNCULO VITAL. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de VÍNCULO VITAL. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-HEAL-04:cd": -0.03
                 },
                 "icon": "res://assets/Skills/Iconos/Cura/Vinculo Vital/Vinculo Vital.png",
                 "id": "healing_sk5",
                 "maxLevel": 3,
-                "name": "V\u00cdNCULO VITAL"
+                "name": "VÍNCULO VITAL"
             },
             {
                 "category": "healing",
-                "desc": "-4% Enfriamiento de V\u00cdNCULO VITAL por nivel.",
+                "desc": "-4% Enfriamiento de VÍNCULO VITAL por nivel.",
                 "effects": {
                     "skill:SK-HEAL-04:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "healing_sk5_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "healing",
-                "desc": "+5% Potencia de V\u00cdNCULO VITAL por nivel.",
+                "desc": "+5% Potencia de VÍNCULO VITAL por nivel.",
                 "effects": {
                     "skill:SK-HEAL-04:amount": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "healing_sk5_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
@@ -17463,7 +17463,7 @@
                 "effects": {
                     "cooldown_reduction": 0.04
                 },
-                "icon": "\ud83d\udd2c",
+                "icon": "🔬",
                 "id": "uti_root",
                 "maxLevel": 4,
                 "name": "UTILIDAD"
@@ -17474,7 +17474,7 @@
                 "effects": {
                     "cooldown_reduction": 0.03
                 },
-                "icon": "\u2744\ufe0f",
+                "icon": "❄️",
                 "id": "uti_stats",
                 "maxLevel": 3,
                 "name": "EFICIENCIA GLOBAL",
@@ -17484,17 +17484,17 @@
                         "effects": {
                             "cast_time_reduction": 0.03
                         },
-                        "icon": "\u23f1\ufe0f",
+                        "icon": "⏱️",
                         "id": "uti_stats_s1",
                         "maxLevel": 5,
-                        "name": "REDUCCI\u00d3N DE CASTEO"
+                        "name": "REDUCCIÓN DE CASTEO"
                     },
                     {
                         "desc": "+2% Cadencia de fuego por nivel.",
                         "effects": {
                             "fire_rate_pct": 0.02
                         },
-                        "icon": "\ud83c\udfaf",
+                        "icon": "🎯",
                         "id": "uti_stats_s2",
                         "maxLevel": 5,
                         "name": "CADENCIA OPTIMIZADA"
@@ -17507,10 +17507,10 @@
                 "effects": {
                     "cast_time_reduction": 0.03
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "uti_stats_s1",
                 "maxLevel": 2,
-                "name": "REDUCCI\u00d3N DE CASTEO"
+                "name": "REDUCCIÓN DE CASTEO"
             },
             {
                 "category": "utility",
@@ -17518,7 +17518,7 @@
                 "effects": {
                     "fire_rate_pct": 0.02
                 },
-                "icon": "\ud83c\udfaf",
+                "icon": "🎯",
                 "id": "uti_stats_s2",
                 "maxLevel": 2,
                 "name": "CADENCIA OPTIMIZADA"
@@ -17527,14 +17527,14 @@
                 "category": "utility",
                 "desc": "Mejoras de habilidades de Utilidad.",
                 "effects": {},
-                "icon": "\ud83c\udf00",
+                "icon": "🌀",
                 "id": "utility_skills",
                 "maxLevel": 3,
-                "name": "PROTOCOLOS T\u00c1CTICOS"
+                "name": "PROTOCOLOS TÁCTICOS"
             },
             {
                 "category": "utility",
-                "desc": "Maestr\u00eda de TURBO-IMPULSO. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de TURBO-IMPULSO. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-UTIL-01:cd": -0.03
                 },
@@ -17549,7 +17549,7 @@
                 "effects": {
                     "skill:SK-UTIL-01:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "utility_sk1_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
@@ -17560,14 +17560,14 @@
                 "effects": {
                     "skill:SK-UTIL-01:cd": -0.05
                 },
-                "icon": "\ud83d\udd25",
+                "icon": "🔥",
                 "id": "utility_sk1_s2",
                 "maxLevel": 2,
                 "name": "SOBRECARGA"
             },
             {
                 "category": "utility",
-                "desc": "Maestr\u00eda de HYPER-DASH. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de HYPER-DASH. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-UTIL-02:cd": -0.03
                 },
@@ -17582,7 +17582,7 @@
                 "effects": {
                     "skill:SK-UTIL-02:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "utility_sk2_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
@@ -17593,14 +17593,14 @@
                 "effects": {
                     "skill:SK-UTIL-02:range": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "utility_sk2_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "utility",
-                "desc": "Maestr\u00eda de INVULNERABILIDAD. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de INVULNERABILIDAD. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-UTIL-03:cd": -0.03
                 },
@@ -17615,25 +17615,25 @@
                 "effects": {
                     "skill:SK-UTIL-03:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "utility_sk3_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "utility",
-                "desc": "+5% Duraci\u00f3n de INVULNERABILIDAD por nivel.",
+                "desc": "+5% Duración de INVULNERABILIDAD por nivel.",
                 "effects": {
                     "skill:SK-UTIL-03:duration": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "utility_sk3_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "utility",
-                "desc": "Maestr\u00eda de BLINK. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de BLINK. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-UTIL-04:cd": -0.03
                 },
@@ -17648,7 +17648,7 @@
                 "effects": {
                     "skill:SK-UTIL-04:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "utility_sk4_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
@@ -17659,14 +17659,14 @@
                 "effects": {
                     "skill:SK-UTIL-04:range": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "utility_sk4_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "utility",
-                "desc": "Maestr\u00eda de STEALTH. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de STEALTH. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-UTIL-05:cd": -0.03
                 },
@@ -17681,51 +17681,51 @@
                 "effects": {
                     "skill:SK-UTIL-05:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "utility_sk5_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "utility",
-                "desc": "+5% Duraci\u00f3n de STEALTH por nivel.",
+                "desc": "+5% Duración de STEALTH por nivel.",
                 "effects": {
                     "skill:SK-UTIL-05:duration": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "utility_sk5_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"
             },
             {
                 "category": "utility",
-                "desc": "Maestr\u00eda de RESURRECCI\u00d3N. -3% Enfriamiento por nivel.",
+                "desc": "Maestría de RESURRECCIÓN. -3% Enfriamiento por nivel.",
                 "effects": {
                     "skill:SK-UTIL-06:cd": -0.03
                 },
                 "icon": "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
                 "id": "utility_sk6",
                 "maxLevel": 3,
-                "name": "RESURRECCI\u00d3N"
+                "name": "RESURRECCIÓN"
             },
             {
                 "category": "utility",
-                "desc": "-4% Enfriamiento de RESURRECCI\u00d3N por nivel.",
+                "desc": "-4% Enfriamiento de RESURRECCIÓN por nivel.",
                 "effects": {
                     "skill:SK-UTIL-06:cd": -0.04
                 },
-                "icon": "\u23f1\ufe0f",
+                "icon": "⏱️",
                 "id": "utility_sk6_s1",
                 "maxLevel": 2,
                 "name": "AFINADO"
             },
             {
                 "category": "utility",
-                "desc": "+5% Radio de RESURRECCI\u00d3N por nivel.",
+                "desc": "+5% Radio de RESURRECCIÓN por nivel.",
                 "effects": {
                     "skill:SK-UTIL-06:radius": 0.05
                 },
-                "icon": "\u26a1",
+                "icon": "⚡",
                 "id": "utility_sk6_s2",
                 "maxLevel": 2,
                 "name": "POTENCIADOR"

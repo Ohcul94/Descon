@@ -95,7 +95,7 @@ const ASSET_COLLIDER_PRESETS = {
 		"colType": "circle",
 		"radius_3d": 0.026,
 		"height_3d": 0.01,
-		"col_y": -0.11,
+		"col_y": 0.0,
 		"colWidth": 2.6,
 		"colHeight": 1.84
 	},

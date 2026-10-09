@@ -17,13 +17,13 @@ metadata/colWidth = 2.6
 metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="Model" parent="." instance=ExtResource("1_mesh")]
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_col")

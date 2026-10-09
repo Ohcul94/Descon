@@ -119,16 +119,6 @@ normal_texture = ExtResource("3_7bc5u")
 mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_jqspa")])
 texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_d0lf8")])
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ypfgh"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_d7lmv"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g2dmw"]
 transparency = 1
 shading_mode = 0
@@ -487,7 +477,7 @@ albedo_color = Color(0, 0.8, 0, 0.3)
 [node name="MapEditor3D" type="Node3D" unique_id=941587839]
 script = ExtResource("1_editor_script")
 zone_id = "3"
-json_to_import = "[{\"assetPath\": \"res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb\", \"label\": \"CuevaCalaberas\", \"rotY\": 43.0, \"scale\": 40.0, \"type\": \"wall\", \"x\": -875.21, \"y\": -3666.38, \"yOffset\": 0.0, \"colType\": \"rect\", \"colWidth\": 510.04, \"colHeight\": 730.43, \"colOffsetX\": -457.89, \"colOffsetY\": -119.86, \"colliders\": [{\"type\": \"rect\", \"width\": 510.04, \"height\": 730.43, \"offsetX\": -457.89, \"offsetY\": -119.86}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 35.9, \"scale\": 38.03, \"type\": \"wall\", \"x\": -1313.46, \"y\": -3613.25, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 52.6, \"scale\": 35.89, \"type\": \"wall\", \"x\": -1527.8, \"y\": -3539.93, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -69.0, \"scale\": 24.51, \"type\": \"wall\", \"x\": -1636.6, \"y\": -3402.78, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": 144.2, \"scale\": 20.47, \"type\": \"wall\", \"x\": -1402.95, \"y\": -3558.94, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 139.8, \"scale\": 18.49, \"type\": \"wall\", \"x\": -1113.69, \"y\": -3447.94, \"yOffset\": 0.502, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.025, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 69.9, \"scale\": 23.1, \"type\": \"wall\", \"x\": -1177.91, \"y\": -3519.5, \"yOffset\": 0.642, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.025, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 27.7, \"scale\": 45.0, \"type\": \"wall\", \"x\": -1248.43, \"y\": -2998.54, \"yOffset\": 3.644, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 8.0, \"scale\": 37.35, \"type\": \"wall\", \"x\": -166.21, \"y\": -3490.37, \"yOffset\": 4.246, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": 130.8, \"scale\": 18.36, \"type\": \"wall\", \"x\": -708.4, \"y\": -3462.23, \"yOffset\": 0.907, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -125.2, \"scale\": 23.14, \"type\": \"wall\", \"x\": -212.59, \"y\": -3727.72, \"yOffset\": 1.159, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 146.5, \"scale\": 21.84, \"type\": \"decor\", \"x\": -339.78, \"y\": -3677.34, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -29.8, \"scale\": 16.94, \"type\": \"decor\", \"x\": -849.43, \"y\": -3454.74, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -140.0, \"scale\": 39.5, \"type\": \"wall\", \"x\": -1641.73, \"y\": -2339.86, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -67.0, \"scale\": 38.22, \"type\": \"wall\", \"x\": -1218.2, \"y\": -2462.42, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 73.3, \"scale\": 37.3, \"type\": \"wall\", \"x\": -1263.83, \"y\": -2636.7, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -90.3, \"scale\": 31.59, \"type\": \"wall\", \"x\": -896.14, \"y\": -2481.61, \"yOffset\": 3.568, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 120.1, \"scale\": 35.31, \"type\": \"wall\", \"x\": -1479.47, \"y\": -2612.15, \"yOffset\": 4.006, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 15.0, \"scale\": 18.26, \"type\": \"wall\", \"x\": -1714.2, \"y\": -2197.22, \"yOffset\": 0.495, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.025, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 154.5, \"scale\": 16.15, \"type\": \"wall\", \"x\": -1618.98, \"y\": -2455.06, \"yOffset\": 0.431, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.025, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -178.5, \"scale\": 55.0, \"type\": \"wall\", \"x\": 4075.65, \"y\": -868.81, \"yOffset\": 6.069, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -27.8, \"scale\": 35.16, \"type\": \"wall\", \"x\": 358.47, \"y\": -1791.42, \"yOffset\": 3.988, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 161.3, \"scale\": 31.87, \"type\": \"wall\", \"x\": 422.66, \"y\": -2204.67, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 72.3, \"scale\": 31.35, \"type\": \"wall\", \"x\": 247.52, \"y\": -1835.41, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -73.0, \"scale\": 22.42, \"type\": \"wall\", \"x\": 2043.71, \"y\": -2103.18, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -55.4, \"scale\": 19.66, \"type\": \"wall\", \"x\": 60.19, \"y\": -1873.73, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -69.7, \"scale\": 15.47, \"type\": \"decor\", \"x\": 185.83, \"y\": -1883.22, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 106.1, \"scale\": 15.45, \"type\": \"decor\", \"x\": 25.25, \"y\": -2330.31, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 178.3, \"scale\": 60.0, \"type\": \"wall\", \"x\": 4924.36, \"y\": -3213.99, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 16.5, \"scale\": 90.0, \"type\": \"wall\", \"x\": 3023.83, \"y\": -2435.36, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": 79.7, \"scale\": 22.94, \"type\": \"wall\", \"x\": 2143.07, \"y\": -3779.33, \"yOffset\": 1.149, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -114.8, \"scale\": 23.51, \"type\": \"wall\", \"x\": 1119.52, \"y\": -3152.62, \"yOffset\": 1.538, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 170.8, \"scale\": 35.89, \"type\": \"wall\", \"x\": -1101.26, \"y\": 130.62, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -162.1, \"scale\": 38.77, \"type\": \"wall\", \"x\": -1387.57, \"y\": 116.24, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -158.1, \"scale\": 36.75, \"type\": \"wall\", \"x\": -1455.81, \"y\": 363.23, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -116.1, \"scale\": 31.31, \"type\": \"wall\", \"x\": -1598.98, \"y\": 164.16, \"yOffset\": 3.535, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -86.9, \"scale\": 30.66, \"type\": \"wall\", \"x\": -1082.37, \"y\": 510.11, \"yOffset\": 3.458, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -137.2, \"scale\": 19.12, \"type\": \"wall\", \"x\": -1728.69, \"y\": -66.52, \"yOffset\": 0.948, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -49.5, \"scale\": 19.83, \"type\": \"wall\", \"x\": -1801.68, \"y\": 129.4, \"yOffset\": 0.985, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 41.7, \"scale\": 14.81, \"type\": \"decor\", \"x\": -1691.88, \"y\": 121.09, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 77.7, \"scale\": 17.4, \"type\": \"decor\", \"x\": -1582.99, \"y\": 391.12, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -27.3, \"scale\": 14.59, \"type\": \"decor\", \"x\": -877.57, \"y\": -1.37, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 49.8, \"scale\": 37.48, \"type\": \"wall\", \"x\": 1355.22, \"y\": -64.09, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -168.4, \"scale\": 34.07, \"type\": \"wall\", \"x\": 972.81, \"y\": -102.86, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 11.8, \"scale\": 31.75, \"type\": \"wall\", \"x\": 1383.13, \"y\": -469.48, \"yOffset\": 3.586, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -175.8, \"scale\": 22.05, \"type\": \"wall\", \"x\": 1154.94, \"y\": -428.07, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -71.9, \"scale\": 17.99, \"type\": \"decor\", \"x\": 1285.06, \"y\": -132.53, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 156.1, \"scale\": 18.62, \"type\": \"decor\", \"x\": 1122.45, \"y\": -316.12, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 147.2, \"scale\": 37.09, \"type\": \"wall\", \"x\": 2162.79, \"y\": -429.15, \"yOffset\": 4.226, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 66.5, \"scale\": 35.57, \"type\": \"wall\", \"x\": 2228.34, \"y\": -268.42, \"yOffset\": 4.037, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 153.2, \"scale\": 35.22, \"type\": \"wall\", \"x\": 2703.89, \"y\": 732.92, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -163.4, \"scale\": 38.53, \"type\": \"wall\", \"x\": 2191.74, \"y\": 848.82, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 108.4, \"scale\": 35.49, \"type\": \"wall\", \"x\": 2337.42, \"y\": 584.51, \"yOffset\": 4.027, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -153.9, \"scale\": 36.0, \"type\": \"wall\", \"x\": 2408.28, \"y\": 884.01, \"yOffset\": 4.087, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -12.6, \"scale\": 22.47, \"type\": \"wall\", \"x\": 2141.72, \"y\": 650.17, \"yOffset\": 1.124, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -75.6, \"scale\": 21.26, \"type\": \"wall\", \"x\": 2330.79, \"y\": 679.71, \"yOffset\": 1.061, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": 97.7, \"scale\": 25.6, \"type\": \"wall\", \"x\": 394.05, \"y\": 1374.09, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": 29.4, \"scale\": 23.61, \"type\": \"wall\", \"x\": 252.69, \"y\": 1594.71, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 27.9, \"scale\": 17.06, \"type\": \"decor\", \"x\": 457.44, \"y\": 1443.28, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 65.3, \"scale\": 16.35, \"type\": \"decor\", \"x\": 337.98, \"y\": 1479.19, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -51.0, \"scale\": 33.34, \"type\": \"wall\", \"x\": 224.08, \"y\": 1288.84, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -84.2, \"scale\": 35.18, \"type\": \"wall\", \"x\": 222.82, \"y\": 1402.4, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 135.4, \"scale\": 34.28, \"type\": \"wall\", \"x\": 1903.64, \"y\": 2126.82, \"yOffset\": 3.885, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 39.7, \"scale\": 36.71, \"type\": \"wall\", \"x\": 1945.52, \"y\": 1938.3, \"yOffset\": 4.17, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 19.3, \"scale\": 38.09, \"type\": \"wall\", \"x\": 1738.83, \"y\": 2118.24, \"yOffset\": 4.361, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 88.5, \"scale\": 34.61, \"type\": \"wall\", \"x\": 2271.3, \"y\": 1945.9, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -81.8, \"scale\": 33.4, \"type\": \"wall\", \"x\": 1666.49, \"y\": 2217.33, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": -47.2, \"scale\": 21.84, \"type\": \"wall\", \"x\": 2095.33, \"y\": 1934.05, \"yOffset\": 0.604, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.025, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 86.8, \"scale\": 20.21, \"type\": \"wall\", \"x\": 1823.13, \"y\": 1836.13, \"yOffset\": 0.582, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.025, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -74.7, \"scale\": 38.91, \"type\": \"wall\", \"x\": -1259.5, \"y\": 2481.1, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -133.7, \"scale\": 39.69, \"type\": \"wall\", \"x\": -779.01, \"y\": 2584.73, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -143.7, \"scale\": 33.63, \"type\": \"wall\", \"x\": -469.56, \"y\": 2229.83, \"yOffset\": 3.808, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -106.2, \"scale\": 33.8, \"type\": \"wall\", \"x\": -1291.7, \"y\": 2157.29, \"yOffset\": 3.828, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": 55.6, \"scale\": 22.59, \"type\": \"wall\", \"x\": -1029.82, \"y\": 2124.59, \"yOffset\": 1.13, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -68.3, \"scale\": 20.33, \"type\": \"wall\", \"x\": -979.24, \"y\": 2441.62, \"yOffset\": 1.011, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.045, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 1.0, \"scale\": 18.37, \"type\": \"decor\", \"x\": -691.65, \"y\": 2045.91, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -108.6, \"scale\": 18.55, \"type\": \"decor\", \"x\": -1200.58, \"y\": 2394.86, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 1.7, \"scale\": 40.55, \"type\": \"wall\", \"x\": 1040.37, \"y\": 4527.06, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 142.4, \"scale\": 35.08, \"type\": \"wall\", \"x\": 725.87, \"y\": 4519.21, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -42.4, \"scale\": 35.99, \"type\": \"wall\", \"x\": 1390.24, \"y\": 4502.74, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 106.9, \"scale\": 37.04, \"type\": \"wall\", \"x\": 775.33, \"y\": 4741.58, \"yOffset\": 4.249, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -105.9, \"scale\": 33.61, \"type\": \"wall\", \"x\": 910.72, \"y\": 4607.45, \"yOffset\": 3.806, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.11, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -105.5, \"scale\": 20.26, \"type\": \"wall\", \"x\": 789.32, \"y\": 4442.97, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": 53.2, \"scale\": 21.8, \"type\": \"wall\", \"x\": 942.08, \"y\": 4402.29, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana2\", \"rotY\": 59.2, \"scale\": 100.0, \"type\": \"wall\", \"x\": 4782.78, \"y\": -2363.81, \"yOffset\": 0.03, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": -0.025, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}]"
+json_to_import = "[{\"assetPath\": \"res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb\", \"label\": \"CuevaCalaberas\", \"rotY\": 43.0, \"scale\": 40.0, \"type\": \"wall\", \"x\": -875.21, \"y\": -3666.38, \"yOffset\": 0.0, \"colType\": \"rect\", \"colWidth\": 510.04, \"colHeight\": 730.43, \"colOffsetX\": -457.89, \"colOffsetY\": -119.86, \"colliders\": [{\"type\": \"rect\", \"width\": 510.04, \"height\": 730.43, \"offsetX\": -457.89, \"offsetY\": -119.86}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 0.9, \"scale\": 36.03, \"type\": \"wall\", \"x\": -1556.25, \"y\": -3727.92, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 129.6, \"scale\": 37.24, \"type\": \"wall\", \"x\": -1795.63, \"y\": -3508.01, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -143.1, \"scale\": 24.11, \"type\": \"wall\", \"x\": -1638.52, \"y\": -3352.16, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": 36.4, \"scale\": 21.16, \"type\": \"wall\", \"x\": -1527.32, \"y\": -3507.87, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 102.0, \"scale\": 19.08, \"type\": \"wall\", \"x\": -1255.45, \"y\": -3260.75, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 83.0, \"scale\": 24.61, \"type\": \"wall\", \"x\": -1417.59, \"y\": -3369.71, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 31.1, \"scale\": 49.17, \"type\": \"wall\", \"x\": -1248.43, \"y\": -2998.54, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 41.1, \"scale\": 36.42, \"type\": \"wall\", \"x\": -158.96, \"y\": -3451.15, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -140.1, \"scale\": 19.69, \"type\": \"wall\", \"x\": -519.85, \"y\": -3251.54, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -18.1, \"scale\": 24.81, \"type\": \"wall\", \"x\": -184.05, \"y\": -3798.32, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 66.7, \"scale\": 22.97, \"type\": \"decor\", \"x\": -182.5, \"y\": -3642.81, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -104.3, \"scale\": 16.73, \"type\": \"decor\", \"x\": -821.98, \"y\": -3183.74, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 154.6, \"scale\": 45.24, \"type\": \"wall\", \"x\": -1604.06, \"y\": -2300.87, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 179.9, \"scale\": 42.24, \"type\": \"wall\", \"x\": -1241.27, \"y\": -2416.63, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -152.5, \"scale\": 38.72, \"type\": \"wall\", \"x\": -1151.67, \"y\": -2689.74, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 20.7, \"scale\": 31.54, \"type\": \"wall\", \"x\": -856.81, \"y\": -2488.85, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -15.3, \"scale\": 34.86, \"type\": \"wall\", \"x\": -1543.67, \"y\": -2655.5, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 135.5, \"scale\": 19.28, \"type\": \"wall\", \"x\": -1760.0, \"y\": -2144.47, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 27.9, \"scale\": 15.4, \"type\": \"wall\", \"x\": -1669.49, \"y\": -2485.6, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -49.1, \"scale\": 56.0, \"type\": \"wall\", \"x\": 4075.65, \"y\": -868.81, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -36.4, \"scale\": 35.76, \"type\": \"wall\", \"x\": 538.79, \"y\": -1770.9, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -0.6, \"scale\": 33.61, \"type\": \"wall\", \"x\": 422.66, \"y\": -2204.67, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 2.3, \"scale\": 29.68, \"type\": \"wall\", \"x\": 147.42, \"y\": -1756.13, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": 90.1, \"scale\": 23.32, \"type\": \"wall\", \"x\": 2043.71, \"y\": -2103.18, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -3.2, \"scale\": 21.38, \"type\": \"wall\", \"x\": -22.13, \"y\": -1905.59, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -86.9, \"scale\": 15.67, \"type\": \"decor\", \"x\": 194.63, \"y\": -1945.44, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 153.4, \"scale\": 15.79, \"type\": \"decor\", \"x\": 25.25, \"y\": -2330.31, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -170.9, \"scale\": 56.0, \"type\": \"wall\", \"x\": 4924.36, \"y\": -3213.99, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -133.6, \"scale\": 56.0, \"type\": \"wall\", \"x\": 3023.83, \"y\": -2435.36, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -162.4, \"scale\": 24.22, \"type\": \"wall\", \"x\": 2143.07, \"y\": -3779.33, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": 139.3, \"scale\": 22.7, \"type\": \"wall\", \"x\": 1119.52, \"y\": -3152.62, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -10.8, \"scale\": 38.16, \"type\": \"wall\", \"x\": -1024.37, \"y\": 154.64, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -97.6, \"scale\": 39.97, \"type\": \"wall\", \"x\": -1397.54, \"y\": 61.84, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 45.6, \"scale\": 41.3, \"type\": \"wall\", \"x\": -1359.96, \"y\": 384.08, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -11.0, \"scale\": 32.09, \"type\": \"wall\", \"x\": -1700.35, \"y\": 243.34, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 175.4, \"scale\": 34.76, \"type\": \"wall\", \"x\": -1024.85, \"y\": 534.54, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": 16.4, \"scale\": 19.77, \"type\": \"wall\", \"x\": -1739.1, \"y\": -96.11, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": 61.1, \"scale\": 19.75, \"type\": \"wall\", \"x\": -1883.95, \"y\": 102.45, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 107.9, \"scale\": 15.18, \"type\": \"decor\", \"x\": -1671.03, \"y\": 54.2, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -7.6, \"scale\": 18.84, \"type\": \"decor\", \"x\": -1624.87, \"y\": 428.73, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -24.1, \"scale\": 14.5, \"type\": \"decor\", \"x\": -872.14, \"y\": -6.95, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -168.1, \"scale\": 36.8, \"type\": \"wall\", \"x\": 1405.31, \"y\": -16.37, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 35.0, \"scale\": 36.48, \"type\": \"wall\", \"x\": 972.81, \"y\": -102.86, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 8.2, \"scale\": 32.56, \"type\": \"wall\", \"x\": 1408.24, \"y\": -471.7, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -3.8, \"scale\": 24.0, \"type\": \"wall\", \"x\": 1135.7, \"y\": -453.65, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -86.4, \"scale\": 18.4, \"type\": \"decor\", \"x\": 1245.36, \"y\": -170.82, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 4.1, \"scale\": 20.0, \"type\": \"decor\", \"x\": 1109.69, \"y\": -297.05, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 20.8, \"scale\": 41.02, \"type\": \"wall\", \"x\": 2140.29, \"y\": -484.31, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 119.3, \"scale\": 40.15, \"type\": \"wall\", \"x\": 2249.99, \"y\": -215.33, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 150.1, \"scale\": 34.97, \"type\": \"wall\", \"x\": 2732.47, \"y\": 711.53, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 68.2, \"scale\": 36.32, \"type\": \"wall\", \"x\": 2095.89, \"y\": 837.72, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 5.5, \"scale\": 39.06, \"type\": \"wall\", \"x\": 2354.72, \"y\": 533.12, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 167.5, \"scale\": 36.87, \"type\": \"wall\", \"x\": 2471.63, \"y\": 924.03, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": 168.2, \"scale\": 24.19, \"type\": \"wall\", \"x\": 2131.1, \"y\": 645.4, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -7.5, \"scale\": 20.4, \"type\": \"wall\", \"x\": 2326.49, \"y\": 724.22, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -84.1, \"scale\": 26.23, \"type\": \"wall\", \"x\": 386.85, \"y\": 1351.52, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -145.2, \"scale\": 25.08, \"type\": \"wall\", \"x\": 226.89, \"y\": 1629.9, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -31.9, \"scale\": 17.36, \"type\": \"decor\", \"x\": 568.66, \"y\": 1442.17, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -174.9, \"scale\": 15.53, \"type\": \"decor\", \"x\": 368.72, \"y\": 1508.87, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 155.6, \"scale\": 35.13, \"type\": \"wall\", \"x\": 235.54, \"y\": 1190.96, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 105.8, \"scale\": 33.04, \"type\": \"wall\", \"x\": 108.48, \"y\": 1454.88, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 43.6, \"scale\": 33.49, \"type\": \"wall\", \"x\": 1979.29, \"y\": 2161.48, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 164.3, \"scale\": 40.12, \"type\": \"wall\", \"x\": 1952.27, \"y\": 1878.74, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 48.7, \"scale\": 40.9, \"type\": \"wall\", \"x\": 1624.11, \"y\": 2037.69, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -67.2, \"scale\": 33.07, \"type\": \"wall\", \"x\": 2389.75, \"y\": 1929.96, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 97.0, \"scale\": 35.21, \"type\": \"wall\", \"x\": 1647.04, \"y\": 2316.05, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 162.0, \"scale\": 22.36, \"type\": \"wall\", \"x\": 2144.87, \"y\": 2008.89, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana\", \"rotY\": 79.4, \"scale\": 19.61, \"type\": \"wall\", \"x\": 1719.57, \"y\": 1783.4, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 31.7, \"scale\": 37.79, \"type\": \"wall\", \"x\": -1289.66, \"y\": 2525.24, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 135.4, \"scale\": 45.26, \"type\": \"wall\", \"x\": -779.01, \"y\": 2584.73, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -149.6, \"scale\": 34.84, \"type\": \"wall\", \"x\": -469.56, \"y\": 2229.83, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 156.6, \"scale\": 36.29, \"type\": \"wall\", \"x\": -1296.14, \"y\": 2157.84, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": 102.0, \"scale\": 24.56, \"type\": \"wall\", \"x\": -1025.55, \"y\": 2124.06, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb\", \"label\": \"Piedras_Apiladas_Medianas\", \"rotY\": -69.8, \"scale\": 20.57, \"type\": \"wall\", \"x\": -979.24, \"y\": 2441.62, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 5.0, \"colHeight\": 3.54, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 5.0, \"height\": 3.54, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.045, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": 110.9, \"scale\": 18.88, \"type\": \"decor\", \"x\": -691.65, \"y\": 2045.91, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb\", \"label\": \"Piedras_Apiladas_Chiquitas\", \"rotY\": -109.2, \"scale\": 17.66, \"type\": \"decor\", \"x\": -1171.55, \"y\": 2352.37, \"yOffset\": 0.0}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 139.6, \"scale\": 38.3, \"type\": \"wall\", \"x\": 1141.42, \"y\": 4417.55, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": -55.1, \"scale\": 32.69, \"type\": \"wall\", \"x\": 590.85, \"y\": 4527.8, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb\", \"label\": \"Arbol_1\", \"rotY\": 97.0, \"scale\": 36.04, \"type\": \"wall\", \"x\": 1505.77, \"y\": 4525.05, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.4, \"colHeight\": 1.7, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.4, \"height\": 1.7, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": 3.7, \"scale\": 34.3, \"type\": \"wall\", \"x\": 623.51, \"y\": 4808.33, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb\", \"label\": \"Arbol_2\", \"rotY\": -70.7, \"scale\": 33.45, \"type\": \"wall\", \"x\": 951.37, \"y\": 4657.98, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 2.6, \"colHeight\": 1.84, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 2.6, \"height\": 1.84, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.11, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": -62.6, \"scale\": 19.62, \"type\": \"wall\", \"x\": 837.84, \"y\": 4452.79, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb\", \"label\": \"Piedras_Apiladas_Grandes\", \"rotY\": 161.6, \"scale\": 22.58, \"type\": \"wall\", \"x\": 919.9, \"y\": 4308.12, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 6.0, \"colHeight\": 4.24, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 6.0, \"height\": 4.24, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": 0.0, \"h\": 0.01}]}, {\"assetPath\": \"res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb\", \"label\": \"Piedra_Mediana2\", \"rotY\": 109.8, \"scale\": 97.31, \"type\": \"wall\", \"x\": 4782.78, \"y\": -2363.81, \"yOffset\": 0.0, \"colType\": \"circle\", \"colWidth\": 4.0, \"colHeight\": 2.83, \"colOffsetX\": 0.0, \"colOffsetY\": 0.0, \"colY\": 0.0, \"colH\": 0.01, \"colliders\": [{\"type\": \"circle\", \"width\": 4.0, \"height\": 2.83, \"offsetX\": 0.0, \"offsetY\": 0.0, \"y\": -0.025, \"h\": 0.01}]}]"
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=770567274]
 transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
@@ -506,6 +496,7 @@ shadow_normal_bias = 0.5
 directional_shadow_mode = 1
 directional_shadow_max_distance = 200.0
 
+
 [node name="GroundPlane" type="StaticBody3D" parent="." unique_id=300381787]
 collision_mask = 0
 
@@ -518,8 +509,10 @@ visible = false
 material_override = SubResource("StandardMaterial3D_jqspa")
 mesh = SubResource("PlaneMesh_1")
 
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=798809310]
 environment = SubResource("Environment_1")
+
 
 [node name="Terrain3D" type="Terrain3D" parent="." unique_id=1796060403]
 data_directory = "res://assets/Mapas/Mapa3/Terreno"
@@ -529,7 +522,7 @@ free_editor_textures = false
 top_level = true
 metadata/_edit_lock_ = true
 
-[node name="CuevaCalaberas" type="Node3D" parent="." unique_id=828808755 instance=ExtResource("4_7bc5u")]
+[node name="CuevaCalaberas" parent="." unique_id=828808755 instance=ExtResource("4_7bc5u")]
 transform = Transform3D(29.254148, 0, 27.279934, 0, 40, 0, -27.279934, 0, 29.254148, -17.5042, 0, -103.70089)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Decorativos/CuevaCalaberas/CuevaCalaberas.glb"
@@ -542,24 +535,13 @@ metadata/colWidth = 510.04
 metadata/colHeight = 730.43
 metadata/colOffsetX = -457.89
 metadata/colOffsetY = -119.86
-
-[node name="Collider1" type="CSGBox3D" parent="CuevaCalaberas" unique_id=21129236]
-transform = Transform3D(0.9993284, 0, -0.036643706, 0, 1, 0, 0.036643706, 0, 0.9993284, -9.1578, 0.0025, -3.3901527)
-size = Vector3(10.2008, 0.005, 20.65968)
-material = SubResource("StandardMaterial3D_ypfgh")
-
-[node name="Collider2" type="CSGBox3D" parent="CuevaCalaberas" unique_id=2110435838]
-transform = Transform3D(0.99026805, 0, 0.1391731, 0, 1, 0, -0.1391731, 0, 0.99026805, 9.086, 0.0025, -0.5648369)
-size = Vector3(9.0834, 0.005, 15.409271)
-material = SubResource("StandardMaterial3D_d7lmv")
-
-[node name="Arbol_1" type="Node3D" parent="." unique_id=64337673 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(30.805883, 0, 22.29974, 0, 38.03, 0, -22.29974, 0, 30.805883, -26.2692, 0, -102.19814)
+[node name="Arbol_1" parent="." unique_id=64337673 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(36.025497, 0, 0.569501, 0, 36.03, 0, -0.569501, 0, 36.025497, -31.125072, 0, -105.44141)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 38.03
-metadata/rot_y_deg = 35.9
+metadata/scale_2d = 36.03
+metadata/rot_y_deg = 0.9
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -574,14 +556,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_g2dmw")
-
-[node name="Arbol_1_2" type="Node3D" parent="." unique_id=2139119402 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(21.79872, 0, 28.51154, 0, 35.89, 0, -28.51154, 0, 21.79872, -30.556, 0, -100.124344)
+[node name="Arbol_1_2" parent="." unique_id=2139119402 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-23.737776, 0, 28.693827, 0, 37.24, 0, -28.693827, 0, -23.737776, -35.912647, 0, -99.22162)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 35.89
-metadata/rot_y_deg = 52.6
+metadata/scale_2d = 37.24
+metadata/rot_y_deg = 129.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -596,14 +577,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_se6js")
-
-[node name="Piedras_Apiladas_Grandes" type="Node3D" parent="." unique_id=591886881 instance=ExtResource("7_fpthl")]
-transform = Transform3D(8.783595, 0, -22.882057, 0, 24.51, 0, 22.882057, 0, 8.783595, -32.732, 0, -96.245155)
+[node name="Piedras_Apiladas_Grandes" parent="." unique_id=591886881 instance=ExtResource("7_fpthl")]
+transform = Transform3D(-19.267942, 0, -14.492705, 0, 24.11, 0, 14.492705, 0, -19.267942, -32.770374, 0, -94.81344)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 24.51
-metadata/rot_y_deg = 291.0
+metadata/scale_2d = 24.11
+metadata/rot_y_deg = -143.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -618,14 +598,13 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_fpthl")
-
-[node name="Piedras_Apiladas_Grandes_2" type="Node3D" parent="." unique_id=1266431881 instance=ExtResource("7_fpthl")]
-transform = Transform3D(-16.602474, 0, 11.974085, 0, 20.47, 0, -11.974085, 0, -16.602474, -28.059, 0, -100.662025)
+[node name="Piedras_Apiladas_Grandes_2" parent="." unique_id=1266431881 instance=ExtResource("7_fpthl")]
+transform = Transform3D(17.037897, 0, 12.548132, 0, 21.16, 0, -12.548132, 0, 17.037897, -30.546469, 0, -99.21745)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 20.47
-metadata/rot_y_deg = 144.2
+metadata/scale_2d = 21.16
+metadata/rot_y_deg = 36.4
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -640,14 +619,13 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_vt0q6")
-
-[node name="Piedra_Mediana" type="Node3D" parent="." unique_id=928709559 instance=ExtResource("8_vt0q6")]
-transform = Transform3D(-14.122588, 0, 11.934513, 0, 18.49, 0, -11.934513, 0, -14.122588, -22.2738, 0.502, -97.52247)
+[node name="Piedra_Mediana" parent="." unique_id=928709559 instance=ExtResource("8_vt0q6")]
+transform = Transform3D(-3.971651, 0, 18.662058, 0, 19.080000, 0, -18.662058, 0, -3.971651, -25.109034, 0, -92.228070)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb"
 metadata/label = "Piedra_Mediana"
-metadata/scale_2d = 18.49
-metadata/rot_y_deg = 139.8
+metadata/scale_2d = 19.08
+metadata/rot_y_deg = 102.0
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 4.0
@@ -655,22 +633,21 @@ metadata/colHeight = 2.83
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.025
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedra_Mediana" unique_id=2102045427]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.04
 height = 0.01
 material = SubResource("StandardMaterial3D_kmgwr")
-
-[node name="Piedra_Mediana_2" type="Node3D" parent="." unique_id=556485250 instance=ExtResource("8_vt0q6")]
-transform = Transform3D(7.938539, 0, 21.693077, 0, 23.1, 0, -21.693077, 0, 7.938539, -23.5582, 0.642, -99.54649)
+[node name="Piedra_Mediana_2" parent="." unique_id=556485250 instance=ExtResource("8_vt0q6")]
+transform = Transform3D(3.001747, 0, 24.426249, 0, 24.610000, 0, -24.426249, 0, 3.001747, -28.351822, 0, -95.309654)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb"
 metadata/label = "Piedra_Mediana"
-metadata/scale_2d = 23.1
-metadata/rot_y_deg = 69.9
+metadata/scale_2d = 24.61
+metadata/rot_y_deg = 83.0
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 4.0
@@ -678,22 +655,21 @@ metadata/colHeight = 2.83
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.025
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedra_Mediana_2" unique_id=1266528992]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.04
 height = 0.01
 material = SubResource("StandardMaterial3D_5q4e8")
-
-[node name="Arbol_2" type="Node3D" parent="." unique_id=1772757046 instance=ExtResource("11_jhxel")]
-transform = Transform3D(39.842712, 0, 20.917892, 0, 45, 0, -20.917892, 0, 39.842712, -24.96867, 3.644, -84.8115)
+[node name="Arbol_2" parent="." unique_id=1772757046 instance=ExtResource("11_jhxel")]
+transform = Transform3D(42.08158, 0, 25.432842, 0, 49.17, 0, -25.432842, 0, 42.08158, -24.96867, 0, -84.8115)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 32.23
-metadata/rot_y_deg = 27.7
+metadata/scale_2d = 49.17
+metadata/rot_y_deg = 31.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -701,22 +677,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2" unique_id=1049435931]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_jhxel")
-
-[node name="Arbol_2_2" type="Node3D" parent="." unique_id=686628628 instance=ExtResource("11_jhxel")]
-transform = Transform3D(36.98651, 0, 5.1981153, 0, 37.35, 0, -5.1981153, 0, 36.98651, -3.3242, 4.246, -98.72257)
+[node name="Arbol_2_2" parent="." unique_id=686628628 instance=ExtResource("11_jhxel")]
+transform = Transform3D(27.43912, 0, 23.948092, 0, 36.42, 0, -23.948092, 0, 27.43912, -3.179184, 0, -97.61333)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 37.35
-metadata/rot_y_deg = 8.0
+metadata/scale_2d = 36.42
+metadata/rot_y_deg = 41.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -724,22 +698,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_2" unique_id=1878297649]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_ftivt")
-
-[node name="Piedras_Apiladas_Medianas" type="Node3D" parent="." unique_id=1966907812 instance=ExtResource("12_ftivt")]
-transform = Transform3D(-11.996804, 0, 13.898428, 0, 18.36, 0, -13.898428, 0, -11.996804, -14.168, 0.907, -97.92665)
+[node name="Piedras_Apiladas_Medianas" parent="." unique_id=1966907812 instance=ExtResource("12_ftivt")]
+transform = Transform3D(-15.113160, 0, -12.620955, 0, 19.690000, 0, 12.620955, 0, -15.113160, -10.397056, 0, -91.967550)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 18.36
-metadata/rot_y_deg = 130.8
+metadata/scale_2d = 19.69
+metadata/rot_y_deg = -140.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -747,22 +719,21 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas" unique_id=1781829570]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_iyyeo")
-
-[node name="Piedras_Apiladas_Medianas_2" type="Node3D" parent="." unique_id=513356271 instance=ExtResource("12_ftivt")]
-transform = Transform3D(-13.338646, 0, -18.90873, 0, 23.14, 0, 18.90873, 0, -13.338646, -4.2518, 1.159, -105.435844)
+[node name="Piedras_Apiladas_Medianas_2" parent="." unique_id=513356271 instance=ExtResource("12_ftivt")]
+transform = Transform3D(23.579030, 0, -7.717867, 0, 24.810000, 0, 7.717867, 0, 23.579030, -3.681005, 0, -107.432625)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 23.14
-metadata/rot_y_deg = 234.8
+metadata/scale_2d = 24.81
+metadata/rot_y_deg = -18.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -770,40 +741,37 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_2" unique_id=2009612352]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_8m4tl")
-
-[node name="Piedras_Apiladas_Chiquitas" type="Node3D" parent="." unique_id=579484352 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(-18.212067, 0, 12.054302, 0, 21.84, 0, -12.054302, 0, -18.212067, -6.7956, 0, -104.01088)
+[node name="Piedras_Apiladas_Chiquitas" parent="." unique_id=579484352 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(9.098895, 0, 21.091017, 0, 22.97, 0, -21.091017, 0, 9.098895, -3.649907, 0, -103.034225)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 21.84
-metadata/rot_y_deg = 146.5
+metadata/scale_2d = 22.97
+metadata/rot_y_deg = 66.7
 metadata/editor_only = true
-
-[node name="Piedras_Apiladas_Chiquitas_2" type="Node3D" parent="." unique_id=723137679 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(14.699947, 0, -8.418738, 0, 16.94, 0, 8.418738, 0, 14.699947, -16.9886, 0, -97.714806)
+[node name="Piedras_Apiladas_Chiquitas_2" parent="." unique_id=723137679 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(-4.137704, 0, -16.210253, 0, 16.73, 0, 16.210253, 0, -4.137704, -16.439568, 0, -90.04972)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 16.94
-metadata/rot_y_deg = 330.2
+metadata/scale_2d = 16.73
+metadata/rot_y_deg = -104.3
 metadata/editor_only = true
-
-[node name="Arbol_1_3" type="Node3D" parent="." unique_id=1990903389 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-30.258759, 0, -25.39011, 0, 39.5, 0, 25.39011, 0, -30.258759, -32.8346, 0, -66.18124)
+[node name="Arbol_1_3" parent="." unique_id=1990903389 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-40.85137, 0, 19.437668, 0, 45.24, 0, -19.437668, 0, -40.85137, -32.081146, 0, -65.078415)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 39.5
-metadata/rot_y_deg = 220.0
+metadata/scale_2d = 45.24
+metadata/rot_y_deg = 154.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -818,14 +786,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_ix1tf")
-
-[node name="Arbol_1_4" type="Node3D" parent="." unique_id=932736109 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(14.933748, 0, -35.181694, 0, 38.22, 0, 35.181694, 0, 14.933748, -24.364, 0, -69.64776)
+[node name="Arbol_1_4" parent="." unique_id=932736109 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-42.239902, 0, 0.091265, 0, 42.24, 0, -0.091265, 0, -42.239902, -24.82545, 0, -68.35268)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 38.22
-metadata/rot_y_deg = 293.0
+metadata/scale_2d = 42.24
+metadata/rot_y_deg = 179.9
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -840,14 +807,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_o77ox")
-
-[node name="Arbol_1_5" type="Node3D" parent="." unique_id=1948860176 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(10.718544, 0, 35.72678, 0, 37.3, 0, -35.72678, 0, 10.718544, -25.2766, 0, -74.57714)
+[node name="Arbol_1_5" parent="." unique_id=1948860176 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-34.352806, 0, -17.864017, 0, 38.72, 0, 17.864017, 0, -34.352806, -23.033346, 0, -76.0774)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 37.3
-metadata/rot_y_deg = 73.3
+metadata/scale_2d = 38.72
+metadata/rot_y_deg = -152.5
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -862,14 +828,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_k3tdi")
-
-[node name="Arbol_2_3" type="Node3D" parent="." unique_id=1781074941 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-0.16539374, 0, -31.589567, 0, 31.59, 0, 31.589567, 0, -0.16539374, -17.9228, 3.568, -70.19053)
+[node name="Arbol_2_3" parent="." unique_id=1781074941 instance=ExtResource("11_jhxel")]
+transform = Transform3D(29.507368, 0, 11.139427, 0, 31.54, 0, -11.139427, 0, 29.507368, -17.1362, 0, -70.39526)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 31.59
-metadata/rot_y_deg = 269.7
+metadata/scale_2d = 31.54
+metadata/rot_y_deg = 20.7
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -877,22 +842,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_3" unique_id=1682380658]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_heus8")
-
-[node name="Arbol_2_4" type="Node3D" parent="." unique_id=1700510947 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-17.708344, 0, 30.5485, 0, 35.31, 0, -30.5485, 0, -17.708344, -29.5894, 4.006, -73.88276)
+[node name="Arbol_2_4" parent="." unique_id=1700510947 instance=ExtResource("11_jhxel")]
+transform = Transform3D(33.621452, 0, -9.209643, 0, 34.86, 0, 9.209643, 0, 33.621452, -30.873486, 0, -75.10877)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 35.31
-metadata/rot_y_deg = 120.1
+metadata/scale_2d = 34.86
+metadata/rot_y_deg = -15.3
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -900,22 +863,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_4" unique_id=2072838506]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_j7017")
-
-[node name="Piedra_Mediana_3" type="Node3D" parent="." unique_id=1003745822 instance=ExtResource("8_vt0q6")]
-transform = Transform3D(17.637806, 0, 4.7260356, 0, 18.26, 0, -4.7260356, 0, 17.637806, -34.284, 0.495, -62.146767)
+[node name="Piedra_Mediana_3" parent="." unique_id=1003745822 instance=ExtResource("8_vt0q6")]
+transform = Transform3D(-13.758762, 0, 13.506105, 0, 19.280000, 0, -13.506105, 0, -13.758762, -35.199993, 0, -60.654728)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb"
 metadata/label = "Piedra_Mediana"
-metadata/scale_2d = 18.26
-metadata/rot_y_deg = 15.0
+metadata/scale_2d = 19.28
+metadata/rot_y_deg = 135.5
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 4.0
@@ -923,22 +884,21 @@ metadata/colHeight = 2.83
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.025
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedra_Mediana_3" unique_id=1682467264]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.04
 height = 0.01
 material = SubResource("StandardMaterial3D_v6idg")
-
-[node name="Piedra_Mediana_4" type="Node3D" parent="." unique_id=1188091521 instance=ExtResource("8_vt0q6")]
-transform = Transform3D(-14.576752, 0, 6.9527545, 0, 16.15, 0, -6.9527545, 0, -14.576752, -32.3796, 0.431, -69.43958)
+[node name="Piedra_Mediana_4" parent="." unique_id=1188091521 instance=ExtResource("8_vt0q6")]
+transform = Transform3D(13.613459, 0, 7.199564, 0, 15.400000, 0, -7.199564, 0, 13.613459, -33.389847, 0, -70.303314)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb"
 metadata/label = "Piedra_Mediana"
-metadata/scale_2d = 16.15
-metadata/rot_y_deg = 154.5
+metadata/scale_2d = 15.4
+metadata/rot_y_deg = 27.9
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 4.0
@@ -946,22 +906,21 @@ metadata/colHeight = 2.83
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.025
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedra_Mediana_4" unique_id=914268372]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.04
 height = 0.01
 material = SubResource("StandardMaterial3D_d0ssc")
-
-[node name="Arbol_2_5" type="Node3D" parent="." unique_id=1972290399 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-54.98115, 0, -1.4397323, 0, 55, 0, 1.4397323, 0, -54.98115, 81.51296, 6.068752, -24.573605)
+[node name="Arbol_2_5" parent="." unique_id=1972290399 instance=ExtResource("11_jhxel")]
+transform = Transform3D(36.647163, 0, -42.34366, 0, 56, 0, 42.34366, 0, 36.647163, 81.51296, 0, -24.573605)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 39.82
-metadata/rot_y_deg = 181.5
+metadata/scale_2d = 56.0
+metadata/rot_y_deg = -49.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -969,22 +928,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_5" unique_id=1071749622]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_74oul")
-
-[node name="Arbol_2_6" type="Node3D" parent="." unique_id=833092922 instance=ExtResource("11_jhxel")]
-transform = Transform3D(31.101873, 0, -16.398144, 0, 35.16, 0, 16.398144, 0, 31.101873, 7.1694, 3.988, -50.66901)
+[node name="Arbol_2_6" parent="." unique_id=833092922 instance=ExtResource("11_jhxel")]
+transform = Transform3D(28.767586, 0, -21.241552, 0, 35.76, 0, 21.241552, 0, 28.767586, 10.775817, 0, -50.08859)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 35.16
-metadata/rot_y_deg = 332.2
+metadata/scale_2d = 35.76
+metadata/rot_y_deg = -36.4
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -992,22 +949,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_6" unique_id=821182296]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_avh03")
-
-[node name="Arbol_1_6" type="Node3D" parent="." unique_id=1757010763 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-30.187592, 0, 10.2179365, 0, 31.87, 0, -10.2179365, 0, -30.187592, 8.4532, 0, -62.357483)
+[node name="Arbol_1_6" parent="." unique_id=1757010763 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(33.608418, 0, -0.326247, 0, 33.61, 0, 0.326247, 0, 33.608418, 8.4532, 0, -62.357483)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 31.87
-metadata/rot_y_deg = 161.3
+metadata/scale_2d = 33.61
+metadata/rot_y_deg = -0.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1022,14 +977,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_nor4f")
-
-[node name="Arbol_1_7" type="Node3D" parent="." unique_id=837818984 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(9.531434, 0, 29.865938, 0, 31.35, 0, -29.865938, 0, 9.531434, 4.9504, 0, -51.913235)
+[node name="Arbol_1_7" parent="." unique_id=837818984 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(29.656315, 0, 1.185495, 0, 29.68, 0, -1.185495, 0, 29.656315, 2.948488, 0, -49.67096)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 31.35
-metadata/rot_y_deg = 72.3
+metadata/scale_2d = 29.68
+metadata/rot_y_deg = 2.3
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1044,14 +998,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_0k5aj")
-
-[node name="Piedras_Apiladas_Grandes_3" type="Node3D" parent="." unique_id=357651294 instance=ExtResource("7_fpthl")]
-transform = Transform3D(6.554969, 0, -21.440355, 0, 22.42, 0, 21.440355, 0, 6.554969, 40.874157, 0, -59.486996)
+[node name="Piedras_Apiladas_Grandes_3" parent="." unique_id=357651294 instance=ExtResource("7_fpthl")]
+transform = Transform3D(-0.021508, 0, 23.31999, 0, 23.32, 0, -23.31999, 0, -0.021508, 40.874157, 0, -59.486996)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 22.42
-metadata/rot_y_deg = 287.0
+metadata/scale_2d = 23.32
+metadata/rot_y_deg = 90.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -1066,14 +1019,13 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_of7qu")
-
-[node name="Piedras_Apiladas_Grandes_4" type="Node3D" parent="." unique_id=1252504524 instance=ExtResource("7_fpthl")]
-transform = Transform3D(11.163805, 0, -16.182863, 0, 19.66, 0, 16.182863, 0, 11.163805, 1.2038, 0, -52.997086)
+[node name="Piedras_Apiladas_Grandes_4" parent="." unique_id=1252504524 instance=ExtResource("7_fpthl")]
+transform = Transform3D(21.346058, 0, -1.204247, 0, 21.38, 0, 1.204247, 0, 21.346058, -0.442606, 0, -53.898247)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 19.66
-metadata/rot_y_deg = 304.6
+metadata/scale_2d = 21.38
+metadata/rot_y_deg = -3.2
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -1088,32 +1040,29 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_en7l0")
-
-[node name="Piedras_Apiladas_Chiquitas_3" type="Node3D" parent="." unique_id=1838785372 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(5.3670893, 0, -14.509144, 0, 15.47, 0, 14.509144, 0, 5.3670893, 3.7166, 0, -53.265507)
+[node name="Piedras_Apiladas_Chiquitas_3" parent="." unique_id=1838785372 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(0.850593, 0, -15.646897, 0, 15.67, 0, 15.646897, 0, 0.850593, 3.892529, 0, -55.025444)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 15.47
-metadata/rot_y_deg = 290.3
+metadata/scale_2d = 15.67
+metadata/rot_y_deg = -86.9
 metadata/editor_only = true
-
-[node name="Piedras_Apiladas_Chiquitas_4" type="Node3D" parent="." unique_id=524221521 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(-4.28451, 0, 14.844038, 0, 15.45, 0, -14.844038, 0, -4.28451, 0.505, 0, -65.91112)
+[node name="Piedras_Apiladas_Chiquitas_4" parent="." unique_id=524221521 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(-14.124111, 0, 7.05929, 0, 15.79, 0, -7.05929, 0, -14.124111, 0.505, 0, -65.91112)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 15.45
-metadata/rot_y_deg = 106.1
+metadata/scale_2d = 15.79
+metadata/rot_y_deg = 153.4
 metadata/editor_only = true
-
-[node name="Arbol_1_8" type="Node3D" parent="." unique_id=631942150 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-59.973595, 0, 1.7799765, 0, 60, 0, -1.7799765, 0, -59.973595, 98.48711, 0, -90.90539)
+[node name="Arbol_1_8" parent="." unique_id=631942150 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-55.28969, 0, -8.891023, 0, 56, 0, 8.891023, 0, -55.28969, 98.48711, 0, -90.90539)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 36.9
-metadata/rot_y_deg = 178.3
+metadata/scale_2d = 56.0
+metadata/rot_y_deg = -170.9
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1128,14 +1077,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_qt4wt")
-
-[node name="Arbol_1_9" type="Node3D" parent="." unique_id=525994567 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(86.307625, 0, 25.514605, 0, 90, 0, -25.514605, 0, 86.307625, 60.47666, 0, -68.88234)
+[node name="Arbol_1_9" parent="." unique_id=525994567 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-38.590668, 0, -40.580296, 0, 56, 0, 40.580296, 0, -38.590668, 60.47666, 0, -68.88234)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 37.18
-metadata/rot_y_deg = 359.5
+metadata/scale_2d = 56.0
+metadata/rot_y_deg = -133.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1150,14 +1098,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_88pyn")
-
-[node name="Piedras_Apiladas_Medianas_3" type="Node3D" parent="." unique_id=444832484 instance=ExtResource("12_ftivt")]
-transform = Transform3D(4.1017246, 0, 22.570324, 0, 22.94, 0, -22.570324, 0, 4.1017246, 42.861362, 1.149, -106.89567)
+[node name="Piedras_Apiladas_Medianas_3" parent="." unique_id=444832484 instance=ExtResource("12_ftivt")]
+transform = Transform3D(-23.086332, 0, -7.323227, 0, 24.220000, 0, 7.323227, 0, -23.086332, 42.861362, 0, -106.895670)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 22.94
-metadata/rot_y_deg = 79.7
+metadata/scale_2d = 24.22
+metadata/rot_y_deg = -162.4
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -1165,22 +1112,21 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_3" unique_id=1100966795]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_dynd3")
-
-[node name="Piedras_Apiladas_Medianas_4" type="Node3D" parent="." unique_id=1008507279 instance=ExtResource("12_ftivt")]
-transform = Transform3D(-9.839489, -1.1198015, -21.322538, -2.6584392, 23.359213, 1.1920929e-07, 21.185781, 2.4110878, -9.903006, 22.390406, 1.5384322, -89.1696)
+[node name="Piedras_Apiladas_Medianas_4" parent="." unique_id=1008507279 instance=ExtResource("12_ftivt")]
+transform = Transform3D(-17.198503, 0, 14.815582, 0, 22.700000, 0, -14.815582, 0, -17.198503, 22.390406, 0, -89.169600)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 23.51
-metadata/rot_y_deg = 242.4
+metadata/scale_2d = 22.7
+metadata/rot_y_deg = 139.3
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -1188,22 +1134,21 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_4" unique_id=380509930]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_lbpsg")
-
-[node name="Arbol_1_10" type="Node3D" parent="." unique_id=127639696 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-35.428318, 0, 5.738136, 0, 35.89, 0, -5.738136, 0, -35.428318, -22.0252, 0, 3.6944914)
+[node name="Arbol_1_10" parent="." unique_id=127639696 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(37.485893, 0, -7.140974, 0, 38.16, 0, 7.140974, 0, 37.485893, -20.487463, 0, 4.373787)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 35.89
-metadata/rot_y_deg = 170.8
+metadata/scale_2d = 38.16
+metadata/rot_y_deg = -10.8
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1218,14 +1163,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_py832")
-
-[node name="Arbol_1_11" type="Node3D" parent="." unique_id=211183882 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-36.89332, 0, -11.916211, 0, 38.77, 0, 11.916211, 0, -36.89332, -27.7514, 0, 3.2877636)
+[node name="Arbol_1_11" parent="." unique_id=211183882 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-5.276734, 0, -39.62016, 0, 39.97, 0, 39.62016, 0, -5.276734, -27.95086, 0, 1.748993)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 38.77
-metadata/rot_y_deg = 197.9
+metadata/scale_2d = 39.97
+metadata/rot_y_deg = -97.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1240,14 +1184,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_1vrnl")
-
-[node name="Arbol_1_12" type="Node3D" parent="." unique_id=1230992635 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-34.097984, 0, -13.707298, 0, 36.75, 0, 13.707298, 0, -34.097984, -29.1162, 0, 10.273696)
+[node name="Arbol_1_12" parent="." unique_id=1230992635 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(28.895384, 0, 29.508419, 0, 41.3, 0, -29.508419, 0, 28.895384, -27.199186, 0, 10.863498)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 36.75
-metadata/rot_y_deg = 201.9
+metadata/scale_2d = 41.3
+metadata/rot_y_deg = 45.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1262,14 +1205,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_e6tl1")
-
-[node name="Arbol_2_7" type="Node3D" parent="." unique_id=1956897200 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-13.7745, 0, -28.117239, 0, 31.31, 0, 28.117239, 0, -13.7745, -31.9796, 3.535, 4.643146)
+[node name="Arbol_2_7" parent="." unique_id=1956897200 instance=ExtResource("11_jhxel")]
+transform = Transform3D(31.498938, 0, -6.130662, 0, 32.09, 0, 6.130662, 0, 31.498938, -34.006996, 0, 6.882641)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 31.31
-metadata/rot_y_deg = 243.9
+metadata/scale_2d = 32.09
+metadata/rot_y_deg = -11.0
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1277,22 +1219,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_7" unique_id=749759508]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_o1m11")
-
-[node name="Arbol_2_8" type="Node3D" parent="." unique_id=243394564 instance=ExtResource("11_jhxel")]
-transform = Transform3D(1.658059, 0, -30.615133, 0, 30.66, 0, 30.615133, 0, 1.658059, -21.6474, 3.458, 14.428089)
+[node name="Arbol_2_8" parent="." unique_id=243394564 instance=ExtResource("11_jhxel")]
+transform = Transform3D(-34.648094, 0, 2.786975, 0, 34.76, 0, -2.786975, 0, -34.648094, -20.497017, 0, 15.119121)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 30.66
-metadata/rot_y_deg = 273.1
+metadata/scale_2d = 34.76
+metadata/rot_y_deg = 175.4
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1300,22 +1240,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_8" unique_id=741885275]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_aalm8")
-
-[node name="Piedras_Apiladas_Medianas_5" type="Node3D" parent="." unique_id=311332756 instance=ExtResource("12_ftivt")]
-transform = Transform3D(-14.028914, 0, -12.99092, 0, 19.12, 0, 12.99092, 0, -14.028914, -34.5738, 0.948, -1.8814697)
+[node name="Piedras_Apiladas_Medianas_5" parent="." unique_id=311332756 instance=ExtResource("12_ftivt")]
+transform = Transform3D(18.962946, 0, 5.591031, 0, 19.770000, 0, -5.591031, 0, 18.962946, -34.782013, 0, -2.718540)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 19.12
-metadata/rot_y_deg = 222.8
+metadata/scale_2d = 19.77
+metadata/rot_y_deg = 16.4
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -1323,22 +1261,21 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_5" unique_id=1380697855]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_85hup")
-
-[node name="Piedras_Apiladas_Medianas_6" type="Node3D" parent="." unique_id=1733149776 instance=ExtResource("12_ftivt")]
-transform = Transform3D(12.878552, 0, -15.078853, 0, 19.83, 0, 15.078853, 0, 12.878552, -36.0336, 0.985, 3.6599846)
+[node name="Piedras_Apiladas_Medianas_6" parent="." unique_id=1733149776 instance=ExtResource("12_ftivt")]
+transform = Transform3D(9.541382, 0, 17.292326, 0, 19.750000, 0, -17.292326, 0, 9.541382, -37.679012, 0, 2.897794)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 19.83
-metadata/rot_y_deg = 310.5
+metadata/scale_2d = 19.75
+metadata/rot_y_deg = 61.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -1346,49 +1283,45 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_6" unique_id=1069087770]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_vsbkx")
-
-[node name="Piedras_Apiladas_Chiquitas_5" type="Node3D" parent="." unique_id=1501494450 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(11.057712, 0, 9.852061, 0, 14.81, 0, -9.852061, 0, 11.057712, -33.8376, 0, 3.4249425)
+[node name="Piedras_Apiladas_Chiquitas_5" parent="." unique_id=1501494450 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(-4.672914, 0, 14.442862, 0, 15.18, 0, -14.442862, 0, -4.672914, -33.420662, 0, 1.53298)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 14.81
-metadata/rot_y_deg = 41.7
+metadata/scale_2d = 15.18
+metadata/rot_y_deg = 107.9
 metadata/editor_only = true
-
-[node name="Piedras_Apiladas_Chiquitas_6" type="Node3D" parent="." unique_id=1041805687 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(3.7067306, 0, 17.000591, 0, 17.4, 0, -17.000591, 0, 3.7067306, -31.6598, 0, 11.062544)
+[node name="Piedras_Apiladas_Chiquitas_6" parent="." unique_id=1041805687 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(18.674564, 0, -2.491239, 0, 18.84, 0, 2.491239, 0, 18.674564, -32.497482, 0, 12.126437)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 17.4
-metadata/rot_y_deg = 77.7
+metadata/scale_2d = 18.84
+metadata/rot_y_deg = -7.6
 metadata/editor_only = true
-
-[node name="Piedras_Apiladas_Chiquitas_7" type="Node3D" parent="." unique_id=1677085929 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(12.964928, 0, -6.691693, 0, 14.59, 0, 6.691693, 0, 12.964928, -17.5514, 0, -0.038749453)
+[node name="Piedras_Apiladas_Chiquitas_7" parent="." unique_id=1677085929 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(13.236515, 0, -5.919854, 0, 14.5, 0, 5.919854, 0, 13.236515, -17.442726, 0, -0.196553)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 14.59
-metadata/rot_y_deg = 332.7
+metadata/scale_2d = 14.5
+metadata/rot_y_deg = -24.1
 metadata/editor_only = true
-
-[node name="Arbol_1_13" type="Node3D" parent="." unique_id=1856851983 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(24.191753, 0, 28.627075, 0, 37.48, 0, -28.627075, 0, 24.191753, 27.1044, 0, -1.8127389)
+[node name="Arbol_1_13" parent="." unique_id=1856851983 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-36.00657, 0, -7.600465, 0, 36.8, 0, 7.600465, 0, -36.00657, 28.106102, 0, -0.462982)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 37.48
-metadata/rot_y_deg = 49.8
+metadata/scale_2d = 36.8
+metadata/rot_y_deg = -168.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1403,14 +1336,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_fdg55")
-
-[node name="Arbol_1_14" type="Node3D" parent="." unique_id=961123438 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-33.374126, 0, -6.8507257, 0, 34.07, 0, 6.8507257, 0, -33.374126, 19.4562, 0, -2.90932)
+[node name="Arbol_1_14" parent="." unique_id=961123438 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(29.875961, 0, 20.933641, 0, 36.48, 0, -20.933641, 0, 29.875961, 19.4562, 0, -2.90932)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 34.07
-metadata/rot_y_deg = 191.6
+metadata/scale_2d = 36.48
+metadata/rot_y_deg = 35.0
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1425,14 +1357,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_ck38e")
-
-[node name="Arbol_2_9" type="Node3D" parent="." unique_id=1530808745 instance=ExtResource("11_jhxel")]
-transform = Transform3D(31.07904, 0, 6.4927497, 0, 31.75, 0, -6.4927497, 0, 31.07904, 27.6626, 3.586, -13.278899)
+[node name="Arbol_2_9" parent="." unique_id=1530808745 instance=ExtResource("11_jhxel")]
+transform = Transform3D(32.223866, 0, 4.66648, 0, 32.56, 0, -4.66648, 0, 32.223866, 28.164875, 0, -13.341643)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 31.75
-metadata/rot_y_deg = 11.8
+metadata/scale_2d = 32.56
+metadata/rot_y_deg = 8.2
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1440,22 +1371,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_9" unique_id=1331088202]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_kpil0")
-
-[node name="Piedras_Apiladas_Grandes_5" type="Node3D" parent="." unique_id=517183815 instance=ExtResource("7_fpthl")]
-transform = Transform3D(-21.990784, 0, -1.6149013, 0, 22.05, 0, 1.6149013, 0, -21.990784, 23.0988, 0, -12.107648)
+[node name="Piedras_Apiladas_Grandes_5" parent="." unique_id=517183815 instance=ExtResource("7_fpthl")]
+transform = Transform3D(23.947964, 0, -1.579577, 0, 24, 0, 1.579577, 0, 23.947964, 22.713991, 0, -12.831204)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 22.05
-metadata/rot_y_deg = 184.2
+metadata/scale_2d = 24.0
+metadata/rot_y_deg = -3.8
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -1470,32 +1399,29 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_03v3x")
-
-[node name="Piedras_Apiladas_Chiquitas_8" type="Node3D" parent="." unique_id=1026451574 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(5.5890694, 0, -17.099777, 0, 17.99, 0, 17.099777, 0, 5.5890694, 25.7012, 0, -3.7485144)
+[node name="Piedras_Apiladas_Chiquitas_8" parent="." unique_id=1026451574 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(1.168097, 0, -18.362885, 0, 18.4, 0, 18.362885, 0, 1.168097, 24.907183, 0, -4.831494)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 17.99
-metadata/rot_y_deg = 288.1
+metadata/scale_2d = 18.4
+metadata/rot_y_deg = -86.4
 metadata/editor_only = true
-
-[node name="Piedras_Apiladas_Chiquitas_9" type="Node3D" parent="." unique_id=1884046091 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(-17.023409, 0, 7.5437374, 0, 18.62, 0, -7.5437374, 0, -17.023409, 22.449, 0, -8.941224)
+[node name="Piedras_Apiladas_Chiquitas_9" parent="." unique_id=1884046091 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(19.949907, 0, 1.414643, 0, 20, 0, -1.414643, 0, 19.949907, 22.193804, 0, -8.401845)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 18.62
-metadata/rot_y_deg = 156.1
+metadata/scale_2d = 20.0
+metadata/rot_y_deg = 4.1
 metadata/editor_only = true
-
-[node name="Arbol_2_10" type="Node3D" parent="." unique_id=1405742352 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-31.176617, 0, 20.091957, 0, 37.09, 0, -20.091957, 0, -31.176617, 43.2558, 4.226, -12.138195)
+[node name="Arbol_2_10" parent="." unique_id=1405742352 instance=ExtResource("11_jhxel")]
+transform = Transform3D(38.341034, 0, 14.580998, 0, 41.02, 0, -14.580998, 0, 38.341034, 42.805847, 0, -13.698493)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 37.09
-metadata/rot_y_deg = 147.2
+metadata/scale_2d = 41.02
+metadata/rot_y_deg = 20.8
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1503,22 +1429,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_10" unique_id=1157051610]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_l1avt")
-
-[node name="Arbol_2_11" type="Node3D" parent="." unique_id=1614309273 instance=ExtResource("11_jhxel")]
-transform = Transform3D(14.183505, 0, 32.619827, 0, 35.57, 0, -32.619827, 0, 14.183505, 44.5668, 4.037, -7.592064)
+[node name="Arbol_2_11" parent="." unique_id=1614309273 instance=ExtResource("11_jhxel")]
+transform = Transform3D(-19.651793, 0, 35.01185, 0, 40.15, 0, -35.01185, 0, -19.651793, 44.99986, 0, -6.090352)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 35.57
-metadata/rot_y_deg = 66.5
+metadata/scale_2d = 40.15
+metadata/rot_y_deg = 119.3
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1526,22 +1450,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_11" unique_id=692374621]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_pni2b")
-
-[node name="Arbol_1_15" type="Node3D" parent="." unique_id=2042415632 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-31.43687, 0, 15.8799095, 0, 35.22, 0, -15.8799095, 0, -31.43687, 54.0778, 0, 20.730108)
+[node name="Arbol_1_15" parent="." unique_id=2042415632 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-30.300829, 0, 17.457396, 0, 34.97, 0, -17.457396, 0, -30.300829, 54.649357, 0, 20.125046)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 35.22
-metadata/rot_y_deg = 153.2
+metadata/scale_2d = 34.97
+metadata/rot_y_deg = 150.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1556,14 +1478,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_wg5id")
-
-[node name="Arbol_1_16" type="Node3D" parent="." unique_id=2144818659 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-36.924168, 0, -11.007574, 0, 38.53, 0, 11.007574, 0, -36.924168, 43.8348, 0, 24.008255)
+[node name="Arbol_1_16" parent="." unique_id=2144818659 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(13.511662, 0, 33.71316, 0, 36.32, 0, -33.71316, 0, 13.511662, 41.91784, 0, 23.694342)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 38.53
-metadata/rot_y_deg = 196.6
+metadata/scale_2d = 36.32
+metadata/rot_y_deg = 68.2
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1578,14 +1499,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_noa82")
-
-[node name="Arbol_2_12" type="Node3D" parent="." unique_id=639646849 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-11.202385, 0, 33.675613, 0, 35.49, 0, -33.675613, 0, -11.202385, 46.7484, 4.027, 16.53244)
+[node name="Arbol_2_12" parent="." unique_id=639646849 instance=ExtResource("11_jhxel")]
+transform = Transform3D(38.882626, 0, 3.718219, 0, 39.06, 0, -3.718219, 0, 38.882626, 47.09441, 0, 15.078778)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 35.49
-metadata/rot_y_deg = 108.4
+metadata/scale_2d = 39.06
+metadata/rot_y_deg = 5.5
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1593,22 +1513,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_12" unique_id=921866450]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_b8vcx")
-
-[node name="Arbol_2_13" type="Node3D" parent="." unique_id=2050401012 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-32.32899, 0, -15.837811, 0, 36, 0, 15.837811, 0, -32.32899, 48.1656, 4.087, 25.003578)
+[node name="Arbol_2_13" parent="." unique_id=2050401012 instance=ExtResource("11_jhxel")]
+transform = Transform3D(-35.995556, 0, 7.982294, 0, 36.87, 0, -7.982294, 0, -35.995556, 49.4326, 0, 26.135654)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 36.0
-metadata/rot_y_deg = 206.1
+metadata/scale_2d = 36.87
+metadata/rot_y_deg = 167.5
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1616,22 +1534,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_13" unique_id=355346444]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_pfh02")
-
-[node name="Piedras_Apiladas_Medianas_7" type="Node3D" parent="." unique_id=528839130 instance=ExtResource("12_ftivt")]
-transform = Transform3D(21.928846, 0, -4.901687, 0, 22.47, 0, 4.901687, 0, 21.928846, 42.8344, 1.124, 18.389585)
+[node name="Piedras_Apiladas_Medianas_7" parent="." unique_id=528839130 instance=ExtResource("12_ftivt")]
+transform = Transform3D(-23.680218, 0, 4.939981, 0, 24.190000, 0, -4.939981, 0, -23.680218, 42.622074, 0, 18.254760)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 22.47
-metadata/rot_y_deg = 347.4
+metadata/scale_2d = 24.19
+metadata/rot_y_deg = 168.2
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -1639,22 +1555,21 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_7" unique_id=1342372205]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_ht085")
-
-[node name="Piedras_Apiladas_Medianas_8" type="Node3D" parent="." unique_id=1538310166 instance=ExtResource("12_ftivt")]
-transform = Transform3D(5.2871394, 0, -20.59208, 0, 21.26, 0, 20.59208, 0, 5.2871394, 46.6158, 1.061, 19.225101)
+[node name="Piedras_Apiladas_Medianas_8" parent="." unique_id=1538310166 instance=ExtResource("12_ftivt")]
+transform = Transform3D(20.225134, 0, -2.665329, 0, 20.400000, 0, 2.665329, 0, 20.225134, 46.529716, 0, 20.483948)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 21.26
-metadata/rot_y_deg = 284.4
+metadata/scale_2d = 20.4
+metadata/rot_y_deg = -7.5
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -1662,22 +1577,21 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_8" unique_id=452626913]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_iw8kk")
-
-[node name="Piedras_Apiladas_Grandes_6" type="Node3D" parent="." unique_id=409890651 instance=ExtResource("7_fpthl")]
-transform = Transform3D(-3.4300447, 0, 25.36917, 0, 25.6, 0, -25.36917, 0, -3.4300447, 7.881, 0, 38.865135)
+[node name="Piedras_Apiladas_Grandes_6" parent="." unique_id=409890651 instance=ExtResource("7_fpthl")]
+transform = Transform3D(2.708912, 0, -26.089743, 0, 26.23, 0, 26.089743, 0, 2.708912, 7.737086, 0, 38.22664)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 25.6
-metadata/rot_y_deg = 97.7
+metadata/scale_2d = 26.23
+metadata/rot_y_deg = -84.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -1692,14 +1606,13 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_6i642")
-
-[node name="Piedras_Apiladas_Grandes_7" type="Node3D" parent="." unique_id=164708401 instance=ExtResource("7_fpthl")]
-transform = Transform3D(20.569359, 0, 11.590238, 0, 23.61, 0, -11.590238, 0, 20.569359, 5.0538, 0, 45.10521)
+[node name="Piedras_Apiladas_Grandes_7" parent="." unique_id=164708401 instance=ExtResource("7_fpthl")]
+transform = Transform3D(-20.594793, 0, -14.312963, 0, 25.08, 0, 14.312963, 0, -20.594793, 4.537882, 0, 46.100464)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 23.61
-metadata/rot_y_deg = 29.4
+metadata/scale_2d = 25.08
+metadata/rot_y_deg = -145.2
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -1714,32 +1627,29 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_4er1e")
-
-[node name="Piedras_Apiladas_Chiquitas_10" type="Node3D" parent="." unique_id=1430414976 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(15.077042, 0, 7.9828825, 0, 17.06, 0, -7.9828825, 0, 15.077042, 9.1488, 0, 40.822124)
+[node name="Piedras_Apiladas_Chiquitas_10" parent="." unique_id=1430414976 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(14.733648, 0, -9.180916, 0, 17.36, 0, 9.180916, 0, 14.733648, 11.373228, 0, 40.790638)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 17.06
-metadata/rot_y_deg = 27.9
+metadata/scale_2d = 17.36
+metadata/rot_y_deg = -31.9
 metadata/editor_only = true
-
-[node name="Piedras_Apiladas_Chiquitas_11" type="Node3D" parent="." unique_id=1715763386 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(6.832126, 0, 14.854109, 0, 16.35, 0, -14.854109, 0, 6.832126, 6.7596, 0, 41.83781)
+[node name="Piedras_Apiladas_Chiquitas_11" parent="." unique_id=1715763386 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(-15.469676, 0, -1.367492, 0, 15.53, 0, 1.367492, 0, -15.469676, 7.374444, 0, 42.67731)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 16.35
-metadata/rot_y_deg = 65.3
+metadata/scale_2d = 15.53
+metadata/rot_y_deg = -174.9
 metadata/editor_only = true
-
-[node name="Arbol_1_17" type="Node3D" parent="." unique_id=1108255893 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(20.981543, 0, -25.910048, 0, 33.34, 0, 25.910048, 0, 20.981543, 4.4816, 0, 36.4539)
+[node name="Arbol_1_17" parent="." unique_id=1108255893 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-31.988314, 0, 14.521179, 0, 35.13, 0, -14.521179, 0, -31.988314, 4.710786, 0, 33.685307)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 33.34
-metadata/rot_y_deg = 309.0
+metadata/scale_2d = 35.13
+metadata/rot_y_deg = 155.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1754,14 +1664,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_prbmd")
-
-[node name="Arbol_1_18" type="Node3D" parent="." unique_id=493996228 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(3.5551476, 0, -34.999905, 0, 35.18, 0, 34.999905, 0, 3.5551476, 4.4564, 0, 39.665863)
+[node name="Arbol_1_18" parent="." unique_id=493996228 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-8.972509, 0, 31.79836, 0, 33.04, 0, -31.79836, 0, -8.972509, 2.169584, 0, 41.150337)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 35.18
-metadata/rot_y_deg = 275.8
+metadata/scale_2d = 33.04
+metadata/rot_y_deg = 105.8
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1776,14 +1685,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_ot1ah")
-
-[node name="Arbol_2_14" type="Node3D" parent="." unique_id=138373093 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-24.408249, 0, 24.06981, 0, 34.28, 0, -24.06981, 0, -24.408249, 38.0728, 3.885, 60.155552)
+[node name="Arbol_2_14" parent="." unique_id=138373093 instance=ExtResource("11_jhxel")]
+transform = Transform3D(24.257805, 0, 23.089804, 0, 33.49, 0, -23.089804, 0, 24.257805, 39.585884, 0, 61.13598)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 34.28
-metadata/rot_y_deg = 135.4
+metadata/scale_2d = 33.49
+metadata/rot_y_deg = 43.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1791,22 +1699,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_14" unique_id=1187030890]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_448y4")
-
-[node name="Arbol_2_15" type="Node3D" parent="." unique_id=2083516417 instance=ExtResource("11_jhxel")]
-transform = Transform3D(28.244658, 0, 23.449167, 0, 36.71, 0, -23.449167, 0, 28.244658, 38.9104, 4.17, 54.823402)
+[node name="Arbol_2_15" parent="." unique_id=2083516417 instance=ExtResource("11_jhxel")]
+transform = Transform3D(-38.621693, 0, 10.861828, 0, 40.12, 0, -10.861828, 0, -38.621693, 39.045315, 0, 53.138702)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 36.71
-metadata/rot_y_deg = 39.7
+metadata/scale_2d = 40.12
+metadata/rot_y_deg = 164.3
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1814,22 +1720,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_15" unique_id=1406150418]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_n87ae")
-
-[node name="Arbol_2_16" type="Node3D" parent="." unique_id=1976267248 instance=ExtResource("11_jhxel")]
-transform = Transform3D(35.94938, 0, 12.589293, 0, 38.09, 0, -12.589293, 0, 35.94938, 34.7766, 4.361, 59.912876)
+[node name="Arbol_2_16" parent="." unique_id=1976267248 instance=ExtResource("11_jhxel")]
+transform = Transform3D(26.968824, 0, 30.748861, 0, 40.9, 0, -30.748861, 0, 26.968824, 32.482243, 0, 57.634632)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 38.09
-metadata/rot_y_deg = 19.3
+metadata/scale_2d = 40.9
+metadata/rot_y_deg = 48.7
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1837,22 +1741,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_16" unique_id=969887375]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_mht0h")
-
-[node name="Arbol_1_19" type="Node3D" parent="." unique_id=166670733 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(0.9059858, 0, 34.59814, 0, 34.61, 0, -34.59814, 0, 0.9059858, 45.426, 0, 55.038364)
+[node name="Arbol_1_19" parent="." unique_id=166670733 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(12.836093, 0, -30.477198, 0, 33.07, 0, 30.477198, 0, 12.836093, 47.794987, 0, 54.587585)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 34.61
-metadata/rot_y_deg = 88.5
+metadata/scale_2d = 33.07
+metadata/rot_y_deg = -67.2
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1867,14 +1769,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_in3bq")
-
-[node name="Arbol_1_20" type="Node3D" parent="." unique_id=628784309 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(4.7638054, 0, -33.05853, 0, 33.4, 0, 33.05853, 0, 4.7638054, 33.3298, 0, 62.715565)
+[node name="Arbol_1_20" parent="." unique_id=628784309 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-4.309326, 0, 34.945297, 0, 35.21, 0, -34.945297, 0, -4.309326, 32.940823, 0, 65.50792)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 33.4
-metadata/rot_y_deg = 278.2
+metadata/scale_2d = 35.21
+metadata/rot_y_deg = 97.0
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1889,14 +1790,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_aq6ie")
-
-[node name="Piedra_Mediana_5" type="Node3D" parent="." unique_id=1642652472 instance=ExtResource("8_vt0q6")]
-transform = Transform3D(14.838995, 0, -16.024664, 0, 21.84, 0, 16.024664, 0, 14.838995, 41.9066, 0.604, 54.703194)
+[node name="Piedra_Mediana_5" parent="." unique_id=1642652472 instance=ExtResource("8_vt0q6")]
+transform = Transform3D(-21.262823, 0, 6.918229, 0, 22.360000, 0, -6.918229, 0, -21.262823, 42.897427, 0, 56.820034)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb"
 metadata/label = "Piedra_Mediana"
-metadata/scale_2d = 21.84
-metadata/rot_y_deg = 312.8
+metadata/scale_2d = 22.36
+metadata/rot_y_deg = 162.0
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 4.0
@@ -1904,22 +1804,21 @@ metadata/colHeight = 2.83
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.025
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedra_Mediana_5" unique_id=1706461195]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.04
 height = 0.01
 material = SubResource("StandardMaterial3D_srfw5")
-
-[node name="Piedra_Mediana_6" type="Node3D" parent="." unique_id=786847457 instance=ExtResource("8_vt0q6")]
-transform = Transform3D(1.128151, 0, 20.178486, 0, 20.21, 0, -20.178486, 0, 1.128151, 36.4626, 0.582, 51.933598)
+[node name="Piedra_Mediana_6" parent="." unique_id=786847457 instance=ExtResource("8_vt0q6")]
+transform = Transform3D(3.617328, 0, 19.273480, 0, 19.610000, 0, -19.273480, 0, 3.617328, 34.391403, 0, 50.442253)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb"
 metadata/label = "Piedra_Mediana"
-metadata/scale_2d = 20.21
-metadata/rot_y_deg = 86.8
+metadata/scale_2d = 19.61
+metadata/rot_y_deg = 79.4
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 4.0
@@ -1927,22 +1826,21 @@ metadata/colHeight = 2.83
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.025
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedra_Mediana_6" unique_id=1227165172]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.04
 height = 0.01
 material = SubResource("StandardMaterial3D_asj5f")
-
-[node name="Arbol_1_21" type="Node3D" parent="." unique_id=1110254518 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(10.267287, 0, -37.530933, 0, 38.91, 0, 37.530933, 0, 10.267287, -25.19, 0, 70.1761)
+[node name="Arbol_1_21" parent="." unique_id=1110254518 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(32.167244, 0, 19.833117, 0, 37.79, 0, -19.833117, 0, 32.167244, -25.793179, 0, 71.42465)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 38.91
-metadata/rot_y_deg = 285.3
+metadata/scale_2d = 37.79
+metadata/rot_y_deg = 31.7
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1957,14 +1855,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_ncdok")
-
-[node name="Arbol_1_22" type="Node3D" parent="." unique_id=1308691696 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-27.421124, 0, -28.694565, 0, 39.69, 0, 28.694565, 0, -27.421124, -15.5802, 0, 73.1072)
+[node name="Arbol_1_22" parent="." unique_id=1308691696 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-32.202866, 0, 31.803192, 0, 45.26, 0, -31.803192, 0, -32.202866, -15.5802, 0, 73.1072)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 39.69
-metadata/rot_y_deg = 226.3
+metadata/scale_2d = 45.26
+metadata/rot_y_deg = 135.4
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -1979,14 +1876,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_c4dqq")
-
-[node name="Arbol_2_17" type="Node3D" parent="." unique_id=909732373 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-27.103369, 0, -19.909405, 0, 33.63, 0, 19.909405, 0, -27.103369, -9.3912, 3.808, 63.069115)
+[node name="Arbol_2_17" parent="." unique_id=909732373 instance=ExtResource("11_jhxel")]
+transform = Transform3D(-30.051222, 0, -17.628096, 0, 34.84, 0, 17.628096, 0, -30.051222, -9.3912, 0, 63.069115)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 33.63
-metadata/rot_y_deg = 216.3
+metadata/scale_2d = 34.84
+metadata/rot_y_deg = -149.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -1994,22 +1890,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_17" unique_id=65345024]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_psqwn")
-
-[node name="Arbol_2_18" type="Node3D" parent="." unique_id=1888268859 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-9.429902, 0, -32.457924, 0, 33.8, 0, 32.457924, 0, -9.429902, -25.834, 3.828, 61.017376)
+[node name="Arbol_2_18" parent="." unique_id=1888268859 instance=ExtResource("11_jhxel")]
+transform = Transform3D(-33.310375, 0, 14.400796, 0, 36.29, 0, -14.400796, 0, -33.310375, -25.922731, 0, 61.033047)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 33.8
-metadata/rot_y_deg = 253.8
+metadata/scale_2d = 36.29
+metadata/rot_y_deg = 156.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -2017,22 +1911,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_18" unique_id=1614830926]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_sri2u")
-
-[node name="Piedras_Apiladas_Medianas_9" type="Node3D" parent="." unique_id=309743272 instance=ExtResource("12_ftivt")]
-transform = Transform3D(12.762606, 0, 18.639313, 0, 22.59, 0, -18.639313, 0, 12.762606, -20.5964, 1.13, 60.09248)
+[node name="Piedras_Apiladas_Medianas_9" parent="." unique_id=309743272 instance=ExtResource("12_ftivt")]
+transform = Transform3D(-5.122102, 0, 24.019943, 0, 24.560000, 0, -24.019943, 0, -5.122102, -20.511002, 0, 60.077400)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 22.59
-metadata/rot_y_deg = 55.6
+metadata/scale_2d = 24.56
+metadata/rot_y_deg = 102.0
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -2040,22 +1932,21 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_9" unique_id=1474938151]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_ie3e8")
-
-[node name="Piedras_Apiladas_Medianas_10" type="Node3D" parent="." unique_id=973339828 instance=ExtResource("12_ftivt")]
-transform = Transform3D(7.5169525, 0, -18.889263, 0, 20.33, 0, 18.889263, 0, 7.5169525, -19.5848, 1.011, 69.05944)
+[node name="Piedras_Apiladas_Medianas_10" parent="." unique_id=973339828 instance=ExtResource("12_ftivt")]
+transform = Transform3D(7.089830, 0, -19.309563, 0, 20.570000, 0, 19.309563, 0, 7.089830, -19.584800, 0, 69.059440)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Medianas.glb"
 metadata/label = "Piedras_Apiladas_Medianas"
-metadata/scale_2d = 20.33
-metadata/rot_y_deg = 291.7
+metadata/scale_2d = 20.57
+metadata/rot_y_deg = -69.8
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 5.0
@@ -2063,40 +1954,37 @@ metadata/colHeight = 3.54
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.045
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedras_Apiladas_Medianas_10" unique_id=1820955714]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.045, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.05
 height = 0.01
 material = SubResource("StandardMaterial3D_gvadi")
-
-[node name="Piedras_Apiladas_Chiquitas_12" type="Node3D" parent="." unique_id=483606081 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(18.367203, 0, 0.32060072, 0, 18.37, 0, -0.32060072, 0, 18.367203, -13.833, 0, 57.867073)
+[node name="Piedras_Apiladas_Chiquitas_12" parent="." unique_id=483606081 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(-6.728501, 0, 17.640343, 0, 18.88, 0, -17.640343, 0, -6.728501, -13.833, 0, 57.867073)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 18.37
-metadata/rot_y_deg = 1.0
+metadata/scale_2d = 18.88
+metadata/rot_y_deg = 110.9
 metadata/editor_only = true
-
-[node name="Piedras_Apiladas_Chiquitas_13" type="Node3D" parent="." unique_id=13699161 instance=ExtResource("13_iyyeo")]
-transform = Transform3D(-5.916694, 0, -17.581104, 0, 18.55, 0, 17.581104, 0, -5.916694, -24.0116, 0, 67.73687)
+[node name="Piedras_Apiladas_Chiquitas_13" parent="." unique_id=13699161 instance=ExtResource("13_iyyeo")]
+transform = Transform3D(-5.804595, 0, -16.678797, 0, 17.66, 0, 16.678797, 0, -5.804595, -23.431068, 0, 66.5352)
 metadata/obj_type = "decor"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Chiquitas.glb"
 metadata/label = "Piedras_Apiladas_Chiquitas"
-metadata/scale_2d = 18.55
-metadata/rot_y_deg = 251.4
+metadata/scale_2d = 17.66
+metadata/rot_y_deg = -109.2
 metadata/editor_only = true
-
-[node name="Arbol_1_23" type="Node3D" parent="." unique_id=23675741 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(40.532154, 0, 1.2029662, 0, 40.55, 0, -1.2029662, 0, 40.532154, 20.8074, 0, 128.04459)
+[node name="Arbol_1_23" parent="." unique_id=23675741 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-29.165821, 0, 24.82428, 0, 38.3, 0, -24.82428, 0, -29.165821, 22.828453, 0, 124.947266)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 40.55
-metadata/rot_y_deg = 1.7
+metadata/scale_2d = 38.3
+metadata/rot_y_deg = 139.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -2111,14 +1999,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_60urx")
-
-[node name="Arbol_1_24" type="Node3D" parent="." unique_id=1724972921 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(-27.79352, 0, 21.403896, 0, 35.08, 0, -21.403896, 0, -27.79352, 14.5174, 0, 127.82256)
+[node name="Arbol_1_24" parent="." unique_id=1724972921 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(18.71581, 0, -26.802135, 0, 32.69, 0, 26.802135, 0, 18.71581, 11.817067, 0, 128.06564)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 35.08
-metadata/rot_y_deg = 142.4
+metadata/scale_2d = 32.69
+metadata/rot_y_deg = -55.1
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -2133,14 +2020,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_bx0ht")
-
-[node name="Arbol_1_25" type="Node3D" parent="." unique_id=294726252 instance=ExtResource("5_g2dmw")]
-transform = Transform3D(26.57701, 0, -24.268145, 0, 35.99, 0, 24.268145, 0, 26.57701, 27.8048, 0, 127.35672)
+[node name="Arbol_1_25" parent="." unique_id=294726252 instance=ExtResource("5_g2dmw")]
+transform = Transform3D(-4.41224, 0, 35.768894, 0, 36.04, 0, -35.768894, 0, -4.41224, 30.115349, 0, 127.98774)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_1.glb"
 metadata/label = "Arbol_1"
-metadata/scale_2d = 35.99
-metadata/rot_y_deg = 317.6
+metadata/scale_2d = 36.04
+metadata/rot_y_deg = 97.0
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.4
@@ -2155,14 +2041,13 @@ metadata/colH = 0.01
 radius = 0.024
 height = 0.01
 material = SubResource("StandardMaterial3D_u8qp6")
-
-[node name="Arbol_2_19" type="Node3D" parent="." unique_id=1830429351 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-10.767611, 0, 35.440376, 0, 37.04, 0, -35.440376, 0, -10.767611, 15.5066, 4.249, 134.11214)
+[node name="Arbol_2_19" parent="." unique_id=1830429351 instance=ExtResource("11_jhxel")]
+transform = Transform3D(34.226967, 0, 2.237128, 0, 34.3, 0, -2.237128, 0, 34.226967, 12.470187, 0, 136)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 37.04
-metadata/rot_y_deg = 106.9
+metadata/scale_2d = 34.3
+metadata/rot_y_deg = 3.7
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -2170,22 +2055,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_19" unique_id=878822537]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_x3von")
-
-[node name="Arbol_2_20" type="Node3D" parent="." unique_id=47918848 instance=ExtResource("11_jhxel")]
-transform = Transform3D(-9.2077675, 0, -32.324127, 0, 33.61, 0, 32.324127, 0, -9.2077675, 18.2144, 3.806, 130.31836)
+[node name="Arbol_2_20" parent="." unique_id=47918848 instance=ExtResource("11_jhxel")]
+transform = Transform3D(11.067728, 0, -31.56593, 0, 33.45, 0, 31.56593, 0, 11.067728, 19.02744, 0, 131.74753)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Arbol_2.glb"
 metadata/label = "Arbol_2"
-metadata/scale_2d = 33.61
-metadata/rot_y_deg = 254.1
+metadata/scale_2d = 33.45
+metadata/rot_y_deg = -70.7
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 2.6
@@ -2193,22 +2076,20 @@ metadata/colHeight = 1.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 metadata/colRot = 0.0
-metadata/colY = -0.11
+metadata/colY = 0.0
 metadata/colH = 0.01
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Arbol_2_20" unique_id=90916802]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
 radius = 0.026
 height = 0.01
 material = SubResource("StandardMaterial3D_65stu")
-
-[node name="Piedras_Apiladas_Grandes_8" type="Node3D" parent="." unique_id=1629116647 instance=ExtResource("7_fpthl")]
-transform = Transform3D(-5.414247, 0, -19.523153, 0, 20.26, 0, 19.523153, 0, -5.414247, 15.7864, 0, 125.66617)
+[node name="Piedras_Apiladas_Grandes_8" parent="." unique_id=1629116647 instance=ExtResource("7_fpthl")]
+transform = Transform3D(9.021637, 0, -17.422815, 0, 19.62, 0, 17.422815, 0, 9.021637, 16.756817, 0, 125.94384)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 20.26
-metadata/rot_y_deg = 254.5
+metadata/scale_2d = 19.62
+metadata/rot_y_deg = -62.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -2223,14 +2104,13 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_5ted4")
-
-[node name="Piedras_Apiladas_Grandes_9" type="Node3D" parent="." unique_id=1972644572 instance=ExtResource("7_fpthl")]
-transform = Transform3D(13.058714, 0, 17.455944, 0, 21.8, 0, -17.455944, 0, 13.058714, 18.8416, 0, 124.515564)
+[node name="Piedras_Apiladas_Grandes_9" parent="." unique_id=1972644572 instance=ExtResource("7_fpthl")]
+transform = Transform3D(-21.420835, 0, 7.141721, 0, 22.58, 0, -7.141721, 0, -21.420835, 18.397968, 0, 121.85197)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedras_Apiladas_Grandes.glb"
 metadata/label = "Piedras_Apiladas_Grandes"
-metadata/scale_2d = 21.8
-metadata/rot_y_deg = 53.2
+metadata/scale_2d = 22.58
+metadata/rot_y_deg = 161.6
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 6.0
@@ -2245,26 +2125,25 @@ metadata/colH = 0.01
 radius = 0.06
 height = 0.01
 material = SubResource("StandardMaterial3D_1wa40")
-
-[node name="Piedra_Mediana2" type="Node3D" parent="." unique_id=2143928761 instance=ExtResource("8_vt0q6")]
-transform = Transform3D(51.20428, 0, 85.89599, 0, 100, 0, -85.89599, 0, 51.20428, 95.6556, 0.03, -66.85864)
+[node name="Piedra_Mediana2" parent="." unique_id=2143928761 instance=ExtResource("8_vt0q6")]
+transform = Transform3D(-32.927273, 0, 91.569820, 0, 97.310000, 0, -91.569820, 0, -32.927273, 95.655600, 0, -66.858640)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb"
 metadata/label = "Piedra_Mediana2"
-metadata/scale_2d = 100.0
-metadata/rot_y_deg = 59.2
+metadata/scale_2d = 97.31
+metadata/rot_y_deg = 109.8
 metadata/editor_only = true
 metadata/colType = "circle"
 metadata/colWidth = 4.0
 metadata/colHeight = 2.83
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
-metadata/colY = -0.025
+metadata/colY = 0.0
 metadata/colH = 0.01
 metadata/colRot = 0.0
 
 [node name="ColliderCircle1" type="CSGCylinder3D" parent="Piedra_Mediana2" unique_id=783907131]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 radius = 0.04
 height = 0.01
 material = SubResource("StandardMaterial3D_0agmj")
