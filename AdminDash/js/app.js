@@ -783,9 +783,46 @@ function logout() {
 
 function addAmmoMechanic(type, idx) {
     if (!config.shopItems.ammo[type][idx].mechanics) config.shopItems.ammo[type][idx].mechanics = [];
-    config.shopItems.ammo[type][idx].mechanics.push({ type: "bleed", damagePerSecond: 5, duration: 3000 });
+    config.shopItems.ammo[type][idx].mechanics.push({ type: "slow", duration: 2000, amount: 50 });
     renderAmmo();
 }
+
+function updateAmmoMechanicType(ammoType, ammoIdx, mechIdx, newType) {
+    if (!config.shopItems.ammo[ammoType] || !config.shopItems.ammo[ammoType][ammoIdx] || !config.shopItems.ammo[ammoType][ammoIdx].mechanics) return;
+    const mech = config.shopItems.ammo[ammoType][ammoIdx].mechanics[mechIdx];
+    if (!mech) return;
+    mech.type = newType;
+    if (newType === 'slow') {
+        if (mech.duration === undefined) mech.duration = 2000;
+        if (mech.amount === undefined) mech.amount = 50;
+    } else if (newType === 'silence') {
+        if (mech.duration === undefined) mech.duration = 2000;
+    } else if (newType === 'bleed') {
+        if (mech.damagePerSecond === undefined) mech.damagePerSecond = 10;
+        if (mech.duration === undefined) mech.duration = 3000;
+    } else if (newType === 'poison') {
+        if (mech.damagePerSecond === undefined) mech.damagePerSecond = 10;
+        if (mech.duration === undefined) mech.duration = 3000;
+    } else if (newType === 'stun') {
+        if (mech.duration === undefined) mech.duration = 1000;
+        if (mech.chance === undefined) mech.chance = 100;
+    } else if (newType === 'heal') {
+        if (mech.healPctPvE === undefined) mech.healPctPvE = 40;
+        if (mech.healPctVictimPvP === undefined) mech.healPctVictimPvP = 80;
+        if (mech.healPctAttackerPvP === undefined) mech.healPctAttackerPvP = 30;
+    } else if (newType === 'siphon') {
+        if (mech.siphonPct === undefined) mech.siphonPct = 25;
+    } else if (newType === 'speed_buff') {
+        if (mech.speedBuffPct === undefined) mech.speedBuffPct = 15;
+        if (mech.speedBuffDurationMs === undefined) mech.speedBuffDurationMs = 3000;
+        if (mech.speedBuffMaxStacks === undefined) mech.speedBuffMaxStacks = 4;
+    } else if (newType === 'area') {
+        if (mech.damagePerSecond === undefined) mech.damagePerSecond = 50;
+        if (mech.radius === undefined) mech.radius = 120;
+    }
+    renderAmmo();
+}
+
 
 function addMovementPhase(id) {
     if (!config.enemyModels[id].movementPhases) config.enemyModels[id].movementPhases = [];

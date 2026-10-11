@@ -102,11 +102,11 @@ function renderAmmo() {
         'laser': '🔦 <strong>Láser:</strong> Proyectil estándar directo. Daño enfocado a distancia media/larga.',
         'mine': '💣 <strong>Mina:</strong> Munición explosiva de proximidad. Ideal para control de zonas o defensa.',
         'missile': '🚀 <strong>Misil:</strong> Misil teledirigido de largo alcance con gran capacidad destructiva.',
-        'melee': '👊 <strong>Melee (Tanque):</strong> Ataque cuerpo a cuerpo de muy corto alcance. Ralentiza (paraliza) al enemigo al impactar.',
-        'heal': '💚 <strong>Curativa:</strong> Restaura HP y Escudo al propio jugador en PvE. En PvP, cura al aliado impactado y una porción a vos.',
-        'siphon': '🧛 <strong>Vampírica (Sifón):</strong> Inflige daño al enemigo y te cura un porcentaje del daño causado.',
-        'emp': '⚡ <strong>Pulso EMP:</strong> Silencia habilidades y mecánicas de la IA del enemigo o silencia a jugadores en PvP.',
-        'electron': '⚛️ <strong>Electrón:</strong> Lanza una bomba de energía en parábola que explota en área al caer. Si golpea enemigos, te otorga velocidad de movimiento acumulable.'
+        'melee': '👊 <strong>Melee (Tanque):</strong> Ataque cuerpo a cuerpo de muy corto alcance. Podés configurarle efectos de impacto abajo.',
+        'heal': '💚 <strong>Curativa:</strong> Podés configurarle el efecto de Curación como efecto de impacto abajo.',
+        'siphon': '🧛 <strong>Vampírica:</strong> Podés configurarle el efecto de Robo de Vida como efecto de impacto abajo.',
+        'emp': '⚡ <strong>Pulso EMP:</strong> Proyectil electromagnético. Podés configurarle efectos de impacto abajo.',
+        'electron': '⚛️ <strong>Electrón:</strong> Lanza una bomba de energía en parábola que explota en área. Podés configurarle el aumento de velocidad u otros efectos de impacto abajo.'
     };
 
     const descDiv = document.createElement('div');
@@ -138,42 +138,11 @@ function renderAmmo() {
             : `<div style="width:64px; height:64px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.6rem; text-align:center; padding:2px;">Sin Ícono</div>`;
 
         let extraFieldsHTML = '';
-        if (type === 'emp') {
+        if (type === 'electron') {
             extraFieldsHTML = `
                 <div class="field full" style="margin-top: 1rem;">
-                    <label>Duración del Silencio (ms)</label>
-                    <input type="number" value="${item.silenceDurationMs !== undefined ? item.silenceDurationMs : 3000}" onchange="config.shopItems.ammo['${type}'][${i}].silenceDurationMs = parseInt(this.value)">
-                </div>
-            `;
-        } else if (type === 'heal') {
-            extraFieldsHTML = `
-                <div class="form-grid" style="margin-top: 1rem; grid-template-columns: 1fr 1fr 1fr;">
-                    <div class="field"><label>Curación PvE (%)</label><input type="number" value="${item.healPctPvE !== undefined ? item.healPctPvE : 40}" onchange="config.shopItems.ammo['${type}'][${i}].healPctPvE = parseInt(this.value)"></div>
-                    <div class="field"><label>Curación Aliado PvP (%)</label><input type="number" value="${item.healPctVictimPvP !== undefined ? item.healPctVictimPvP : 80}" onchange="config.shopItems.ammo['${type}'][${i}].healPctVictimPvP = parseInt(this.value)"></div>
-                    <div class="field"><label>Cura Propia PvP (%)</label><input type="number" value="${item.healPctAttackerPvP !== undefined ? item.healPctAttackerPvP : 30}" onchange="config.shopItems.ammo['${type}'][${i}].healPctAttackerPvP = parseInt(this.value)"></div>
-                </div>
-            `;
-        } else if (type === 'siphon') {
-            extraFieldsHTML = `
-                <div class="field full" style="margin-top: 1rem;">
-                    <label>Eficacia de Sifón / Robo de Vida (%)</label>
-                    <input type="number" value="${item.siphonPct !== undefined ? item.siphonPct : 25}" onchange="config.shopItems.ammo['${type}'][${i}].siphonPct = parseInt(this.value)">
-                </div>
-            `;
-        } else if (type === 'melee') {
-            extraFieldsHTML = `
-                <div class="form-grid" style="margin-top: 1rem; grid-template-columns: 1fr 1fr;">
-                    <div class="field"><label>Duración Slow (ms)</label><input type="number" value="${item.slowDurationMs !== undefined ? item.slowDurationMs : 1000}" onchange="config.shopItems.ammo['${type}'][${i}].slowDurationMs = parseInt(this.value)"></div>
-                    <div class="field"><label>Cantidad Ralentización (pts)</label><input type="number" value="${item.slowAmount !== undefined ? item.slowAmount : 200}" onchange="config.shopItems.ammo['${type}'][${i}].slowAmount = parseInt(this.value)"></div>
-                </div>
-            `;
-        } else if (type === 'electron') {
-            extraFieldsHTML = `
-                <div class="form-grid" style="margin-top: 1rem; grid-template-columns: 1fr 1fr 1fr 1fr;">
-                    <div class="field"><label>Radio de Explosión (px)</label><input type="number" value="${item.explosionRadius !== undefined ? item.explosionRadius : 120}" onchange="config.shopItems.ammo['${type}'][${i}].explosionRadius = parseInt(this.value)"></div>
-                    <div class="field"><label>Velocidad Otorgada (%)</label><input type="number" value="${item.speedBuffPct !== undefined ? item.speedBuffPct : 15}" onchange="config.shopItems.ammo['${type}'][${i}].speedBuffPct = parseInt(this.value)"></div>
-                    <div class="field"><label>Duración de Velocidad (ms)</label><input type="number" value="${item.speedBuffDurationMs !== undefined ? item.speedBuffDurationMs : 3000}" onchange="config.shopItems.ammo['${type}'][${i}].speedBuffDurationMs = parseInt(this.value)"></div>
-                    <div class="field"><label>Stacks Máximos (cant)</label><input type="number" value="${item.speedBuffMaxStacks !== undefined ? item.speedBuffMaxStacks : 4}" onchange="config.shopItems.ammo['${type}'][${i}].speedBuffMaxStacks = parseInt(this.value)"></div>
+                    <label>Radio de Explosión (px)</label>
+                    <input type="number" value="${item.explosionRadius !== undefined ? item.explosionRadius : 120}" onchange="config.shopItems.ammo['${type}'][${i}].explosionRadius = parseInt(this.value)">
                 </div>
             `;
         }
@@ -226,19 +195,37 @@ function renderAmmo() {
                     <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.6rem;" onclick="addAmmoMechanic('${type}', ${i})">+ EFECTO</button>
                 </div>
                 <div id="ammo-mech-${type}-${i}">
-                    ${item.mechanics.map((me, midx) => `
+                    ${(item.mechanics || []).map((me, midx) => {
+                        const mDef = AMMO_MECH_LIB[me.type] || AMMO_MECH_LIB.slow || { fields: [], label: me.type, icon: '✨' };
+                        const fieldLabels = {
+                            duration: "Duración (ms)",
+                            amount: "Ralentización (pts)",
+                            slowAmount: "Ralentización (pts)",
+                            damagePerSecond: "DPS",
+                            chance: "Probabilidad (%)",
+                            radius: "Radio (px)",
+                            healPctPvE: "Cura PvE (%)",
+                            healPctVictimPvP: "Cura Aliado PvP (%)",
+                            healPctAttackerPvP: "Cura Propia PvP (%)",
+                            siphonPct: "Robo de Vida (%)",
+                            speedBuffPct: "Velocidad (%)",
+                            speedBuffDurationMs: "Duración Buff (ms)",
+                            speedBuffMaxStacks: "Stacks Máx."
+                        };
+                        return `
                         <div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
                             <button style="position:absolute; top:4px; right:4px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:10px;" onclick="config.shopItems.ammo['${type}'][${i}].mechanics.splice(${midx},1); renderAmmo();">✕</button>
-                            <select style="background:transparent; border:none; color:var(--accent); font-size:0.7rem; font-weight:bold; cursor:pointer;" onchange="config.shopItems.ammo['${type}'][${i}].mechanics[${midx}].type = this.value; renderAmmo();">
+                            <select style="background:transparent; border:none; color:var(--accent); font-size:0.7rem; font-weight:bold; cursor:pointer;" onchange="updateAmmoMechanicType('${type}', ${i}, ${midx}, this.value)">
                                 ${Object.keys(AMMO_MECH_LIB).map(mt => `<option value="${mt}" ${me.type===mt?'selected':''}>${AMMO_MECH_LIB[mt].icon} ${AMMO_MECH_LIB[mt].label}</option>`).join('')}
                             </select>
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:5px;">
-                                ${AMMO_MECH_LIB[me.type || 'bleed'].fields.map(fld => `
-                                    <div class="field" style="margin:0;"><label style="font-size:9px;">${fld}</label><input type="number" value="${me[fld] || 0}" style="font-size:10px; height:20px;" onchange="config.shopItems.ammo['${type}'][${i}].mechanics[${midx}].${fld} = parseInt(this.value)"></div>
+                                ${mDef.fields.map(fld => `
+                                    <div class="field" style="margin:0;"><label style="font-size:9px;">${fieldLabels[fld] || fld}</label><input type="number" value="${me[fld] !== undefined ? me[fld] : 0}" style="font-size:10px; height:20px;" onchange="config.shopItems.ammo['${type}'][${i}].mechanics[${midx}].${fld} = parseInt(this.value)"></div>
                                 `).join('')}
                             </div>
                         </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
 

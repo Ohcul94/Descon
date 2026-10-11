@@ -113,9 +113,14 @@ const DEFAULT_DEFENSE_LIB = {
 // v266.300: Definición de Mecánicas de Ambiente (Hazards)
 let AMMO_MECH_LIB = {
     "bleed": { label: "Sangrado", icon: "🩸", desc: "Daño por segundo durante un tiempo.", fields: ["damagePerSecond", "duration"] },
+    "poison": { label: "Veneno", icon: "🤢", desc: "Daño por segundo durante un tiempo.", fields: ["damagePerSecond", "duration"] },
     "stun": { label: "Parálisis", icon: "⚡", desc: "Inmoviliza al objetivo.", fields: ["duration", "chance"] },
-    "area": { label: "Daño de Área", icon: "💥", desc: "Explota al impactar.", fields: ["damagePerSecond", "radius"] },
-    "critical": { label: "Golpe Crítico", icon: "💎", desc: "Probabilidad de daño extra.", fields: ["chance"] }
+    "slow": { label: "Ralentización", icon: "🐢", desc: "Reduce la velocidad del objetivo.", fields: ["duration", "amount"] },
+    "silence": { label: "Silencio", icon: "🔇", desc: "Silencia habilidades y ataques del objetivo.", fields: ["duration"] },
+    "heal": { label: "Curación", icon: "💚", desc: "Restaura vida en base al daño causado.", fields: ["healPctPvE", "healPctVictimPvP", "healPctAttackerPvP"] },
+    "siphon": { label: "Robo de Vida", icon: "🧛", desc: "Absorbe un porcentaje del daño causado como vida.", fields: ["siphonPct"] },
+    "speed_buff": { label: "Aumento de Velocidad", icon: "⚡", desc: "Otorga velocidad de movimiento acumulable al impactar.", fields: ["speedBuffPct", "speedBuffDurationMs", "speedBuffMaxStacks"] },
+    "area": { label: "Daño de Área", icon: "💥", desc: "Explota al impactar.", fields: ["damagePerSecond", "radius"] }
 };
 
 let AMBIENCE_LIB = {

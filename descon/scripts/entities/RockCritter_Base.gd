@@ -15,7 +15,6 @@ var phase := 0.0
 var world_aabb := AABB()
 var rng := RandomNumberGenerator.new()
 var _placed := false
-var _amp := 0.0
 
 
 func setup(p_rock: Node3D) -> void:

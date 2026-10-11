@@ -126,6 +126,22 @@ func _ammo_mechanics_text(cfg: Dictionary) -> String:
 					vals.append(_fmt_num(fv) + "/s")
 				"radius":
 					vals.append(str(int(fv)))
+				"amount", "slowAmount":
+					vals.append("-" + str(int(fv)) + " vel.")
+				"healPctPvE":
+					vals.append("PvE: +" + _fmt_num(fv) + "% vida")
+				"healPctVictimPvP":
+					vals.append("Aliado PvP: +" + _fmt_num(fv) + "%")
+				"healPctAttackerPvP":
+					vals.append("Propia PvP: +" + _fmt_num(fv) + "%")
+				"siphonPct":
+					vals.append("Robo: +" + _fmt_num(fv) + "%")
+				"speedBuffPct":
+					vals.append("+" + _fmt_num(fv) + "% vel.")
+				"speedBuffDurationMs":
+					vals.append(_fmt_time_ms(fv))
+				"speedBuffMaxStacks":
+					vals.append("máx " + str(int(fv)) + " acum.")
 				_:
 					vals.append(str(fv))
 		var line = micon + " " + mlabel
@@ -164,16 +180,22 @@ func _ammo_stats_text(w_id: String, t_idx: int) -> String:
 
 	match w_id:
 		"heal":
-			parts.append("Cura " + str(int(cfg.get("healPctPvE", 40))) + "% del daño como vida (PvE)")
-			parts.append("PvP: aliado cura " + str(int(cfg.get("healPctVictimPvP", 80))) + "% / atacante " + str(int(cfg.get("healPctAttackerPvP", 30))) + "%")
+			if cfg.has("healPctPvE"):
+				parts.append("Cura " + str(int(cfg.healPctPvE)) + "% del daño como vida (PvE)")
+			if cfg.has("healPctVictimPvP") or cfg.has("healPctAttackerPvP"):
+				parts.append("PvP: aliado cura " + str(int(cfg.get("healPctVictimPvP", 80))) + "% / atacante " + str(int(cfg.get("healPctAttackerPvP", 30))) + "%")
 		"siphon":
-			parts.append("Absorbe " + str(int(cfg.get("siphonPct", 25))) + "% del daño como vida")
+			if cfg.has("siphonPct"):
+				parts.append("Absorbe " + str(int(cfg.siphonPct)) + "% del daño como vida")
 		"emp":
-			parts.append("Silencia " + _fmt_time_ms(cfg.get("silenceDurationMs", 3000)))
+			if cfg.has("silenceDurationMs"):
+				parts.append("Silencia " + _fmt_time_ms(cfg.silenceDurationMs))
 		"melee":
-			parts.append("Ralentiza " + _fmt_time_ms(cfg.get("slowDurationMs", 1000)) + " (-" + str(int(cfg.get("slowAmount", 200))) + " vel.)")
+			if cfg.has("slowDurationMs"):
+				parts.append("Ralentiza " + _fmt_time_ms(cfg.slowDurationMs) + " (-" + str(int(cfg.get("slowAmount", 200))) + " vel.)")
 		"electron":
-			parts.append("Buff velocidad +" + str(int(cfg.get("speedBuffPct", 15))) + "% durante " + _fmt_time_ms(cfg.get("speedBuffDurationMs", 3000)) + " (máx " + str(int(cfg.get("speedBuffMaxStacks", 4))) + " acum.)")
+			if cfg.has("speedBuffPct"):
+				parts.append("Buff velocidad +" + str(int(cfg.speedBuffPct)) + "% durante " + _fmt_time_ms(cfg.get("speedBuffDurationMs", 3000)) + " (máx " + str(int(cfg.get("speedBuffMaxStacks", 4))) + " acum.)")
 
 	var mech_text = _ammo_mechanics_text(cfg)
 	if mech_text != "":

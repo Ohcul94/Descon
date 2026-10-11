@@ -26,6 +26,364 @@ const combatTracker = require('./combatTracker');
 const { checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento (munición)
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 const { areInSamePartyBySocket, isFriendlyFireEnabled, recordPlayerCombat } = require('../utils/partyUtils'); // v650.0: Bloqueo fuego amigo en party
+const { applyDebuff } = require('../utils/debuffUtils');
+
+/**
+ * Aplica los efectos de impacto declarativos de una munición a un enemigo (PvE).
+ * Retorna { finalDamage } tras procesar curaciones o mecánicas.
+ */
+function applyAmmoImpactMechanicsToEnemy(enemy, ammoConfig, p, io, initialDamage, state) {
+    if (!enemy || !ammoConfig) return { finalDamage: initialDamage };
+    const mechanics = Array.isArray(ammoConfig.mechanics) ? [...ammoConfig.mechanics] : [];
+    
+    // Retrocompatibilidad para municiones con campos planos
+    if (ammoConfig.silenceDurationMs && !mechanics.some(m => m.type === 'silence')) {
+        mechanics.push({ type: 'silence', duration: ammoConfig.silenceDurationMs });
+    }
+    if ((ammoConfig.slowDurationMs || ammoConfig.slowAmount) && !mechanics.some(m => m.type === 'slow')) {
+        mechanics.push({ type: 'slow', duration: ammoConfig.slowDurationMs || 1000, amount: ammoConfig.slowAmount !== undefined ? ammoConfig.slowAmount : 50 });
+    }
+    if (ammoConfig.healPctPvE !== undefined && !mechanics.some(m => m.type === 'heal')) {
+        mechanics.push({ type: 'heal', healPctPvE: ammoConfig.healPctPvE });
+    }
+    if (ammoConfig.siphonPct !== undefined && !mechanics.some(m => m.type === 'siphon')) {
+        mechanics.push({ type: 'siphon', siphonPct: ammoConfig.siphonPct });
+    }
+    if (ammoConfig.speedBuffPct !== undefined && !mechanics.some(m => m.type === 'speed_buff')) {
+        mechanics.push({ type: 'speed_buff', speedBuffPct: ammoConfig.speedBuffPct, speedBuffDurationMs: ammoConfig.speedBuffDurationMs, speedBuffMaxStacks: ammoConfig.speedBuffMaxStacks });
+    }
+
+    const now = Date.now();
+    let currentDamage = initialDamage;
+
+    // Si tiene curación pura (heal), el atacante se cura en PvE y no le causa daño al enemigo
+    const healMech = mechanics.find(m => m.type === 'heal');
+    if (healMech) {
+        const healPct = (healMech.healPctPvE !== undefined ? healMech.healPctPvE : 40) / 100;
+        const healAmount = applyHealTalentBonus(p, currentDamage * healPct);
+
+        const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+        const mapCfg = maps[p.zone] || maps[p.zone.toString()];
+        const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+        let finalHealAmount = healAmount;
+        if (healPenaltyMech) {
+            if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
+                const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
+                finalHealAmount = finalHealAmount * (1 - pct / 100);
+            }
+            if (healPenaltyMech.penaltyFixed !== undefined && healPenaltyMech.penaltyFixed !== "") {
+                const fixed = parseFloat(healPenaltyMech.penaltyFixed) || 0;
+                finalHealAmount = Math.max(0, finalHealAmount - fixed);
+            }
+        }
+
+        const oldHp = p.hp;
+        const oldShield = p.shield;
+        p.hp = Math.min(p.maxHp, p.hp + finalHealAmount);
+        p.shield = Math.min(p.maxShield, p.shield + finalHealAmount);
+        const actualHeal = Math.ceil((p.hp - oldHp) + (p.shield - oldShield));
+        
+        io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+            id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
+            maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
+            isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
+            healPopup: actualHeal
+        });
+        combatTracker.trackHealingDone(p.socketId, p.socketId, actualHeal, 'ammo_heal', state);
+        currentDamage = 0; // No le hace daño al enemigo
+    }
+
+    // Siphon (Robo de vida al hacer daño)
+    const siphonMech = mechanics.find(m => m.type === 'siphon');
+    if (siphonMech && currentDamage > 0) {
+        const siphonPct = (siphonMech.siphonPct !== undefined ? siphonMech.siphonPct : 25) / 100;
+        const siphonAmount = applyHealTalentBonus(p, currentDamage * siphonPct);
+        const oldHp = p.hp;
+        const oldShield = p.shield;
+        p.hp = Math.min(p.maxHp, p.hp + siphonAmount);
+        p.shield = Math.min(p.maxShield, p.shield + siphonAmount);
+        const actualHeal = Math.ceil((p.hp - oldHp) + (p.shield - oldShield));
+        
+        io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+            id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
+            maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
+            isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
+            healPopup: actualHeal
+        });
+        combatTracker.trackHealingDone(p.socketId, p.socketId, actualHeal, 'ammo_siphon', state);
+    }
+
+    // Speed Buff (Aumento de velocidad de movimiento acumulable)
+    const speedMech = mechanics.find(m => m.type === 'speed_buff');
+    if (speedMech) {
+        const buffPct = speedMech.speedBuffPct !== undefined ? speedMech.speedBuffPct : 15;
+        const buffDuration = speedMech.speedBuffDurationMs !== undefined ? speedMech.speedBuffDurationMs : 3000;
+        const maxStacks = speedMech.speedBuffMaxStacks !== undefined ? speedMech.speedBuffMaxStacks : 4;
+        
+        p.electronSpeedBuffActive = true;
+        p.electronSpeedBuffPct = buffPct;
+        p.electronSpeedBuffDurationMs = buffDuration;
+        p.electronSpeedBuffMaxStacks = maxStacks;
+        
+        if (p.electronSpeedBuffEndTime && p.electronSpeedBuffEndTime > now) {
+            p.electronSpeedBuffStacks = Math.min((p.electronSpeedBuffStacks || 0) + 1, maxStacks);
+        } else {
+            p.electronSpeedBuffStacks = 1;
+        }
+        p.electronSpeedBuffEndTime = now + buffDuration;
+        
+        calculateFinalStats(p, state.SERVER_CONFIG);
+        io.to(`zone_${p.zone}`).emit('playerStatSync', {
+            id: p.socketId,
+            speed: p.speed,
+            electronSpeedBuff: {
+                duration: buffDuration,
+                pct: buffPct,
+                stacks: p.electronSpeedBuffStacks
+            }
+        });
+    }
+
+    // Debuffs al enemigo (slow, silence, stun, bleed, poison)
+    for (const mech of mechanics) {
+        if (!mech || !mech.type) continue;
+        switch (mech.type) {
+            case 'slow': {
+                const duration = Number(mech.duration) || 1000;
+                const amount = Number(mech.amount) || Number(mech.slowAmount) || 50;
+                enemy.isSlowed = true;
+                enemy.slowEndTime = Math.max(enemy.slowEndTime || 0, now + duration);
+                enemy.slowAmount = amount;
+                enemy.lastSlowTime = now;
+                break;
+            }
+            case 'silence': {
+                const duration = Number(mech.duration) || 3000;
+                enemy.isSilenced = true;
+                enemy.silencedUntil = Math.max(enemy.silencedUntil || 0, now + duration);
+                enemy.lastSilenceTime = now;
+                break;
+            }
+            case 'stun': {
+                const chance = mech.chance !== undefined ? Number(mech.chance) : 100;
+                if (Math.random() * 100 <= chance) {
+                    const duration = Number(mech.duration) || 1000;
+                    enemy.isStunned = true;
+                    enemy.stunEndTime = Math.max(enemy.stunEndTime || 0, now + duration);
+                    enemy.lastStunTime = now;
+                }
+                break;
+            }
+            case 'bleed': {
+                const duration = Number(mech.duration) || 3000;
+                const dps = Number(mech.damagePerSecond) || 10;
+                enemy.isBleeding = true;
+                enemy.bleedEndTime = Math.max(enemy.bleedEndTime || 0, now + duration);
+                enemy.bleedDps = dps;
+                enemy.bleedInterval = 1000;
+                enemy.lastBleedTick = now;
+                break;
+            }
+            case 'poison': {
+                const duration = Number(mech.duration) || 3000;
+                const dps = Number(mech.damagePerSecond) || 10;
+                enemy.isPoisoned = true;
+                enemy.poisonEndTime = Math.max(enemy.poisonEndTime || 0, now + duration);
+                enemy.poisonDps = dps;
+                enemy.poisonInterval = 1000;
+                enemy.lastPoisonTick = now;
+                break;
+            }
+        }
+    }
+
+    return { finalDamage: currentDamage };
+}
+
+/**
+ * Aplica los efectos de impacto declarativos de una munición a otro jugador (PvP).
+ * Retorna { finalDamage } tras procesar curaciones a aliados o mecánicas.
+ */
+function applyAmmoImpactMechanicsToPlayer(victim, ammoConfig, attacker, io, initialDamage, state) {
+    if (!victim || !ammoConfig || victim.isDead) return { finalDamage: initialDamage };
+    const mechanics = Array.isArray(ammoConfig.mechanics) ? [...ammoConfig.mechanics] : [];
+    
+    // Retrocompatibilidad para municiones con campos planos
+    if (ammoConfig.silenceDurationMs && !mechanics.some(m => m.type === 'silence')) {
+        mechanics.push({ type: 'silence', duration: ammoConfig.silenceDurationMs });
+    }
+    if ((ammoConfig.slowDurationMs || ammoConfig.slowAmount) && !mechanics.some(m => m.type === 'slow')) {
+        mechanics.push({ type: 'slow', duration: ammoConfig.slowDurationMs || 1000, amount: ammoConfig.slowAmount !== undefined ? ammoConfig.slowAmount : 50 });
+    }
+    if (ammoConfig.healPctVictimPvP !== undefined && !mechanics.some(m => m.type === 'heal')) {
+        mechanics.push({ type: 'heal', healPctVictimPvP: ammoConfig.healPctVictimPvP, healPctAttackerPvP: ammoConfig.healPctAttackerPvP });
+    }
+    if (ammoConfig.siphonPct !== undefined && !mechanics.some(m => m.type === 'siphon')) {
+        mechanics.push({ type: 'siphon', siphonPct: ammoConfig.siphonPct });
+    }
+    if (ammoConfig.speedBuffPct !== undefined && !mechanics.some(m => m.type === 'speed_buff')) {
+        mechanics.push({ type: 'speed_buff', speedBuffPct: ammoConfig.speedBuffPct, speedBuffDurationMs: ammoConfig.speedBuffDurationMs, speedBuffMaxStacks: ammoConfig.speedBuffMaxStacks });
+    }
+
+    const now = Date.now();
+    let currentDamage = initialDamage;
+
+    // Cura en PvP (Soporte/Aliado)
+    const healMech = mechanics.find(m => m.type === 'heal');
+    if (healMech) {
+        const healVictimPct = (healMech.healPctVictimPvP !== undefined ? healMech.healPctVictimPvP : 80) / 100;
+        const healAttackerPct = (healMech.healPctAttackerPvP !== undefined ? healMech.healPctAttackerPvP : 30) / 100;
+        const healVictim = currentDamage * healVictimPct;
+        const healAttacker = applyHealTalentBonus(attacker, currentDamage * healAttackerPct);
+
+        const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+        
+        // Penalización víctima
+        const victimMapCfg = maps[victim.zone] || maps[victim.zone.toString()];
+        const victimHealPenaltyMech = (victimMapCfg && Array.isArray(victimMapCfg.ambience)) ? victimMapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+        let finalHealVictim = healVictim;
+        if (victimHealPenaltyMech) {
+            if (victimHealPenaltyMech.penaltyPercentage !== undefined && victimHealPenaltyMech.penaltyPercentage !== "") {
+                const pct = parseFloat(victimHealPenaltyMech.penaltyPercentage) || 0;
+                finalHealVictim = finalHealVictim * (1 - pct / 100);
+            }
+            if (victimHealPenaltyMech.penaltyFixed !== undefined && victimHealPenaltyMech.penaltyFixed !== "") {
+                const fixed = parseFloat(victimHealPenaltyMech.penaltyFixed) || 0;
+                finalHealVictim = Math.max(0, finalHealVictim - fixed);
+            }
+        }
+
+        // Penalización atacante
+        const attackerMapCfg = maps[attacker.zone] || maps[attacker.zone.toString()];
+        const attackerHealPenaltyMech = (attackerMapCfg && Array.isArray(attackerMapCfg.ambience)) ? attackerMapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+        let finalHealAttacker = healAttacker;
+        if (attackerHealPenaltyMech) {
+            if (attackerHealPenaltyMech.penaltyPercentage !== undefined && attackerHealPenaltyMech.penaltyPercentage !== "") {
+                const pct = parseFloat(attackerHealPenaltyMech.penaltyPercentage) || 0;
+                finalHealAttacker = finalHealAttacker * (1 - pct / 100);
+            }
+            if (attackerHealPenaltyMech.penaltyFixed !== undefined && attackerHealPenaltyMech.penaltyFixed !== "") {
+                const fixed = parseFloat(attackerHealPenaltyMech.penaltyFixed) || 0;
+                finalHealAttacker = Math.max(0, finalHealAttacker - fixed);
+            }
+        }
+        
+        victim.hp = Math.min(victim.maxHp, victim.hp + finalHealVictim);
+        victim.shield = Math.min(victim.maxShield, victim.shield + finalHealVictim);
+        attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAttacker);
+        attacker.shield = Math.min(attacker.maxShield, attacker.shield + finalHealAttacker);
+        
+        combatTracker.trackHealingDone(attacker.socketId, victim.socketId, Math.round(finalHealVictim), 'pvp_heal_ammo', state);
+        combatTracker.trackHealingDone(attacker.socketId, attacker.socketId, Math.round(finalHealAttacker), 'pvp_heal_ammo', state);
+        
+        io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
+            id: attacker.socketId, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
+            maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
+            isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable
+        });
+        currentDamage = 0; // No le causa daño a la víctima
+    }
+
+    // Siphon en PvP (Roba vida al dañar a otro jugador)
+    const siphonMech = mechanics.find(m => m.type === 'siphon');
+    if (siphonMech && currentDamage > 0) {
+        const siphonPct = (siphonMech.siphonPct !== undefined ? siphonMech.siphonPct : 25) / 100;
+        const siphonAmount = currentDamage * siphonPct;
+        attacker.hp = Math.min(attacker.maxHp, attacker.hp + siphonAmount);
+        attacker.shield = Math.min(attacker.maxShield, attacker.shield + siphonAmount);
+        combatTracker.trackHealingDone(attacker.socketId, attacker.socketId, Math.round(siphonAmount), 'pvp_siphon', state);
+        
+        io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
+            id: attacker.socketId, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
+            maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
+            isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable
+        });
+    }
+
+    // Speed Buff en PvP
+    const speedMech = mechanics.find(m => m.type === 'speed_buff');
+    if (speedMech) {
+        const buffPct = speedMech.speedBuffPct !== undefined ? speedMech.speedBuffPct : 15;
+        const buffDuration = speedMech.speedBuffDurationMs !== undefined ? speedMech.speedBuffDurationMs : 3000;
+        const maxStacks = speedMech.speedBuffMaxStacks !== undefined ? speedMech.speedBuffMaxStacks : 4;
+        
+        attacker.electronSpeedBuffActive = true;
+        attacker.electronSpeedBuffPct = buffPct;
+        attacker.electronSpeedBuffDurationMs = buffDuration;
+        attacker.electronSpeedBuffMaxStacks = maxStacks;
+        
+        if (attacker.electronSpeedBuffEndTime && attacker.electronSpeedBuffEndTime > now) {
+            attacker.electronSpeedBuffStacks = Math.min((attacker.electronSpeedBuffStacks || 0) + 1, maxStacks);
+        } else {
+            attacker.electronSpeedBuffStacks = 1;
+        }
+        attacker.electronSpeedBuffEndTime = now + buffDuration;
+        
+        calculateFinalStats(attacker, state.SERVER_CONFIG);
+        io.to(attacker.socketId).emit('playerStatSync', {
+            id: attacker.socketId,
+            speed: attacker.speed,
+            electronSpeedBuff: {
+                duration: buffDuration,
+                pct: buffPct,
+                stacks: attacker.electronSpeedBuffStacks
+            }
+        });
+    }
+
+    // Debuffs a la víctima (slow, silence, stun, bleed, poison)
+    for (const mech of mechanics) {
+        if (!mech || !mech.type) continue;
+        switch (mech.type) {
+            case 'slow': {
+                const duration = Number(mech.duration) || 1000;
+                const amount = Number(mech.amount) || Number(mech.slowAmount) || 200;
+                victim.isSlowed = true;
+                victim.slowEndTime = Math.max(victim.slowEndTime || 0, now + duration);
+                victim.slowPoints = amount;
+                victim.slowIsPercentage = false;
+                victim.lastSlowTime = now;
+                if (io && victim.socketId) {
+                    io.to(victim.socketId).emit('slowState', { active: true, amount, isPercentage: false, duration });
+                }
+                break;
+            }
+            case 'silence': {
+                const duration = Number(mech.duration) || 3000;
+                victim.isSilenced = true;
+                victim.silencedUntil = Math.max(victim.silencedUntil || 0, now + duration);
+                victim.lastSilenceTime = now;
+                if (io && victim.socketId) {
+                    io.to(victim.socketId).emit('silenceState', { active: true, duration });
+                    io.to(victim.socketId).emit('gameNotification', { msg: `🚨 ¡SILENCIADO POR EFECTO DE MUNICIÓN (${duration}ms)! 🚨`, type: "error" });
+                }
+                break;
+            }
+            case 'stun': {
+                const chance = mech.chance !== undefined ? Number(mech.chance) : 100;
+                if (Math.random() * 100 <= chance) {
+                    const duration = Number(mech.duration) || 1000;
+                    applyDebuff(victim, { type: 'stun', duration }, io, attacker.user || 'Munición');
+                }
+                break;
+            }
+            case 'bleed': {
+                const duration = Number(mech.duration) || 3000;
+                const dps = Number(mech.damagePerSecond) || 10;
+                applyDebuff(victim, { type: 'bleed', duration, dps, tickInterval: 1000 }, io, attacker.user || 'Munición');
+                break;
+            }
+            case 'poison': {
+                const duration = Number(mech.duration) || 3000;
+                const dps = Number(mech.damagePerSecond) || 10;
+                applyDebuff(victim, { type: 'poison', duration, dps, tickInterval: 1000 }, io, attacker.user || 'Munición');
+                break;
+            }
+        }
+    }
+
+    return { finalDamage: currentDamage };
+}
 
 // v301.4: Soporte unificado de habilidades de resurrección
 
@@ -838,102 +1196,10 @@ socket.on('playerFire', (fireData) => {
             // Daño directo de reflejo (no activa efectos de munición equipada como curación/sifón)
             if (enemy.shield >= finalDamage) enemy.shield -= finalDamage;
             else { enemy.hp -= (finalDamage - enemy.shield); enemy.shield = 0; }
-            finalDamage = 0; // Se aplicó el daño directamente, evitar doble aplicación abajo
-        } else if (activeAmmo === 'heal') {
-            // Curativa: Restaura HP y Escudo al propio jugador en PvE
-            const healPct = (ammoConfig.healPctPvE !== undefined ? ammoConfig.healPctPvE : 40) / 100;
-            const healAmount = applyHealTalentBonus(p, finalDamage * healPct);
-
-            const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
-            const mapCfg = maps[p.zone] || maps[p.zone.toString()];
-            const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
-            let finalHealAmount = healAmount;
-            if (healPenaltyMech) {
-                if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
-                    const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
-                    finalHealAmount = finalHealAmount * (1 - pct / 100);
-                }
-                if (healPenaltyMech.penaltyFixed !== undefined && healPenaltyMech.penaltyFixed !== "") {
-                    const fixed = parseFloat(healPenaltyMech.penaltyFixed) || 0;
-                    finalHealAmount = Math.max(0, finalHealAmount - fixed);
-                }
-            }
-
-            const oldHp = p.hp;
-            const oldShield = p.shield;
-            p.hp = Math.min(p.maxHp, p.hp + finalHealAmount);
-            p.shield = Math.min(p.maxShield, p.shield + finalHealAmount);
-            const actualHeal = Math.ceil((p.hp - oldHp) + (p.shield - oldShield));
-            
-            io.to(`zone_${p.zone}`).emit('playerStatSync', { 
-                id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
-                maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
-                isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
-                healPopup: actualHeal
-            });
-            combatTracker.trackHealingDone(socket.id, socket.id, actualHeal, 'ammo_heal', state);
-            finalDamage = 0; // No le hace daño al enemigo
         } else {
-            if (activeAmmo === 'siphon') {
-                // Vampírica (Sifón): cura una porción del daño infligido al atacante
-                const siphonPct = (ammoConfig.siphonPct !== undefined ? ammoConfig.siphonPct : 25) / 100;
-                const siphonAmount = applyHealTalentBonus(p, finalDamage * siphonPct);
-                const oldHp = p.hp;
-                const oldShield = p.shield;
-                p.hp = Math.min(p.maxHp, p.hp + siphonAmount);
-                p.shield = Math.min(p.maxShield, p.shield + siphonAmount);
-                const actualHeal = Math.ceil((p.hp - oldHp) + (p.shield - oldShield));
-                
-                io.to(`zone_${p.zone}`).emit('playerStatSync', { 
-                    id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
-                    maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
-                    isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
-                    healPopup: actualHeal
-                });
-                combatTracker.trackHealingDone(socket.id, socket.id, actualHeal, 'ammo_siphon', state);
-            } else if (activeAmmo === 'emp') {
-                // EMP: Silencia la IA del bicho durante el tiempo configurado
-                const silenceMs = ammoConfig.silenceDurationMs !== undefined ? ammoConfig.silenceDurationMs : 3000;
-                enemy.isSilenced = true;
-                enemy.silencedUntil = Date.now() + silenceMs;
-            } else if (activeAmmo === 'melee') {
-                // Melee: Aplica una ralentización inmediata (microparálisis) al enemigo
-                const slowMs = ammoConfig.slowDurationMs !== undefined ? ammoConfig.slowDurationMs : 1000;
-                enemy.isSlowed = true;
-                enemy.slowEndTime = Date.now() + slowMs;
-            } else if (activeAmmo === 'electron') {
-                // Electron: Otorga velocidad de movimiento acumulable al jugador al impactar
-                const buffPct = ammoConfig.speedBuffPct !== undefined ? ammoConfig.speedBuffPct : 15;
-                const buffDuration = ammoConfig.speedBuffDurationMs !== undefined ? ammoConfig.speedBuffDurationMs : 3000;
-                const maxStacks = ammoConfig.speedBuffMaxStacks !== undefined ? ammoConfig.speedBuffMaxStacks : 4;
-                
-                p.electronSpeedBuffActive = true;
-                p.electronSpeedBuffPct = buffPct;
-                p.electronSpeedBuffDurationMs = buffDuration;
-                p.electronSpeedBuffMaxStacks = maxStacks;
-                
-                const now = Date.now();
-                if (p.electronSpeedBuffEndTime && p.electronSpeedBuffEndTime > now) {
-                    p.electronSpeedBuffStacks = Math.min((p.electronSpeedBuffStacks || 0) + 1, maxStacks);
-                } else {
-                    p.electronSpeedBuffStacks = 1;
-                }
-                p.electronSpeedBuffEndTime = now + buffDuration;
-                
-                // Recalcular estadísticas del jugador para que tenga efecto
-                calculateFinalStats(p, state.SERVER_CONFIG);
-                
-                // Sincronizar stats del jugador con la nueva velocidad
-                io.to(`zone_${p.zone}`).emit('playerStatSync', {
-                    id: socket.id,
-                    speed: p.speed,
-                    electronSpeedBuff: {
-                        duration: buffDuration,
-                        pct: buffPct,
-                        stacks: p.electronSpeedBuffStacks
-                    }
-                });
-            }
+            // Aplicar efectos de impacto declarativos de munición al enemigo o atacante (heal, siphon, speed_buff, slow, silence, stun, bleed, poison...)
+            const impactResult = applyAmmoImpactMechanicsToEnemy(enemy, ammoConfig, p, io, finalDamage, state);
+            finalDamage = impactResult.finalDamage;
 
             if (enemy.reflectActive) {
                 const reflectMult = enemy.reflectMult !== undefined ? enemy.reflectMult : 0.8;
@@ -1545,128 +1811,11 @@ socket.on('playerFire', (fireData) => {
                 if (isReflect) {
                     // Daño directo de reflejo en PvP (no activa curación ni sifones de la munición del atacante)
                     // dmg sigue intacto para aplicarse a la víctima abajo
-                } else if (attackerAmmoType === 'heal') {
-                    // Soporte: Cura a la víctima y al atacante usando los porcentajes configurados
-                    const healVictimPct = (attackerAmmoConfig.healPctVictimPvP !== undefined ? attackerAmmoConfig.healPctVictimPvP : 80) / 100;
-                    const healAttackerPct = (attackerAmmoConfig.healPctAttackerPvP !== undefined ? attackerAmmoConfig.healPctAttackerPvP : 30) / 100;
-                    const healVictim = dmg * healVictimPct;
-                    const healAttacker = applyHealTalentBonus(attacker, dmg * healAttackerPct);
-
-                    const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
-                    
-                    // Penalización de curación para la víctima
-                    const victimMapCfg = maps[victim.zone] || maps[victim.zone.toString()];
-                    const victimHealPenaltyMech = (victimMapCfg && Array.isArray(victimMapCfg.ambience)) ? victimMapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
-                    let finalHealVictim = healVictim;
-                    if (victimHealPenaltyMech) {
-                        if (victimHealPenaltyMech.penaltyPercentage !== undefined && victimHealPenaltyMech.penaltyPercentage !== "") {
-                            const pct = parseFloat(victimHealPenaltyMech.penaltyPercentage) || 0;
-                            finalHealVictim = finalHealVictim * (1 - pct / 100);
-                        }
-                        if (victimHealPenaltyMech.penaltyFixed !== undefined && victimHealPenaltyMech.penaltyFixed !== "") {
-                            const fixed = parseFloat(victimHealPenaltyMech.penaltyFixed) || 0;
-                            finalHealVictim = Math.max(0, finalHealVictim - fixed);
-                        }
-                    }
-
-                    // Penalización de curación para el atacante
-                    const attackerMapCfg = maps[attacker.zone] || maps[attacker.zone.toString()];
-                    const attackerHealPenaltyMech = (attackerMapCfg && Array.isArray(attackerMapCfg.ambience)) ? attackerMapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
-                    let finalHealAttacker = healAttacker;
-                    if (attackerHealPenaltyMech) {
-                        if (attackerHealPenaltyMech.penaltyPercentage !== undefined && attackerHealPenaltyMech.penaltyPercentage !== "") {
-                            const pct = parseFloat(attackerHealPenaltyMech.penaltyPercentage) || 0;
-                            finalHealAttacker = finalHealAttacker * (1 - pct / 100);
-                        }
-                        if (attackerHealPenaltyMech.penaltyFixed !== undefined && attackerHealPenaltyMech.penaltyFixed !== "") {
-                            const fixed = parseFloat(attackerHealPenaltyMech.penaltyFixed) || 0;
-                            finalHealAttacker = Math.max(0, finalHealAttacker - fixed);
-                        }
-                    }
-                    
-                    victim.hp = Math.min(victim.maxHp, victim.hp + finalHealVictim);
-                    victim.shield = Math.min(victim.maxShield, victim.shield + finalHealVictim);
-                    
-                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAttacker);
-                    attacker.shield = Math.min(attacker.maxShield, attacker.shield + finalHealAttacker);
-                    
-                    combatTracker.trackHealingDone(socket.id, data.victimId, Math.round(finalHealVictim), 'pvp_heal_ammo', state);
-                    combatTracker.trackHealingDone(socket.id, socket.id, Math.round(finalHealAttacker), 'pvp_heal_ammo', state);
-                    
-                    io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
-                        id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
-                        maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
-                        isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable
-                    });
-                    dmg = 0; // No le causa daño a la víctima
                 } else {
-                    if (attackerAmmoType === 'siphon') {
-                        // Sifón: Roba vida y cura al atacante
-                        const siphonPct = (attackerAmmoConfig.siphonPct !== undefined ? attackerAmmoConfig.siphonPct : 25) / 100;
-                        const siphonAmount = dmg * siphonPct;
-                        attacker.hp = Math.min(attacker.maxHp, attacker.hp + siphonAmount);
-                        attacker.shield = Math.min(attacker.maxShield, attacker.shield + siphonAmount);
-                        combatTracker.trackHealingDone(socket.id, socket.id, Math.round(siphonAmount), 'pvp_siphon', state);
-                        
-                        io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
-                            id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
-                            maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
-                            isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable
-                        });
-                    } else if (attackerAmmoType === 'emp') {
-                        // EMP: Silencia a la víctima durante el tiempo configurado
-                        const silenceMs = attackerAmmoConfig.silenceDurationMs !== undefined ? attackerAmmoConfig.silenceDurationMs : 3000;
-                        victim.isSilenced = true;
-                        victim.silencedUntil = Date.now() + silenceMs;
-                        
-                        setTimeout(() => {
-                            if (state.players[data.victimId]) {
-                                state.players[data.victimId].isSilenced = false;
-                            }
-                        }, silenceMs);
-                        
-                        io.to(data.victimId).emit('gameNotification', { msg: `🚨 ¡SILENCIADO POR PULSO EMP (${silenceMs}ms)! 🚨`, type: "error" });
-                    } else if (attackerAmmoType === 'melee') {
-                        // Melee: Ralentiza a la víctima
-                        const slowMs = attackerAmmoConfig.slowDurationMs !== undefined ? attackerAmmoConfig.slowDurationMs : 1000;
-                        const slowAmt = attackerAmmoConfig.slowAmount !== undefined ? attackerAmmoConfig.slowAmount : 200;
-                        victim.isSlowed = true;
-                        victim.slowEndTime = Date.now() + slowMs;
-                        victim.slowIsPercentage = false;
-                        io.to(data.victimId).emit('slowState', { active: true, amount: slowAmt, isPercentage: false, duration: slowMs });
-                    } else if (attackerAmmoType === 'electron') {
-                        // Electron: Otorga velocidad de movimiento acumulable al atacante
-                        const buffPct = attackerAmmoConfig.speedBuffPct !== undefined ? attackerAmmoConfig.speedBuffPct : 15;
-                        const buffDuration = attackerAmmoConfig.speedBuffDurationMs !== undefined ? attackerAmmoConfig.speedBuffDurationMs : 3000;
-                        const maxStacks = attackerAmmoConfig.speedBuffMaxStacks !== undefined ? attackerAmmoConfig.speedBuffMaxStacks : 4;
-                        
-                        attacker.electronSpeedBuffActive = true;
-                        attacker.electronSpeedBuffPct = buffPct;
-                        attacker.electronSpeedBuffDurationMs = buffDuration;
-                        attacker.electronSpeedBuffMaxStacks = maxStacks;
-                        
-                        const now = Date.now();
-                        if (attacker.electronSpeedBuffEndTime && attacker.electronSpeedBuffEndTime > now) {
-                            attacker.electronSpeedBuffStacks = Math.min((attacker.electronSpeedBuffStacks || 0) + 1, maxStacks);
-                        } else {
-                            attacker.electronSpeedBuffStacks = 1;
-                        }
-                        attacker.electronSpeedBuffEndTime = now + buffDuration;
-                        
-                        // Recalcular estadísticas del atacante
-                        calculateFinalStats(attacker, state.SERVER_CONFIG);
-                        
-                        // Sincronizar stats del atacante
-                        io.to(attacker.socketId).emit('playerStatSync', {
-                            id: attacker.socketId,
-                            speed: attacker.speed,
-                            electronSpeedBuff: {
-                                duration: buffDuration,
-                                pct: buffPct,
-                                stacks: attacker.electronSpeedBuffStacks
-                            }
-                        });
-                    }
+                    // Aplicar efectos de impacto declarativos de munición en PvP (heal, siphon, speed_buff, slow, silence, stun, bleed, poison...)
+                    const impactResult = applyAmmoImpactMechanicsToPlayer(victim, attackerAmmoConfig, attacker, io, dmg, state);
+                    dmg = impactResult.finalDamage;
+                }
 
                     if (victim.isAsleep && victim.sleepWakeOnDamage !== false) {
                         dmg = dmg * (victim.nightmareMultiplier || 2.0);
@@ -1682,7 +1831,6 @@ socket.on('playerFire', (fireData) => {
                     else { victim.hp -= (dmg - victim.shield); victim.shield = 0; }
                     combatTracker.trackDamageDealt(socket.id, data.victimId, Math.round(dmg), 'pvp', state);
                     combatTracker.trackDamageTaken(data.victimId, socket.id, Math.round(dmg), 'pvp', state);
-                }
                 
                 if (victim.hp <= 0) {
                     victim.hp = 0;

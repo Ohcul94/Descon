@@ -138,14 +138,6 @@
             "icon": "🩸",
             "label": "Sangrado"
         },
-        "critical": {
-            "desc": "Probabilidad de daño extra.",
-            "fields": [
-                "chance"
-            ],
-            "icon": "💎",
-            "label": "Golpe Crítico"
-        },
         "stun": {
             "desc": "Inmoviliza al objetivo.",
             "fields": [
@@ -154,6 +146,60 @@
             ],
             "icon": "⚡",
             "label": "Parálisis"
+        },
+        "slow": {
+            "desc": "Reduce la velocidad de movimiento del objetivo.",
+            "fields": [
+                "duration",
+                "amount"
+            ],
+            "icon": "🐢",
+            "label": "Ralentización"
+        },
+        "silence": {
+            "desc": "Silencia habilidades y ataques del objetivo.",
+            "fields": [
+                "duration"
+            ],
+            "icon": "🔇",
+            "label": "Silencio"
+        },
+        "poison": {
+            "desc": "Inflige daño de veneno por segundo durante un tiempo.",
+            "fields": [
+                "damagePerSecond",
+                "duration"
+            ],
+            "icon": "🤢",
+            "label": "Veneno"
+        },
+        "heal": {
+            "desc": "Restaura vida en base al daño causado.",
+            "fields": [
+                "healPctPvE",
+                "healPctVictimPvP",
+                "healPctAttackerPvP"
+            ],
+            "icon": "💚",
+            "label": "Curación"
+        },
+        "siphon": {
+            "desc": "Absorbe un porcentaje del daño causado como vida.",
+            "fields": [
+                "siphonPct"
+            ],
+            "icon": "🧛",
+            "label": "Robo de Vida"
+        },
+        "speed_buff": {
+            "desc": "Otorga velocidad de movimiento acumulable al impactar.",
+            "fields": [
+                "speedBuffPct",
+                "speedBuffDurationMs",
+                "speedBuffMaxStacks"
+            ],
+            "icon": "⚡",
+            "label": "Aumento de Velocidad"
         }
     },
     "ammoMultipliers": {
@@ -13322,7 +13368,14 @@
                     "cooldown": 4000,
                     "explosionRadius": 100,
                     "id": "am_el1",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "speed_buff",
+                            "speedBuffPct": 10,
+                            "speedBuffDurationMs": 7000,
+                            "speedBuffMaxStacks": 4
+                        }
+                    ],
                     "name": "Electrón T1",
                     "prices": {
                         "hubs": 4000,
@@ -13343,10 +13396,7 @@
                             ],
                             "type": "spheres"
                         }
-                    ],
-                    "speedBuffDurationMs": 7000,
-                    "speedBuffMaxStacks": 4,
-                    "speedBuffPct": 10
+                    ]
                 },
                 {
                     "bulletSpeed": 600,
@@ -13354,16 +13404,20 @@
                     "cooldown": 1800,
                     "explosionRadius": 120,
                     "id": "am_el2",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "speed_buff",
+                            "speedBuffPct": 18,
+                            "speedBuffDurationMs": 3000,
+                            "speedBuffMaxStacks": 4
+                        }
+                    ],
                     "name": "Electrón T2",
                     "prices": {
                         "hubs": 8000,
                         "ohcu": 10
                     },
-                    "range": 520,
-                    "speedBuffDurationMs": 3000,
-                    "speedBuffMaxStacks": 4,
-                    "speedBuffPct": 18
+                    "range": 520
                 },
                 {
                     "bulletSpeed": 600,
@@ -13372,16 +13426,20 @@
                     "explosionRadius": 130,
                     "hidden": true,
                     "id": "am_el3",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "speed_buff",
+                            "speedBuffPct": 20,
+                            "speedBuffDurationMs": 3500,
+                            "speedBuffMaxStacks": 4
+                        }
+                    ],
                     "name": "Electrón T3",
                     "prices": {
                         "hubs": 16000,
                         "ohcu": 20
                     },
-                    "range": 540,
-                    "speedBuffDurationMs": 3500,
-                    "speedBuffMaxStacks": 4,
-                    "speedBuffPct": 20
+                    "range": 540
                 },
                 {
                     "bulletSpeed": 600,
@@ -13390,16 +13448,20 @@
                     "explosionRadius": 130,
                     "hidden": true,
                     "id": "am_el4",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "speed_buff",
+                            "speedBuffPct": 22,
+                            "speedBuffDurationMs": 3500,
+                            "speedBuffMaxStacks": 5
+                        }
+                    ],
                     "name": "Electrón T4",
                     "prices": {
                         "hubs": 32000,
                         "ohcu": 40
                     },
-                    "range": 560,
-                    "speedBuffDurationMs": 3500,
-                    "speedBuffMaxStacks": 5,
-                    "speedBuffPct": 22
+                    "range": 560
                 },
                 {
                     "bulletSpeed": 600,
@@ -13408,16 +13470,20 @@
                     "explosionRadius": 140,
                     "hidden": true,
                     "id": "am_el5",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "speed_buff",
+                            "speedBuffPct": 25,
+                            "speedBuffDurationMs": 4000,
+                            "speedBuffMaxStacks": 5
+                        }
+                    ],
                     "name": "Electrón T5",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 100
                     },
-                    "range": 580,
-                    "speedBuffDurationMs": 4000,
-                    "speedBuffMaxStacks": 5,
-                    "speedBuffPct": 25
+                    "range": 580
                 },
                 {
                     "bulletSpeed": 650,
@@ -13426,16 +13492,20 @@
                     "explosionRadius": 150,
                     "hidden": true,
                     "id": "am_el6",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "speed_buff",
+                            "speedBuffPct": 30,
+                            "speedBuffDurationMs": 4000,
+                            "speedBuffMaxStacks": 5
+                        }
+                    ],
                     "name": "Electrón T6",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 200
                     },
-                    "range": 600,
-                    "speedBuffDurationMs": 4000,
-                    "speedBuffMaxStacks": 5,
-                    "speedBuffPct": 30
+                    "range": 600
                 }
             ],
             "emp": [
@@ -13444,7 +13514,12 @@
                     "castTimeMs": 100,
                     "cooldown": 4000,
                     "id": "am_e1",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "silence",
+                            "duration": 2000
+                        }
+                    ],
                     "name": "EMP Pulse T1",
                     "prices": {
                         "hubs": 4000,
@@ -13465,8 +13540,7 @@
                             ],
                             "type": "spheres"
                         }
-                    ],
-                    "silenceDurationMs": 2000
+                    ]
                 },
                 {
                     "bulletSpeed": 700,
@@ -13543,10 +13617,15 @@
                     "bulletSpeed": 900,
                     "castTimeMs": 100,
                     "cooldown": 5000,
-                    "healPctAttackerPvP": 25,
-                    "healPctVictimPvP": 30,
                     "id": "am_h1",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "heal",
+                            "healPctPvE": 40,
+                            "healPctVictimPvP": 30,
+                            "healPctAttackerPvP": 25
+                        }
+                    ],
                     "name": "Heal Drones T1",
                     "prices": {
                         "hubs": 4000,
@@ -13574,7 +13653,14 @@
                     "castTimeMs": 0,
                     "cooldown": 1200,
                     "id": "am_h2",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "heal",
+                            "healPctPvE": 40,
+                            "healPctVictimPvP": 80,
+                            "healPctAttackerPvP": 30
+                        }
+                    ],
                     "name": "Heal Drones T2",
                     "prices": {
                         "hubs": 3000,
@@ -13588,7 +13674,14 @@
                     "cooldown": 1200,
                     "hidden": true,
                     "id": "am_h3",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "heal",
+                            "healPctPvE": 40,
+                            "healPctVictimPvP": 80,
+                            "healPctAttackerPvP": 30
+                        }
+                    ],
                     "name": "Heal Drones T3",
                     "prices": {
                         "hubs": 6000,
@@ -13602,7 +13695,14 @@
                     "cooldown": 1200,
                     "hidden": true,
                     "id": "am_h4",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "heal",
+                            "healPctPvE": 40,
+                            "healPctVictimPvP": 80,
+                            "healPctAttackerPvP": 30
+                        }
+                    ],
                     "name": "Heal Drones T4",
                     "prices": {
                         "hubs": 12000,
@@ -13616,7 +13716,14 @@
                     "cooldown": 1200,
                     "hidden": true,
                     "id": "am_h5",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "heal",
+                            "healPctPvE": 40,
+                            "healPctVictimPvP": 80,
+                            "healPctAttackerPvP": 30
+                        }
+                    ],
                     "name": "Heal Drones T5",
                     "prices": {
                         "hubs": 0,
@@ -13630,7 +13737,14 @@
                     "cooldown": 1200,
                     "hidden": true,
                     "id": "am_h6",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "heal",
+                            "healPctPvE": 40,
+                            "healPctVictimPvP": 80,
+                            "healPctAttackerPvP": 30
+                        }
+                    ],
                     "name": "Heal Drones T6",
                     "prices": {
                         "hubs": 0,
@@ -13641,17 +13755,11 @@
             ],
             "laser": [
                 {
-                    "bulletSpeed": 800,
+                    "bulletSpeed": 1000,
                     "castTimeMs": 200,
                     "cooldown": 1000,
                     "id": "am_l1",
-                    "mechanics": [
-                        {
-                            "damagePerSecond": 5,
-                            "duration": 3000,
-                            "type": "bleed"
-                        }
-                    ],
+                    "mechanics": [],
                     "name": "Láser T1",
                     "prices": {
                         "hubs": 1000,
@@ -13663,8 +13771,8 @@
                     "soundVolumePercent": 50
                 },
                 {
-                    "bulletSpeed": 800,
-                    "castTimeMs": 0,
+                    "bulletSpeed": 1000,
+                    "castTimeMs": 200,
                     "cooldown": 1000,
                     "hidden": false,
                     "id": "am_l2",
@@ -13674,7 +13782,7 @@
                         "hubs": 2000,
                         "ohcu": 2
                     },
-                    "range": 650
+                    "range": 1000
                 },
                 {
                     "bulletSpeed": 800,
@@ -13739,7 +13847,13 @@
                     "castTimeMs": 50,
                     "cooldown": 3000,
                     "id": "am_me1",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "slow",
+                            "duration": 2500,
+                            "amount": 30
+                        }
+                    ],
                     "name": "Plasma Claw T1",
                     "prices": {
                         "hubs": 4000,
@@ -13760,9 +13874,7 @@
                             ],
                             "type": "spheres"
                         }
-                    ],
-                    "slowAmount": 30,
-                    "slowDurationMs": 2500
+                    ]
                 },
                 {
                     "bulletSpeed": 2500,
@@ -13867,7 +13979,7 @@
             "mine": [
                 {
                     "bulletSpeed": 1200,
-                    "castTimeMs": 300,
+                    "castTimeMs": 200,
                     "cooldown": 4000,
                     "deceleration": 2,
                     "explosionRadius": 150,
@@ -13879,7 +13991,7 @@
                         "hubs": 3000,
                         "ohcu": 30
                     },
-                    "range": 1100,
+                    "range": 300,
                     "sound": "",
                     "soundVolumePercent": 50
                 },
@@ -13971,7 +14083,7 @@
             ],
             "missile": [
                 {
-                    "bulletSpeed": 500,
+                    "bulletSpeed": 800,
                     "castTimeMs": 250,
                     "cooldown": 3000,
                     "id": "am_m1",
@@ -13981,7 +14093,7 @@
                         "hubs": 2000,
                         "ohcu": 20
                     },
-                    "range": 600,
+                    "range": 900,
                     "requirements": [],
                     "soulbound": false,
                     "sound": "res://assets/Sonidos/Disparos/Misiles/Misil.mp3",
@@ -14064,7 +14176,12 @@
                     "castTimeMs": 100,
                     "cooldown": 4000,
                     "id": "am_s1",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "siphon",
+                            "siphonPct": 10
+                        }
+                    ],
                     "name": "Vampire Beam T1",
                     "prices": {
                         "hubs": 4000,
@@ -14085,15 +14202,19 @@
                             ],
                             "type": "spheres"
                         }
-                    ],
-                    "siphonPct": 10
+                    ]
                 },
                 {
                     "bulletSpeed": 1200,
                     "castTimeMs": 0,
                     "cooldown": 1000,
                     "id": "am_s2",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "siphon",
+                            "siphonPct": 25
+                        }
+                    ],
                     "name": "Vampire Beam T2",
                     "prices": {
                         "hubs": 6000,
@@ -14107,7 +14228,12 @@
                     "cooldown": 1000,
                     "hidden": true,
                     "id": "am_s3",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "siphon",
+                            "siphonPct": 25
+                        }
+                    ],
                     "name": "Vampire Beam T3",
                     "prices": {
                         "hubs": 12000,
@@ -14121,7 +14247,12 @@
                     "cooldown": 1000,
                     "hidden": true,
                     "id": "am_s4",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "siphon",
+                            "siphonPct": 25
+                        }
+                    ],
                     "name": "Vampire Beam T4",
                     "prices": {
                         "hubs": 24000,
@@ -14135,7 +14266,12 @@
                     "cooldown": 1000,
                     "hidden": true,
                     "id": "am_s5",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "siphon",
+                            "siphonPct": 25
+                        }
+                    ],
                     "name": "Vampire Beam T5",
                     "prices": {
                         "hubs": 0,
@@ -14149,7 +14285,12 @@
                     "cooldown": 1000,
                     "hidden": true,
                     "id": "am_s6",
-                    "mechanics": [],
+                    "mechanics": [
+                        {
+                            "type": "siphon",
+                            "siphonPct": 25
+                        }
+                    ],
                     "name": "Vampire Beam T6",
                     "prices": {
                         "hubs": 0,

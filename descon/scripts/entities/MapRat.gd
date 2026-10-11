@@ -16,6 +16,7 @@ var _walked := 0.0
 var _next_sniff_at := 10.0
 var _pause_left := 0.0
 var _sniffing := false
+var _amp := 0.0
 var _g_y := 0.0
 var _g_n := Vector3.UP
 var _g_t := 0.0

@@ -6,6 +6,7 @@ var hips: Array[Node3D] = []
 var leg_sides: Array[float] = []
 var body_node: Node3D
 var abdomen: MeshInstance3D
+var _amp := 0.0
 
 
 func _size_range() -> Array:

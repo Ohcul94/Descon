@@ -1041,8 +1041,10 @@ function startGameLoop(io, state, aiManager) {
 
         // B. Reset temporal de flags para Enemigos
         Object.values(enemies).forEach(e => {
-            if (now - (e.lastSilenceTime || 0) > 200) e.isSilenced = false;
-            if (now - (e.lastSlowTime || 0) > 200) {
+            if ((!e.silencedUntil || now >= e.silencedUntil) && now - (e.lastSilenceTime || 0) > 200) {
+                e.isSilenced = false;
+            }
+            if ((!e.slowEndTime || now >= e.slowEndTime) && now - (e.lastSlowTime || 0) > 200) {
                 e.isSlowed = false;
                 e.slowMultiplier = 1.0;
             }
