@@ -847,6 +847,10 @@ const handleUserLogin = async (socket, user, username) => {
     });
 
     const playerSpawnData = getCleanPlayerData(players[socket.id], socket.id);
+    if (playerSpawnData) {
+        socket.broadcast.to(`zone_${userZone}`).emit('newPlayer', playerSpawnData);
+    }
+
     setTimeout(() => {
         socket.emit('currentPlayers', currentPlayersInZone);
         socket.emit('currentEnemies', cleanEnemiesInZone);
@@ -867,9 +871,6 @@ const handleUserLogin = async (socket, user, username) => {
             });
         }
         
-        if (playerSpawnData) {
-            socket.broadcast.to(`zone_${userZone}`).emit('newPlayer', playerSpawnData);
-        }
         io.emit('onlineCount', Object.keys(players).length);
 
         // Sincronizar nodos de recursos recolectables de la zona

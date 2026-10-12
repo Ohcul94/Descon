@@ -12,6 +12,7 @@ const { updatePartyCombatLoop, recordPlayerCombat } = require('../utils/partyUti
 const { applyHealTalentBonus } = require('./statCalculator');
 
 const { normalizeZone } = require('../utils/zoneUtils');
+const { getCleanPlayerData } = require('../utils/entitySanitizer');
 
 const getStatusEffects = (ent) => {
     const now = Date.now();
@@ -331,6 +332,13 @@ function startGameLoop(io, state, aiManager) {
 
                                     if (inRange) {
                                         currentAoiPlayerIds.add(other.socketId);
+                                        if (!wasInAoi) {
+                                            // v450.1: Enviar presentación completa del jugador que acaba de entrar en rango visual
+                                            const cleanOther = getCleanPlayerData(other, other.socketId);
+                                            if (cleanOther) {
+                                                io.to(p.socketId).emit('newPlayer', cleanOther);
+                                            }
+                                        }
                                         p._lastSentPlayers[other.socketId] = true;
                                     }
                                 }

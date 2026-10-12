@@ -92,13 +92,21 @@ function registerMovementHandlers(socket, io, state) {
 
     const getLightMovementPayload = (p, id) => ({
         id,
+        user: p.user || 'Unknown',
+        username: p.user || 'Unknown',
         x: Math.round(p.x),
         y: Math.round(p.y),
         rotation: Math.round((p.rotation || 0) * 100) / 100,
         hp: Math.ceil(p.hp || 0),
+        shield: Math.ceil(p.shield || 0),
         sh: Math.ceil(p.shield || 0),
+        maxHp: p.maxHp || 2000,
+        maxShield: p.maxShield || 1000,
         speed: p.speed || 300,
         zone: p.zone,
+        clanTag: p.clanTag || "",
+        currentShipId: p.currentShipId || 1,
+        pvpEnabled: !!p.pvpEnabled,
         status_effects: Object.assign(getStatusEffects(p), p.status_effects || {})
     });
 
