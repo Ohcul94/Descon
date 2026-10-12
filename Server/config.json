@@ -13250,7 +13250,7 @@
                 "ohcu": 1000
             },
             "rotX": 0,
-            "rotY": 0,
+            "rotY": -90,
             "rotZ": 0,
             "shield": 30,
             "slots": {
@@ -13274,7 +13274,7 @@
                 "ohcu": 1000
             },
             "rotX": 0,
-            "rotY": 0,
+            "rotY": 90,
             "rotZ": 0,
             "shield": 20,
             "slots": {
@@ -13298,7 +13298,7 @@
                 "ohcu": 10000
             },
             "rotX": 0,
-            "rotY": 0,
+            "rotY": 90,
             "rotZ": 0,
             "shield": 40,
             "slots": {
@@ -13322,7 +13322,7 @@
                 "ohcu": 10000
             },
             "rotX": 0,
-            "rotY": 0,
+            "rotY": 90,
             "rotZ": 0,
             "shield": 60,
             "slots": {
@@ -13346,7 +13346,7 @@
                 "ohcu": 10000
             },
             "rotX": 0,
-            "rotY": 0,
+            "rotY": -90,
             "rotZ": 0,
             "shield": 75,
             "slots": {

@@ -22,6 +22,10 @@ const TEXTURE_MINE_3 = preload("res://assets/Municiones/Minas/Mina3/Mina3.png")
 const TEXTURE_MINE_2 = preload("res://assets/Municiones/Minas/Mina2/Mina2.png")
 const TEXTURE_SIPHON = preload("res://assets/Municiones/Siphon/Siphon1/Siphon1.png")
 const TEXTURE_LASER = preload("res://assets/Municiones/Lasers/Laser1/Laser1.png")
+const TEXTURE_EMP = preload("res://assets/Municiones/Iconos/emp/Emp.png")
+const TEXTURE_ELECTRON = preload("res://assets/Municiones/Iconos/electron/Electron.png")
+const TEXTURE_MELEE = preload("res://assets/Municiones/Iconos/melee/Melee.png")
+const TEXTURE_HEAL = preload("res://assets/Municiones/Iconos/heal/Heal.png")
 
 # Texturas de VFX Precargadas (v320: Mega Láser Estético y Efectos)
 const TEXTURE_VFX_FLARE_15 = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
@@ -35,7 +39,13 @@ const TEXTURE_CACHE = {
 	"orbital_mine": TEXTURE_MINE_3,
 	"hook": TEXTURE_MINE_2,
 	"siphon": TEXTURE_SIPHON,
-	"laser": TEXTURE_LASER
+	"shield_steal": TEXTURE_SIPHON,
+	"life_steal": TEXTURE_SIPHON,
+	"laser": TEXTURE_LASER,
+	"emp": TEXTURE_EMP,
+	"electron": TEXTURE_ELECTRON,
+	"melee": TEXTURE_MELEE,
+	"heal": TEXTURE_HEAL
 }
 
 # Projectile.gd (v141.72 - CONE EMP & VECTOR RENDERING)
@@ -111,12 +121,6 @@ static func _disable_shadows_recursive(node: Node) -> void:
 	if node is GeometryInstance3D:
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-		node.material_override = null
-		node.material_overlay = null
-	if node is MeshInstance3D:
-		var sc = node.get_surface_override_material_count()
-		for i in range(sc):
-			node.set_surface_override_material(i, null)
 	for child in node.get_children():
 		_disable_shadows_recursive(child)
 
@@ -1264,6 +1268,7 @@ func _setup_visual_sprite():
 	var path = ""
 	match type:
 		"laser": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
+		"missile", "ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
 		"hook": 
@@ -1276,6 +1281,10 @@ func _setup_visual_sprite():
 		"life_steal": 
 			path = "res://assets/Municiones/Siphon/Siphon1/Siphon1.png"
 			modulate = Color(0.3, 1.0, 0.4)
+		"emp": path = "res://assets/Municiones/Iconos/emp/Emp.png"
+		"electron": path = "res://assets/Municiones/Iconos/electron/Electron.png"
+		"melee": path = "res://assets/Municiones/Iconos/melee/Melee.png"
+		"heal": path = "res://assets/Municiones/Iconos/heal/Heal.png"
 		"mega_laser":
 			var length = max_range if max_range > 0.0 else 1000.0
 			var beam_w = _safe_float(_current_data.get("beamWidth"), 40.0)
@@ -1481,14 +1490,13 @@ func _setup_visual_sprite():
 			add_child(beam_2d)
 			return
 	
-	if path != "":
-		var tex = null
-		if TEXTURE_CACHE.has(type):
-			tex = TEXTURE_CACHE[type]
-		elif ResourceLoader.exists(path):
-			tex = load(path)
-			
-		if tex:
+	var tex = null
+	if TEXTURE_CACHE.has(type):
+		tex = TEXTURE_CACHE[type]
+	elif path != "" and ResourceLoader.exists(path):
+		tex = load(path)
+		
+	if tex:
 			sprite = Sprite2D.new()
 			sprite.texture = tex
 			

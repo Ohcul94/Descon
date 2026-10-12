@@ -2408,14 +2408,19 @@ func _setup_ship_visuals():
 		_setup_3d_visuals(glb_path)
 		
 		# --- PARCHES DE ORIENTACIÓN SEGÚN EL ASSET ---
-		# Buscamos el modelo real (hijo del _3d_model que es el nodo control)
 		var actual_model = _3d_model.get_child(0) if _3d_model and _3d_model.get_child_count() > 0 else null
 		if actual_model:
+			var has_custom_rot = false
 			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
-				actual_model.rotation_degrees.x = float(ship_data.get("rotX", 0))
-				actual_model.rotation_degrees.y = float(ship_data.get("rotY", 0))
-				actual_model.rotation_degrees.z = float(ship_data.get("rotZ", 0))
-			else:
+				var rx = float(ship_data.get("rotX", 0))
+				var ry = float(ship_data.get("rotY", 0))
+				var rz = float(ship_data.get("rotZ", 0))
+				if rx != 0.0 or ry != 0.0 or rz != 0.0:
+					actual_model.rotation_degrees.x = rx
+					actual_model.rotation_degrees.y = ry
+					actual_model.rotation_degrees.z = rz
+					has_custom_rot = true
+			if not has_custom_rot:
 				match current_ship_id:
 					3: # NAVE 3: Calibrada manualmente para estar plana y al frente
 						actual_model.rotation_degrees.x = 0
@@ -2427,6 +2432,12 @@ func _setup_ship_visuals():
 						actual_model.rotation_degrees.z = 52
 					6: # NAVE 6: Viene en reversa
 						actual_model.rotation_degrees.y = 180
+					8:
+						actual_model.rotation_degrees.y = -90
+					9, 10, 11:
+						actual_model.rotation_degrees.y = 90
+					12:
+						actual_model.rotation_degrees.y = -90
 			
 			# v220.72: APLICAR MEMORIA DE USUARIO (Si el piloto calibró esta nave en esta sesión)
 			if _ship_rot_mem.has(current_ship_id):
