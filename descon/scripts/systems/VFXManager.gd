@@ -572,26 +572,18 @@ func _setup_cinematic_3d():
 	_create_nebula_clouds(scene_3d)
 
 	# Instanciar las naves de combate
-	var ship1 = _add_loading_ship(scene_3d, "res://assets/Personajes/3D/Nave11/Nave11.glb", Vector3(-2.8, -0.3, -0.5), 0.6)
-	var ship2 = _add_loading_ship(scene_3d, "res://assets/Personajes/3D/Nave12/Nave12.glb", Vector3(2.8, 0.3, 0.5), 0.6)
+	var ship1 = _add_loading_ship(scene_3d, "res://assets/Personajes/3D/Nave11/Nave11.glb", Vector3(-2.8, -0.3, -0.5), 0.65)
+	var ship2 = _add_loading_ship(scene_3d, "res://assets/Personajes/3D/Nave12/Nave12.glb", Vector3(2.8, 0.3, 0.5), 0.65)
 	if ship1: ship1.rotation.y = deg_to_rad(15)
 	if ship2: ship2.rotation.y = deg_to_rad(165)
 
-	# Instanciar planetas 3D de fondo giratorios a lo lejos
-	var planet1 = _add_loading_ship(scene_3d, "res://assets/Esferas/3D/EsferaAzul/EsferaAzul.glb", Vector3(-6.5, -2.0, -11.0), 1.6)
-	var planet2 = _add_loading_ship(scene_3d, "res://assets/Esferas/3D/EsferaRoja/EsferaRoja.glb", Vector3(7.5, 3.0, -13.0), 1.3)
-	var planet3 = _add_loading_ship(scene_3d, "res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla.glb", Vector3(-4.0, 4.5, -16.0), 0.9)
-
-	# Instanciar el controlador de combate espacial y asignarle los nodos correspondientes
+	# Instanciar el controlador de combate espacial cinematográfico
 	var combat_script = load("res://scripts/ui/LoadingCombatController.gd")
 	var combat_controller = combat_script.new()
 	scene_3d.add_child(combat_controller)
 	combat_controller.ship1 = ship1
 	combat_controller.ship2 = ship2
 	combat_controller.camera = cam
-	combat_controller.planet1 = planet1
-	combat_controller.planet2 = planet2
-	combat_controller.planet3 = planet3
 
 func cleanup_cinematic():
 	for key in _loading_refs.keys():

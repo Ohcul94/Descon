@@ -5,7 +5,7 @@ extends Control
 
 @onready var user_input = get_node_or_null("Panel/VBoxContainer/UserLine")
 @onready var pass_input = get_node_or_null("Panel/VBoxContainer/PassLine")
-@onready var remember_check = get_node_or_null("Panel/VBoxContainer/RememberCheck")
+@onready var remember_check = get_node_or_null("Panel/VBoxContainer/RememberContainer/RememberCheck") if get_node_or_null("Panel/VBoxContainer/RememberContainer/RememberCheck") else find_child("RememberCheck", true, false)
 @onready var status_lbl = get_node_or_null("Panel/VBoxContainer/ErrorLabel")
 @onready var login_btn = get_node_or_null("Panel/VBoxContainer/HBoxContainer/LoginBtn")
 @onready var register_btn = get_node_or_null("Panel/VBoxContainer/HBoxContainer/RegisterBtn")
@@ -24,6 +24,8 @@ func _ready():
 		login_btn.pressed.connect(_on_login_btn_pressed)
 	if register_btn and not register_btn.pressed.is_connected(_on_register_btn_pressed):
 		register_btn.pressed.connect(_on_register_btn_pressed)
+	
+	_setup_ui_polish()
 	
 	if NetworkManager:
 		NetworkManager.auth_success.connect(_on_auth_success)
@@ -180,3 +182,42 @@ func _load_saved_user():
 			if user_input: user_input.text = config.get_value("auth", "user", "")
 			if pass_input: pass_input.text = config.get_value("auth", "pass", "")
 			if remember_check: remember_check.button_pressed = true
+
+func _setup_ui_polish():
+	var panel = get_node_or_null("Panel")
+	if panel:
+		panel.pivot_offset = panel.size * 0.5
+		# Entrada suave con ligero slide desde la izquierda
+		panel.position.x -= 30.0
+		var tw_in = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw_in.tween_property(panel, "position:x", panel.position.x + 30.0, 0.45)
+	
+	# Micro-interacción reactiva en botones (escala suave al hover)
+	for btn in [login_btn, register_btn]:
+		if btn:
+			btn.pivot_offset = btn.custom_minimum_size * 0.5
+			btn.mouse_entered.connect(func():
+				var tw = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+				tw.tween_property(btn, "scale", Vector2(1.04, 1.04), 0.12)
+			)
+			btn.mouse_exited.connect(func():
+				var tw = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+				tw.tween_property(btn, "scale", Vector2.ONE, 0.12)
+			)
+			
+	# Click en el texto "MANTENER SESION" también conmuta el check
+	var rem_lbl = get_node_or_null("Panel/VBoxContainer/RememberContainer/RememberLabel")
+	if rem_lbl and remember_check:
+		rem_lbl.gui_input.connect(func(ev):
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				remember_check.button_pressed = !remember_check.button_pressed
+		)
+			
+	# Respiración sutil holográfica del título "Descon"
+	var title_lbl = get_node_or_null("Panel/VBoxContainer/Title")
+	if not title_lbl:
+		title_lbl = find_child("Title", true, false)
+	if title_lbl:
+		var tw_glow = create_tween().set_loops()
+		tw_glow.tween_property(title_lbl, "modulate", Color(1.15, 1.15, 1.25, 1.0), 1.8).set_trans(Tween.TRANS_SINE)
+		tw_glow.tween_property(title_lbl, "modulate", Color(0.9, 0.95, 1.0, 0.92), 1.8).set_trans(Tween.TRANS_SINE)
