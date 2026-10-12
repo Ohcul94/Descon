@@ -105,11 +105,27 @@ func _ready():
 		body_shape_entered.connect(_on_body_shape_entered)
 	queue_redraw()
 
+static func _disable_shadows_recursive(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	if node is GeometryInstance3D:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		node.material_override = null
+		node.material_overlay = null
+	if node is MeshInstance3D:
+		var sc = node.get_surface_override_material_count()
+		for i in range(sc):
+			node.set_surface_override_material(i, null)
+	for child in node.get_children():
+		_disable_shadows_recursive(child)
+
 func _safe_free_3d_node(node: Node) -> void:
 	if not is_instance_valid(node):
 		return
 	if node is Node3D:
 		node.visible = false
+		_disable_shadows_recursive(node)
 	var p = node.get_parent()
 	if is_instance_valid(p):
 		p.remove_child(node)
@@ -117,6 +133,7 @@ func _safe_free_3d_node(node: Node) -> void:
 
 func _safe_free_world_root_3d() -> void:
 	if is_instance_valid(_laser_hit_3d):
+		_laser_hit_3d.visible = false
 		VFXSystem.recycle_vfx_to_pool(_laser_hit_3d)
 		_laser_hit_3d = null
 	if is_instance_valid(_bomb_ground_marker):
@@ -126,8 +143,14 @@ func _safe_free_world_root_3d() -> void:
 		_safe_free_3d_node(_hook_chain_3d)
 		_hook_chain_3d = null
 	if is_instance_valid(world_root_3d):
-		_safe_free_3d_node(world_root_3d)
+		var wr = world_root_3d
 		world_root_3d = null
+		if wr.has_meta("pool_scene_path"):
+			wr.visible = false
+			_disable_shadows_recursive(wr)
+			VFXSystem.recycle_vfx_to_pool(wr)
+		else:
+			_safe_free_3d_node(wr)
 
 func _exit_tree() -> void:
 	_safe_free_world_root_3d()
@@ -470,20 +493,18 @@ func _setup_visual_sprite():
 			var target_vp = map_node.sub_viewport
 			if VFX_Hadouken_scene:
 				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Hadouken_scene)
-				world_root_3d.name = "HadoukenProj3D_" + str(get_instance_id())
-				target_vp.add_child(world_root_3d)
-				
-				# Escala 3D óptima
-				world_root_3d.scale = Vector3(1.5, 1.5, 1.5)
-				
-				# Conectar la limpieza al salir del árbol
-				tree_exiting.connect(func():
-					if is_instance_valid(world_root_3d):
-						VFXSystem.recycle_vfx_to_pool(world_root_3d)
-				)
-				
-				sprite = null
-				return
+				if is_instance_valid(world_root_3d):
+					world_root_3d.name = "HadoukenProj3D_" + str(get_instance_id())
+					_disable_shadows_recursive(world_root_3d)
+					target_vp.add_child(world_root_3d)
+					
+					# Escala 3D óptima
+					world_root_3d.scale = Vector3(1.5, 1.5, 1.5)
+					
+					tree_exiting.connect(_safe_free_world_root_3d)
+					
+					sprite = null
+					return
 		
 	# Efecto 3D de bola de fuego giratoria para Melee (Fire Ball Type B en cada cuchilla)
 	if type == "melee":
@@ -496,24 +517,29 @@ func _setup_visual_sprite():
 				_melee_blade_positions_3d = []
 				for i in range(4):
 					var fb = VFXSystem.get_vfx_from_pool(VFX_Fire_ball_type_B_scene)
-					fb.name = "MeleeFB3D_" + str(get_instance_id()) + "_" + str(i)
-					fb.scale = Vector3(0.8, 0.8, 0.8)
-					# Rotar la estela estática 180° en Y para que quede detrás de la esfera
-					var trail1 = fb.get_node_or_null("Trail1_static")
-					if trail1:
-						var t = trail1.transform
-						trail1.transform = Transform3D(t.basis * Basis.from_euler(Vector3(0, PI, 0)), t.origin)
-					# Activar la estela dinámica (viene invisible en la escena)
-					var trail2 = fb.get_node_or_null("Trail2_dynamic")
-					if trail2:
-						trail2.visible = true
-					target_vp.add_child(fb)
-					_melee_fireballs_3d.append(fb)
-					_melee_blade_positions_3d.append(Vector3.ZERO)
+					if is_instance_valid(fb):
+						fb.name = "MeleeFB3D_" + str(get_instance_id()) + "_" + str(i)
+						_disable_shadows_recursive(fb)
+						fb.scale = Vector3(0.8, 0.8, 0.8)
+						# Rotar la estela estática 180° en Y para que quede detrás de la esfera
+						var trail1 = fb.get_node_or_null("Trail1_static")
+						if trail1:
+							var t = trail1.transform
+							trail1.transform = Transform3D(t.basis * Basis.from_euler(Vector3(0, PI, 0)), t.origin)
+						# Activar la estela dinámica (viene invisible en la escena)
+						var trail2 = fb.get_node_or_null("Trail2_dynamic")
+						if trail2:
+							trail2.visible = true
+						target_vp.add_child(fb)
+						_melee_fireballs_3d.append(fb)
+						_melee_blade_positions_3d.append(Vector3.ZERO)
 				tree_exiting.connect(func():
 					for fb in _melee_fireballs_3d:
 						if is_instance_valid(fb):
+							fb.visible = false
+							_disable_shadows_recursive(fb)
 							VFXSystem.recycle_vfx_to_pool(fb)
+					_melee_fireballs_3d.clear()
 				)
 		return
 		
@@ -524,54 +550,38 @@ func _setup_visual_sprite():
 			var target_vp = map_node.sub_viewport
 			if VFX_Cube_projectile_scene:
 				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Cube_projectile_scene)
-				world_root_3d.name = "HealProj3D_" + str(get_instance_id())
-				target_vp.add_child(world_root_3d)
-				
-				# Escala 3D óptima
-				world_root_3d.scale = Vector3(1.5, 1.5, 1.5)
-				
-				# Conectar la limpieza al salir del árbol
-				tree_exiting.connect(func():
-					if is_instance_valid(world_root_3d):
-						VFXSystem.recycle_vfx_to_pool(world_root_3d)
-				)
-				
-				sprite = null
-				return
+				if is_instance_valid(world_root_3d):
+					world_root_3d.name = "HealProj3D_" + str(get_instance_id())
+					_disable_shadows_recursive(world_root_3d)
+					target_vp.add_child(world_root_3d)
+					
+					# Escala 3D óptima
+					world_root_3d.scale = Vector3(1.5, 1.5, 1.5)
+					
+					tree_exiting.connect(_safe_free_world_root_3d)
+					
+					sprite = null
+					return
 		
 	# Modelo 3D para Siphon usando escena VFX pool
 	if type == "siphon":
-		print("[SIPHON DEBUG] type = ", type, " - spawning 3D")
 		sprite = null
 		var map_node = get_tree().get_first_node_in_group("map")
-		print("[SIPHON DEBUG] map_node = ", map_node)
-		if is_instance_valid(map_node):
-			print("[SIPHON DEBUG] map_node.sub_viewport = ", map_node.get("sub_viewport"))
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-			print("[SIPHON DEBUG] VFX_Siphon_projectile_scene = ", VFX_Siphon_projectile_scene)
 			if VFX_Siphon_projectile_scene:
 				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Siphon_projectile_scene)
-				print("[SIPHON DEBUG] world_root_3d = ", world_root_3d)
 				if is_instance_valid(world_root_3d):
 					world_root_3d.name = "SiphonProj3D_" + str(get_instance_id())
+					_disable_shadows_recursive(world_root_3d)
 					target_vp.add_child(world_root_3d)
 					
 					world_root_3d.scale = Vector3(0.6, 0.6, 0.6)
 					
-					tree_exiting.connect(func():
-						if is_instance_valid(world_root_3d):
-							VFXSystem.recycle_vfx_to_pool(world_root_3d)
-					)
+					tree_exiting.connect(_safe_free_world_root_3d)
 					
 					return
-				else:
-					print("[SIPHON ERROR] Failed to get VFX from pool!")
-			else:
-				print("[SIPHON ERROR] VFX_Siphon_projectile_scene is empty!")
-		else:
-			print("[SIPHON DEBUG] No map node or sub_viewport, falling back to 2D")
-		# NO return here - allow fallback to 2D if 3D fails
+		# Fallback a 2D si 3D falla
 
 	# Efecto 3D de proyectil Láser (cubo rojo con estela) - v530.5 fix visibilidad (horizontal + fallback)
 	if type == "laser":
@@ -582,22 +592,15 @@ func _setup_visual_sprite():
 				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Laser_projectile_scene)
 				if is_instance_valid(world_root_3d):
 					world_root_3d.name = "LaserProj3D_" + str(get_instance_id())
+					_disable_shadows_recursive(world_root_3d)
 					target_vp.add_child(world_root_3d)
 					
 					world_root_3d.scale = Vector3(0.425, 0.425, 0.425)
 					
-					tree_exiting.connect(func():
-						if is_instance_valid(world_root_3d):
-							VFXSystem.recycle_vfx_to_pool(world_root_3d)
-					)
+					tree_exiting.connect(_safe_free_world_root_3d)
 					
 					sprite = null
 					return
-				else:
-					print("[LASER FIX] Pool devolvio null, usando fallback 2D")
-		else:
-			print("[LASER FIX] map_node o sub_viewport nulo, usando fallback 2D. map_node=", map_node)
-		# No return -> cae al fallback 2D de sprite/_draw para garantizar visibilidad
 
 	# Efecto 3D de proyectil de fuego (Fire Strike) para misiles
 	if type == "missile" or type == "ice_missile":
@@ -606,27 +609,25 @@ func _setup_visual_sprite():
 			var target_vp = map_node.sub_viewport
 			if VFX_Fire_strike_scene:
 				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Fire_strike_scene)
-				world_root_3d.name = "MissileProj3D_" + str(get_instance_id())
-				target_vp.add_child(world_root_3d)
-				
-				world_root_3d.scale = Vector3(0.75, 0.75, 0.75)
-				
-			# Auto-limpiar el nodo 3D cuando el proyectil 2D se destruye
-			tree_exiting.connect(func():
 				if is_instance_valid(world_root_3d):
-					VFXSystem.recycle_vfx_to_pool(world_root_3d)
-			)
-			
-			# Tinte azul para misiles de hielo
-			if type == "ice_missile":
-				var mesh = world_root_3d.get_node_or_null("MeshInstance3D")
-				if mesh and mesh.material_override:
-					var mat = mesh.material_override.duplicate()
-					mat.albedo_color = Color(0.4, 0.7, 2.0)
-					mesh.material_override = mat
-				
-				sprite = null
-				return
+					world_root_3d.name = "MissileProj3D_" + str(get_instance_id())
+					_disable_shadows_recursive(world_root_3d)
+					target_vp.add_child(world_root_3d)
+					
+					world_root_3d.scale = Vector3(0.75, 0.75, 0.75)
+					
+					tree_exiting.connect(_safe_free_world_root_3d)
+					
+					# Tinte azul para misiles de hielo
+					if type == "ice_missile":
+						var mesh = world_root_3d.get_node_or_null("MeshInstance3D")
+						if mesh and mesh.material_override:
+							var mat = mesh.material_override.duplicate()
+							mat.albedo_color = Color(0.4, 0.7, 2.0)
+							mesh.material_override = mat
+						
+						sprite = null
+						return
 
 	if type == "mine":
 		var map_node = get_tree().get_first_node_in_group("map")

@@ -381,8 +381,18 @@ func _spawn_laser_projectile(from_ship: Node3D, to_ship: Node3D, col: Color, is_
 	if not proj_node:
 		proj_node = Node3D.new()
 		var m = MeshInstance3D.new()
-		m.mesh = SphereMesh.new()
-		m.mesh.radius = 0.15; m.mesh.height = 0.3
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		m.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		var sm = SphereMesh.new()
+		sm.radius = 0.15; sm.height = 0.3
+		var sm_mat = StandardMaterial3D.new()
+		sm_mat.albedo_color = col
+		sm_mat.emission_enabled = true
+		sm_mat.emission = col
+		sm_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm.material = sm_mat
+		m.mesh = sm
+		m.material_override = sm_mat
 		proj_node.add_child(m)
 		
 	proj_node.position = start_pos
@@ -428,7 +438,9 @@ func _update_projectiles(delta: float):
 				
 		if ap.progress >= 1.0:
 			_trigger_impact_effect(ap.target_ship, ap.color, ap.is_emp)
-			ap.node.queue_free()
+			if is_instance_valid(ap.node):
+				ap.node.visible = false
+				ap.node.queue_free()
 			to_remove.append(ap)
 			
 	for ap in to_remove:
@@ -464,13 +476,19 @@ func _trigger_impact_effect(ship: Node3D, col: Color, is_emp: bool):
 				
 				var tw_hit = create_tween()
 				tw_hit.tween_interval(1.5)
-				tw_hit.tween_callback(hit_inst.queue_free)
+				tw_hit.tween_callback(func():
+					if is_instance_valid(hit_inst):
+						hit_inst.visible = false
+						hit_inst.queue_free()
+				)
 				
 	# 2. Escudo Deflector Reactivo
 	var shield = MeshInstance3D.new()
-	shield.mesh = SphereMesh.new()
-	shield.mesh.radius = 1.2
-	shield.mesh.height = 2.4
+	shield.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	shield.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	var sm = SphereMesh.new()
+	sm.radius = 1.2
+	sm.height = 2.4
 	
 	var mat = StandardMaterial3D.new()
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -479,39 +497,50 @@ func _trigger_impact_effect(ship: Node3D, col: Color, is_emp: bool):
 	mat.emission = col
 	mat.emission_energy_multiplier = 4.2
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.material = mat
+	shield.mesh = sm
 	shield.material_override = mat
 	ship.add_child(shield)
 	shield.position = Vector3.ZERO
 	
 	var tw = create_tween().set_parallel(true)
 	tw.tween_property(mat, "albedo_color:a", 0.55, 0.04)
-	tw.tween_property(shield, "scale", Vector3(1.3, 1.3, 1.3), 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(shield, "scale", Vector3(1.3, 1.3, 1.3), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	
 	var tw_fade = create_tween()
 	tw_fade.tween_interval(0.08)
 	tw_fade.tween_property(mat, "albedo_color:a", 0.0, 0.35)
-	tw_fade.tween_callback(shield.queue_free)
+	tw_fade.tween_callback(func():
+		if is_instance_valid(tw): tw.kill()
+		if is_instance_valid(shield):
+			shield.visible = false
+			shield.queue_free()
+	)
 	
 	# 3. Chispas de impacto de plasma
 	_spawn_spark_particles(impact_pos, col, is_emp)
 
 func _spawn_spark_particles(pos: Vector3, col: Color, is_emp: bool):
-	var spark_count = 14 if is_emp else 8
-	var particle_lifetime = 0.45
+	var spark_count = 12 if is_emp else 6
+	var particle_lifetime = 0.42
 	
 	for i in range(spark_count):
 		var p = MeshInstance3D.new()
-		p.mesh = SphereMesh.new()
-		var size = randf_range(0.03, 0.065)
-		p.mesh.radius = size
-		p.mesh.height = size * 2
+		p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		p.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		var sm = SphereMesh.new()
+		var size = randf_range(0.03, 0.06)
+		sm.radius = size
+		sm.height = size * 2
 		
 		var p_mat = StandardMaterial3D.new()
 		p_mat.albedo_color = Color.WHITE
 		p_mat.emission_enabled = true
 		p_mat.emission = col
-		p_mat.emission_energy_multiplier = 5.5
+		p_mat.emission_energy_multiplier = 5.0
 		p_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm.material = p_mat
+		p.mesh = sm
 		p.material_override = p_mat
 		
 		add_child(p)
@@ -523,10 +552,21 @@ func _spawn_spark_particles(pos: Vector3, col: Color, is_emp: bool):
 			randf_range(-1.0, 1.0)
 		).normalized()
 		
-		var speed = randf_range(1.8, 3.6)
+		var speed = randf_range(1.8, 3.4)
 		var dest = pos + dir * (speed * particle_lifetime)
 		
 		var tw_p = create_tween().set_parallel(true)
 		tw_p.tween_property(p, "position", dest, particle_lifetime).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tw_p.tween_property(p, "scale", Vector3.ZERO, particle_lifetime).set_trans(Tween.TRANS_LINEAR)
-		tw_p.chain().tween_callback(p.queue_free)
+		tw_p.chain().tween_callback(func():
+			if is_instance_valid(p):
+				p.visible = false
+				p.queue_free()
+		)
+
+func _exit_tree():
+	for ap in active_projectiles:
+		if is_instance_valid(ap.node):
+			ap.node.visible = false
+			ap.node.queue_free()
+	active_projectiles.clear()

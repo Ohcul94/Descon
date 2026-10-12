@@ -271,6 +271,8 @@ func _create_starfield_3d(parent: Node3D):
 		mat.emission_energy_multiplier = randf_range(0.8, 3.5)
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		star.material_override = mat
+		star.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		star.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		parent.add_child(star)
 
 func _create_nebula_clouds(parent: Node3D):
@@ -304,6 +306,8 @@ func _create_nebula_clouds(parent: Node3D):
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		cloud.material_override = mat
+		cloud.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cloud.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		parent.add_child(cloud)
 
 func _create_projectile(parent: Node3D, from_pos: Vector3, to_pos: Vector3, color: Color, texture_path: String, is_emp: bool):
@@ -906,9 +910,13 @@ func _run_shader_warmup():
 	# Liberar todos los efectos instanciados
 	for inst in instantiated_nodes:
 		if is_instance_valid(inst):
+			if inst is CanvasItem or inst is Node3D:
+				inst.visible = false
 			inst.queue_free()
 
-	tn.queue_free()
+	if is_instance_valid(tn):
+		tn.visible = false
+		tn.queue_free()
 
 	status.text = "¡Listo!"
 	progress.value = 100.0
@@ -1127,7 +1135,7 @@ func get_vfx_from_pool(scene_source) -> Node:
 	var pool = _vfx_pools[path]
 	while pool.size() > 0:
 		var inst = pool.pop_back()
-		if is_instance_valid(inst):
+		if is_instance_valid(inst) and not inst.is_queued_for_deletion():
 			_reset_vfx_node(inst)
 			return inst
 			
@@ -1150,10 +1158,14 @@ func recycle_vfx_to_pool(vfx_node: Node):
 	var path = vfx_node.get_meta("pool_scene_path", "")
 	if path == "":
 		# Fallback si no proviene del pooler
+		if vfx_node is CanvasItem or vfx_node is Node3D:
+			vfx_node.visible = false
 		vfx_node.queue_free()
 		return
 		
-	# Remover del padre para dejarlo inactivo y libre
+	# Remover del padre para dejarlo inactivo y libre asegurando invisibilidad
+	if vfx_node is CanvasItem or vfx_node is Node3D:
+		vfx_node.visible = false
 	if vfx_node.get_parent():
 		vfx_node.get_parent().remove_child(vfx_node)
 		
@@ -1193,6 +1205,10 @@ func _cache_materials_recursive(node: Node):
 	if not is_instance_valid(node):
 		return
 		
+	if node is GeometryInstance3D:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+
 	if node is MeshInstance3D:
 		if node.material_override:
 			_warmed_materials.append(node.material_override)

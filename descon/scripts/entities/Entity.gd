@@ -4722,35 +4722,31 @@ func _clean_internal_lights(node: Node):
 func _make_materials_unshaded(node: Node):
 	if not is_instance_valid(node):
 		return
+	if node is GeometryInstance3D:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	if node is MeshInstance3D:
 		if node.name != "EnergyShield" and not _is_descendant_of_active_shield(node):
-			# 1. Si ya tiene material_override, con actualizar ese alcanza y evitamos conflicto de overrides múltiples
+			# 1. Si ya tiene material_override, actualizarlo y no tocar surfaces
 			if node.material_override and node.material_override is BaseMaterial3D:
 				if node.material_override.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
 					node.material_override = node.material_override.duplicate()
 					node.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 					node.material_override.cull_mode = BaseMaterial3D.CULL_BACK
-			else:
-				# 2. Solo si NO tiene material_override global, actualizar materiales de superficies
-				var s_count = node.get_surface_override_material_count()
-				if s_count == 0 and node.mesh:
-					s_count = node.mesh.get_surface_count()
-				for i in range(s_count):
-					var mat = node.get_surface_override_material(i)
+			elif node.mesh:
+				# 2. Modificar directamente los materiales de las superficies de la malla SIN crear Surface Overrides
+				# (evita el bug #85817 de Godot de colisión entre material_override y surface_override_material al destruir o cambiar materiales)
+				for i in range(node.mesh.get_surface_count()):
+					var mat = node.mesh.surface_get_material(i)
 					if mat and mat is BaseMaterial3D:
 						if mat.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
-							var dup_mat = mat.duplicate()
-							dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-							dup_mat.cull_mode = BaseMaterial3D.CULL_BACK
-							node.set_surface_override_material(i, dup_mat)
-					else:
-						var active_mat = node.get_active_material(i)
-						if active_mat and active_mat is BaseMaterial3D:
-							if active_mat.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
-								var dup_mat = active_mat.duplicate()
-								dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-								dup_mat.cull_mode = BaseMaterial3D.CULL_BACK
-								node.set_surface_override_material(i, dup_mat)
+							mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+							mat.cull_mode = BaseMaterial3D.CULL_BACK
+					elif mat == null:
+						var def_mat = StandardMaterial3D.new()
+						def_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+						def_mat.cull_mode = BaseMaterial3D.CULL_BACK
+						node.mesh.surface_set_material(i, def_mat)
 	for child in node.get_children():
 		_make_materials_unshaded(child)
 
@@ -4759,6 +4755,9 @@ func _make_materials_unshaded(node: Node):
 func _ensure_mesh_normals(node: Node):
 	if not is_instance_valid(node):
 		return
+	if node is GeometryInstance3D:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	if node is MeshInstance3D:
 		var mesh = node.mesh
 		if mesh and mesh is ArrayMesh:
@@ -4776,8 +4775,10 @@ func _ensure_mesh_normals(node: Node):
 					st.generate_normals()
 					st.commit(new_mesh)
 					var mat = node.get_active_material(s)
-					if mat:
-						new_mesh.surface_set_material(s, mat)
+					if mat == null:
+						mat = StandardMaterial3D.new()
+						mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					new_mesh.surface_set_material(s, mat)
 				node.mesh = new_mesh
 	for child in node.get_children():
 		_ensure_mesh_normals(child)
@@ -4785,6 +4786,9 @@ func _ensure_mesh_normals(node: Node):
 func _setup_sphere_materials_recursive(node: Node, color_name: String):
 	if not is_instance_valid(node):
 		return
+	if node is GeometryInstance3D:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	if node is MeshInstance3D:
 		var mat = node.material_override
 		if not mat:
@@ -4812,11 +4816,27 @@ func _setup_sphere_materials_recursive(node: Node, color_name: String):
 
 # v550.0: Funciones de liberación segura de nodos y raíces 3D para evitar errores de GLES3
 # (material_storage.cpp: material_casts_shadows: Parameter "material" is null)
+static func _disable_shadows_and_materials_recursive(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	if node is GeometryInstance3D:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		node.material_override = null
+		node.material_overlay = null
+	if node is MeshInstance3D:
+		var sc = node.get_surface_override_material_count()
+		for i in range(sc):
+			node.set_surface_override_material(i, null)
+	for child in node.get_children():
+		_disable_shadows_and_materials_recursive(child)
+
 static func _safe_free_3d_node(node: Node) -> void:
 	if not is_instance_valid(node):
 		return
 	if node is Node3D:
 		node.visible = false
+		_disable_shadows_and_materials_recursive(node)
 	var p = node.get_parent()
 	if is_instance_valid(p):
 		p.remove_child(node)
@@ -4825,6 +4845,7 @@ static func _safe_free_3d_node(node: Node) -> void:
 func _safe_free_world_root_3d() -> void:
 	if is_instance_valid(world_root_3d):
 		world_root_3d.visible = false
+		_disable_shadows_and_materials_recursive(world_root_3d)
 		var p = world_root_3d.get_parent()
 		if is_instance_valid(p):
 			p.remove_child(world_root_3d)

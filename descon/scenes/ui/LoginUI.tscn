@@ -175,7 +175,7 @@ text = "Descon"
 horizontal_alignment = 1
 
 [node name="UserLine" type="LineEdit" parent="Panel/VBoxContainer"]
-custom_minimum_size = Vector2(170, 32)
+custom_minimum_size = Vector2(160, 30)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.9, 0.96, 1, 1)
@@ -187,7 +187,7 @@ placeholder_text = "USUARIO"
 alignment = 1
 
 [node name="PassLine" type="LineEdit" parent="Panel/VBoxContainer"]
-custom_minimum_size = Vector2(170, 32)
+custom_minimum_size = Vector2(160, 30)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.9, 0.96, 1, 1)

@@ -895,7 +895,7 @@ func _build() -> void:
 
 
 func _animate(delta: float) -> void:
-	var L := size
+	var _L := size
 	var want := 0.0
 	if _stalking:
 		want = 0.0
