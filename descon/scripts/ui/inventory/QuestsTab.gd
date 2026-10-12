@@ -573,12 +573,6 @@ func _open_reward_selector(q_id, pool, sel_count):
 	footer.add_theme_constant_override("separation", 15)
 	vbox.add_child(footer)
 
-	var cancel = Button.new()
-	cancel.text = "CANCELAR"
-	cancel.custom_minimum_size = Vector2(140, 38)
-	cancel.pressed.connect(func(): overlay.queue_free())
-	footer.add_child(cancel)
-
 	confirm_btn.pressed.connect(func():
 		if selected.size() != sel_count:
 			return
@@ -586,6 +580,12 @@ func _open_reward_selector(q_id, pool, sel_count):
 		overlay.queue_free()
 	)
 	footer.add_child(confirm_btn)
+
+	var cancel = Button.new()
+	cancel.text = "CANCELAR"
+	cancel.custom_minimum_size = Vector2(140, 38)
+	cancel.pressed.connect(func(): overlay.queue_free())
+	footer.add_child(cancel)
 
 # Callback de cada boton del selector de recompensa
 func _on_reward_item_toggled(on, b, idx, sel_count, selected, confirm_btn):

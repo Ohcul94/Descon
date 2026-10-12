@@ -1,0 +1,114 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Volcan.glb" id="1_volcan"]
+[ext_resource type="PackedScene" path="res://assets/Mapas/Mapa3/Decorativos/Individuales/Volcan_Erupcion.glb" id="2_erupcion"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.35)
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_lava"]
+emission_shape = 1
+emission_sphere_radius = 0.1
+direction = Vector3(0, 1, 0)
+spread = 25.0
+initial_velocity_min = 0.3
+initial_velocity_max = 0.8
+gravity = Vector3(0, -2, 0)
+damping_min = 0.5
+damping_max = 1.0
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.6
+scale_max = 1.0
+color = Color(1, 0.5, 0.12, 1)
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_humo"]
+emission_shape = 1
+emission_sphere_radius = 0.25
+direction = Vector3(0, 1, 0)
+spread = 20.0
+initial_velocity_min = 0.4
+initial_velocity_max = 0.8
+gravity = Vector3(0, 0.25, 0)
+damping_min = 0.5
+damping_max = 1.0
+scale_min = 1.0
+scale_max = 1.8
+color = Color(0.3, 0.28, 0.28, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="MAT_lava_p"]
+shading_mode = 0
+albedo_color = Color(1, 0.35, 0.05, 1)
+emission_enabled = true
+emission = Color(1, 0.3, 0.05, 1)
+emission_energy_multiplier = 2.0
+billboard_mode = 1
+cull_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="MAT_humo_p"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.3, 0.28, 0.28, 0.45)
+billboard_mode = 1
+cull_mode = 2
+
+[sub_resource type="QuadMesh" id="QUAD_lava"]
+material = SubResource("MAT_lava_p")
+size = Vector2(0.05, 0.05)
+
+[sub_resource type="QuadMesh" id="QUAD_humo"]
+material = SubResource("MAT_humo_p")
+size = Vector2(0.35, 0.35)
+
+[node name="Volcan" type="Node3D"]
+metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "Volcan"
+metadata/asset_path = "res://assets/Mapas/Mapa3/Decorativos/Individuales/Volcan.glb"
+metadata/colType = "circle"
+metadata/colWidth = 70.0
+metadata/colHeight = 12.0
+metadata/colOffsetX = 0.0
+metadata/colOffsetY = 0.0
+metadata/colY = 0.0
+metadata/colH = 0.01
+
+[node name="Model" parent="." instance=ExtResource("1_volcan")]
+
+[node name="Erupcion" parent="." instance=ExtResource("2_erupcion")]
+
+[node name="LavaFX" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+amount = 40
+lifetime = 1.0
+preprocess = 0.5
+emitting = true
+local_coords = true
+visibility_aabb = AABB(-3, -1, -3, 6, 7, 6)
+process_material = SubResource("PPM_lava")
+draw_pass_1 = SubResource("QUAD_lava")
+
+[node name="HumoFX" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+amount = 30
+lifetime = 4.0
+preprocess = 2.0
+emitting = true
+local_coords = true
+visibility_aabb = AABB(-3, -1, -3, 6, 7, 6)
+process_material = SubResource("PPM_humo")
+draw_pass_1 = SubResource("QUAD_humo")
+
+[node name="LuzErupcion" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+light_color = Color(1, 0.45, 0.12, 1)
+light_energy = 2.5
+omni_range = 3.5
+
+[node name="ColliderCircle1" type="CSGCylinder3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+radius = 0.7
+height = 0.01
+material = SubResource("StandardMaterial3D_col")

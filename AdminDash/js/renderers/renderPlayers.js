@@ -368,9 +368,9 @@ function renderPilot() {
         }
         
         const types = [
-            { id: 'laser', name: '🔦 LÁSERES', color: '#31dfff' },
-            { id: 'missile', name: '🚀 MISILES', color: '#ff5500' },
-            { id: 'mine', name: '💣 MINAS', color: '#ffe031' }
+            { id: 'laser', name: '🔫 LÁSER', color: '#31dfff' },
+            { id: 'missile', name: '🚀 MISIL', color: '#ff5500' },
+            { id: 'mine', name: '💣 MINA', color: '#ffe031' }
         ];
         
         ammoGrid.innerHTML = types.map(t => `

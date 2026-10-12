@@ -1590,7 +1590,36 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 		item_data = ammo_list[t_idx]
 	
 	# v400.70: Obtener el cooldown del Admin Dash (en ms) con fallback a 1.0s
-	var cd_ms = item_data.get("cooldown", 1000.0)
+	var cd_ms = float(item_data.get("cooldown", 1000.0))
+
+	# v901.0: Bonificaciones dinámicas de talentos por munición (Rango, Velocidad, Daño, Cooldown)
+	var ts = get_tree().get_first_node_in_group("talent_system")
+	var dyn_bonuses: Dictionary = ts.get_dynamic_bonuses() if is_instance_valid(ts) else {}
+
+	# 1. Rango / Alcance
+	var r_bonus_key = "ammo:" + p_type + ":range"
+	if dyn_bonuses.has(r_bonus_key):
+		var r_mod = dyn_bonuses[r_bonus_key]
+		if r_mod.get("flat", false):
+			r_val += float(r_mod.get("val", 0.0))
+		else:
+			r_val *= (1.0 + float(r_mod.get("val", 0.0)))
+
+	# 2. Velocidad de Proyectil
+	var spd_val = float(item_data.get("bulletSpeed", 800.0))
+	var spd_bonus_key = "ammo:" + p_type + ":bulletSpeed"
+	if dyn_bonuses.has(spd_bonus_key):
+		var s_mod = dyn_bonuses[spd_bonus_key]
+		if s_mod.get("flat", false):
+			spd_val += float(s_mod.get("val", 0.0))
+		else:
+			spd_val *= (1.0 + float(s_mod.get("val", 0.0)))
+
+	# 3. Cooldown
+	var cd_bonus_key = "ammo:" + p_type + ":cooldown"
+	if dyn_bonuses.has(cd_bonus_key):
+		var c_mod = dyn_bonuses[cd_bonus_key]
+		cd_ms = max(50.0, cd_ms * (1.0 - abs(float(c_mod.get("val", 0.0)))))
 	cooldowns[p_type] = float(cd_ms) / 1000.0
 	
 	# v260.95: Lógica de Minas y Bombas Electron de Precisión (Despliegue hacia cursor)
@@ -1599,10 +1628,19 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 		r_val = min(r_val, dist)
 
 	var final_damage = base_laser_damage * ammo_mult
+	var dmg_bonus_key = "ammo:" + p_type + ":damage"
+	if dyn_bonuses.has(dmg_bonus_key):
+		var d_mod = dyn_bonuses[dmg_bonus_key]
+		if d_mod.get("flat", false):
+			final_damage += float(d_mod.get("val", 0.0))
+		else:
+			final_damage *= (1.0 + float(d_mod.get("val", 0.0)))
+
 	var final_payload = {
 		"id": entity_id, "x": global_position.x, "y": global_position.y,
 		"angle": p_angle, "rotation": rotation, "type": p_type, "ammoType": t_idx, 
-		"senderId": entity_id, "damageBoost": final_damage, "range": r_val
+		"senderId": entity_id, "damageBoost": final_damage, "range": r_val,
+		"bulletSpeed": spd_val
 	}
 	
 	# Copiar propiedades adicionales del tier (ej. explosionRadius) al payload

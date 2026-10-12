@@ -12,6 +12,7 @@ const SHADER_DOME_STARFIELD = preload("res://resources/shaders/dome_starfield.gd
 const MODEL_PORTAL_ICON = preload("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
 const MODEL_VAULT_ICON = preload("res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb")
 const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb")
+const AMBIENT_BIRDS_FLOCK_SCENE = preload("res://VFX/scenes/AmbientBirdsFlock.tscn")
 
 
 # Script Base para Mapas Instanciados con Soporte 3D Dinámico.
@@ -90,6 +91,9 @@ var _camera_initialized: bool = false
 var _classic_cam_smoothed_y: float = -999.0
 @export var terrain_collision_height_threshold: float = 0.8
 @export var ambient_rat_count: int = 8
+@export var ambient_scorpion_count: int = 8
+@export var ambient_birds_enabled: bool = true
+@export var ambient_bird_flocks_count: int = 1
 @export var max_ship_terrain_height: float = 0.8
 
 
@@ -112,6 +116,7 @@ var _was_mobile_camera_edit: int = 0
 var _occluder_fader: OccluderFader = null
 const OccluderFaderScript = preload("res://scripts/systems/OccluderFader.gd")
 const MAP_RAT_SCRIPT = preload("res://scripts/entities/MapRat.gd")
+const MAP_SCORPION_SCRIPT = preload("res://scripts/entities/MapScorpion.gd")
 const ROCK_SPIDER_SCRIPT = preload("res://scripts/entities/RockCritter_Spider.gd")
 const ROCK_WORM_SCRIPT = preload("res://scripts/entities/RockCritter_Worm.gd")
 const CRITTER_CULL_DIST := 140.0
@@ -2437,6 +2442,85 @@ func _spawn_map_rats(root: Node3D) -> void:
 	print("[BaseMap] Ratas ambientales spawneadas: ", placed.size(), " (intentos=", attempts, ")")
 
 
+func _spawn_map_scorpions(root: Node3D) -> void:
+	var bounds := _compute_content_aabb(root)
+	print("[BaseMap] _spawn_map_scorpions: bounds=", bounds)
+	if bounds.size.x < 4.0 or bounds.size.z < 4.0:
+		print("[BaseMap] Escorpiones omitidos: bounds de contenido demasiado pequeños")
+		return
+	var container := Node3D.new()
+	container.name = "AmbientScorpions"
+	root.add_child(container)
+	var terrain := _find_terrain_node_recursive(root)
+	print("[BaseMap] _spawn_map_scorpions: terrain=", terrain)
+	if is_instance_valid(terrain):
+		bounds = bounds.grow(bounds.get_longest_axis_size() * 0.35)
+	var min_sep := 28.0
+	var placed: Array[Vector3] = []
+	var wanted := maxi(0, ambient_scorpion_count)
+	var attempts := 0
+	while placed.size() < wanted and attempts < wanted * 30:
+		attempts += 1
+		var x := randf_range(bounds.position.x + bounds.size.x * 0.06, bounds.end.x - bounds.size.x * 0.06)
+		var z := randf_range(bounds.position.z + bounds.size.z * 0.06, bounds.end.z - bounds.size.z * 0.06)
+		var too_close := false
+		for p in placed:
+			if Vector2(x, z).distance_to(Vector2(p.x, p.z)) < min_sep:
+				too_close = true
+				break
+		if too_close:
+			continue
+		var scorpion: Node3D = MAP_SCORPION_SCRIPT.new()
+		scorpion.name = "Scorpion_%d" % placed.size()
+		container.add_child(scorpion)
+		scorpion.call("setup_scorpion", root, terrain, bounds)
+		scorpion.call("place_now")
+		var spawn_y: float = scorpion.global_position.y
+		if scorpion.get("pos") != null and scorpion.get("pos") is Vector3:
+			spawn_y = scorpion.get("pos").y
+		if is_nan(spawn_y) or absf(spawn_y) > 500.0:
+			print("[BaseMap] Escorpión ", scorpion.name, " descartado y=", spawn_y)
+			scorpion.queue_free()
+			continue
+		placed.append(scorpion.global_position if scorpion.global_position != Vector3.ZERO else scorpion.position)
+	print("[BaseMap] Escorpiones ambientales spawneados: ", placed.size(), " (intentos=", attempts, ")")
+
+
+func _spawn_ambient_birds(root: Node3D) -> void:
+	if not ambient_birds_enabled or not is_instance_valid(root):
+		return
+	if root.get_node_or_null("AmbientBirds") != null:
+		return
+	var container := Node3D.new()
+	container.name = "AmbientBirds"
+	root.add_child(container)
+	
+	var bounds := _compute_content_aabb(root)
+	if bounds.size.x < 4.0 or bounds.size.z < 4.0:
+		var max_x = world_size * scale_factor
+		var max_z = map_height * scale_factor * correction_z
+		bounds = AABB(Vector3(0.0, 0.0, 0.0), Vector3(max_x, 5.0, max_z))
+	
+	var terrain := _find_terrain_node_recursive(root)
+	var wanted := maxi(1, ambient_bird_flocks_count)
+	for i in range(wanted):
+		var flock = AMBIENT_BIRDS_FLOCK_SCENE.instantiate()
+		flock.name = "Flock_%d" % i
+		
+		# Distribución aleatoria dentro del área jugable
+		var x := randf_range(bounds.position.x + bounds.size.x * 0.15, bounds.end.x - bounds.size.x * 0.15)
+		var z := randf_range(bounds.position.z + bounds.size.z * 0.15, bounds.end.z - bounds.size.z * 0.15)
+		var y := 0.0
+		if is_instance_valid(terrain) and terrain.has_method("get_height"):
+			var th = terrain.get_height(Vector3(x, 0.0, z))
+			if not is_nan(th):
+				y = th
+		
+		flock.position = Vector3(x, y + flock.fly_height, z)
+		container.add_child(flock)
+	print("[BaseMap] Bandadas de palomas ambientales spawneadas: ", wanted)
+
+
 func _compute_content_aabb(root: Node3D) -> AABB:
 	var total := AABB()
 	var first := true
@@ -3658,3 +3742,13 @@ func _spawn_objects_from_custom_scene():
 		_spawn_map_rats(target_root)
 	else:
 		print("[BaseMap] Gate de ratas SKIP (zone_id=", zone_id, " scene=", scene_src, ")")
+
+	# Escorpiones ambientales: solo en Mapa 2 (desierto / rocas)
+	if zid == "2" or "mapa_2" in scene_src:
+		print("[BaseMap] Gate de escorpiones OK (zone_id=", zone_id, " scene=", scene_src, ")")
+		_spawn_map_scorpions(target_root)
+	else:
+		print("[BaseMap] Gate de escorpiones SKIP (zone_id=", zone_id, " scene=", scene_src, ")")
+
+	# Aves ambientales (siluetas voladoras que se asustan y cruzan el cielo)
+	_spawn_ambient_birds(target_root)

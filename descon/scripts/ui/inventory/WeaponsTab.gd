@@ -44,7 +44,7 @@ var WEAPONS_DATA = {
 		"icon_path": "res://assets/Municiones/Iconos/heal/Heal.png"
 	},
 	"siphon": {
-		"name": "SIFÓN DE ENERGÍA",
+		"name": "ROBO DE VIDA",
 		"desc": "Drena el escudo y la vida del enemigo para reparar tus sistemas.",
 		"color": Color(1.0, 0.0, 1.0), # Púrpura/Rosa
 		"icon": "🔮",
@@ -157,18 +157,37 @@ func _ammo_stats_text(w_id: String, t_idx: int) -> String:
 	var cfg = _ammo_tier_cfg(w_id, t_idx)
 	var parts := PackedStringArray()
 
+	var ts = get_tree().get_first_node_in_group("talent_system")
+	var dyn_bonuses: Dictionary = ts.get_dynamic_bonuses() if is_instance_valid(ts) else {}
+	var dmg_bonus = dyn_bonuses.get("ammo:" + w_id + ":damage", null)
+	var r_bonus = dyn_bonuses.get("ammo:" + w_id + ":range", null)
+	var spd_bonus = dyn_bonuses.get("ammo:" + w_id + ":bulletSpeed", null)
+	var cd_bonus = dyn_bonuses.get("ammo:" + w_id + ":cooldown", null)
+
 	if GameConstants:
 		var mults = GameConstants.AMMO_MULTIPLIERS.get(w_id, [])
 		if typeof(mults) == TYPE_ARRAY and t_idx < mults.size() and mults[t_idx] != null:
-			parts.append("Daño x" + _fmt_num(mults[t_idx]))
+			var d_str = "Daño x" + _fmt_num(mults[t_idx])
+			if dmg_bonus and float(dmg_bonus.get("val", 0.0)) > 0.0:
+				d_str += " (+" + _fmt_num(float(dmg_bonus.val) * 100.0) + "% Talento)"
+			parts.append(d_str)
 
 	if cfg.has("range"):
-		parts.append("Alcance " + str(int(cfg.range)))
+		var r_str = "Alcance " + str(int(cfg.range))
+		if r_bonus and float(r_bonus.get("val", 0.0)) > 0.0:
+			r_str += " (+" + _fmt_num(float(r_bonus.val) * 100.0) + "%)"
+		parts.append(r_str)
 	if cfg.has("bulletSpeed"):
-		parts.append("Velocidad " + str(int(cfg.bulletSpeed)))
+		var spd_str = "Velocidad " + str(int(cfg.bulletSpeed))
+		if spd_bonus and float(spd_bonus.get("val", 0.0)) > 0.0:
+			spd_str += " (+" + _fmt_num(float(spd_bonus.val) * 100.0) + "%)"
+		parts.append(spd_str)
 	if cfg.has("cooldown"):
 		var cd = int(cfg.cooldown)
-		parts.append("CD " + _fmt_time_ms(cd))
+		var cd_str = "CD " + _fmt_time_ms(cd)
+		if cd_bonus and abs(float(cd_bonus.get("val", 0.0))) > 0.0:
+			cd_str += " (" + _fmt_num(float(cd_bonus.val) * 100.0) + "%)"
+		parts.append(cd_str)
 		if cd > 0:
 			parts.append("Cadencia " + _fmt_num(snappedf(100000.0 / float(cd), 0.01) / 100.0) + "/s")
 	if cfg.has("castTimeMs") and int(cfg.castTimeMs) > 0:

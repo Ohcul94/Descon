@@ -138,8 +138,8 @@ function showTab(tabId) {
 
     const titles = {
         'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas',
-        'ammo': 'Mercado: Municiones', 'weapons': 'Mercado: Armamento',
-        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión', 'spheres': 'Mercado: Esferas', 'market': 'Regulador de Mercado',
+        'ammo': `Mercado: Munición ${(window.AMMO_NAMES && window.AMMO_NAMES[currentAmmoTab]) || (currentAmmoTab ? (currentAmmoTab.charAt(0).toUpperCase() + currentAmmoTab.slice(1)) : 'Láser')}`, 'weapons': 'Mercado: Armamento',
+        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Motores', 'spheres': 'Mercado: Esferas', 'market': 'Regulador de Mercado',
         'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
         'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema',
         'sessions': 'Auditoría de Sesiones Estelares',
@@ -617,6 +617,11 @@ function setAmmoTab(tab, btn) {
     if (btn) {
         document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
         btn.classList.add('active');
+    }
+    const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[tab]) || (tab ? (tab.charAt(0).toUpperCase() + tab.slice(1)) : 'Láser');
+    const titleEl = document.getElementById('current-view-title');
+    if (titleEl && currentTab === 'ammo') {
+        titleEl.innerText = `Mercado: Munición ${ammoName}`;
     }
     renderAmmo();
 }
@@ -4723,7 +4728,8 @@ function cmRenderEffects() {
                 catColor = '#ef4444';
             } else if (parsed.type === 'ammo') {
                 const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
-                displayName = `Munición ${parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[parsed.id]) || (parsed.id ? (parsed.id.charAt(0).toUpperCase() + parsed.id.slice(1)) : '');
+                displayName = `Munición ${ammoName} → ${attrMeta ? attrMeta.label : parsed.attr}`;
                 displayIcon = '💥';
                 catColor = '#f43f5e';
             }

@@ -123,6 +123,28 @@ let AMMO_MECH_LIB = {
     "area": { label: "Daño de Área", icon: "💥", desc: "Explota al impactar.", fields: ["damagePerSecond", "radius"] }
 };
 
+window.AMMO_NAMES = {
+    laser: "Láser",
+    missile: "Misil",
+    mine: "Mina",
+    melee: "Melee",
+    heal: "Curativa",
+    siphon: "Robo de Vida",
+    emp: "Pulso EMP",
+    electron: "Electrón"
+};
+
+window.AMMO_ICONS = {
+    laser: "🔫",
+    missile: "🚀",
+    mine: "💣",
+    melee: "👊",
+    heal: "💚",
+    siphon: "🧛",
+    emp: "⚡",
+    electron: "⚛️"
+};
+
 let AMBIENCE_LIB = {
     "radiation": { label: "Radiación", icon: "☢️", desc: "Daño constante por intervalos de tiempo.", fields: ["damage", "intervalMs"] },
     "nebula": { label: "Nebulosa", icon: "🌫️", desc: "Efecto de slow ambiental.", fields: ["slowPercentage", "visibility"] },

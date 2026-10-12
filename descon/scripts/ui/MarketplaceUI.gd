@@ -869,15 +869,15 @@ func _open_sell_modal(item: Dictionary):
 	btn_row.add_theme_constant_override("separation", 10)
 	vbox.add_child(btn_row)
 	
-	var btn_cancel = Button.new()
-	btn_cancel.text = "CANCELAR"
-	btn_cancel.pressed.connect(_hide_modal)
-	btn_row.add_child(btn_cancel)
-	
 	var btn_publish = Button.new()
 	btn_publish.text = "PUBLICAR"
 	btn_publish.pressed.connect(_confirm_publish)
 	btn_row.add_child(btn_publish)
+
+	var btn_cancel = Button.new()
+	btn_cancel.text = "CANCELAR"
+	btn_cancel.pressed.connect(_hide_modal)
+	btn_row.add_child(btn_cancel)
 
 func _update_fee_preview():
 	if not is_instance_valid(lbl_fee_preview): return
@@ -985,11 +985,6 @@ func _open_confirm(title: String, msg: String, on_confirm: Callable):
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(btn_row)
 	
-	var btn_cancel = Button.new()
-	btn_cancel.text = "CANCELAR"
-	btn_cancel.pressed.connect(_hide_modal)
-	btn_row.add_child(btn_cancel)
-	
 	var btn_ok = Button.new()
 	btn_ok.text = "CONFIRMAR"
 	btn_ok.pressed.connect(func():
@@ -999,6 +994,11 @@ func _open_confirm(title: String, msg: String, on_confirm: Callable):
 			confirm_callback.call()
 	)
 	btn_row.add_child(btn_ok)
+
+	var btn_cancel = Button.new()
+	btn_cancel.text = "CANCELAR"
+	btn_cancel.pressed.connect(_hide_modal)
+	btn_row.add_child(btn_cancel)
 
 # ---------------------------------------------------------------------------
 # HELPERS

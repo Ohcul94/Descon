@@ -127,6 +127,8 @@ func setup_rat(p_root: Node3D, p_terrain: Node3D, p_bounds: AABB) -> void:
 	terrain = p_terrain
 	bounds_override = p_bounds
 	rng.randomize()
+	_read_map_scale_factors()
+	_vision_check_timer = rng.randf_range(0.0, 0.25)
 	_measure()
 	_ensure_shared()
 	# Tamaño proporcionado a la escala del mapa: roedor ágil y pequeño
@@ -171,6 +173,9 @@ func _place_initial() -> void:
 	yaw = rng.randf_range(0.0, TAU)
 	_apply_transform()
 	_placed = true
+	_read_map_scale_factors()
+	_is_in_player_vision = _check_in_player_vision()
+	visible = _is_in_player_vision
 	_pick_target()
 
 
@@ -266,6 +271,18 @@ func _physics_process(delta: float) -> void:
 	if not _placed:
 		_place_initial()
 		return
+
+	# --- CULLING POR RANGO DE VISIÓN DEL JUGADOR / CÁMARA ---
+	_vision_check_timer -= delta
+	if _vision_check_timer <= 0.0:
+		_vision_check_timer = 0.25
+		_is_in_player_vision = _check_in_player_vision()
+		if visible != _is_in_player_vision:
+			visible = _is_in_player_vision
+
+	if not _is_in_player_vision:
+		return # Cortocircuito: fuera de visión no se renderiza (visible=false) ni gasta CPU
+
 	if _pause_left > 0.0:
 		_pause_left -= delta
 		_sniffing = true

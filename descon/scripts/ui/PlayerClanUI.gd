@@ -221,13 +221,6 @@ func _show_modal(title: String, message: String, on_confirm: Callable, extra_con
 	hb.add_theme_constant_override("separation", 8)
 	v.add_child(hb)
 
-	var btn_cancel = Button.new(); btn_cancel.text = " CANCELAR "; btn_cancel.add_theme_font_size_override("font_size", 9)
-	btn_cancel.pressed.connect(func():
-		active_modales.erase(m)
-		m.queue_free()
-	)
-	hb.add_child(btn_cancel)
-
 	var btn_ok = Button.new(); btn_ok.text = " CONFIRMAR "; btn_ok.add_theme_font_size_override("font_size", 9); btn_ok.modulate = Color.GOLD
 	btn_ok.pressed.connect(func():
 		active_modales.erase(m)
@@ -235,6 +228,13 @@ func _show_modal(title: String, message: String, on_confirm: Callable, extra_con
 		on_confirm.call()
 	)
 	hb.add_child(btn_ok)
+
+	var btn_cancel = Button.new(); btn_cancel.text = " CANCELAR "; btn_cancel.add_theme_font_size_override("font_size", 9)
+	btn_cancel.pressed.connect(func():
+		active_modales.erase(m)
+		m.queue_free()
+	)
+	hb.add_child(btn_cancel)
 
 	add_child(m)
 	m.set_anchors_and_offsets_preset(Control.PRESET_CENTER)

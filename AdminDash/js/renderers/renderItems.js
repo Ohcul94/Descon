@@ -99,26 +99,38 @@ function renderAmmo() {
     const shopItems = (config.shopItems.ammo && config.shopItems.ammo[type]) ? config.shopItems.ammo[type] : [];
 
     const descMap = {
-        'laser': '🔦 <strong>Láser:</strong> Proyectil estándar directo. Daño enfocado a distancia media/larga.',
-        'mine': '💣 <strong>Mina:</strong> Munición explosiva de proximidad. Ideal para control de zonas o defensa.',
-        'missile': '🚀 <strong>Misil:</strong> Misil teledirigido de largo alcance con gran capacidad destructiva.',
-        'melee': '👊 <strong>Melee (Tanque):</strong> Ataque cuerpo a cuerpo de muy corto alcance. Podés configurarle efectos de impacto abajo.',
-        'heal': '💚 <strong>Curativa:</strong> Podés configurarle el efecto de Curación como efecto de impacto abajo.',
-        'siphon': '🧛 <strong>Vampírica:</strong> Podés configurarle el efecto de Robo de Vida como efecto de impacto abajo.',
-        'emp': '⚡ <strong>Pulso EMP:</strong> Proyectil electromagnético. Podés configurarle efectos de impacto abajo.',
-        'electron': '⚛️ <strong>Electrón:</strong> Lanza una bomba de energía en parábola que explota en área. Podés configurarle el aumento de velocidad u otros efectos de impacto abajo.'
+        'laser': 'Proyectil estándar directo. Daño enfocado a distancia media/larga.',
+        'missile': 'Misil teledirigido de largo alcance con gran capacidad destructiva.',
+        'mine': 'Munición explosiva de proximidad. Ideal para control de zonas o defensa.',
+        'melee': 'Ataque cuerpo a cuerpo de muy corto alcance. Podés configurarle efectos de impacto abajo.',
+        'heal': 'Munición curativa. Podés configurarle el efecto de Curación como efecto de impacto abajo.',
+        'siphon': 'Munición vampírica. Podés configurarle el efecto de Robo de Vida como efecto de impacto abajo.',
+        'emp': 'Proyectil electromagnético. Podés configurarle efectos de impacto abajo.',
+        'electron': 'Lanza una bomba de energía en parábola que explota en área. Podés configurarle el aumento de velocidad u otros efectos de impacto abajo.'
     };
+
+    const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[type]) || (type ? (type.charAt(0).toUpperCase() + type.slice(1)) : 'Munición');
+    const ammoIcon = (window.AMMO_ICONS && window.AMMO_ICONS[type]) || '📦';
 
     const descDiv = document.createElement('div');
     descDiv.style.gridColumn = '1 / -1';
     descDiv.style.background = 'rgba(255, 255, 255, 0.02)';
-    descDiv.style.border = '1px solid rgba(255, 255, 255, 0.05)';
-    descDiv.style.padding = '1rem';
+    descDiv.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+    descDiv.style.padding = '1rem 1.25rem';
     descDiv.style.borderRadius = '8px';
     descDiv.style.marginBottom = '1rem';
     descDiv.style.color = '#ccc';
     descDiv.style.fontSize = '0.9rem';
-    descDiv.innerHTML = descMap[type] || 'Configuración de munición.';
+    descDiv.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.5rem;">${ammoIcon}</span>
+                <span style="font-size:1.15rem; font-weight:bold; color:var(--primary); letter-spacing:1px;">MUNICIÓN ${ammoName.toUpperCase()}</span>
+            </div>
+            <span style="font-size:0.7rem; color:#888; font-family:'JetBrains Mono';">Tiers 1 al 6 · Catálogo de Mercado</span>
+        </div>
+        <div style="font-size:0.82rem; color:#aaa; line-height:1.4;">${descMap[type] || 'Configuración de munición comercial.'}</div>
+    `;
     grid.appendChild(descDiv);
 
     multipliers.forEach((m, i) => {
@@ -459,9 +471,10 @@ function _getSphereStatMeta(key) {
                 };
             } else if (parsed.type === 'ammo') {
                 const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
+                const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[parsed.id]) || (parsed.id ? (parsed.id.charAt(0).toUpperCase() + parsed.id.slice(1)) : '');
                 return {
                     key: key,
-                    label: `Munición ${parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`,
+                    label: `Munición ${ammoName} → ${attrMeta ? attrMeta.label : parsed.attr}`,
                     icon: attrMeta ? (attrMeta.icon || '💣') : '💣',
                     cat: 'dynamic',
                     isPct: !(attrMeta && attrMeta.flat),
@@ -863,10 +876,14 @@ window._renderSphereStatPickerModal = function() {
         const skillsList = cfg.skillsData ? Object.values(cfg.skillsData) : [];
         const weaponsList = cfg.shopItems && cfg.shopItems.weapons ? cfg.shopItems.weapons : [];
         const ammosList = [
-            { id: 'laser', name: 'Láser Estándar' },
-            { id: 'plasma', name: 'Plasma Pesado' },
-            { id: 'missile', name: 'Misiles Dirigidos' },
-            { id: 'emp', name: 'Pulso EMP' }
+            { id: 'laser', name: 'Láser' },
+            { id: 'missile', name: 'Misil' },
+            { id: 'mine', name: 'Mina' },
+            { id: 'melee', name: 'Melee' },
+            { id: 'heal', name: 'Curativa' },
+            { id: 'siphon', name: 'Robo de Vida' },
+            { id: 'emp', name: 'Pulso EMP' },
+            { id: 'electron', name: 'Electrón' }
         ];
 
         const skillAttrs = window.SKILL_ATTRS || {

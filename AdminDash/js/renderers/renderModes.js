@@ -2683,7 +2683,8 @@ window.renderTalentCreator = function() {
                                 } else if (isAmmoFx) {
                                     const parsed = _parseDynamicKey(key);
                                     const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
-                                    label = `Munición ${parsed.id} → ${attrMeta ? attrMeta.label : parsed.attr}`;
+                                    const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[parsed.id]) || (parsed.id ? (parsed.id.charAt(0).toUpperCase() + parsed.id.slice(1)) : '');
+                                    label = `Munición ${ammoName} → ${attrMeta ? attrMeta.label : parsed.attr}`;
                                     icon = '💥';
                                     catCol = '#ef4444';
                                 }
@@ -2808,6 +2809,7 @@ window.WEAPON_ATTRS = {
 };
 
 window.AMMO_ATTRS = {
+    damage:          { label: 'Daño Extra',       unit: '%',    icon: '💥' },
     cooldown:        { label: 'Enfriamiento (CD)', unit: '%',   icon: '⏱️' },
     bulletSpeed:     { label: 'Vel. Proyectil',   unit: 'px/s', icon: '🚀' },
     range:           { label: 'Alcance',          unit: 'px',   icon: '📏' },
@@ -2871,7 +2873,7 @@ window.describeTalentEffects = function(talent) {
                     icon = attrMeta ? (attrMeta.icon || '🔫') : '🔫';
                 } else if (parsed.type === 'ammo') {
                     const attrMeta = window.AMMO_ATTRS ? window.AMMO_ATTRS[parsed.attr] : null;
-                    const ammoName = parsed.id ? (parsed.id.charAt(0).toUpperCase() + parsed.id.slice(1)) : '';
+                    const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[parsed.id]) || (parsed.id ? (parsed.id.charAt(0).toUpperCase() + parsed.id.slice(1)) : '');
                     label = `Munición ${ammoName} → ${attrMeta ? attrMeta.label : parsed.attr}`;
                     icon = attrMeta ? (attrMeta.icon || '💣') : '💣';
                 }
@@ -2981,7 +2983,7 @@ window._renderEffectPickerModal = function() {
     // 4. Municiones
     const ammo = (cfg.shopItems && cfg.shopItems.ammo) ? cfg.shopItems.ammo : {};
     for (const [ammoType, ammoData] of Object.entries(ammo)) {
-        const ammoName = ammoType.charAt(0).toUpperCase() + ammoType.slice(1);
+        const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[ammoType]) || (ammoType.charAt(0).toUpperCase() + ammoType.slice(1));
         for (const [attrKey, attrMeta] of Object.entries(window.AMMO_ATTRS || {})) {
             allItems.push({
                 key: `ammo:${ammoType}:${attrKey}`,

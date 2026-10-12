@@ -16,10 +16,19 @@ var world_aabb := AABB()
 var rng := RandomNumberGenerator.new()
 var _placed := false
 
+# Optimización: Culling por rango de visión del jugador y cámara
+var _is_in_player_vision: bool = true
+var _vision_check_timer: float = 0.0
+var _cached_player: Node2D = null
+var _scale_factor_cached: float = 0.02
+var _correction_z_cached: float = 1.4142
+
 
 func setup(p_rock: Node3D) -> void:
 	rock = p_rock
 	rng.randomize()
+	_read_map_scale_factors()
+	_vision_check_timer = rng.randf_range(0.0, 0.25)
 	_measure()
 	var w: float = maxf(world_aabb.size.x, world_aabb.size.z)
 	var rng_size := _size_range()
@@ -72,6 +81,18 @@ func _physics_process(delta: float) -> void:
 	if not _placed:
 		_place_initial()
 		return
+
+	# --- CULLING POR RANGO DE VISIÓN DEL JUGADOR / CÁMARA ---
+	_vision_check_timer -= delta
+	if _vision_check_timer <= 0.0:
+		_vision_check_timer = 0.25
+		_is_in_player_vision = _check_in_player_vision()
+		if visible != _is_in_player_vision:
+			visible = _is_in_player_vision
+
+	if not _is_in_player_vision:
+		return # Cortocircuito: fuera de visión no se renderiza (visible=false) ni gasta CPU
+
 	if walking:
 		var flat := Vector3(target.x - pos.x, 0.0, target.z - pos.z)
 		var dist := flat.length()
@@ -117,6 +138,9 @@ func _place_initial() -> void:
 	yaw = rng.randf_range(0.0, TAU)
 	_apply_transform()
 	_placed = true
+	_read_map_scale_factors()
+	_is_in_player_vision = _check_in_player_vision()
+	visible = _is_in_player_vision
 
 
 func _pick_target() -> void:
@@ -170,3 +194,58 @@ func _build() -> void:
 
 func _animate(_delta: float) -> void:
 	pass
+
+
+func _read_map_scale_factors() -> void:
+	var p: Node = get_parent()
+	while p:
+		if p.has_meta("correction_z"):
+			_correction_z_cached = p.get_meta("correction_z")
+		if "scale_factor" in p:
+			_scale_factor_cached = p.scale_factor
+		p = p.get_parent()
+
+
+func _check_in_player_vision() -> bool:
+	if not is_inside_tree():
+		return false
+
+	# 1. Localizar al jugador local si no está cacheado
+	if not is_instance_valid(_cached_player):
+		var players := get_tree().get_nodes_in_group("player")
+		if players.size() > 0 and is_instance_valid(players[0]):
+			_cached_player = players[0]
+
+	var my_pos := global_position if _placed else pos
+	var max_vision_dist := 34.0 # Fallback 3D (aprox 1700px 2D)
+
+	if is_instance_valid(_cached_player):
+		var vr_2d := 1300.0
+		if "vision_range" in _cached_player:
+			vr_2d = float(_cached_player.vision_range)
+		max_vision_dist = (vr_2d * _scale_factor_cached) + 8.0
+
+		var p_pos_3d := Vector3.ZERO
+		var wr3d = _cached_player.get("world_root_3d")
+		if is_instance_valid(wr3d):
+			p_pos_3d = wr3d.global_position
+		else:
+			var p2d: Vector2 = _cached_player.global_position
+			p_pos_3d = Vector3(p2d.x * _scale_factor_cached, my_pos.y, p2d.y * _scale_factor_cached * _correction_z_cached)
+
+		# Margen de histéresis: si ya era visible, tolerancia extra de 4m para evitar flickering al borde
+		var threshold := max_vision_dist if not _is_in_player_vision else (max_vision_dist + 4.0)
+		var dist_h := Vector2(my_pos.x - p_pos_3d.x, (my_pos.z - p_pos_3d.z) / _correction_z_cached).length()
+		if dist_h <= threshold:
+			return true
+
+	# 2. Compatibilidad con Cámara Libre (Free Camera / Orbit) o cámara activa
+	var cam := get_viewport().get_camera_3d() if get_viewport() else null
+	if is_instance_valid(cam):
+		var cam_pos := cam.global_position
+		var dist_cam := my_pos.distance_to(cam_pos)
+		if dist_cam <= (max_vision_dist + 12.0):
+			if cam.is_position_in_frustum(my_pos):
+				return true
+
+	return false

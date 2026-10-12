@@ -1171,7 +1171,12 @@ socket.on('playerFire', (fireData) => {
                 }
             });
         }
-        const talentDmgMult = 1.0 + (p._talentBonuses?.laser_dmg_pct || 0) + (p._talentBonuses?.dmg_pct || 0) + weaponTalentBonus;
+        const activeAmmo = p.selectedAmmo || 'laser';
+        let ammoTalentBonus = 0;
+        if (p._talentBonuses) {
+            ammoTalentBonus = Number(p._talentBonuses[`ammo:${activeAmmo}:damage`]) || Number(p._talentBonuses[`ammo:${activeAmmo}:dmg_pct`]) || 0;
+        }
+        const talentDmgMult = 1.0 + (p._talentBonuses?.laser_dmg_pct || 0) + (p._talentBonuses?.dmg_pct || 0) + weaponTalentBonus + ammoTalentBonus;
 
         // Permitimos un 50% extra para críticos/buffs del cliente
         let maxAllowed = (weaponsBase * maxAmmoMult + dmgModFlat) * dmgModMult * talentDmgMult * 1.5;
@@ -1186,7 +1191,6 @@ socket.on('playerFire', (fireData) => {
             finalDamage = maxAllowed;
         }
 
-        const activeAmmo = p.selectedAmmo || 'laser';
         const activeTier = p.selectedAmmoTier !== undefined ? p.selectedAmmoTier : 0;
         const ammoList = state.SERVER_CONFIG.shopItems?.ammo?.[activeAmmo] || [];
         const ammoConfig = ammoList[activeTier] || {};
@@ -1792,7 +1796,11 @@ socket.on('playerFire', (fireData) => {
                         }
                     });
                 }
-                const talentDmgMult = 1.0 + (attacker._talentBonuses?.laser_dmg_pct || 0) + (attacker._talentBonuses?.dmg_pct || 0) + weaponTalentBonus;
+                let ammoTalentBonus = 0;
+                if (attacker._talentBonuses) {
+                    ammoTalentBonus = Number(attacker._talentBonuses[`ammo:${attackerAmmoType}:damage`]) || Number(attacker._talentBonuses[`ammo:${attackerAmmoType}:dmg_pct`]) || 0;
+                }
+                const talentDmgMult = 1.0 + (attacker._talentBonuses?.laser_dmg_pct || 0) + (attacker._talentBonuses?.dmg_pct || 0) + weaponTalentBonus + ammoTalentBonus;
 
                 const finalMaxTheoreticalDamage = (baseDmg * maxMultiplier + dmgModFlat) * dmgModMult * talentDmgMult;
                 const maxAllowedDmg = finalMaxTheoreticalDamage * 1.5; // 50% extra para críticos/buffs del cliente

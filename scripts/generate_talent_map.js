@@ -101,11 +101,11 @@ function loadShopGear() {
     laser: 'Láser',
     missile: 'Misil',
     mine: 'Mina',
-    emp: 'EMP',
+    emp: 'Pulso EMP',
     electron: 'Electrón',
-    heal: 'Drones',
-    melee: 'Plasma',
-    siphon: 'Sifón',
+    heal: 'Curativa',
+    melee: 'Melee',
+    siphon: 'Robo de Vida',
   };
   const ammoIcons = {
     laser: 'res://assets/Municiones/Iconos/laser/Laser.png',
@@ -121,8 +121,11 @@ function loadShopGear() {
     type,
     name: ammoNames[type] || type,
     icon: ammoIcons[type] || '',
-    castPct: -0.05,
+    dmgPct: 0.05,
+    speedPct: 0.08,
+    rangePct: 0.08,
     cdPct: -0.05,
+    castPct: -0.05,
   }));
   return { weapons, ammo };
 }
@@ -345,43 +348,66 @@ for (const br of BRANCHES) {
         data: {
           id: `atk_am_${am.type}`,
           name: `MUNICIÓN ${am.name.toUpperCase()}`,
-          desc: `Mejoras de ${am.name}: casteo y enfriamiento.`,
+          desc: `Especialización de ${am.name}: daño, alcance, velocidad, cadencia y casteo.`,
           icon: am.icon,
           effects: {},
         },
-        // Dos smalls hermanos colgados del hub de munición (±ángulo), como skills/stats
-        smalls: [
-          {
-            id: `atk_am_${am.type}_cast`,
-            name: 'CASTEO',
-            desc: `-5% Velocidad de casteo de ${am.name} por nivel.`,
-            icon: '⏳',
-            effects: { [`ammo:${am.type}:castTimeMs`]: am.castPct },
-          },
-          {
+        ammoBranches: {
+          cd: {
             id: `atk_am_${am.type}_cd`,
             name: 'ENFRIAMIENTO',
             desc: `-5% CD de ${am.name} por nivel.`,
             icon: '⏱️',
             effects: { [`ammo:${am.type}:cooldown`]: am.cdPct },
           },
-        ],
+          cast: {
+            id: `atk_am_${am.type}_cast`,
+            name: 'CASTEO',
+            desc: `-5% Velocidad de casteo de ${am.name} por nivel.`,
+            icon: '⏳',
+            effects: { [`ammo:${am.type}:castTimeMs`]: am.castPct },
+          },
+          speed: {
+            id: `atk_am_${am.type}_spd`,
+            name: 'VELOCIDAD',
+            desc: `+8% Vel. de proyectil de ${am.name} por nivel.`,
+            icon: '🚀',
+            effects: { [`ammo:${am.type}:bulletSpeed`]: am.speedPct },
+          },
+          dmg: {
+            id: `atk_am_${am.type}_dmg`,
+            name: 'DAÑO',
+            desc: `+5% Daño de ${am.name} por nivel.`,
+            icon: '💥',
+            effects: { [`ammo:${am.type}:damage`]: am.dmgPct },
+          },
+          range: {
+            id: `atk_am_${am.type}_rng`,
+            name: 'ALCANCE',
+            desc: `+8% Alcance de ${am.name} por nivel.`,
+            icon: '📏',
+            effects: { [`ammo:${am.type}:range`]: am.rangePct },
+          },
+        },
       });
     }
 
     const midN = gearMid.length;
     // Abanico abajo-derecha de DAÑO (lejos de skills ~90° y Utilidad ~0°).
-    // edgeGap cubre el ancho de los 2 smalls hermanos (CASTEO/CD) entre hubs vecinos;
-    // dMid grande → paso angular chico → el abanico no invade skills ni utilidad.
-    const fanCenter = statsAngle + 2;
-    const dMid = 1200;
-    const gearSmallSpan = 2 * D_GEAR_SMALL * Math.sin((SPREAD_GEAR_SMALL_DEG * Math.PI) / 180);
+    const fanCenter = statsAngle - 8;
+    const dMid = 1320;
+    const spreadGearDeg = 18;
+    const dSmall1 = 112;
+    const dSmall2 = 88;
+    const dSmall3 = 88;
+    const outerRadius = dSmall1 + dSmall2;
+    const gearSmallSpan = 2 * outerRadius * Math.sin((spreadGearDeg * Math.PI) / 180);
     const edgeGap = Math.max(
       MIN_GAP['notable-notable'],
       RADII.notable * 2 + 40,
       MIN_GAP['small-small'] + gearSmallSpan
     );
-    const stepGear = Math.max(chordDeg(edgeGap, dMid), 7);
+    const stepGear = Math.max(chordDeg(edgeGap, dMid), 9);
     const fanTotal = stepGear * Math.max(midN - 1, 1);
 
     gearMid.forEach((mid, i) => {
@@ -390,15 +416,31 @@ for (const br of BRANCHES) {
       addTalent(mid.data, category, mid.nodeType, p);
       connections.push({ from: br.stats.id, to: mid.data.id });
 
-      if (mid.smalls) {
-        // Smalls hermanos al mismo radio del padre, abiertos en ±ángulo
-        // (CASTEO y ENFRIAMIENTO cuelgan de MUNICIÓN, no en cadena)
-        mid.smalls.forEach((sm, j) => {
-          const sa = a + (j === 0 ? -SPREAD_GEAR_SMALL_DEG : SPREAD_GEAR_SMALL_DEG);
-          const sp = pol(p.x, p.y, D_GEAR_SMALL, sa);
-          addTalent(sm, category, 'small', sp);
-          connections.push({ from: mid.data.id, to: sm.id });
-        });
+      if (mid.ammoBranches) {
+        const b = mid.ammoBranches;
+        // Hilera 1 (izquierda): ENFRIAMIENTO -> CASTEO
+        const cdA = a - spreadGearDeg;
+        const cdP = pol(p.x, p.y, dSmall1, cdA);
+        addTalent(b.cd, category, 'small', cdP);
+        connections.push({ from: mid.data.id, to: b.cd.id });
+
+        const castP = pol(cdP.x, cdP.y, dSmall2, cdA);
+        addTalent(b.cast, category, 'small', castP);
+        connections.push({ from: b.cd.id, to: b.cast.id });
+
+        // Hilera 2 (derecha): DAÑO -> ALCANCE -> VELOCIDAD
+        const dmgA = a + spreadGearDeg;
+        const dmgP = pol(p.x, p.y, dSmall1, dmgA);
+        addTalent(b.dmg, category, 'small', dmgP);
+        connections.push({ from: mid.data.id, to: b.dmg.id });
+
+        const rngP = pol(dmgP.x, dmgP.y, dSmall2, dmgA);
+        addTalent(b.range, category, 'small', rngP);
+        connections.push({ from: b.dmg.id, to: b.range.id });
+
+        const spdP = pol(rngP.x, rngP.y, dSmall3, dmgA);
+        addTalent(b.speed, category, 'small', spdP);
+        connections.push({ from: b.range.id, to: b.speed.id });
       }
     });
   } else {
@@ -569,7 +611,7 @@ if (edgeCrosses.length) {
   problems.push(`CRUCES DE LÍNEAS (${edgeCrosses.length}): ${edgeCrosses.slice(0, 12).join(' | ')}`);
 }
 
-// Sin armadura / stats globales baneadas. ammo:TYPE:castTimeMs|cooldown permitidos.
+// Sin armadura / stats globales baneadas. ammo:TYPE permitidos para castTimeMs, cooldown, damage, bulletSpeed, range.
 const banned = talents.filter((t) => {
   const keys = Object.keys(t.effects || {});
   const name = (t.name + t.desc).toLowerCase();
@@ -578,7 +620,12 @@ const banned = talents.filter((t) => {
       (k) =>
         k === 'ammo_bonus_pct' ||
         k === 'armor_pct' ||
-        (k.startsWith('ammo:') && !k.endsWith(':castTimeMs') && !k.endsWith(':cooldown'))
+        (k.startsWith('ammo:') &&
+          !k.endsWith(':castTimeMs') &&
+          !k.endsWith(':cooldown') &&
+          !k.endsWith(':damage') &&
+          !k.endsWith(':bulletSpeed') &&
+          !k.endsWith(':range'))
     ) ||
     name.includes('armadura') ||
     name.includes('nanobot')

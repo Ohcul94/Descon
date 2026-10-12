@@ -693,29 +693,6 @@ func _show_confirm_modal(title: String, message: String, on_confirm: Callable):
 	hb.add_theme_constant_override("separation", 20)
 	v.add_child(hb)
 
-	var btn_cancel = Button.new()
-	btn_cancel.text = "CANCELAR"
-	btn_cancel.custom_minimum_size = Vector2(130, 36)
-	btn_cancel.add_theme_font_size_override("font_size", 10)
-	var sb_c = StyleBoxFlat.new()
-	sb_c.bg_color = Color(0.08, 0.12, 0.16, 0.7)
-	sb_c.border_width_left = 1; sb_c.border_width_top = 1; sb_c.border_width_right = 1; sb_c.border_width_bottom = 1
-	sb_c.border_color = Color(0.3, 0.45, 0.6, 0.5)
-	sb_c.set_corner_radius_all(5)
-	btn_cancel.add_theme_stylebox_override("normal", sb_c)
-	var sb_ch = StyleBoxFlat.new()
-	sb_ch.bg_color = Color(0.14, 0.18, 0.24, 0.85)
-	sb_ch.border_width_left = 1; sb_ch.border_width_top = 1; sb_ch.border_width_right = 1; sb_ch.border_width_bottom = 1
-	sb_ch.border_color = Color(0.5, 0.7, 0.9, 0.7)
-	sb_ch.set_corner_radius_all(5)
-	btn_cancel.add_theme_stylebox_override("hover", sb_ch)
-	btn_cancel.add_theme_color_override("font_color", Color(0.8, 0.85, 0.9))
-	btn_cancel.pressed.connect(func():
-		active_modales.erase(overlay)
-		overlay.queue_free()
-	)
-	hb.add_child(btn_cancel)
-
 	var btn_ok = Button.new()
 	btn_ok.text = "CONFIRMAR"
 	btn_ok.custom_minimum_size = Vector2(130, 36)
@@ -739,6 +716,29 @@ func _show_confirm_modal(title: String, message: String, on_confirm: Callable):
 		on_confirm.call()
 	)
 	hb.add_child(btn_ok)
+
+	var btn_cancel = Button.new()
+	btn_cancel.text = "CANCELAR"
+	btn_cancel.custom_minimum_size = Vector2(130, 36)
+	btn_cancel.add_theme_font_size_override("font_size", 10)
+	var sb_c = StyleBoxFlat.new()
+	sb_c.bg_color = Color(0.08, 0.12, 0.16, 0.7)
+	sb_c.border_width_left = 1; sb_c.border_width_top = 1; sb_c.border_width_right = 1; sb_c.border_width_bottom = 1
+	sb_c.border_color = Color(0.3, 0.45, 0.6, 0.5)
+	sb_c.set_corner_radius_all(5)
+	btn_cancel.add_theme_stylebox_override("normal", sb_c)
+	var sb_ch = StyleBoxFlat.new()
+	sb_ch.bg_color = Color(0.14, 0.18, 0.24, 0.85)
+	sb_ch.border_width_left = 1; sb_ch.border_width_top = 1; sb_ch.border_width_right = 1; sb_ch.border_width_bottom = 1
+	sb_ch.border_color = Color(0.5, 0.7, 0.9, 0.7)
+	sb_ch.set_corner_radius_all(5)
+	btn_cancel.add_theme_stylebox_override("hover", sb_ch)
+	btn_cancel.add_theme_color_override("font_color", Color(0.8, 0.85, 0.9))
+	btn_cancel.pressed.connect(func():
+		active_modales.erase(overlay)
+		overlay.queue_free()
+	)
+	hb.add_child(btn_cancel)
 
 
 func _show_result_modal(title: String, message: String):
