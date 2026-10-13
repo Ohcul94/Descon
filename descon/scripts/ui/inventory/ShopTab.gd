@@ -361,17 +361,11 @@ func _open_detail_modal(it):
 			
 			pivot.scale = Vector3(1.3, 1.3, 1.3)
 			
-			# Orientación base con corrección específica
-			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
-				model.rotation_degrees.x = float(ship_data.get("rotX", 0))
-				model.rotation_degrees.y = float(ship_data.get("rotY", 0))
-				model.rotation_degrees.z = float(ship_data.get("rotZ", 0))
-			else:
-				match ship_id:
-					3: model.rotation_degrees = Vector3(0, 1, 98)
-					4: model.rotation_degrees = Vector3(0, -180, 52)
-					6: model.rotation_degrees.y = 180
-					_: model.rotation_degrees = Vector3.ZERO
+			# Orientación base configurada en AdminDash
+			var rx = float(ship_data.get("rotX", 0))
+			var ry = float(ship_data.get("rotY", 0))
+			var rz = float(ship_data.get("rotZ", 0))
+			model.rotation_degrees = Vector3(rx, ry, rz)
 				
 			preview_mesh = pivot
 			

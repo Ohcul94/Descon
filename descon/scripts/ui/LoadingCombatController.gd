@@ -85,8 +85,8 @@ func _setup_thruster_light(ship: Node3D, col: Color, is_ship1: bool):
 	l.light_color = col
 	l.light_energy = 2.2
 	l.omni_range = 3.2
-	# Posicionar ligeramente hacia la parte trasera del modelo (+X de frente, tobera en -X)
-	l.position = Vector3(-0.9, 0.0, 0.0)
+	# Posicionar en la parte trasera del modelo (frente hacia -Z, tobera en +Z)
+	l.position = Vector3(0.0, 0.0, 0.9)
 	ship.add_child(l)
 	if is_ship1:
 		thruster1 = l
@@ -176,9 +176,8 @@ func _animate_ships(delta: float):
 	var pitch_angle1 = clamp(vel1.y * 0.18, -0.45, 0.45)
 	
 	var t1 = ship1.transform.looking_at(ship1.position + combat_heading1, Vector3.UP)
-	t1 = t1.rotated_local(Vector3.UP, deg_to_rad(90)) # Alinear morro visual del modelo (+X)
-	t1 = t1.rotated_local(Vector3.RIGHT, bank_angle1 + roll_spin1) # Alabeo longitudinal
-	t1 = t1.rotated_local(Vector3.BACK, pitch_angle1) # Cabeceo
+	t1 = t1.rotated_local(Vector3.FORWARD, bank_angle1 + roll_spin1) # Alabeo longitudinal (roll)
+	t1 = t1.rotated_local(Vector3.RIGHT, pitch_angle1) # Cabeceo transversal (pitch)
 	
 	ship1.transform = ship1.transform.interpolate_with(t1, delta * 6.5)
 	
@@ -203,9 +202,8 @@ func _animate_ships(delta: float):
 	var pitch_angle2 = clamp(vel2.y * 0.18, -0.45, 0.45)
 	
 	var t2 = ship2.transform.looking_at(ship2.position + combat_heading2, Vector3.UP)
-	t2 = t2.rotated_local(Vector3.UP, deg_to_rad(90)) # Alinear morro visual del modelo (+X)
-	t2 = t2.rotated_local(Vector3.RIGHT, bank_angle2 + roll_spin2)
-	t2 = t2.rotated_local(Vector3.BACK, pitch_angle2)
+	t2 = t2.rotated_local(Vector3.FORWARD, bank_angle2 + roll_spin2) # Alabeo longitudinal (roll)
+	t2 = t2.rotated_local(Vector3.RIGHT, pitch_angle2) # Cabeceo transversal (pitch)
 	
 	ship2.transform = ship2.transform.interpolate_with(t2, delta * 6.5)
 	

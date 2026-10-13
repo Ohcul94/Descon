@@ -715,16 +715,10 @@ func _update_3d_ship_model():
 				_make_materials_unshaded(instance)
 			ship_pivot.add_child(instance)
 
-			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
-				instance.rotation_degrees.x = float(ship_data.get("rotX", 0))
-				instance.rotation_degrees.y = float(ship_data.get("rotY", 0))
-				instance.rotation_degrees.z = float(ship_data.get("rotZ", 0))
-			else:
-				match viewing_ship_id:
-					3: instance.rotation_degrees = Vector3(0, 1, 98)
-					4: instance.rotation_degrees = Vector3(0, -180, 52)
-					6: instance.rotation_degrees.y = 180
-					_: instance.rotation_degrees = Vector3.ZERO
+			var rx = float(ship_data.get("rotX", 0))
+			var ry = float(ship_data.get("rotY", 0))
+			var rz = float(ship_data.get("rotZ", 0))
+			instance.rotation_degrees = Vector3(rx, ry, rz)
 
 
 func _clean_internal_lights(node: Node):

@@ -222,20 +222,40 @@ func _ready():
 	if main_scene != "res://scenes/Bootloader.tscn":
 		call_deferred("_run_shader_warmup")
 
-func _add_loading_ship(parent: Node3D, path: String, pos: Vector3, s: float):
+func _add_loading_ship(parent: Node3D, path: String, pos: Vector3, s: float, ship_id: int = -1) -> Node3D:
 	if not ResourceLoader.exists(path):
-		return
+		return null
 	var glb = load(path)
 	if not glb:
-		return
-	var ship = glb.instantiate()
-	if not ship is Node3D:
-		ship.queue_free()
-		return
-	ship.position = pos
-	ship.scale = Vector3(s, s, s)
-	parent.add_child(ship)
-	return ship
+		return null
+	var model_inst = glb.instantiate()
+	if not model_inst is Node3D:
+		model_inst.queue_free()
+		return null
+	
+	# Contenedor pivote para cinemática (igual a la jerarquía de _3d_model y actual_model en Entity.gd)
+	var ship_container = Node3D.new()
+	ship_container.name = "LoadingShipContainer"
+	ship_container.position = pos
+	ship_container.scale = Vector3(s, s, s)
+	
+	# Buscar configuración en AdminDash (GameConstants.SHIP_MODELS)
+	var ship_data = {}
+	if GameConstants and "SHIP_MODELS" in GameConstants and GameConstants.SHIP_MODELS is Array:
+		for sm in GameConstants.SHIP_MODELS:
+			if (ship_id > 0 and int(sm.get("id", -1)) == ship_id) or str(sm.get("assetPath", "")) == path:
+				ship_data = sm
+				break
+	
+	# Aplicar rotación configurada en AdminDash; si no hay, (0, 0, 0)
+	var rx = float(ship_data.get("rotX", 0))
+	var ry = float(ship_data.get("rotY", 0))
+	var rz = float(ship_data.get("rotZ", 0))
+	model_inst.rotation_degrees = Vector3(rx, ry, rz)
+	
+	ship_container.add_child(model_inst)
+	parent.add_child(ship_container)
+	return ship_container
 
 func _create_starfield_3d(parent: Node3D):
 	var sm = SphereMesh.new()
@@ -575,11 +595,9 @@ func _setup_cinematic_3d():
 	_create_starfield_3d(scene_3d)
 	_create_nebula_clouds(scene_3d)
 
-	# Instanciar las naves de combate
-	var ship1 = _add_loading_ship(scene_3d, "res://assets/Personajes/3D/Nave11/Nave11.glb", Vector3(-2.8, -0.3, -0.5), 0.65)
-	var ship2 = _add_loading_ship(scene_3d, "res://assets/Personajes/3D/Nave12/Nave12.glb", Vector3(2.8, 0.3, 0.5), 0.65)
-	if ship1: ship1.rotation.y = deg_to_rad(15)
-	if ship2: ship2.rotation.y = deg_to_rad(165)
+	# Instanciar las naves de combate (respetando rotaciones configuradas en AdminDash)
+	var ship1 = _add_loading_ship(scene_3d, "res://assets/Personajes/3D/Nave11/Nave11.glb", Vector3(-2.8, -0.3, -0.5), 0.65, 11)
+	var ship2 = _add_loading_ship(scene_3d, "res://assets/Personajes/3D/Nave12/Nave12.glb", Vector3(2.8, 0.3, 0.5), 0.65, 12)
 
 	# Instanciar el controlador de combate espacial cinematográfico
 	var combat_script = load("res://scripts/ui/LoadingCombatController.gd")

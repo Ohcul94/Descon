@@ -216,17 +216,11 @@ func update_ui():
 			
 			_ship_pivot.add_child(ship_model)
 			
-			# Orientación corregida según el modelado del asset
-			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
-				ship_model.rotation_degrees.x = float(ship_data.get("rotX", 0))
-				ship_model.rotation_degrees.y = float(ship_data.get("rotY", 0))
-				ship_model.rotation_degrees.z = float(ship_data.get("rotZ", 0))
-			else:
-				match ship_id:
-					3: ship_model.rotation_degrees = Vector3(0, 1, 98)
-					4: ship_model.rotation_degrees = Vector3(0, -180, 52)
-					6: ship_model.rotation_degrees.y = 180
-					_: ship_model.rotation_degrees = Vector3.ZERO
+			# Orientación configurada en AdminDash
+			var rx = float(ship_data.get("rotX", 0))
+			var ry = float(ship_data.get("rotY", 0))
+			var rz = float(ship_data.get("rotZ", 0))
+			ship_model.rotation_degrees = Vector3(rx, ry, rz)
 				
 			preview_mesh = _ship_pivot
 

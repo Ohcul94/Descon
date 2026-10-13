@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://resources/shaders/water_laguna.gdshader" id="1_water"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_water"]
+size = Vector2(44, 44)
+subdivide_width = 32
+subdivide_depth = 32
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
+render_priority = 0
+shader = ExtResource("1_water")
+shader_parameter/deep_color = Color(0.02, 0.07, 0.045, 1)
+shader_parameter/shallow_color = Color(0.1, 0.19, 0.07, 1)
+shader_parameter/algae_color = Color(0.2, 0.3, 0.08, 1)
+shader_parameter/sky_tint = Color(0.65, 0.7, 0.68, 1)
+shader_parameter/foam_color = Color(0.45, 0.52, 0.35, 1)
+shader_parameter/wave_height = 0.12
+shader_parameter/wave_speed = 1.2
+shader_parameter/wave_scale = 0.8
+shader_parameter/algae_amount = 0.55
+shader_parameter/algae_scale = 3.0
+shader_parameter/ripple_strength = 0.3
+shader_parameter/fresnel_power = 3.0
+shader_parameter/roughness_val = 0.28
+shader_parameter/specular_val = 0.55
+shader_parameter/base_alpha = 0.78
+shader_parameter/shape_irregularity = 0.55
+
+[node name="VFX_Water_Laguna" type="Node3D"]
+
+[node name="Agua" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_water")
+surface_material_override/0 = SubResource("ShaderMaterial_water")

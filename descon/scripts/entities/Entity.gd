@@ -91,6 +91,8 @@ var _prop_proc_mat: ParticleProcessMaterial = null # Process material propio (co
 var _prop_color_tier: int = -1 # Tier de color actual (-1 = sin aplicar aún)
 var _prop_sparks: GPUParticles3D = null # Chispas premium solo en tier dorado (451+)
 var _prop_spark_mat: StandardMaterial3D = null # Alfa de las chispas
+var _3d_propulsion_extra: Array = [] # Emisores extra si el GLB trae varios Thruster
+var _prop_sparks_extra: Array = [] # Chispas extra a juego con cada Thruster
 var db_id: String = "" # v243.80: Identidad persistente (MongoDB ID)
 var username: String = "Unknown"
 var entity_type: int = 1
@@ -488,8 +490,14 @@ func _process(delta):
 				sprite.visible = false
 			if is_instance_valid(_3d_propulsion) and _3d_propulsion.emitting:
 				_3d_propulsion.emitting = false
+			for p in _3d_propulsion_extra:
+				if is_instance_valid(p) and p.emitting:
+					p.emitting = false
 			if is_instance_valid(_prop_sparks) and _prop_sparks.emitting:
 				_prop_sparks.emitting = false
+			for s in _prop_sparks_extra:
+				if is_instance_valid(s) and s.emitting:
+					s.emitting = false
 			set_meta("_was_screen_visible", false)
 			return # CORTOCIRCUITO COMPLETO: Salva 100% de cálculos en cada frame
 		else:
@@ -950,12 +958,18 @@ func _process(delta):
 			_3d_propulsion.scale = Vector3.ONE
 			_3d_propulsion.amount_ratio = 1.0
 			_3d_propulsion.emitting = _prop_ignition > 0.02
+			for p in _3d_propulsion_extra:
+				if is_instance_valid(p):
+					p.emitting = _prop_ignition > 0.02
 			# Chispas premium: SOLO activas en el tier dorado y con llama encendida
 			if is_instance_valid(_prop_sparks):
 				var spark_a := _prop_ignition if (_prop_color_tier == 4 and not is_dead) else 0.0
 				if is_instance_valid(_prop_spark_mat):
 					_prop_spark_mat.albedo_color.a = spark_a
 				_prop_sparks.emitting = spark_a > 0.05
+				for s in _prop_sparks_extra:
+					if is_instance_valid(s):
+						s.emitting = spark_a > 0.05
 		
 		# 4. ACTUALIZAR ÓRBITA DE ESFERAS (Sincronización suave + Inventario)
 		# El avance de ángulo y el posicionamiento se hacen en el bloque v235.69
@@ -2231,8 +2245,14 @@ func die():
 	
 	if is_instance_valid(_3d_propulsion):
 		_3d_propulsion.emitting = false
+	for p in _3d_propulsion_extra:
+		if is_instance_valid(p):
+			p.emitting = false
 	if is_instance_valid(_prop_sparks):
 		_prop_sparks.emitting = false
+	for s in _prop_sparks_extra:
+		if is_instance_valid(s):
+			s.emitting = false
 	_prop_ignition = 0.0
 	if is_instance_valid(_prop_mesh_mat):
 		_prop_mesh_mat.albedo_color.a = 0.0
@@ -2407,37 +2427,13 @@ func _setup_ship_visuals():
 	if glb_path != "" and ResourceLoader.exists(glb_path):
 		_setup_3d_visuals(glb_path)
 		
-		# --- PARCHES DE ORIENTACIÓN SEGÚN EL ASSET ---
+		# --- ROTACIÓN CONFIGURADA EN ADMINDASH (Sin rotaciones por defecto hardcodeadas) ---
 		var actual_model = _3d_model.get_child(0) if _3d_model and _3d_model.get_child_count() > 0 else null
 		if actual_model:
-			var has_custom_rot = false
-			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
-				var rx = float(ship_data.get("rotX", 0))
-				var ry = float(ship_data.get("rotY", 0))
-				var rz = float(ship_data.get("rotZ", 0))
-				if rx != 0.0 or ry != 0.0 or rz != 0.0:
-					actual_model.rotation_degrees.x = rx
-					actual_model.rotation_degrees.y = ry
-					actual_model.rotation_degrees.z = rz
-					has_custom_rot = true
-			if not has_custom_rot:
-				match current_ship_id:
-					3: # NAVE 3: Calibrada manualmente para estar plana y al frente
-						actual_model.rotation_degrees.x = 0
-						actual_model.rotation_degrees.y = 1
-						actual_model.rotation_degrees.z = 98
-					4: # NAVE 4: Posición perfecta lograda por calibración manual
-						actual_model.rotation_degrees.x = 0
-						actual_model.rotation_degrees.y = -180
-						actual_model.rotation_degrees.z = 52
-					6: # NAVE 6: Viene en reversa
-						actual_model.rotation_degrees.y = 180
-					8:
-						actual_model.rotation_degrees.y = -90
-					9, 10, 11:
-						actual_model.rotation_degrees.y = 90
-					12:
-						actual_model.rotation_degrees.y = -90
+			var rx = float(ship_data.get("rotX", 0))
+			var ry = float(ship_data.get("rotY", 0))
+			var rz = float(ship_data.get("rotZ", 0))
+			actual_model.rotation_degrees = Vector3(rx, ry, rz)
 			
 			# v220.72: APLICAR MEMORIA DE USUARIO (Si el piloto calibró esta nave en esta sesión)
 			if _ship_rot_mem.has(current_ship_id):
@@ -2531,9 +2527,11 @@ func _setup_enemy_visuals():
 	_safe_free_world_root_3d()
 	_3d_model = null
 	_3d_propulsion = null
+	_3d_propulsion_extra = []
 	_prop_mesh_mat = null
 	_prop_proc_mat = null
 	_prop_sparks = null
+	_prop_sparks_extra = []
 	_prop_spark_mat = null
 	_prop_color_tier = -1
 	_prop_ignition = 0.0
@@ -3495,9 +3493,11 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 	# v306.4: Evitar duplicaciones de naves huérfanas al reconstruir el layout 3D en cambios de mapa
 	_safe_free_world_root_3d()
 	_3d_propulsion = null
+	_3d_propulsion_extra = []
 	_prop_mesh_mat = null
 	_prop_proc_mat = null
 	_prop_sparks = null
+	_prop_sparks_extra = []
 	_prop_spark_mat = null
 	_prop_color_tier = -1
 	_prop_ignition = 0.0
@@ -3722,8 +3722,10 @@ func _setup_propulsion_particles(parent: Node3D):
 	if is_in_group("enemies"):
 		return
 	_3d_propulsion = null
+	_3d_propulsion_extra = []
 	_prop_proc_mat = null
 	_prop_sparks = null
+	_prop_sparks_extra = []
 	_prop_spark_mat = null
 	_prop_color_tier = -1
 	
@@ -3749,43 +3751,29 @@ func _setup_propulsion_particles(parent: Node3D):
 	prop_mesh.size = Vector2(0.12, 0.12) # Ancho fino actual (no se toca)
 
 	# 2. Determinar la posición según el modelo de nave
-	# Colgado de control_node, la nave apunta a +X, por lo que el escape siempre es -X.
-	var offset = Vector3(-0.35, 0.0, 0.0) # Acercado significativamente al asset
-	
-	if not is_in_group("enemies"):
-		match current_ship_id:
-			3:
-				offset = Vector3(-0.32, 0.0, 0.0)
-			4:
-				offset = Vector3(-0.35, 0.0, 0.0)
-			6:
-				offset = Vector3(-0.38, 0.0, 0.0)
-			_:
-				offset = Vector3(-0.35, 0.0, 0.0)
+	# Si el GLB trae marcador/es "Thruster" (Empty de Blender), la llama sale de ahí.
+	# Si no hay marcador, se usa el offset genérico de siempre (sin cambios).
+	var anchors: Array = [] # Cada item: {"node": Node3D padre, "pos": Vector3 local}
+	for m in _find_thruster_anchors(parent):
+		anchors.append({"node": m, "pos": Vector3.ZERO})
+	if anchors.is_empty():
+		# Colgado de control_node, la nave apunta a +X, por lo que el escape siempre es -X.
+		var offset = Vector3(-0.35, 0.0, 0.0) # Acercado significativamente al asset
+		if not is_in_group("enemies"):
+			match current_ship_id:
+				3:
+					offset = Vector3(-0.32, 0.0, 0.0)
+				4:
+					offset = Vector3(-0.35, 0.0, 0.0)
+				6:
+					offset = Vector3(-0.38, 0.0, 0.0)
+				_:
+					offset = Vector3(-0.35, 0.0, 0.0)
+		anchors.append({"node": parent, "pos": offset})
+	_3d_propulsion_extra = []
+	_prop_sparks_extra = []
 
-	# 3. Instanciar el emisor local de partículas de propulsión
-	var particles = GPUParticles3D.new()
-	particles.name = "ThrusterParticles"
-	particles.amount = 96 # Muchas partículas pequeñas → chorro compacto y suave
-	particles.lifetime = 0.05 # Largo de antes (colores = rampa normalizada)
-	particles.preprocess = 0.05
-	particles.local_coords = true # Llama anclada a la tobera (se mueve rígida con la nave)
-	particles.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3, 3, 3))
-	particles.amount_ratio = 1.0 # Densidad siempre plena (el encendido es por alfa)
-	
-	particles.process_material = _prop_proc_mat
-	particles.draw_pass_1 = prop_mesh
-	
-	# Añadir al parent
-	parent.add_child(particles)
-	_3d_propulsion = particles
-	
-	# Posición del escape detrás del modelo de la nave
-	particles.position = offset
-	particles.emitting = false # Se enciende con fundido de alfa al ganar velocidad
-	_prop_ignition = 0.0
-
-	# 4. Chispas premium (tier dorado 451+): rayitos dorados hacia ATRÁS (-X), pocos e irregulares
+	# 3. Material de chispas premium (tier dorado 451+): rayitos dorados hacia ATRÁS (-X)
 	_prop_spark_mat = (_prop_material as StandardMaterial3D).duplicate() as StandardMaterial3D
 	_prop_spark_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_prop_spark_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
@@ -3793,21 +3781,47 @@ func _setup_propulsion_particles(parent: Node3D):
 	var spark_mesh := QuadMesh.new()
 	spark_mesh.size = Vector2(0.14, 0.028) # Rayito alargado, no punto redondo
 	spark_mesh.material = _prop_spark_mat
-	var sparks := GPUParticles3D.new()
-	sparks.name = "ThrusterSparks"
-	sparks.amount = 10 # Pocos → más lectura de rayito, menos costo
-	sparks.lifetime = 0.12
-	sparks.preprocess = 0.12
-	sparks.randomness = 1.0
-	sparks.local_coords = true
-	sparks.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3, 3, 3))
-	sparks.amount_ratio = 1.0
-	sparks.process_material = PropSparkProcMaterial # Precargado, compartido, barato
-	sparks.draw_pass_1 = spark_mesh
-	sparks.position = offset
-	sparks.emitting = false
-	parent.add_child(sparks)
-	_prop_sparks = sparks
+
+	# 4. Instanciar un emisor por ancla (1 marcador = 1 llama; sin marcador = genérica de antes)
+	var first := true
+	for a in anchors:
+		var host: Node3D = a["node"]
+		var local_pos: Vector3 = a["pos"]
+		var particles = GPUParticles3D.new()
+		particles.name = "ThrusterParticles"
+		particles.amount = 96 # Muchas partículas pequeñas → chorro compacto y suave
+		particles.lifetime = 0.05 # Largo de antes (colores = rampa normalizada)
+		particles.preprocess = 0.05
+		particles.local_coords = true # Llama anclada a la tobera (se mueve rígida con la nave)
+		particles.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3, 3, 3))
+		particles.amount_ratio = 1.0 # Densidad siempre plena (el encendido es por alfa)
+		particles.process_material = _prop_proc_mat
+		particles.draw_pass_1 = prop_mesh
+		host.add_child(particles)
+		particles.position = local_pos
+		particles.emitting = false # Se enciende con fundido de alfa al ganar velocidad
+		var sparks := GPUParticles3D.new()
+		sparks.name = "ThrusterSparks"
+		sparks.amount = 10 # Pocos → más lectura de rayito, menos costo
+		sparks.lifetime = 0.12
+		sparks.preprocess = 0.12
+		sparks.randomness = 1.0
+		sparks.local_coords = true
+		sparks.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3, 3, 3))
+		sparks.amount_ratio = 1.0
+		sparks.process_material = PropSparkProcMaterial # Precargado, compartido, barato
+		sparks.draw_pass_1 = spark_mesh
+		sparks.position = local_pos
+		sparks.emitting = false
+		host.add_child(sparks)
+		if first:
+			_3d_propulsion = particles
+			_prop_sparks = sparks
+			first = false
+		else:
+			_3d_propulsion_extra.append(particles)
+			_prop_sparks_extra.append(sparks)
+	_prop_ignition = 0.0
 
 # Tramos de color de propulsión según STATS de velocidad (px/s), NO velocity actual:
 # 0-300 celeste fino | 301-350 azul fuerte | 351-400 naranja | 401-450 rojo | 451+ dorada especial
@@ -5127,9 +5141,11 @@ func _spawn_wreckage_marker():
 				_safe_free_world_root_3d()
 				_3d_model = null
 				_3d_propulsion = null
+				_3d_propulsion_extra = []
 				_prop_mesh_mat = null
 				_prop_proc_mat = null
 				_prop_sparks = null
+				_prop_sparks_extra = []
 				_prop_spark_mat = null
 				_prop_color_tier = -1
 				_prop_ignition = 0.0
@@ -5269,6 +5285,24 @@ func _find_anim_deep(node: Node) -> AnimationPlayer:
 		if result:
 			return result
 	return null
+
+## Puntos de propulsión por nave: busca Node3D llamados "Thruster" (o que empiecen
+## con eso: "ThrusterL", "Thruster2"...) dentro del GLB instanciado. Se ponen en
+## Blender como Empty sin rotación en la tobera y se exportan con el .glb.
+## Búsqueda manual como _find_anim_deep porque find_children falla en GLBs instanciados.
+## Si no hay ninguno, se devuelve vacío y se usa el offset genérico de siempre.
+func _find_thruster_anchors(root: Node) -> Array:
+	var out: Array = []
+	_collect_thrusters(root, out)
+	return out
+
+func _collect_thrusters(n: Node, out: Array) -> void:
+	if n is Node3D:
+		var nm := String(n.name)
+		if (nm == "Thruster" or nm.begins_with("Thruster")) and not "Particles" in nm and not "Sparks" in nm:
+			out.append(n)
+	for c in n.get_children():
+		_collect_thrusters(c, out)
 
 ## Imprime el árbol de nodos con su tipo para diagnóstico de GLBs.
 func _print_node_tree(node: Node, depth: int) -> void:

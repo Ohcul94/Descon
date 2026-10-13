@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://mxkpn5b3g87q" path="res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png" id="3_6obae"]
 [ext_resource type="Texture2D" uid="uid://c31jn5f0q7vcs" path="res://assets/Mapas/Mapa4/Terreno/Placa Metalica Poly/Normal + Albedo/packed_albedo_height.png" id="4_pw4vt"]
 [ext_resource type="Texture2D" uid="uid://du61rj6l4sksb" path="res://assets/Mapas/Mapa4/Terreno/Placa Metalica Poly/Normal + Albedo/packed_normal_roughness.png" id="5_8biib"]
+[ext_resource type="PackedScene" path="res://VFX/scenes/VFX_Water_Laguna.tscn" id="6_laguna"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
@@ -20,15 +21,15 @@ subdivide_depth = 200
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
-background_color = Color(0.08, 0.08, 0.12, 1)
+background_color = Color(0.06, 0.09, 0.07, 1)
 ambient_light_source = 3
-ambient_light_color = Color(0.3, 0.32, 0.4, 1)
-ambient_light_energy = 1.5
+ambient_light_color = Color(0.32, 0.36, 0.28, 1)
+ambient_light_energy = 1.3
 tonemap_mode = 1
 tonemap_exposure = 1.02
 fog_enabled = true
 fog_mode = 1
-fog_light_color = Color(0.13009274, 0.14534974, 0.16909006, 1)
+fog_light_color = Color(0.16, 0.2, 0.14, 1)
 fog_light_energy = 0.2
 fog_density = 1.0
 fog_sky_affect = 0.0
@@ -163,3 +164,33 @@ assets = SubResource("Terrain3DAssets_s6poo")
 free_editor_textures = false
 top_level = true
 metadata/_edit_lock_ = true
+
+[node name="Laguna_Grande" parent="." instance=ExtResource("6_laguna")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, -60, 0.8, -40)
+metadata/obj_type = "decor"
+metadata/asset_path = "res://VFX/scenes/VFX_Water_Laguna.tscn"
+metadata/label = "Laguna_Grande"
+metadata/scale_2d = 3.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+metadata/colType = "none"
+
+[node name="Laguna_Mediana" parent="." instance=ExtResource("6_laguna")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 80, 0.8, 60)
+metadata/obj_type = "decor"
+metadata/asset_path = "res://VFX/scenes/VFX_Water_Laguna.tscn"
+metadata/label = "Laguna_Mediana"
+metadata/scale_2d = 2.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+metadata/colType = "none"
+
+[node name="Laguna_Chica" parent="." instance=ExtResource("6_laguna")]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -10, 0.9, 95)
+metadata/obj_type = "decor"
+metadata/asset_path = "res://VFX/scenes/VFX_Water_Laguna.tscn"
+metadata/label = "Laguna_Chica"
+metadata/scale_2d = 1.5
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+metadata/colType = "none"
