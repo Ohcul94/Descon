@@ -33,6 +33,22 @@ var roll_target2: float = 0.0
 var evasive_timer1: float = 3.5
 var evasive_timer2: float = 6.2
 
+# Disparo frontal: solo se dispara con el morro alineado al enemigo (~32° de cono)
+const FACING_MIN_DOT := 0.85
+const FACING_RETRY := 0.35
+
+# Secuencia FPV (primera persona): esquiva -> ataca -> vuelve al plano general
+const ORBIT_FOV := 75.0
+var fpv_active := false
+var fpv_phase := 0
+var fpv_timer := 0.0
+var fpv_ship: Node3D
+var fpv_foe: Node3D
+var fpv_pick := 1
+var fpv_next_in := 10.0
+var fpv_rolled := false
+var fpv_fov := 75.0
+
 # Flinch (sacudida por impacto) y Recoil (retroceso por disparo)
 var flinch1: Vector3 = Vector3.ZERO
 var flinch2: Vector3 = Vector3.ZERO
@@ -60,6 +76,8 @@ class ActiveProjectile extends RefCounted:
 	var is_emp: bool = false
 	var color: Color
 	var light: OmniLight3D
+	var miss: bool = false # Si es true, roza al objetivo sin impactar (esquiva FPV)
+	var miss_offset: Vector3 = Vector3.ZERO
 
 var active_projectiles: Array[ActiveProjectile] = []
 
@@ -67,6 +85,7 @@ func _ready():
 	shoot_cooldown1 = randf_range(0.4, 0.9)
 	shoot_cooldown2 = randf_range(0.7, 1.3)
 	camera_mode_timer = randf_range(6.0, 9.0)
+	fpv_next_in = randf_range(8.0, 12.0)
 	
 	# Inicializar posiciones base
 	if is_instance_valid(ship1):
@@ -85,8 +104,8 @@ func _setup_thruster_light(ship: Node3D, col: Color, is_ship1: bool):
 	l.light_color = col
 	l.light_energy = 2.2
 	l.omni_range = 3.2
-	# Posicionar en la parte trasera del modelo (frente hacia -Z, tobera en +Z)
-	l.position = Vector3(0.0, 0.0, 0.9)
+	# Posicionar en la parte trasera del modelo (propulsores en -X)
+	l.position = Vector3(-0.6, 0.08, 0.0)
 	ship.add_child(l)
 	if is_ship1:
 		thruster1 = l
@@ -99,8 +118,14 @@ func _process(delta: float):
 	# 1. Movimiento acrobático 3D de las naves y rotaciones dinámicas
 	_animate_ships(delta)
 	
-	# 2. Control cinemático multi-plano de cámara con encuadre derecho y sacudida
-	_animate_camera(delta)
+	# 2. Secuencia FPV (si está activa pisa a la cámara orbital)
+	_update_fpv(delta)
+	
+	# 2b. Control cinemático multi-plano de cámara con encuadre derecho y sacudida
+	if fpv_active:
+		_animate_fpv_camera(delta)
+	else:
+		_animate_camera(delta)
 	
 	# 3. Temporizadores de disparo y ráfagas
 	_handle_shooting(delta)
@@ -176,8 +201,9 @@ func _animate_ships(delta: float):
 	var pitch_angle1 = clamp(vel1.y * 0.18, -0.45, 0.45)
 	
 	var t1 = ship1.transform.looking_at(ship1.position + combat_heading1, Vector3.UP)
-	t1 = t1.rotated_local(Vector3.FORWARD, bank_angle1 + roll_spin1) # Alabeo longitudinal (roll)
-	t1 = t1.rotated_local(Vector3.RIGHT, pitch_angle1) # Cabeceo transversal (pitch)
+	t1 = t1.rotated_local(Vector3.UP, PI * 0.5) # Morro (+X) al frente de vuelo, propulsores (-X) atrás
+	t1 = t1.rotated_local(Vector3.RIGHT, -bank_angle1 + roll_spin1) # Alabeo longitudinal (roll sobre el eje morro-cola +X)
+	t1 = t1.rotated_local(Vector3.BACK, pitch_angle1) # Cabeceo transversal (pitch sobre el eje alar Z)
 	
 	ship1.transform = ship1.transform.interpolate_with(t1, delta * 6.5)
 	
@@ -202,8 +228,9 @@ func _animate_ships(delta: float):
 	var pitch_angle2 = clamp(vel2.y * 0.18, -0.45, 0.45)
 	
 	var t2 = ship2.transform.looking_at(ship2.position + combat_heading2, Vector3.UP)
-	t2 = t2.rotated_local(Vector3.FORWARD, bank_angle2 + roll_spin2) # Alabeo longitudinal (roll)
-	t2 = t2.rotated_local(Vector3.RIGHT, pitch_angle2) # Cabeceo transversal (pitch)
+	t2 = t2.rotated_local(Vector3.UP, PI * 0.5) # Morro (+X) al frente de vuelo, propulsores (-X) atrás
+	t2 = t2.rotated_local(Vector3.RIGHT, -bank_angle2 + roll_spin2) # Alabeo longitudinal (roll sobre el eje morro-cola +X)
+	t2 = t2.rotated_local(Vector3.BACK, pitch_angle2) # Cabeceo transversal (pitch sobre el eje alar Z)
 	
 	ship2.transform = ship2.transform.interpolate_with(t2, delta * 6.5)
 	
@@ -299,54 +326,172 @@ func _animate_camera(delta: float):
 	target_trans = target_trans.rotated_local(Vector3.FORWARD, target_cam_bank)
 	
 	camera.global_transform = current_trans.interpolate_with(target_trans, delta * 3.2)
+	camera.fov = lerpf(camera.fov, ORBIT_FOV, min(1.0, delta * 3.0))
+
+# Secuencia FPV: cámara en cabina de una nave, esquiva el disparo rival con un
+# tonel, contraataca de frente y devuelve al plano general. Alterna la nave POV.
+func _update_fpv(delta: float):
+	if not is_instance_valid(ship1) or not is_instance_valid(ship2):
+		fpv_active = false
+		return
+	if not fpv_active:
+		fpv_next_in -= delta
+		if fpv_next_in <= 0.0:
+			_start_fpv()
+		return
+	fpv_timer += delta
+	if fpv_phase == 1:
+		# FASE 1 - ESQUIVA: el proyectil rival viene a la cabina, tonel al cruzarse
+		if not fpv_rolled and fpv_timer >= 1.05:
+			fpv_rolled = true
+			if fpv_ship == ship1:
+				_trigger_barrel_roll(1)
+			else:
+				_trigger_barrel_roll(2)
+			cam_shake_trauma = min(1.0, cam_shake_trauma + 0.25)
+		fpv_fov = 88.0
+		if fpv_timer >= 2.1:
+			# FASE 2 - ATAQUE: la nave POV responde de frente con doble disparo
+			fpv_phase = 2
+			fpv_timer = 0.0
+			var is_pov_emp = fpv_ship != ship1
+			var col = Color(0.1, 0.7, 1.0) if is_pov_emp else Color(0.2, 1.0, 0.45)
+			_spawn_laser_projectile(fpv_ship, fpv_foe, col, is_pov_emp)
+			_spawn_laser_projectile(fpv_ship, fpv_foe, col, is_pov_emp)
+			if fpv_ship == ship1:
+				recoil1 = 0.22
+			else:
+				recoil2 = 0.22
+	elif fpv_phase == 2:
+		fpv_fov = 80.0
+		if fpv_timer >= 1.7:
+			# FASE 3 - RETORNO: la órbita general retoma con interpolación suave
+			fpv_active = false
+			fpv_phase = 0
+			fpv_next_in = randf_range(18.0, 26.0)
+			fpv_fov = ORBIT_FOV
+
+func _start_fpv():
+	fpv_ship = ship1 if fpv_pick == 1 else ship2
+	fpv_foe = ship2 if fpv_pick == 1 else ship1
+	fpv_pick = 2 if fpv_pick == 1 else 1
+	if not is_instance_valid(fpv_ship) or not is_instance_valid(fpv_foe):
+		fpv_next_in = 6.0
+		return
+	fpv_active = true
+	fpv_phase = 1
+	fpv_timer = 0.0
+	fpv_rolled = false
+	# El rival abre fuego: disparo largo que va a errar rozando la cabina
+	var fwd: Vector3 = (fpv_ship.global_position - fpv_foe.global_position).normalized()
+	var side: Vector3 = fwd.cross(Vector3.UP).normalized()
+	if side.length_squared() < 0.01:
+		side = Vector3.RIGHT
+	var foe_is_emp = fpv_foe == ship2
+	var col = Color(0.1, 0.7, 1.0) if foe_is_emp else Color(0.2, 1.0, 0.45)
+	_spawn_laser_projectile(fpv_foe, fpv_ship, col, foe_is_emp, true, side * 1.35, 1.8)
+	cam_shake_trauma = min(1.0, cam_shake_trauma + 0.1)
+
+func _animate_fpv_camera(delta: float):
+	if not is_instance_valid(camera) or not is_instance_valid(fpv_ship) or not is_instance_valid(fpv_foe):
+		fpv_active = false
+		return
+	cam_shake_trauma = max(0.0, cam_shake_trauma - delta * 2.5)
+	var shake_offset = Vector3(
+		randf_range(-1.0, 1.0) * cam_shake_trauma * 0.18,
+		randf_range(-1.0, 1.0) * cam_shake_trauma * 0.18,
+		randf_range(-1.0, 1.0) * cam_shake_trauma * 0.18
+	)
+	# Ojo en cabina: sobre el lomo viendo el morro al frente (+X local)
+	var st: Transform3D = fpv_ship.global_transform
+	var eye: Vector3 = (st * Vector3(-0.15, 0.55, 0.0)) + shake_offset
+	camera.global_position = camera.global_position.lerp(eye, min(1.0, delta * 9.0))
+	var to_foe: Vector3 = fpv_foe.global_position - camera.global_position
+	if to_foe.length_squared() < 0.001:
+		return
+	var target_trans := Transform3D(Basis.looking_at(to_foe), camera.global_position)
+	# Alabeo parcial con el viraje de la nave POV (sin heredar el tonel completo)
+	var rate := last_turn_rate1 if fpv_ship == ship1 else last_turn_rate2
+	target_trans = target_trans.rotated_local(Vector3.FORWARD, clamp(rate * -0.2, -0.14, 0.14))
+	camera.global_transform = camera.global_transform.interpolate_with(target_trans, min(1.0, delta * 7.0))
+	camera.fov = lerpf(camera.fov, fpv_fov, min(1.0, delta * 3.0))
 
 func _handle_shooting(delta: float):
 	if not is_instance_valid(ship1) or not is_instance_valid(ship2):
 		return
 		
-	# Procesar ráfagas pendientes de Nave 1
+	# Procesar ráfagas pendientes de Nave 1 (cada tiro exige morro alineado)
 	if burst_queue1 > 0:
 		burst_timer1 -= delta
 		if burst_timer1 <= 0.0:
-			burst_queue1 -= 1
-			burst_timer1 = 0.16
-			_spawn_laser_projectile(ship1, ship2, Color(0.2, 1.0, 0.45), false)
-			recoil1 = 0.18
+			if _facing_factor(ship1, ship2) < FACING_MIN_DOT:
+				burst_timer1 = 0.12 # Espera a encarar sin gastar la ráfaga
+			else:
+				burst_queue1 -= 1
+				burst_timer1 = 0.16
+				_spawn_laser_projectile(ship1, ship2, Color(0.2, 1.0, 0.45), false)
+				recoil1 = 0.18
 			
-	# Procesar ráfagas pendientes de Nave 2
+	# Procesar ráfagas pendientes de Nave 2 (cada tiro exige morro alineado)
 	if burst_queue2 > 0:
 		burst_timer2 -= delta
 		if burst_timer2 <= 0.0:
-			burst_queue2 -= 1
-			burst_timer2 = 0.18
-			_spawn_laser_projectile(ship2, ship1, Color(0.1, 0.7, 1.0), true)
-			recoil2 = 0.20
+			if _facing_factor(ship2, ship1) < FACING_MIN_DOT:
+				burst_timer2 = 0.12 # Espera a encarar sin gastar la ráfaga
+			else:
+				burst_queue2 -= 1
+				burst_timer2 = 0.18
+				_spawn_laser_projectile(ship2, ship1, Color(0.1, 0.7, 1.0), true)
+				recoil2 = 0.20
 			
-	# Temporizador general de disparo de Nave 1
+	# Temporizador general de disparo de Nave 1 (SOLO de frente: morro alineado)
 	shoot_cooldown1 -= delta
 	if shoot_cooldown1 <= 0.0:
-		shoot_cooldown1 = randf_range(1.4, 2.2)
-		if randf() < 0.45:
-			burst_queue1 = 2
-			burst_timer1 = 0.0
+		if _facing_factor(ship1, ship2) < FACING_MIN_DOT:
+			shoot_cooldown1 = FACING_RETRY # Reintenta ni bien encara al enemigo
 		else:
-			_spawn_laser_projectile(ship1, ship2, Color(0.2, 1.0, 0.45), false)
-			recoil1 = 0.18
+			shoot_cooldown1 = randf_range(1.4, 2.2)
+			if randf() < 0.45:
+				burst_queue1 = 2
+				burst_timer1 = 0.0
+			else:
+				_spawn_laser_projectile(ship1, ship2, Color(0.2, 1.0, 0.45), false)
+				recoil1 = 0.18
 		
-	# Temporizador general de disparo de Nave 2
+	# Temporizador general de disparo de Nave 2 (SOLO de frente: morro alineado)
 	shoot_cooldown2 -= delta
 	if shoot_cooldown2 <= 0.0:
-		shoot_cooldown2 = randf_range(1.6, 2.5)
-		if randf() < 0.40:
-			burst_queue2 = 2
-			burst_timer2 = 0.0
+		if _facing_factor(ship2, ship1) < FACING_MIN_DOT:
+			shoot_cooldown2 = FACING_RETRY # Reintenta ni bien encara al enemigo
 		else:
-			_spawn_laser_projectile(ship2, ship1, Color(0.1, 0.7, 1.0), true)
-			recoil2 = 0.20
+			shoot_cooldown2 = randf_range(1.6, 2.5)
+			if randf() < 0.40:
+				burst_queue2 = 2
+				burst_timer2 = 0.0
+			else:
+				_spawn_laser_projectile(ship2, ship1, Color(0.1, 0.7, 1.0), true)
+				recoil2 = 0.20
 
-func _spawn_laser_projectile(from_ship: Node3D, to_ship: Node3D, col: Color, is_emp: bool):
-	var forward_dir = (to_ship.global_position - from_ship.global_position).normalized()
-	var start_pos = from_ship.global_position + forward_dir * 1.3
+# Alineación del morro (+X local) con la dirección al enemigo: 1.0 = de frente
+func _facing_factor(from_ship: Node3D, to_ship: Node3D) -> float:
+	if not is_instance_valid(from_ship) or not is_instance_valid(to_ship):
+		return 0.0
+	var nose: Vector3 = from_ship.global_transform.basis.x.normalized()
+	var to_foe: Vector3 = (to_ship.global_position - from_ship.global_position).normalized()
+	return nose.dot(to_foe)
+
+# Punto de salida del disparo: punta frontal del morro de la nave (+X local)
+func _muzzle_pos(ship: Node3D) -> Vector3:
+	if not is_instance_valid(ship):
+		return Vector3.ZERO
+	return ship.global_transform * Vector3(0.85, 0.08, 0.0)
+
+func _spawn_laser_projectile(from_ship: Node3D, to_ship: Node3D, col: Color, is_emp: bool, miss := false, miss_offset := Vector3.ZERO, duration_override := 0.0):
+	if not is_instance_valid(from_ship) or not is_instance_valid(to_ship):
+		return
+	var to_foe_dir = (to_ship.global_position - from_ship.global_position).normalized()
+	# El disparo nace en la punta frontal del morro de la nave
+	var start_pos: Vector3 = _muzzle_pos(from_ship)
 	
 	# 1. FASE DE ANTICIPACIÓN: Fogonazo oficial
 	var antic_path = "res://VFX/scenes/VFX_Anticipation_hadouken.tscn" if is_emp else "res://VFX/scenes/VFX_Anticipation_wave_digital.tscn"
@@ -412,7 +557,9 @@ func _spawn_laser_projectile(from_ship: Node3D, to_ship: Node3D, col: Color, is_
 	ap.is_emp = is_emp
 	ap.color = col
 	ap.light = light
-	ap.duration = randf_range(0.85, 1.1)
+	ap.miss = miss
+	ap.miss_offset = miss_offset
+	ap.duration = duration_override if duration_override > 0.0 else randf_range(0.85, 1.1)
 	
 	active_projectiles.append(ap)
 
@@ -426,16 +573,21 @@ func _update_projectiles(delta: float):
 			
 		ap.progress += delta * (1.0 / ap.duration)
 		var current_target_pos = ap.target_ship.position
+		var goal = current_target_pos + (ap.miss_offset if ap.miss else Vector3.ZERO)
 		
 		# Viaje balístico con ligera curvatura
-		var new_pos = ap.start_pos.lerp(current_target_pos, ap.progress)
+		var new_pos = ap.start_pos.lerp(goal, ap.progress)
 		ap.node.position = new_pos
 		
 		if ap.progress < 0.95:
-			ap.node.look_at(current_target_pos, Vector3.UP)
+			ap.node.look_at(goal, Vector3.UP)
 				
 		if ap.progress >= 1.0:
-			_trigger_impact_effect(ap.target_ship, ap.color, ap.is_emp)
+			if ap.miss:
+				# Roza y se pierde en el fondo (solo un suspiro de cámara)
+				cam_shake_trauma = min(1.0, cam_shake_trauma + 0.15)
+			else:
+				_trigger_impact_effect(ap.target_ship, ap.color, ap.is_emp)
 			if is_instance_valid(ap.node):
 				ap.node.visible = false
 				ap.node.queue_free()

@@ -3790,8 +3790,8 @@ func _setup_propulsion_particles(parent: Node3D):
 		var particles = GPUParticles3D.new()
 		particles.name = "ThrusterParticles"
 		particles.amount = 96 # Muchas partículas pequeñas → chorro compacto y suave
-		particles.lifetime = 0.05 # Largo de antes (colores = rampa normalizada)
-		particles.preprocess = 0.05
+		particles.lifetime = 0.04 # Chorro más corto y creíble (colores = rampa normalizada)
+		particles.preprocess = 0.04
 		particles.local_coords = true # Llama anclada a la tobera (se mueve rígida con la nave)
 		particles.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3, 3, 3))
 		particles.amount_ratio = 1.0 # Densidad siempre plena (el encendido es por alfa)
