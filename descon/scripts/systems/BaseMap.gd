@@ -1,6 +1,8 @@
 extends Node2D
 class_name BaseMap
 
+signal camera_mode_changed(enabled: bool)
+
 # Precarga de recursos estáticos a nivel de clase para optimización y consistencia
 const TEXTURE_NOISE_531 = preload("res://VFX/textures/T_VFX_Noise_531.png")
 const TEXTURE_NOISE_21D = preload("res://VFX/textures/T_VFX_Noise21d_tiled.png")
@@ -9,6 +11,8 @@ const TEXTURE_NOISE_019 = preload("res://VFX/textures/T_VFX_Noise_019.png")
 const SHADER_BORDER_NEBULA = preload("res://resources/shaders/border_nebula.gdshader")
 const SHADER_STARFIELD = preload("res://resources/shaders/starfield.gdshader")
 const SHADER_DOME_STARFIELD = preload("res://resources/shaders/dome_starfield.gdshader")
+const SHADER_CELESTIAL_PLANET = preload("res://resources/shaders/celestial_planet.gdshader")
+const SHADER_CELESTIAL_RINGS = preload("res://resources/shaders/celestial_rings.gdshader")
 const MODEL_PORTAL_ICON = preload("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
 const MODEL_VAULT_ICON = preload("res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb")
 const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb")
@@ -59,6 +63,12 @@ var rock_data_list: Array = []
 var multimeshes: Dictionary = {}
 var rock_angle: float = 0.0
 var fog_of_war: FogOfWarManager = null
+
+# Sistema de Cielo Dinámico y Ciclo Atmosférico AAA
+var _sky_cycle_time: float = 0.0
+var _sky_cycle_speed: float = 1.0 # 1.0 = normal (ciclo completo de 4 minutos)
+var _current_sky_weights: Vector4 = Vector4(1.0, 0.0, 0.0, 0.0)
+var celestial_planet: Node3D = null
 
 # correction_z dinámico: 1.0 / sin(tilt_angle) calculado desde la inclinación real de la cámara
 var correction_z: float = 1.41421356
@@ -159,6 +169,7 @@ func _ready():
 	if sm_init and sm_init.mobile_mode:
 		free_cam_active = (is_mob_cam_edit != 0)
 		_was_mobile_camera_edit = is_mob_cam_edit
+		emit_signal("camera_mode_changed", free_cam_active)
 	
 	# Establecer metadato estático autoritario para sincronizar con proyectiles y entidades
 	self.set_meta("correction_z", correction_z)
@@ -331,6 +342,7 @@ func _deferred_ready():
 	print("[BaseMap _deferred_ready] process_frame completado. Llamando a _spawn_map_objects...")
 	_spawn_map_objects()
 	_create_sky_dome()
+	_create_celestial_planet()
 
 func _setup_starfield():
 	var bg = get_node_or_null("ParallaxBackground/StaticLayer/SpaceBG")
@@ -363,12 +375,18 @@ func _create_sky_dome():
 	print("[BaseMap] Cúpula estelar 3D creada y configurada.")
 
 func _update_dome_stars_parameter(dome: MeshInstance3D):
-	var show_s = false
-	if get_node_or_null("/root/SettingsManager"):
-		show_s = SettingsManager.show_stars
+	var show_s = true
+	var show_fx = true
+	var sm = get_node_or_null("/root/SettingsManager")
+	if sm:
+		if "show_stars" in sm:
+			show_s = sm.show_stars
+		if "show_sky_effects" in sm:
+			show_fx = sm.show_sky_effects
 	var mat = dome.material_override
 	if mat is ShaderMaterial:
 		mat.set_shader_parameter("u_show_stars", 1.0 if show_s else 0.0)
+		mat.set_shader_parameter("u_show_sky_effects", 1.0 if show_fx else 0.0)
 
 func update_sky_dome_visibility():
 	if not is_instance_valid(sub_viewport):
@@ -377,7 +395,274 @@ func update_sky_dome_visibility():
 	if is_instance_valid(dome):
 		dome.visible = true # Siempre visible para evitar "Hall of Mirrors"
 		_update_dome_stars_parameter(dome)
-		print("[BaseMap] Visibilidad de estrellas en cúpula estelar actualizada.")
+		print("[BaseMap] Parámetros visuales de cúpula estelar actualizados.")
+	_update_celestial_planet_visibility()
+
+func _create_celestial_planet():
+	if not is_instance_valid(sub_viewport):
+		return
+	var existing = sub_viewport.get_node_or_null("CelestialPlanet")
+	if is_instance_valid(existing):
+		celestial_planet = existing
+		return
+
+	celestial_planet = Node3D.new()
+	celestial_planet.name = "CelestialPlanet"
+
+	# 1. Cuerpo del Planeta: Esfera 3D con sombreado marciano procedural en la gama de los rojos
+	var planet_mesh = MeshInstance3D.new()
+	planet_mesh.name = "PlanetSphere"
+	var sphere = SphereMesh.new()
+	sphere.radius = 14.0
+	sphere.height = 28.0
+	sphere.radial_segments = 64
+	sphere.rings = 32
+	planet_mesh.mesh = sphere
+	var mat_planet = ShaderMaterial.new()
+	mat_planet.shader = SHADER_CELESTIAL_PLANET
+	mat_planet.render_priority = -120
+	planet_mesh.material_override = mat_planet
+	celestial_planet.add_child(planet_mesh)
+
+	# 2. Anillo Rocoso 3D Espeso (inclinado ~25 grados en el espacio 3D)
+	var ring_mesh = MeshInstance3D.new()
+	ring_mesh.name = "PlanetRings"
+	var quad = QuadMesh.new()
+	quad.size = Vector2(75.0, 75.0)
+	ring_mesh.mesh = quad
+	ring_mesh.rotation_degrees = Vector3(65.0, 25.0, 0.0)
+
+	var mat_ring = ShaderMaterial.new()
+	mat_ring.shader = SHADER_CELESTIAL_RINGS
+	mat_ring.render_priority = -119
+	ring_mesh.material_override = mat_ring
+	celestial_planet.add_child(ring_mesh)
+
+	# 3. Órbita de rocas 3D (5 rocas en la órbita girando suavemente en el plano del anillo)
+	var rock_asset = load("res://assets/Asteroides/3D/Asteroides.glb")
+	if not rock_asset:
+		rock_asset = load("res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb")
+	if rock_asset:
+		var rock_orbit = Node3D.new()
+		rock_orbit.name = "RockOrbit"
+		rock_orbit.rotation_degrees = Vector3(65.0, 25.0, 0.0)
+		var num_rocks = 5
+		for i in range(num_rocks):
+			var rock = rock_asset.instantiate()
+			var a = (float(i) / float(num_rocks)) * TAU + randf_range(-0.15, 0.15)
+			var d = randf_range(18.0, 31.0)
+			rock.position = Vector3(cos(a) * d, sin(a) * d, randf_range(-0.25, 0.25))
+			var s = randf_range(0.65, 1.15)
+			rock.scale = Vector3.ONE * s
+			rock.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
+			_configure_celestial_rock_materials(rock)
+			rock_orbit.add_child(rock)
+		celestial_planet.add_child(rock_orbit)
+
+	sub_viewport.add_child(celestial_planet)
+	_update_celestial_planet_visibility()
+	print("[BaseMap] Planeta Marte con Anillo Espeso y Órbita Rocosa creado en la escena.")
+
+func _configure_celestial_rock_materials(node: Node) -> void:
+	if node is MeshInstance3D:
+		var mi = node as MeshInstance3D
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		for s in range(mi.get_surface_override_material_count()):
+			var mat = mi.get_surface_override_material(s)
+			if mat is StandardMaterial3D:
+				var m_clone = mat.duplicate() as StandardMaterial3D
+				m_clone.disable_fog = true
+				m_clone.render_priority = -118
+				m_clone.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+				m_clone.emission_enabled = true
+				m_clone.emission = Color(0.24, 0.16, 0.12)
+				m_clone.emission_energy_multiplier = 0.6
+				mi.set_surface_override_material(s, m_clone)
+		var active_mat = mi.material_override
+		if active_mat is StandardMaterial3D:
+			var m_clone = active_mat.duplicate() as StandardMaterial3D
+			m_clone.disable_fog = true
+			m_clone.render_priority = -118
+			m_clone.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+			m_clone.emission_enabled = true
+			m_clone.emission = Color(0.24, 0.16, 0.12)
+			m_clone.emission_energy_multiplier = 0.6
+			mi.material_override = m_clone
+		elif active_mat == null and mi.mesh != null:
+			for s in range(mi.mesh.get_surface_count()):
+				var s_mat = mi.mesh.surface_get_material(s)
+				if s_mat is StandardMaterial3D:
+					var m_clone = s_mat.duplicate() as StandardMaterial3D
+					m_clone.disable_fog = true
+					m_clone.render_priority = -118
+					m_clone.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+					m_clone.emission_enabled = true
+					m_clone.emission = Color(0.24, 0.16, 0.12)
+					m_clone.emission_energy_multiplier = 0.6
+					mi.set_surface_override_material(s, m_clone)
+				elif s_mat == null:
+					var fallback_mat = StandardMaterial3D.new()
+					fallback_mat.albedo_color = Color(0.55, 0.42, 0.35)
+					fallback_mat.disable_fog = true
+					fallback_mat.render_priority = -118
+					fallback_mat.emission_enabled = true
+					fallback_mat.emission = Color(0.24, 0.16, 0.12)
+					fallback_mat.emission_energy_multiplier = 0.6
+					mi.set_surface_override_material(s, fallback_mat)
+	for child in node.get_children():
+		_configure_celestial_rock_materials(child)
+
+func _update_celestial_planet_visibility():
+	if not is_instance_valid(celestial_planet):
+		return
+	var show_fx = true
+	var sm = get_node_or_null("/root/SettingsManager")
+	if sm and "show_sky_effects" in sm:
+		show_fx = sm.show_sky_effects
+	celestial_planet.visible = show_fx
+
+func _process_sky_atmosphere_cycle(delta: float, dome: MeshInstance3D):
+	if not is_instance_valid(dome):
+		return
+	var mat = dome.material_override as ShaderMaterial
+	if not is_instance_valid(mat):
+		return
+		
+	_sky_cycle_time += delta
+	
+	# Período de ciclo completo: 240 segundos (4 minutos)
+	const CYCLE_DURATION = 240.0
+	var progress = fposmod(_sky_cycle_time * _sky_cycle_speed, CYCLE_DURATION) / CYCLE_DURATION
+	
+	# 4 estados cíclicos:
+	# 0: Noche Profunda -> 1: Amanecer Dorado -> 2: Día Astral -> 3: Tormenta de Auroras -> 0: Noche
+	var p4 = progress * 4.0
+	var state_idx = int(p4) % 4
+	var t = fposmod(p4, 1.0)
+	# Curva de suavizado Hermite (smoothstep)
+	t = t * t * (3.0 - 2.0 * t)
+	
+	var w = Vector4.ZERO
+	if state_idx == 0:
+		w = Vector4(1.0 - t, t, 0.0, 0.0)
+	elif state_idx == 1:
+		w = Vector4(0.0, 1.0 - t, t, 0.0)
+	elif state_idx == 2:
+		w = Vector4(0.0, 0.0, 1.0 - t, t)
+	else:
+		w = Vector4(t, 0.0, 0.0, 1.0 - t)
+		
+	_current_sky_weights = w
+	
+	mat.set_shader_parameter("u_cycle_time", _sky_cycle_time)
+	mat.set_shader_parameter("u_cycle_progress", progress)
+	mat.set_shader_parameter("u_state_weights", w)
+	
+	# Colores cinematográficos de luz estelar/solar y ambiente por cada estado
+	# Noche: Luz estelar fría plateada, ambiente azul/gris
+	var col_light_night = Color(0.88, 0.92, 1.0)
+	var col_amb_night = Color(0.24, 0.26, 0.38)
+	
+	# Amanecer: Luz solar dorada cálida, ambiente ámbar sutil
+	var col_light_dawn = Color(1.0, 0.90, 0.78)
+	var col_amb_dawn = Color(0.32, 0.28, 0.36)
+	
+	# Día Astral: Luz limpia brillante, ambiente zafiro
+	var col_light_day = Color(1.0, 0.97, 0.92)
+	var col_amb_day = Color(0.28, 0.32, 0.44)
+	
+	# Aurora: Luz cósmica mística turquesa/cian, ambiente etéreo
+	var col_light_aurora = Color(0.85, 0.98, 0.95)
+	var col_amb_aurora = Color(0.25, 0.32, 0.40)
+	
+	# Colores de bruma de horizonte (coinciden exactamente con el shader del cielo para fundir el suelo de forma invisible)
+	var col_fog_night = Color(0.06, 0.08, 0.14)
+	var col_fog_dawn = Color(0.28, 0.14, 0.06)
+	var col_fog_day = Color(0.14, 0.22, 0.36)
+	var col_fog_aurora = Color(0.04, 0.22, 0.25)
+
+	var target_light = col_light_night * w.x + col_light_dawn * w.y + col_light_day * w.z + col_light_aurora * w.w
+	var target_amb = col_amb_night * w.x + col_amb_dawn * w.y + col_amb_day * w.z + col_amb_aurora * w.w
+	var target_fog = col_fog_night * w.x + col_fog_dawn * w.y + col_fog_day * w.z + col_fog_aurora * w.w
+	
+	if is_instance_valid(sub_viewport):
+		# 1. Luz Direccional (Sol/Estrella del sector)
+		# ¡IMPORTANTE: Solo modulamos sutilmente el color sin tocar las sombras!
+		var dir_light: DirectionalLight3D = null
+		for child in sub_viewport.find_children("*", "DirectionalLight3D", true, false):
+			if child is DirectionalLight3D:
+				dir_light = child
+				break
+		if is_instance_valid(dir_light):
+			dir_light.light_color = dir_light.light_color.lerp(target_light, delta * 0.5)
+			# NUNCA tocar shadow_enabled, shadow_bias, directional_shadow_mode, etc.
+			
+		# 2. Luz Ambiental (WorldEnvironment)
+		# ¡IMPORTANTE: Mantenemos alta la energía base y no alteramos los parámetros de distancia de FOG!
+		for env_node in sub_viewport.find_children("*", "WorldEnvironment", true, false):
+			if env_node is WorldEnvironment and is_instance_valid(env_node.environment):
+				var env = env_node.environment
+				env.ambient_light_color = env.ambient_light_color.lerp(target_amb, delta * 0.5)
+				if env.ambient_light_energy < 1.3:
+					env.ambient_light_energy = 1.5
+				# Armonización de niebla con el horizonte:
+				# Si el mapa tiene niebla habilitada, armonizamos suavemente su color con el horizonte del cielo
+				# para que los bordes distantes del suelo se disuelvan de manera invisible en la bruma.
+				if env.fog_enabled:
+					env.fog_light_color = env.fog_light_color.lerp(target_fog, delta * 0.5)
+					if env.fog_light_energy < 0.95:
+						env.fog_light_energy = lerp(env.fog_light_energy, 1.0, delta * 0.5)
+
+		# 3. Posicionamiento en el plano visual alejado en la escena, traslación celeste y órbita rocosa
+		if is_instance_valid(celestial_planet):
+			var show_fx = true
+			var sm = get_node_or_null("/root/SettingsManager")
+			if sm and "show_sky_effects" in sm:
+				show_fx = sm.show_sky_effects
+			celestial_planet.visible = show_fx
+			
+			if show_fx:
+				# A. POSICIONAMIENTO FÍSICO EN LA ESCENA (ALEJADO EN EL FIRMAMENTO COMO ESTABA ANTES):
+				# Anclado con respecto al centro del mapa / posición del jugador en el horizonte lejano
+				var target_center = free_cam_center
+				if not is_instance_valid(player_node):
+					var players = get_tree().get_nodes_in_group("player")
+					if players.size() > 0:
+						player_node = players[0]
+				if is_instance_valid(player_node):
+					var pp = player_node.position
+					target_center = Vector3(pp.x * scale_factor, 0.0, pp.y * scale_factor * correction_z)
+				
+				# B. TRASLACIÓN CONTINUA EN EL PLANO VISUAL ASTRONÓMICO:
+				# Se traslada lentamente a lo largo del firmamento noreste
+				var trans_p = _sky_cycle_time * 0.012
+				var celestial_x = 92.0 + sin(trans_p) * 42.0
+				var celestial_y = 80.0 + cos(trans_p * 0.6) * 8.0
+				var celestial_z = -160.0 + cos(trans_p) * 16.0
+				
+				celestial_planet.global_position = target_center + Vector3(celestial_x, celestial_y, celestial_z)
+				
+				# C. ROTACIÓN SUAVE DE LA ESFERA, ANILLO Y ÓRBITA ROCOSA:
+				var sphere_node = celestial_planet.get_node_or_null("PlanetSphere")
+				if is_instance_valid(sphere_node):
+					sphere_node.rotate_y(delta * 0.005)
+					if sphere_node is MeshInstance3D and sphere_node.material_override is ShaderMaterial:
+						(sphere_node.material_override as ShaderMaterial).set_shader_parameter("u_time", _sky_cycle_time)
+					
+				var ring_mesh = celestial_planet.get_node_or_null("PlanetRings") as MeshInstance3D
+				if is_instance_valid(ring_mesh):
+					ring_mesh.rotate_object_local(Vector3.FORWARD, delta * 0.006)
+					if ring_mesh.material_override is ShaderMaterial:
+						(ring_mesh.material_override as ShaderMaterial).set_shader_parameter("u_time", _sky_cycle_time)
+						
+				var rock_orbit = celestial_planet.get_node_or_null("RockOrbit") as Node3D
+				if is_instance_valid(rock_orbit):
+					# Las rocas orbitan suavemente en el plano del anillo
+					rock_orbit.rotate_object_local(Vector3.FORWARD, delta * 0.007)
+					for child in rock_orbit.get_children():
+						if child is Node3D:
+							child.rotate_x(delta * 0.012)
+							child.rotate_y(delta * 0.008)
 
 func setup_map():
 	_classic_cam_smoothed_y = -999.0
@@ -448,6 +733,8 @@ func _setup_dynamic_3d_map_layout():
 	var center_x = (local_map_width / 2.0) * scale_factor
 	var center_z = (local_map_height / 2.0) * scale_factor * correction_z
 	var y_ground = 0.0
+
+
 
 	var fog_start_3d = max(local_map_width * scale_factor * 0.25, 15.0)
 	var fog_end_3d = max(local_map_width * scale_factor * 0.75, 60.0)
@@ -1265,6 +1552,7 @@ func _restore_camera_state():
 		sm.cam_fixed_zoom = 0.35
 	fixed_cam_zoom = clamp(sm.cam_fixed_zoom, 0.18, 0.55)
 	free_cam_active = sm.cam_free_active
+	emit_signal("camera_mode_changed", free_cam_active)
 	free_cam_h = sm.cam_free_h
 	free_cam_v = sm.cam_free_v
 	free_cam_zoom = sm.cam_free_zoom
@@ -1478,6 +1766,7 @@ func _process(_delta):
 		var dome = sub_viewport.get_node_or_null("SkyDome")
 		if is_instance_valid(dome):
 			dome.global_position = camera_3d.global_position
+			_process_sky_atmosphere_cycle(_delta, dome)
 		
 	# --- LOCALIZAR NAVE DEL JUGADOR ---
 	if not is_instance_valid(player_node):
@@ -1515,7 +1804,9 @@ func _process(_delta):
 			camera_3d.fov = BASE_FOV
 
 	# --- CÁMARA LIBRE (ORBIT/FREE MODE) ---
-	if free_cam_active and is_instance_valid(camera_3d):
+	if has_meta("social_camera_override") and get_meta("social_camera_override"):
+		pass # Control de cámara cedido exclusivamente a SocialMediaCamera
+	elif free_cam_active and is_instance_valid(camera_3d):
 		# WASD para paneo en free mode (no orbit)
 		if not free_orbit_mode:
 			var dt = get_process_delta_time()
@@ -3067,6 +3358,7 @@ func _input(event):
 			use_hybrid_camera = false
 			new_mode_name = "CÁMARA FIJA"
 		
+		emit_signal("camera_mode_changed", free_cam_active)
 		_save_camera_state()
 		if has_node("/root/SettingsManager"):
 			get_node("/root/SettingsManager").cam_free_active = free_cam_active
@@ -3096,6 +3388,10 @@ func _input(event):
 			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			
+			var hud_check = get_tree().get_first_node_in_group("hud")
+			if hud_check and hud_check.has_method("_is_pos_over_priority_ui") and hud_check._is_pos_over_priority_ui(event.position):
+				return
+			
 			_lmb_dragging = event.pressed
 			if event.pressed:
 				_lmb_drag_last = event.position
@@ -3112,6 +3408,9 @@ func _input(event):
 			var hovered = get_viewport().gui_get_hovered_control()
 			if hovered != null and not (hovered is SubViewportContainer):
 				return
+			var hud_check = get_tree().get_first_node_in_group("hud")
+			if hud_check and hud_check.has_method("_is_pos_over_priority_ui") and hud_check._is_pos_over_priority_ui(event.position):
+				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				fixed_cam_zoom = max(0.18, fixed_cam_zoom - 0.04)
 			else:
@@ -3122,6 +3421,12 @@ func _input(event):
 	# Middle-click drag para orbitar (solo en cámara libre)
 	if free_cam_active and event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			var hovered = get_viewport().gui_get_hovered_control()
+			if hovered != null and not (hovered is SubViewportContainer):
+				return
+			var hud_check = get_tree().get_first_node_in_group("hud")
+			if hud_check and hud_check.has_method("_is_pos_over_priority_ui") and hud_check._is_pos_over_priority_ui(event.position):
+				return
 			_mid_dragging = event.pressed
 			if event.pressed:
 				_drag_last = event.position
@@ -3186,6 +3491,7 @@ func _on_mobile_camera_edit_toggled(state: int):
 	if not sm or not sm.mobile_mode:
 		return
 	free_cam_active = (state != 0)
+	emit_signal("camera_mode_changed", free_cam_active)
 	free_orbit_mode = true
 	if state != 0:
 		_sync_free_from_fixed()

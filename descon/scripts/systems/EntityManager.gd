@@ -938,6 +938,22 @@ func get_enemy_id_by_node(enemy_node: Node) -> String:
 			return str(m_val)
 	return str(enemy_node.name)
 
+func get_enemies_in_range(position: Vector2, max_dist: float) -> Array[Node]:
+	var result: Array[Node] = []
+	for eid in enemies.keys():
+		var enemy = enemies[eid]
+		if is_instance_valid(enemy):
+			var dist = position.distance_to(enemy.global_position)
+			if dist <= max_dist:
+				result.append(enemy)
+	return result
+
+func get_enemy(enemy_id: int) -> Node:
+	var eid_str = str(enemy_id)
+	if enemies.has(eid_str):
+		return enemies[eid_str]
+	return null
+
 func _create_enemy_cast_visual(enemy: Node, mId: String, castTimeMs: float, mech_type: String = "", raw_data: Dictionary = {}):
 	if not is_instance_valid(enemy):
 		return
@@ -1175,6 +1191,7 @@ func _on_enemy_cast_ended(data: Dictionary):
 	var eid = str(data.get("id", ""))
 	var mId = str(data.get("mId", ""))
 	if eid == "": return
+	_clear_enemy_casting_meta(eid)
 	if not enemy_cast_visuals.has(eid): return
 	var mDict = enemy_cast_visuals[eid]
 	if mId != "" and mDict.has(mId):
@@ -5074,7 +5091,7 @@ func _sample_terrain_height(p2d: Vector2, map_node) -> float:
 		elif "data" in tnode and is_instance_valid(tnode.data) and tnode.data.has_method("get_height"):
 			h = tnode.data.get_height(pos3)
 			used_data = true
-		elif tnode.has_property("data") and is_instance_valid(tnode.get("data")):
+		elif "data" in tnode and is_instance_valid(tnode.get("data")):
 			var d = tnode.get("data")
 			if d and d.has_method("get_height"):
 				h = d.get_height(pos3)
@@ -5714,7 +5731,10 @@ func _clear_enemy_firing_meta(enemy_id: String):
 			enemy.remove_meta("is_firing")
 
 func _clear_enemy_casting_meta(enemy_id: String):
+	var enemy = null
 	if is_instance_valid(world) and world.enemies.has(enemy_id):
-		var enemy = world.enemies[enemy_id]
-		if is_instance_valid(enemy) and enemy.has_meta("is_casting"):
-			enemy.remove_meta("is_casting")
+		enemy = world.enemies[enemy_id]
+	elif enemies.has(enemy_id):
+		enemy = enemies[enemy_id]
+	if is_instance_valid(enemy) and enemy.has_meta("is_casting"):
+		enemy.remove_meta("is_casting")

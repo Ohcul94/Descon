@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://c31jn5f0q7vcs" path="res://assets/Mapas/Mapa4/Terreno/Placa Metalica Poly/Normal + Albedo/packed_albedo_height.png" id="4_pw4vt"]
 [ext_resource type="Texture2D" uid="uid://du61rj6l4sksb" path="res://assets/Mapas/Mapa4/Terreno/Placa Metalica Poly/Normal + Albedo/packed_normal_roughness.png" id="5_8biib"]
 [ext_resource type="PackedScene" path="res://VFX/scenes/VFX_Water_Laguna.tscn" id="6_laguna"]
+[ext_resource type="PackedScene" path="res://VFX/scenes/VFX_Waterfall.tscn" id="7_fall"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
@@ -192,5 +193,15 @@ metadata/asset_path = "res://VFX/scenes/VFX_Water_Laguna.tscn"
 metadata/label = "Laguna_Chica"
 metadata/scale_2d = 1.5
 metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+metadata/colType = "none"
+
+[node name="Cascada_Prueba" parent="." instance=ExtResource("7_fall")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -45, 0.8, -40)
+metadata/obj_type = "decor"
+metadata/asset_path = "res://VFX/scenes/VFX_Waterfall.tscn"
+metadata/label = "Cascada_Prueba"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = -90.0
 metadata/editor_only = true
 metadata/colType = "none"

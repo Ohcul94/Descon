@@ -626,7 +626,8 @@ func _unhandled_input(event):
 			"clan_ui", "player_clan_ui", "talents_ui", "player_talents_ui",
 			"map_ui", "player_map_ui", "inspect_ui", "player_inspect_ui",
 			"party_ui", "player_party_ui", "quests_ui", "player_quests_ui",
-			"vault_ui", "trade_ui", "market_ui", "admin_panel_ui", "battlepass_ui"
+			"vault_ui", "trade_ui", "market_ui", "admin_panel_ui", "battlepass_ui",
+			"camera_ui", "social_camera_ui"
 		]
 		for group in modal_groups:
 			for node in get_tree().get_nodes_in_group(group):

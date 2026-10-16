@@ -345,25 +345,7 @@ static func _get_scene_candidates(z_key: String) -> Array[String]:
 			candidates.push_front("res://tools/MapEditor3D_Evento_3_PVP.tscn")
 	return candidates
 
-static func _add_temp_child(tree: SceneTree, child: Node) -> Node:
-	if not tree: return null
-	var candidates = ["AudioManager", "GameConstants", "VFXSystem", "NetworkManager"]
-	for c_name in candidates:
-		var n = tree.root.get_node_or_null(c_name)
-		if is_instance_valid(n):
-			n.add_child(child)
-			return n
-	if tree.current_scene and not tree.current_scene.is_queued_for_deletion():
-		tree.current_scene.add_child(child)
-		return tree.current_scene
-	if tree.root:
-		tree.root.add_child(child)
-		return tree.root
-	return null
 
-static func _remove_temp_child(parent: Node, child: Node) -> void:
-	if is_instance_valid(parent) and is_instance_valid(child) and child.get_parent() == parent:
-		parent.remove_child(child)
 
 static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect2:
 	var z_key = str(zone_id)
@@ -403,7 +385,6 @@ static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect
 					if sc_res:
 						temp_scene_to_free = sc_res.instantiate()
 						_disable_free_editor_textures_recursive(temp_scene_to_free)
-						host_parent = _add_temp_child(tree, temp_scene_to_free)
 						terrain_node = temp_scene_to_free.find_child("Terrain3D", true, false)
 						if not is_instance_valid(terrain_node):
 							terrain_node = _find_terrain_node_recursive(temp_scene_to_free)
@@ -412,10 +393,8 @@ static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect
 							if "correction_z" in temp_scene_to_free: correction_z = float(temp_scene_to_free.correction_z)
 							break
 						else:
-							_remove_temp_child(host_parent, temp_scene_to_free)
 							temp_scene_to_free.queue_free()
 							temp_scene_to_free = null
-							host_parent = null
 
 	if is_instance_valid(terrain_node):
 		var data = terrain_node.get("data")
@@ -457,19 +436,15 @@ static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect
 				var calculated_rect = Rect2(min_x_2d, min_y_2d, max_x_2d - min_x_2d, max_y_2d - min_y_2d)
 
 				if is_instance_valid(temp_scene_to_free):
-					_remove_temp_child(host_parent, temp_scene_to_free)
 					temp_scene_to_free.queue_free()
 					temp_scene_to_free = null
-					host_parent = null
 
 				terrain_bounds_by_zone[z_key] = calculated_rect
 				return calculated_rect
 
 	if is_instance_valid(temp_scene_to_free):
-		_remove_temp_child(host_parent, temp_scene_to_free)
 		temp_scene_to_free.queue_free()
 		temp_scene_to_free = null
-		host_parent = null
 
 	# Fallback si no hay Terrain3D: leer de MAPS_CONFIG o dimensiones base
 	var fallback_w = 10000.0
@@ -555,7 +530,6 @@ static func get_or_create_terrain_texture(zone_id: Variant, rect_or_width: Varia
 					if sc_res:
 						temp_scene_to_free = sc_res.instantiate()
 						_disable_free_editor_textures_recursive(temp_scene_to_free)
-						host_parent = _add_temp_child(tree, temp_scene_to_free)
 						terrain_node = temp_scene_to_free.find_child("Terrain3D", true, false)
 						if not is_instance_valid(terrain_node):
 							terrain_node = _find_terrain_node_recursive(temp_scene_to_free)
@@ -564,10 +538,8 @@ static func get_or_create_terrain_texture(zone_id: Variant, rect_or_width: Varia
 							if "correction_z" in temp_scene_to_free: correction_z = float(temp_scene_to_free.correction_z)
 							break
 						else:
-							_remove_temp_child(host_parent, temp_scene_to_free)
 							temp_scene_to_free.queue_free()
 							temp_scene_to_free = null
-							host_parent = null
 
 	var has_real_terrain = is_instance_valid(terrain_node)
 	var step_x = world_rect.size.x / float(res)
@@ -895,3 +867,5 @@ static func _disable_free_editor_textures_recursive(node: Node) -> void:
 		node.set("free_editor_textures", false)
 	for child in node.get_children():
 		_disable_free_editor_textures_recursive(child)
+
+

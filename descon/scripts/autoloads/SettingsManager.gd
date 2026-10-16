@@ -49,6 +49,7 @@ var mobile_camera_sensitivity: float = 1.0  # v420.600: Sensibilidad de órbita 
 var pc_camera_sensitivity: float = 1.0      # Sensibilidad de rotación con mouse en PC
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
 var show_stars: bool = true             # Activar estrellas en el cielo (activado por defecto)
+var show_sky_effects: bool = true       # Activar efectos avanzados del cielo (nebulosa, auroras, planetas)
 var minimap_rotate: bool = false        # Minimapa rotatorio (gira con la nave)
 var window_mode: int = 0                 # 0: Ventana, 1: Pantalla Completa, 2: Ventana sin Bordes
 var screen_resolution: String = "1280x720"
@@ -180,6 +181,7 @@ func reset_to_factory():
 	camera_use_orthogonal = false
 	cam_use_orthogonal = false
 	show_stars = false
+	show_sky_effects = true
 	minimap_rotate = false
 	music_volume = 60.0
 	music_muted = false
@@ -232,6 +234,7 @@ func save_settings():
 	config_file.set_value("graphics", "fps_limit", fps_limit)
 	config_file.set_value("graphics", "camera_use_orthogonal", camera_use_orthogonal)
 	config_file.set_value("graphics", "show_stars", show_stars)
+	config_file.set_value("graphics", "show_sky_effects", show_sky_effects)
 	config_file.set_value("graphics", "minimap_rotate", minimap_rotate)
 	config_file.set_value("graphics", "window_mode", window_mode)
 	config_file.set_value("graphics", "screen_resolution", screen_resolution)
@@ -322,6 +325,7 @@ func load_settings():
 		fps_limit = config_file.get_value("graphics", "fps_limit", 60)
 		camera_use_orthogonal = config_file.get_value("graphics", "camera_use_orthogonal", false)
 		show_stars = config_file.get_value("graphics", "show_stars", true)
+		show_sky_effects = config_file.get_value("graphics", "show_sky_effects", true)
 		minimap_rotate = config_file.get_value("graphics", "minimap_rotate", false)
 		window_mode = config_file.get_value("graphics", "window_mode", 0)
 		screen_resolution = config_file.get_value("graphics", "screen_resolution", "1280x720")
@@ -387,6 +391,7 @@ func load_settings():
 		fps_limit = 60
 		camera_use_orthogonal = false
 		show_stars = false
+		show_sky_effects = true
 		minimap_rotate = false
 		window_mode = 0
 		screen_resolution = "1280x800"

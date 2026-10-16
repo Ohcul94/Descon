@@ -1,0 +1,214 @@
+[gd_scene load_steps=18 format=3]
+
+[ext_resource type="Shader" path="res://resources/shaders/water_waterfall.gdshader" id="1_fall"]
+[ext_resource type="Shader" path="res://resources/shaders/water_laguna.gdshader" id="2_pond"]
+
+[sub_resource type="BoxMesh" id="Mesh_core"]
+size = Vector3(3.4, 8, 1.1)
+subdivide_width = 4
+subdivide_height = 8
+subdivide_depth = 1
+
+[sub_resource type="ShaderMaterial" id="SM_fall"]
+render_priority = 0
+shader = ExtResource("1_fall")
+shader_parameter/top_color = Color(0.55, 0.75, 0.74, 1)
+shader_parameter/body_color = Color(0.22, 0.47, 0.47, 1)
+shader_parameter/foam_color = Color(0.9, 0.97, 0.95, 1)
+shader_parameter/flow_speed = 1.8
+shader_parameter/stripes = 28.0
+shader_parameter/base_alpha = 0.9
+shader_parameter/sway = 0.12
+shader_parameter/edge_erode = 0.24
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_base"]
+size = Vector2(4.5, 4.5)
+subdivide_width = 8
+subdivide_depth = 8
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_base"]
+render_priority = 0
+shader = ExtResource("2_pond")
+shader_parameter/deep_color = Color(0.02, 0.07, 0.045, 1)
+shader_parameter/shallow_color = Color(0.1, 0.19, 0.07, 1)
+shader_parameter/algae_color = Color(0.2, 0.3, 0.08, 1)
+shader_parameter/sky_tint = Color(0.65, 0.7, 0.68, 1)
+shader_parameter/foam_color = Color(0.45, 0.52, 0.35, 1)
+shader_parameter/wave_height = 0.05
+shader_parameter/wave_speed = 1.4
+shader_parameter/wave_scale = 1.2
+shader_parameter/algae_amount = 0.3
+shader_parameter/algae_scale = 3.0
+shader_parameter/ripple_strength = 0.35
+shader_parameter/fresnel_power = 3.0
+shader_parameter/roughness_val = 0.28
+shader_parameter/specular_val = 0.55
+shader_parameter/base_alpha = 0.8
+shader_parameter/shape_irregularity = 0.55
+shader_parameter/use_rounded_shape = true
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_splash"]
+emission_shape = 1
+emission_sphere_radius = 1.6
+direction = Vector3(0, 1, 0)
+spread = 40.0
+initial_velocity_min = 2.0
+initial_velocity_max = 4.6
+gravity = Vector3(0, -9, 0)
+damping_min = 0.5
+damping_max = 1.0
+scale_min = 0.05
+scale_max = 0.09
+color = Color(0.7, 0.87, 0.84, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_foam"]
+transparency = 1
+albedo_color = Color(0.55, 0.75, 0.74, 0.75)
+roughness = 0.35
+metallic_specular = 0.5
+emission_enabled = true
+emission = Color(0.4, 0.6, 0.6, 1)
+emission_energy_multiplier = 0.7
+shading_mode = 1
+
+[sub_resource type="SphereMesh" id="Mesh_drop"]
+radius = 1.0
+height = 2.0
+radial_segments = 6
+rings = 4
+material = SubResource("Mat_foam")
+
+[sub_resource type="SphereMesh" id="Mesh_streak"]
+radius = 1.0
+height = 3.2
+radial_segments = 6
+rings = 3
+material = SubResource("Mat_foam")
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_columna"]
+emission_shape = 3
+emission_box_extents = Vector3(1.4, 0.3, 0.8)
+direction = Vector3(0, -1, 0)
+spread = 7.0
+initial_velocity_min = 6.5
+initial_velocity_max = 8.0
+gravity = Vector3(0, -5, 0)
+scale_min = 0.06
+scale_max = 0.09
+color = Color(0.55, 0.75, 0.74, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_mist"]
+transparency = 1
+albedo_color = Color(0.88, 0.95, 0.93, 0.3)
+emission_enabled = true
+emission = Color(0.85, 0.93, 0.91, 1)
+emission_energy_multiplier = 1.0
+shading_mode = 0
+
+[sub_resource type="Gradient" id="Grad_mist"]
+offsets = PackedFloat32Array(0, 0.7, 1)
+colors = PackedColorArray(0.88, 0.95, 0.93, 0, 0.88, 0.95, 0.93, 0.35, 0.88, 0.95, 0.93, 0)
+
+[sub_resource type="GradientTexture1D" id="GT_mist"]
+gradient = SubResource("Grad_mist")
+
+[sub_resource type="SphereMesh" id="Mesh_puff"]
+radius = 1.0
+height = 2.0
+radial_segments = 6
+rings = 4
+material = SubResource("Mat_mist")
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_mist"]
+emission_shape = 1
+emission_sphere_radius = 1.7
+direction = Vector3(0, 1, 0)
+spread = 55.0
+initial_velocity_min = 0.6
+initial_velocity_max = 1.2
+gravity = Vector3(0, 0.5, 0)
+damping_min = 1.0
+damping_max = 2.0
+scale_min = 0.5
+scale_max = 0.9
+color_ramp = SubResource("GT_mist")
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_lip"]
+emission_shape = 3
+emission_box_extents = Vector3(1.5, 0.15, 0.45)
+direction = Vector3(0, 1, 0)
+spread = 25.0
+initial_velocity_min = 0.5
+initial_velocity_max = 1.5
+gravity = Vector3(0, -3, 0)
+damping_min = 1.0
+damping_max = 2.0
+scale_min = 0.08
+scale_max = 0.16
+color = Color(0.75, 0.88, 0.86, 1)
+
+[node name="VFX_Waterfall" type="Node3D"]
+
+[node name="Nucleo" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_core")
+surface_material_override/0 = SubResource("SM_fall")
+
+[node name="Columna" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.2, -1)
+cast_shadow = 0
+amount = 220
+lifetime = 1.0
+preprocess = 1.0
+explosiveness = 0.0
+randomness = 0.5
+fixed_fps = 30
+visibility_aabb = AABB(-4, -1, -4, 8, 12, 8)
+process_material = SubResource("PPM_columna")
+draw_pass_1 = SubResource("Mesh_streak")
+
+[node name="Base" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0.3)
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_base")
+surface_material_override/0 = SubResource("ShaderMaterial_base")
+
+[node name="Salpicadura" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0.3)
+cast_shadow = 0
+amount = 96
+lifetime = 0.7
+preprocess = 0.7
+explosiveness = 0.0
+randomness = 0.6
+fixed_fps = 30
+visibility_aabb = AABB(-4, -1, -4, 8, 10, 8)
+process_material = SubResource("PPM_splash")
+draw_pass_1 = SubResource("Mesh_drop")
+
+[node name="Niebla" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0.3)
+cast_shadow = 0
+amount = 32
+lifetime = 1.6
+preprocess = 1.6
+explosiveness = 0.0
+randomness = 0.8
+fixed_fps = 30
+visibility_aabb = AABB(-4, -1, -4, 8, 10, 8)
+process_material = SubResource("PPM_mist")
+draw_pass_1 = SubResource("Mesh_puff")
+
+[node name="Labio" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.3, -1.9)
+cast_shadow = 0
+amount = 24
+lifetime = 0.6
+preprocess = 0.6
+explosiveness = 0.0
+randomness = 0.7
+fixed_fps = 30
+visibility_aabb = AABB(-4, -1, -4, 8, 12, 8)
+process_material = SubResource("PPM_lip")
+draw_pass_1 = SubResource("Mesh_drop")

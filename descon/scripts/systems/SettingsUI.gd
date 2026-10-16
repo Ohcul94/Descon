@@ -784,6 +784,34 @@ func _setup_ui():
 	stars_lbl.text = "ACTIVAR ESTRELLAS EN EL CIELO"
 	row_stars.add_child(stars_lbl)
 
+	# EFECTOS AVANZADOS DE CIELO (3D / AURORAS / NEBULOSA)
+	var row_sky_fx = HBoxContainer.new()
+	row_sky_fx.add_theme_constant_override("separation", 10)
+	gfx_vbox.add_child(row_sky_fx)
+
+	var sky_fx_check = CheckBox.new()
+	sky_fx_check.text = ""
+	sky_fx_check.add_theme_stylebox_override("normal", check_style)
+	sky_fx_check.add_theme_stylebox_override("pressed", check_style)
+	sky_fx_check.add_theme_stylebox_override("hover", check_style)
+	
+	var has_sky_fx = "show_sky_effects" in SettingsManager
+	if get_node_or_null("/root/SettingsManager"):
+		sky_fx_check.button_pressed = SettingsManager.show_sky_effects if has_sky_fx else true
+	sky_fx_check.toggled.connect(func(val):
+		if "show_sky_effects" in SettingsManager:
+			SettingsManager.show_sky_effects = val
+		SettingsManager.save_settings()
+		var map_node = get_tree().get_first_node_in_group("map")
+		if map_node and map_node.has_method("update_sky_dome_visibility"):
+			map_node.update_sky_dome_visibility()
+	)
+	row_sky_fx.add_child(sky_fx_check)
+
+	var sky_fx_lbl = Label.new()
+	sky_fx_lbl.text = "EFECTOS AVANZADOS DE CIELO (3D / AURORAS / NEBULOSA)"
+	row_sky_fx.add_child(sky_fx_lbl)
+
 	# MINIMAPA ROTATORIO
 	var row_minimap = HBoxContainer.new()
 	row_minimap.add_theme_constant_override("separation", 10)

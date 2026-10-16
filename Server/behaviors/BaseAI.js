@@ -1003,7 +1003,11 @@ module.exports = class BaseAI {
         this.applyCombatLogic(activeTarget, dist, targetAngle, now, io, grid, players);
         
         // Generic cast freeze (si cualquier mecanica esta casteando)
-        const hasGenericCast = this.enemy._castFreezeCount && this.enemy._castFreezeCount > 0;
+        const anyGenericCasting = this.enemy.genericCastState && Object.values(this.enemy.genericCastState).some(g => g && g.isCasting);
+        if (!anyGenericCasting && (this.enemy._castFreezeCount || 0) > 0) {
+            this.enemy._castFreezeCount = 0;
+        }
+        const hasGenericCast = anyGenericCasting || (this.enemy._castFreezeCount && this.enemy._castFreezeCount > 0);
         // Bloquear movimiento físico en todas las IAs si está cargando/canalizando un ataque o viajando bajo tierra (burrow)
         // v414.2: También durante el vuelo de Ascensión Telúrica (el enemigo vuela al destino, no camina)
         const isChargingAttack = (this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging || m.isSlashing)) || hasGenericCast;
@@ -1495,7 +1499,10 @@ module.exports = class BaseAI {
                 gState.isCasting = false;
                 this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount||1)-1);
                 io.to(`zone_${this.enemy.zone}`).emit(`enemyCastCancel`, {id: this.enemy.id, mId, type: mech.type});
-                return false;
+                const cooldown = mech.cooldown || mech.fireRate || 4000;
+                const state = this.enemy.mechState && this.enemy.mechState[mId];
+                if (state) state.nextShotTime = now + Math.min(2000, cooldown);
+                return true; // interrumpido, no disparar
             }
             if (now < gState.castEndTime) {
                 // aún casteando: bloquea la ejecución del disparo
@@ -1547,7 +1554,8 @@ module.exports = class BaseAI {
         }
 
         // Generic cast gate (per mechanic, default 0 = instant) - SÓLO para tipos genéricos
-        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && this._isGenericCastType(mech.type)) {
+        // Si la habilidad ya está en ejecución activa (isOngoing) y no está en casteo, NO debe iniciar un nuevo casteo
+        if ((isCastingNow || !isOngoing) && mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0 && this._isGenericCastType(mech.type)) {
             const isBusy = this._handleGenericCast(mech, mId, now, io);
             if (isBusy) {
                 return true;
@@ -2582,10 +2590,16 @@ module.exports = class BaseAI {
             };
 
             // FASE 1: LANZAMIENTO DEL ABANICO
-            if (state.activeWorms.length === 0 && !state.isActive && now > state.nextShotTime && target && dist <= (mech.fireRange || 800)) {
+            // Se dispara si no hay gusanos activos, no está activa y ya transcurrió nextShotTime
+            if (state.activeWorms.length === 0 && !state.isActive && now > state.nextShotTime) {
                 state.isActive = true;
                 state.activeWorms = [];
-                const centerAngle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
+                state.nextShotTime = Infinity; // Bloquear nuevo disparo mientras vuelan
+                
+                const centerAngle = (target && typeof target.x === 'number' && typeof target.y === 'number')
+                    ? Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x)
+                    : (angle !== undefined ? angle : (this.enemy.rotation ? this.enemy.rotation - Math.PI / 2 : 0));
+                    
                 const step = count > 1 ? spreadRad / (count - 1) : 0;
                 const clientWorms = [];
 
@@ -2606,7 +2620,8 @@ module.exports = class BaseAI {
                         parkEndTime: 0,
                         outHit: new Set(),
                         retHit: new Set(),
-                        lastSim: now
+                        lastSim: now,
+                        createdAt: now
                     };
                     state.activeWorms.push(worm);
                     clientWorms.push({
@@ -2643,6 +2658,13 @@ module.exports = class BaseAI {
                     if (dt > 0.1) dt = 0.1;
                     w.lastSim = now;
 
+                    // Timeout de seguridad: Limpiar si por alguna anomalía supera la vida máxima estimada
+                    const maxLifetimeMs = ((w.range / Math.max(50, w.speed)) * 2 * 1000) + parkTimeMs + 5000;
+                    if (now - (w.createdAt || w.lastSim) > maxLifetimeMs) {
+                        state.activeWorms.splice(i, 1);
+                        continue;
+                    }
+
                     const prevX = w.x;
                     const prevY = w.y;
                     const hitPhase = w.phase;
@@ -2666,7 +2688,7 @@ module.exports = class BaseAI {
                         const dy = this.enemy.y - w.y;
                         const dd = Math.hypot(dx, dy);
                         const step = w.speed * dt;
-                        if (dd <= Math.max(step, hitRadius)) {
+                        if (isNaN(dd) || dd <= Math.max(step, hitRadius)) {
                             state.activeWorms.splice(i, 1);
                             continue;
                         }
@@ -2698,6 +2720,12 @@ module.exports = class BaseAI {
                 }
                 this.enemy.mechState[mId] = state;
                 return state.activeWorms.length > 0;
+            }
+
+            // Fallback: si por interrupción o limpieza quedó isActive sin gusanos
+            if (state.isActive && state.activeWorms.length === 0) {
+                state.isActive = false;
+                state.nextShotTime = now + cooldown;
             }
 
             this.enemy.mechState[mId] = state;

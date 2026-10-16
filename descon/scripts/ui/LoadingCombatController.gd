@@ -489,7 +489,6 @@ func _muzzle_pos(ship: Node3D) -> Vector3:
 func _spawn_laser_projectile(from_ship: Node3D, to_ship: Node3D, col: Color, is_emp: bool, miss := false, miss_offset := Vector3.ZERO, duration_override := 0.0):
 	if not is_instance_valid(from_ship) or not is_instance_valid(to_ship):
 		return
-	var to_foe_dir = (to_ship.global_position - from_ship.global_position).normalized()
 	# El disparo nace en la punta frontal del morro de la nave
 	var start_pos: Vector3 = _muzzle_pos(from_ship)
 	

@@ -434,7 +434,11 @@ func _process(delta):
 	
 	# v311.2: Calcular visibilidad en pantalla antes de procesar visuales costosos
 	var screen_visible = true
-	if not is_in_group("player"): # El jugador local siempre se considera visible
+	var is_cam_target = has_meta("is_camera_target") and bool(get_meta("is_camera_target"))
+	if is_cam_target:
+		# Si la entidad es el objetivo actual de la cámara de redes sociales, no aplicar culling
+		screen_visible = true
+	elif not is_in_group("player"): # El jugador local siempre se considera visible
 		var local_player = _get_player_node()
 		if is_instance_valid(local_player):
 			var vision_r = 1300.0

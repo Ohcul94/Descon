@@ -18,6 +18,7 @@ var _park_time := 0.0
 var _phase := "out"
 var _dist := 0.0
 var _park_timer := 0.0
+var _life_timer := 0.0
 
 # Visual 2D
 var _body: Line2D = null
@@ -90,6 +91,11 @@ func _build_3d_body() -> void:
 	)
 
 func _process(delta: float) -> void:
+	_life_timer += delta
+	if _life_timer > 15.0:
+		_finish()
+		return
+
 	match _phase:
 		"out":
 			_dist += _speed * delta

@@ -125,6 +125,10 @@ func _ready():
 	if SettingsManager and SettingsManager.mobile_mode:
 		_setup_mobile_camera_pad()
 		_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)
+	
+	# Setup Social Media Camera UI (diferido para no bloquear inicialización de hijos)
+	call_deferred("_setup_social_media_camera_ui")
+	
 	_aggressive_hide(self)
 	_update_icon_tooltips()
 	
@@ -270,6 +274,12 @@ func _input(event: InputEvent):
 				NetworkManager.logout()
 			get_tree().reload_current_scene()
 			return
+
+	# Social Media Camera UI Toggle (F7)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F7:
+		toggle_social_media_camera_ui()
+		get_viewport().set_input_as_handled()
+		return
 
 	if not NetworkManager or not NetworkManager.is_logged_in: return
 
@@ -1365,7 +1375,8 @@ func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool
 		"clan_ui", "player_clan_ui", "talents_ui", "player_talents_ui",
 		"map_ui", "player_map_ui", "inspect_ui", "player_inspect_ui",
 		"party_ui", "player_party_ui", "quests_ui", "player_quests_ui",
-		"vault_ui", "trade_ui", "market_ui", "events_ui", "battlepass_ui"
+		"vault_ui", "trade_ui", "market_ui", "events_ui", "battlepass_ui",
+		"camera_ui", "social_camera_ui"
 	]
 	for grp in floating_groups:
 		var grp_nodes = get_tree().get_nodes_in_group(grp)
@@ -3761,6 +3772,41 @@ func _setup_mobile_camera_pad():
 		pad_container.camera_pad_closed.connect(func():
 			_update_icon_state("CamEdit", 2)
 		)
+
+# Social Media Camera UI Setup
+func _setup_social_media_camera_ui() -> Control:
+	var existing = get_node_or_null("SocialMediaCameraUI")
+	if is_instance_valid(existing): return existing
+	
+	var ui_script = load("res://scripts/systems/SocialMediaCameraUI.gd")
+	if not ui_script:
+		return null
+	
+	var ui = ui_script.new()
+	ui.name = "SocialMediaCameraUI"
+	add_child(ui)
+	ui.z_index = 150
+	ui.visible = false
+	
+	# Connect to SocialCamera autoload
+	var smc = get_node_or_null("/root/SocialCamera")
+	if smc:
+		ui.set_camera_system(smc)
+	
+	return ui
+
+func toggle_social_media_camera_ui():
+	var ui = get_node_or_null("SocialMediaCameraUI")
+	if not is_instance_valid(ui):
+		ui = _setup_social_media_camera_ui()
+	
+	if is_instance_valid(ui):
+		if ui.has_method("toggle_panel"):
+			ui.toggle_panel()
+		else:
+			ui.visible = not ui.visible
+			if ui.visible:
+				ui.move_to_front()
 
 func sync_platform_mode():
 	var is_mob = SettingsManager.mobile_mode if SettingsManager else false
