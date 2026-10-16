@@ -867,5 +867,3 @@ static func _disable_free_editor_textures_recursive(node: Node) -> void:
 		node.set("free_editor_textures", false)
 	for child in node.get_children():
 		_disable_free_editor_textures_recursive(child)
-
-
