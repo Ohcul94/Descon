@@ -47,12 +47,6 @@ void fragment() {
 	// Brillo y profundidad de la densidad rocosa
 	vec3 final_color = ring_base * density_profile + col_dust_sheen * (b1 * 0.35);
 
-	// Sombra del planeta sobre el cuadrante oscuro posterior del anillo
-	if (uv.x < 0.0 && abs(uv.y) < 0.28) {
-		float shadow_p = smoothstep(0.0, -0.20, uv.x);
-		final_color *= mix(1.0, 0.15, shadow_p);
-	}
-
 	// Densidad espesa y presencia sólida
 	float alpha = clamp(density_profile * gap_mask * r_fade * 0.92, 0.0, 0.95) * u_visibility;
 

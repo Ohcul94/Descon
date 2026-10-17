@@ -102,9 +102,10 @@ void fragment() {
 
 	final_col += sky_base;
 
-	// 2. EFECTOS AVANZADOS DE CIELO (3D / NEBULOSAS / AURORAS / PLANETA / METEOROS)
-	if (u_show_sky_effects > 0.01) {
-		float fx_mult = u_show_sky_effects;
+	// 2. EFECTOS AVANZADOS DE CIELO Y ESTRELLAS (Solo en el firmamento visible sobre el horizonte)
+	if (dir.y >= -0.12) {
+		if (u_show_sky_effects > 0.01) {
+			float fx_mult = u_show_sky_effects;
 
 		// --- A. NEBULOSA CÓSMICA MULTICAPA 3D (100% CONTINUA SIN COSTURAS NI CORTES) ---
 		// Evaluado directamente en espacio 3D unitario esférico para evitar el corte UV de atan2
@@ -300,6 +301,7 @@ void fragment() {
 				final_col += c_col * (c_star * u_show_stars * daylight_fade * 1.1);
 			}
 		}
+	}
 	}
 
 	ALBEDO = final_col;

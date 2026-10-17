@@ -75,6 +75,8 @@ func open_panel():
 		set_recording_state(cam.is_recording)
 		_setup_pip_preview()
 		_refresh_boss_list()
+		if cam.has_method("update_pip_rendering_state"):
+			cam.update_pip_rendering_state()
 	
 	if is_instance_valid(window_panel):
 		_ensure_window_in_bounds()
@@ -82,6 +84,12 @@ func open_panel():
 
 func close_panel():
 	visible = false
+	var cam = _get_camera_system()
+	if cam:
+		if not cam.is_recording:
+			cam._deactivate_camera()
+		elif cam.has_method("update_pip_rendering_state"):
+			cam.update_pip_rendering_state()
 
 func toggle_panel():
 	if visible:

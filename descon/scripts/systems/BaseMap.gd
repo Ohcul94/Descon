@@ -69,6 +69,8 @@ var _sky_cycle_time: float = 0.0
 var _sky_cycle_speed: float = 1.0 # 1.0 = normal (ciclo completo de 4 minutos)
 var _current_sky_weights: Vector4 = Vector4(1.0, 0.0, 0.0, 0.0)
 var celestial_planet: Node3D = null
+var _cached_sky_dir_light: DirectionalLight3D = null
+var _cached_sky_world_env: WorldEnvironment = null
 
 # correction_z dinámico: 1.0 / sin(tilt_angle) calculado desde la inclinación real de la cámara
 var correction_z: float = 1.41421356
@@ -424,21 +426,7 @@ func _create_celestial_planet():
 	planet_mesh.material_override = mat_planet
 	celestial_planet.add_child(planet_mesh)
 
-	# 2. Anillo Rocoso 3D Espeso (inclinado ~25 grados en el espacio 3D)
-	var ring_mesh = MeshInstance3D.new()
-	ring_mesh.name = "PlanetRings"
-	var quad = QuadMesh.new()
-	quad.size = Vector2(75.0, 75.0)
-	ring_mesh.mesh = quad
-	ring_mesh.rotation_degrees = Vector3(65.0, 25.0, 0.0)
-
-	var mat_ring = ShaderMaterial.new()
-	mat_ring.shader = SHADER_CELESTIAL_RINGS
-	mat_ring.render_priority = -119
-	ring_mesh.material_override = mat_ring
-	celestial_planet.add_child(ring_mesh)
-
-	# 3. Órbita de rocas 3D (5 rocas en la órbita girando suavemente en el plano del anillo)
+	# 2. Cinturón de rocas volumétrico (MultiMesh = 1 draw call, sin pérdida de FPS)
 	var rock_asset = load("res://assets/Asteroides/3D/Asteroides.glb")
 	if not rock_asset:
 		rock_asset = load("res://assets/Mapas/Mapa3/Decorativos/Individuales/Piedra_Mediana.glb")
@@ -446,17 +434,50 @@ func _create_celestial_planet():
 		var rock_orbit = Node3D.new()
 		rock_orbit.name = "RockOrbit"
 		rock_orbit.rotation_degrees = Vector3(65.0, 25.0, 0.0)
-		var num_rocks = 5
-		for i in range(num_rocks):
-			var rock = rock_asset.instantiate()
-			var a = (float(i) / float(num_rocks)) * TAU + randf_range(-0.15, 0.15)
-			var d = randf_range(18.0, 31.0)
-			rock.position = Vector3(cos(a) * d, sin(a) * d, randf_range(-0.25, 0.25))
-			var s = randf_range(0.65, 1.15)
-			rock.scale = Vector3.ONE * s
-			rock.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
-			_configure_celestial_rock_materials(rock)
-			rock_orbit.add_child(rock)
+
+		var num_rocks = 350
+		var rock_mm = MultiMeshInstance3D.new()
+		rock_mm.name = "RockMultiMesh"
+
+		var mm = MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.instance_count = num_rocks
+		mm.visible_instance_count = num_rocks
+
+		var rock_mesh = null
+		if rock_asset is PackedScene:
+			for child in rock_asset.instantiate().get_children():
+				if child is MeshInstance3D:
+					rock_mesh = child.mesh
+					break
+		elif rock_asset is Mesh:
+			rock_mesh = rock_asset
+
+		if rock_mesh:
+			mm.mesh = rock_mesh
+			var rock_mat = StandardMaterial3D.new()
+			rock_mat.albedo_color = Color(0.55, 0.42, 0.35)
+			rock_mat.disable_fog = true
+			rock_mat.render_priority = -118
+			rock_mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+			rock_mat.emission_enabled = true
+			rock_mat.emission = Color(0.24, 0.16, 0.12)
+			rock_mat.emission_energy_multiplier = 0.6
+			rock_mm.material_override = rock_mat
+
+			for i in range(num_rocks):
+				var a = randf() * TAU
+				var d = pow(randf(), 0.6) * 17.0 + 17.0
+				var s = randf_range(0.12, 0.65)
+				var pos = Vector3(cos(a) * d, sin(a) * d, randf_range(-1.8, 1.8) * (1.0 - (d - 17.0) / 34.0))
+				var rot = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
+				var t = Transform3D(Basis.from_euler(rot), pos)
+				t = t.scaled(Vector3.ONE * s)
+				mm.set_instance_transform(i, t)
+
+			rock_mm.multimesh = mm
+			rock_orbit.add_child(rock_mm)
+
 		celestial_planet.add_child(rock_orbit)
 
 	sub_viewport.add_child(celestial_planet)
@@ -586,32 +607,31 @@ func _process_sky_atmosphere_cycle(delta: float, dome: MeshInstance3D):
 	var target_fog = col_fog_night * w.x + col_fog_dawn * w.y + col_fog_day * w.z + col_fog_aurora * w.w
 	
 	if is_instance_valid(sub_viewport):
-		# 1. Luz Direccional (Sol/Estrella del sector)
-		# ¡IMPORTANTE: Solo modulamos sutilmente el color sin tocar las sombras!
-		var dir_light: DirectionalLight3D = null
-		for child in sub_viewport.find_children("*", "DirectionalLight3D", true, false):
-			if child is DirectionalLight3D:
-				dir_light = child
-				break
-		if is_instance_valid(dir_light):
-			dir_light.light_color = dir_light.light_color.lerp(target_light, delta * 0.5)
-			# NUNCA tocar shadow_enabled, shadow_bias, directional_shadow_mode, etc.
+		# 1. Luz Direccional (Sol/Estrella del sector) - Cacheados para evitar find_children en cada frame
+		if not is_instance_valid(_cached_sky_dir_light):
+			for child in sub_viewport.find_children("*", "DirectionalLight3D", true, false):
+				if child is DirectionalLight3D:
+					_cached_sky_dir_light = child
+					break
+		if is_instance_valid(_cached_sky_dir_light):
+			_cached_sky_dir_light.light_color = _cached_sky_dir_light.light_color.lerp(target_light, delta * 0.5)
 			
-		# 2. Luz Ambiental (WorldEnvironment)
-		# ¡IMPORTANTE: Mantenemos alta la energía base y no alteramos los parámetros de distancia de FOG!
-		for env_node in sub_viewport.find_children("*", "WorldEnvironment", true, false):
-			if env_node is WorldEnvironment and is_instance_valid(env_node.environment):
-				var env = env_node.environment
-				env.ambient_light_color = env.ambient_light_color.lerp(target_amb, delta * 0.5)
-				if env.ambient_light_energy < 1.3:
-					env.ambient_light_energy = 1.5
-				# Armonización de niebla con el horizonte:
-				# Si el mapa tiene niebla habilitada, armonizamos suavemente su color con el horizonte del cielo
-				# para que los bordes distantes del suelo se disuelvan de manera invisible en la bruma.
-				if env.fog_enabled:
-					env.fog_light_color = env.fog_light_color.lerp(target_fog, delta * 0.5)
-					if env.fog_light_energy < 0.95:
-						env.fog_light_energy = lerp(env.fog_light_energy, 1.0, delta * 0.5)
+		# 2. Luz Ambiental (WorldEnvironment) - Cacheados para evitar find_children en cada frame
+		if not is_instance_valid(_cached_sky_world_env):
+			for env_node in sub_viewport.find_children("*", "WorldEnvironment", true, false):
+				if env_node is WorldEnvironment and is_instance_valid(env_node.environment):
+					_cached_sky_world_env = env_node
+					break
+		if is_instance_valid(_cached_sky_world_env) and is_instance_valid(_cached_sky_world_env.environment):
+			var env = _cached_sky_world_env.environment
+			env.ambient_light_color = env.ambient_light_color.lerp(target_amb, delta * 0.5)
+			if env.ambient_light_energy < 1.3:
+				env.ambient_light_energy = 1.5
+			# Armonización de niebla con el horizonte:
+			if env.fog_enabled:
+				env.fog_light_color = env.fog_light_color.lerp(target_fog, delta * 0.5)
+				if env.fog_light_energy < 0.95:
+					env.fog_light_energy = lerp(env.fog_light_energy, 1.0, delta * 0.5)
 
 		# 3. Posicionamiento en el plano visual alejado en la escena, traslación celeste y órbita rocosa
 		if is_instance_valid(celestial_planet):
@@ -642,30 +662,37 @@ func _process_sky_atmosphere_cycle(delta: float, dome: MeshInstance3D):
 				
 				celestial_planet.global_position = target_center + Vector3(celestial_x, celestial_y, celestial_z)
 				
-				# C. ROTACIÓN SUAVE DE LA ESFERA, ANILLO Y ÓRBITA ROCOSA:
+				# C. ROTACIÓN SUAVE DE LA ESFERA Y CINTURÓN DE ROCAS:
 				var sphere_node = celestial_planet.get_node_or_null("PlanetSphere")
 				if is_instance_valid(sphere_node):
 					sphere_node.rotate_y(delta * 0.005)
 					if sphere_node is MeshInstance3D and sphere_node.material_override is ShaderMaterial:
 						(sphere_node.material_override as ShaderMaterial).set_shader_parameter("u_time", _sky_cycle_time)
-					
-				var ring_mesh = celestial_planet.get_node_or_null("PlanetRings") as MeshInstance3D
-				if is_instance_valid(ring_mesh):
-					ring_mesh.rotate_object_local(Vector3.FORWARD, delta * 0.006)
-					if ring_mesh.material_override is ShaderMaterial:
-						(ring_mesh.material_override as ShaderMaterial).set_shader_parameter("u_time", _sky_cycle_time)
-						
+
 				var rock_orbit = celestial_planet.get_node_or_null("RockOrbit") as Node3D
 				if is_instance_valid(rock_orbit):
-					# Las rocas orbitan suavemente en el plano del anillo
-					rock_orbit.rotate_object_local(Vector3.FORWARD, delta * 0.007)
-					for child in rock_orbit.get_children():
-						if child is Node3D:
-							child.rotate_x(delta * 0.012)
-							child.rotate_y(delta * 0.008)
+					var rock_mm = rock_orbit.get_node_or_null("RockMultiMesh") as MultiMeshInstance3D
+					if is_instance_valid(rock_mm) and rock_mm.multimesh:
+						var mm = rock_mm.multimesh
+						for i in range(mm.instance_count):
+							var inst = mm.get_instance_transform(i)
+							var pos = inst.origin
+							var dist = Vector2(pos.x, pos.y).length()
+							var speed = 0.012 / max(0.2, sqrt(dist))
+							var angle = delta * speed
+							var new_pos = Vector3(pos.x * cos(angle) - pos.y * sin(angle), pos.x * sin(angle) + pos.y * cos(angle), pos.z)
+							var rot_basis = inst.basis.rotated(Vector3.RIGHT, delta * 0.012).rotated(Vector3.UP, delta * 0.008)
+							mm.set_instance_transform(i, Transform3D(rot_basis, new_pos))
+
+				# D. ROTACIÓN Y WOBBLE LEVE DEL PLANETA:
+				var wobble_angle = sin(_sky_cycle_time * 0.08) * 0.03
+				var wobble_tilt = cos(_sky_cycle_time * 0.06) * 0.02
+				celestial_planet.rotation_degrees = Vector3(wobble_tilt * 57.2958, celestial_planet.rotation_degrees.y + delta * 0.003, wobble_angle * 57.2958)
 
 func setup_map():
 	_classic_cam_smoothed_y = -999.0
+	_cached_sky_dir_light = null
+	_cached_sky_world_env = null
 	_setup_dynamic_3d_map_layout()
 
 func _on_network_config_updated(_config):

@@ -163,7 +163,7 @@ func _setup_pip_system():
 	pip_viewport = SubViewport.new()
 	pip_viewport.name = "SocialPiPViewport"
 	pip_viewport.size = get_current_resolution()
-	pip_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	pip_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	pip_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
 	pip_viewport.own_world_3d = false
 	
@@ -177,7 +177,17 @@ func _setup_pip_system():
 	pip_viewport.add_child(pip_camera_3d)
 	
 	add_child(pip_viewport)
-	print("[SocialMediaCamera] Sistema PiP inicializado correctamente compartiendo World3D.")
+	update_pip_rendering_state()
+	print("[SocialMediaCamera] Sistema PiP inicializado correctamente compartiendo World3D (render bajo demanda).")
+
+func update_pip_rendering_state() -> void:
+	if not is_instance_valid(pip_viewport):
+		return
+	var ui_visible = is_instance_valid(_ui) and _ui.visible
+	var should_render = is_recording or (is_active and is_pip_mode and ui_visible)
+	var target_mode = SubViewport.UPDATE_ALWAYS if should_render else SubViewport.UPDATE_DISABLED
+	if pip_viewport.render_target_update_mode != target_mode:
+		pip_viewport.render_target_update_mode = target_mode
 
 func get_active_camera() -> Camera3D:
 	if not is_instance_valid(pip_camera_3d):
@@ -205,7 +215,10 @@ func _connect_to_ui():
 			_ui.recording_toggled.connect(_on_ui_recording_toggled)
 		if not _ui.config_changed.is_connected(_on_ui_config_changed):
 			_ui.config_changed.connect(_on_ui_config_changed)
+		if not _ui.visibility_changed.is_connected(update_pip_rendering_state):
+			_ui.visibility_changed.connect(update_pip_rendering_state)
 		_ui.set_camera_system(self)
+		update_pip_rendering_state()
 
 func _load_config():
 	var config = ConfigFile.new()
@@ -289,6 +302,7 @@ func set_pip_mode(enabled: bool):
 			_base_map.set_meta("social_camera_override", false)
 			if _original_camera_state.has("free_cam_active"):
 				_base_map.free_cam_active = _original_camera_state.get("free_cam_active", false)
+	update_pip_rendering_state()
 	_apply_mode()
 
 func _activate_camera():
@@ -306,6 +320,7 @@ func _activate_camera():
 		_player = get_tree().get_first_node_in_group("player")
 	
 	is_active = true
+	update_pip_rendering_state()
 	camera_activated.emit()
 	_apply_mode()
 	print("[SocialMediaCamera] Activated - Mode: ", get_mode_name(), " (PiP=", is_pip_mode, ")")
@@ -324,6 +339,7 @@ func _deactivate_camera():
 	if is_recording:
 		stop_recording()
 	
+	update_pip_rendering_state()
 	camera_deactivated.emit()
 	print("[SocialMediaCamera] Deactivated")
 
@@ -890,6 +906,7 @@ func start_recording():
 		_recording_manager.start_recording(int(current_platform), res, recording_fps, recording_quality, recording_path)
 	
 	is_recording = true
+	update_pip_rendering_state()
 	recording_started.emit(current_platform, res)
 	if _ui:
 		_ui.set_recording_state(true)
@@ -900,6 +917,7 @@ func stop_recording() -> String:
 	if _recording_manager:
 		file_path = _recording_manager.stop_recording()
 	is_recording = false
+	update_pip_rendering_state()
 	if _ui:
 		if _ui.has_method("set_encoding_state"):
 			_ui.set_encoding_state(true)
