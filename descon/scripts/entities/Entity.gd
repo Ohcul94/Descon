@@ -129,6 +129,8 @@ var _last_rendered_clan_tag: String = ""
 var _last_rendered_is_rage: bool = false
 var _last_rendered_pvp_status: bool = false
 var _last_rendered_party_role: String = ""
+var _execution_marker_active: bool = false
+var _execution_marker_last: bool = false
 
 @onready var name_tag = get_node_or_null("NameTag")
 var _ui_wrapper: Node2D = null
@@ -1539,7 +1541,8 @@ func _update_tags():
 		clan_tag == _last_rendered_clan_tag and
 		is_rage == _last_rendered_is_rage and
 		pvp_status == _last_rendered_pvp_status and
-		party_role == _last_rendered_party_role
+		party_role == _last_rendered_party_role and
+		_execution_marker_active == _execution_marker_last
 	):
 		# Aún así, actualizar visibilidad por si cambió el setting externamente
 		if is_instance_valid(name_tag):
@@ -1556,6 +1559,7 @@ func _update_tags():
 	_last_rendered_is_rage = is_rage
 	_last_rendered_pvp_status = pvp_status
 	_last_rendered_party_role = party_role
+	_execution_marker_last = _execution_marker_active
 
 	if not name_tag is RichTextLabel:
 		var rtl = RichTextLabel.new()
@@ -1591,8 +1595,7 @@ func _update_tags():
 			name_tag.bbcode_enabled = true
 			var n_color = "#bf00ff" if is_rage else ("#ff3333" if pvp_status else "#ffffff")
 			var txt = "[center]"
-			
-			# Ícono de Rol de Party (Línea superior arriba del nombre, solo el ícono y un poco más grande)
+
 			var role_icon_str = ""
 			if party_role != "":
 				match party_role:
@@ -1604,6 +1607,14 @@ func _update_tags():
 			if role_icon_str != "":
 				var icon_sz = roundi(name_sz * 1.5)
 				txt += "[font_size=" + str(icon_sz) + "]" + role_icon_str + "[/font_size]\n"
+
+			if _execution_marker_active:
+				var skull_sz = roundi(name_sz * 1.8)
+				txt += "[font_size=" + str(skull_sz) + "][color=#ff2222]💀[/color][/font_size]\n"
+
+			if _execution_marker_active:
+				var skull_sz = roundi(name_sz * 1.8)
+				txt += "[font_size=" + str(skull_sz) + "][color=#ff2222]💀[/color][/font_size]\n"
 			
 			# v244.110: Mostrar TAG de Flota con color según relación
 			var name_str = username
@@ -1671,11 +1682,15 @@ func _update_tags():
 				name_tag.remove_theme_font_override("font")
 				
 			if is_rage:
-				name_tag.add_theme_color_override("font_outline_color", Color(0.75, 0, 1)) # Borde Violeta
-				name_tag.add_theme_constant_override("outline_size", 10) # Borde grueso para que se vea
+				name_tag.add_theme_color_override("font_outline_color", Color(0.75, 0, 1))
+				name_tag.add_theme_constant_override("outline_size", 10)
 			else:
 				name_tag.add_theme_color_override("font_outline_color", Color.BLACK)
 				name_tag.add_theme_constant_override("outline_size", 4)
+
+func set_execution_marker(active: bool) -> void:
+	_execution_marker_active = active
+	_update_tags()
 
 func has_debuff(debuff_type: String) -> bool:
 	return debuffs.has(debuff_type)

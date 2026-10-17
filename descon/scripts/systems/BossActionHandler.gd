@@ -14,6 +14,7 @@ var active_meteors = {} # Meteoritos activos {key: {warn_3d, meteor_3d, fall_s, 
 var active_meteor_zones = {} # Zonas persistentes de meteoritos {mId: {zone_2d, elapsed}}
 var death_marks = {} # Marks de Ejecución Directa {mark_key: {enemy_id, node, target_id}}
 var active_ascensions = {} # Saltos de Ascensión Telúrica {enemy_id: {node, tw_offsets, warn_timer, beam_3d}}
+var execution_markers = {}
 
 const METEOR_ZONE_SCRIPT = preload("res://scripts/systems/MeteorZoneVisual.gd")
 const METEOR_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
@@ -453,6 +454,9 @@ func handle_death_mark_action(data: Dictionary) -> void:
 			if entry.enemy_id == enemy_id and is_instance_valid(entry.node):
 				entry.node.queue_free()
 		death_marks.erase(enemy_id)
+		for t_id in execution_markers.keys():
+			_hide_marker(t_id)
+		execution_markers.clear()
 		return
 
 	if action != "death_cast_start":
@@ -540,7 +544,6 @@ func handle_death_mark_action(data: Dictionary) -> void:
 
 		death_marks[mark_key] = { "enemy_id": enemy_id, "node": mark_root, "target_id": t_id }
 
-		# Actualizar posición del mark para seguir al jugador mientras dura el cast
 		var tracker = func():
 			if is_instance_valid(player_node) and is_instance_valid(mark_root) and is_instance_valid(em) and is_instance_valid(em.world):
 				var follow3d = Vector3.ZERO
@@ -552,6 +555,85 @@ func handle_death_mark_action(data: Dictionary) -> void:
 				mark_root.global_position = follow3d
 		mark_root.set_process(true)
 		mark_root._process = tracker
+
+		_activate_marker(t_id, enemy_id, cast_time_s)
+
+func _activate_marker(target_id: String, enemy_id: String, duration: float) -> void:
+	if not is_instance_valid(em) or not is_instance_valid(em.world):
+		return
+	var target_node: Node2D = null
+	if is_instance_valid(em.world.local_player) and str(em.world.local_player.get("entity_id")) == target_id:
+		target_node = em.world.local_player
+	elif em.remote_players.has(target_id):
+		target_node = em.remote_players[target_id]
+	if not is_instance_valid(target_node):
+		return
+
+	var attack_type = "dodgeable"
+	if em.has_method("_get_attack_type"):
+		attack_type = em._get_attack_type(enemy_id)
+
+	var expiry_time = Time.get_ticks_msec() + int(duration * 1000.0)
+
+	var existing = execution_markers.get(target_id)
+	if existing and is_instance_valid(existing.get("tween")):
+		existing.tween.kill()
+
+	var tween = null
+	if target_node.has_method("set_execution_marker"):
+		target_node.set_execution_marker(true)
+		if attack_type == "dodgeable":
+			tween = target_node.create_tween()
+			tween.tween_interval(duration)
+			tween.tween_callback(func():
+				if is_instance_valid(target_node) and target_node.has_method("set_execution_marker"):
+					target_node.set_execution_marker(false)
+				execution_markers.erase(target_id)
+			)
+
+	execution_markers[target_id] = {
+		"type": attack_type,
+		"enemy_id": enemy_id,
+		"expiry_time": expiry_time,
+		"tween": tween
+	}
+
+func _hide_marker(target_id: String) -> void:
+	if not execution_markers.has(target_id):
+		return
+	var entry = execution_markers[target_id]
+	if is_instance_valid(entry.get("tween")):
+		entry.tween.kill()
+	var target_node: Node2D = null
+	if is_instance_valid(em.world.local_player) and str(em.world.local_player.get("entity_id")) == target_id:
+		target_node = em.world.local_player
+	elif em.remote_players.has(target_id):
+		target_node = em.remote_players[target_id]
+	if is_instance_valid(target_node) and target_node.has_method("set_execution_marker"):
+		target_node.set_execution_marker(false)
+	execution_markers.erase(target_id)
+
+func _process_execution_markers() -> void:
+	if execution_markers.is_empty():
+		return
+	var current_time = Time.get_ticks_msec()
+	for target_id in execution_markers.keys():
+		var entry = execution_markers[target_id]
+		var target_node: Node2D = null
+		if is_instance_valid(em.world.local_player) and str(em.world.local_player.get("entity_id")) == target_id:
+			target_node = em.world.local_player
+		elif em.remote_players.has(target_id):
+			target_node = em.remote_players[target_id]
+
+		var target_alive = is_instance_valid(target_node) and target_node.get("current_hp") > 0
+
+		if not target_alive:
+			_hide_marker(target_id)
+			continue
+
+		if entry.type == "dodgeable" and current_time >= entry.expiry_time:
+			_hide_marker(target_id)
+			continue
 
 # ==============================================================================
 # 5. ASCENSIÓN TELÚRICA (Salto, Vuelo y Aterrizaje)
@@ -1354,3 +1436,11 @@ func _spawn_persistent_meteor_zone(data: Dictionary) -> void:
 		em.add_child(zone_2d)
 	zone_2d.setup(data, map_node)
 	active_meteor_zones[m_id] = { "zone_2d": zone_2d }
+
+func _process(_delta: float) -> void:
+	_process_execution_markers()
+
+func _clear_all_markers() -> void:
+	for target_id in execution_markers.keys():
+		_hide_marker(target_id)
+	execution_markers.clear()

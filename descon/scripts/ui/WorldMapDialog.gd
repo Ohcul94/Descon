@@ -356,7 +356,6 @@ static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect
 	var scale_factor: float = 0.02
 	var correction_z: float = 1.41421356
 	var temp_scene_to_free: Node = null
-	var host_parent: Node = null
 
 	if tree:
 		var map_node = tree.get_first_node_in_group("map")
@@ -501,7 +500,6 @@ static func get_or_create_terrain_texture(zone_id: Variant, rect_or_width: Varia
 	var scale_factor = 0.02
 	var correction_z = 1.41421356
 	var temp_scene_to_free = null
-	var host_parent = null
 	
 	if tree:
 		var map_node = tree.get_first_node_in_group("map")

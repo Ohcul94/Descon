@@ -3012,6 +3012,9 @@ func _handle_sleep_action(data: Dictionary):
 func _handle_death_mark_action(data: Dictionary):
 	if boss_action_handler: boss_action_handler.handle_death_mark_action(data)
 
+func _get_attack_type(_enemy_id: String) -> String:
+	return "dodgeable"
+
 func _handle_ascension_action(data: Dictionary):
 	if boss_action_handler: boss_action_handler.handle_ascension_action(data)
 

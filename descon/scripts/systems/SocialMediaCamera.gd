@@ -119,6 +119,15 @@ func _ready():
 		_recording_manager = load("res://scripts/systems/RecordingManager.gd").new()
 		get_tree().root.add_child(_recording_manager)
 	
+	if _recording_manager:
+		if not _recording_manager.recording_stopped.is_connected(_on_rec_manager_stopped):
+			_recording_manager.recording_stopped.connect(_on_rec_manager_stopped)
+		if not _recording_manager.recording_error.is_connected(_on_rec_manager_error):
+			_recording_manager.recording_error.connect(_on_rec_manager_error)
+		if _recording_manager.has_signal("encoding_started"):
+			if not _recording_manager.encoding_started.is_connected(_on_rec_manager_encoding_started):
+				_recording_manager.encoding_started.connect(_on_rec_manager_encoding_started)
+	
 	call_deferred("_connect_to_ui")
 	call_deferred("_setup_pip_system")
 
@@ -403,6 +412,17 @@ func _update_camera_mode(delta: float):
 			_update_landscape(delta)
 		CameraMode.CUSTOM:
 			_update_custom(delta)
+	
+	# Sincronización universal de cámara para pantalla completa cuando PiP está desactivado
+	var cam = get_active_camera()
+	if not is_pip_mode and _base_map and is_instance_valid(_camera_3d) and is_instance_valid(cam):
+		_base_map.set_meta("social_camera_override", true)
+		_camera_3d.global_position = cam.global_position
+		_camera_3d.global_transform = cam.global_transform
+		_camera_3d.fov = cam.fov
+		_camera_3d.attributes = cam.attributes
+	elif _base_map and _base_map.has_meta("social_camera_override") and _base_map.get_meta("social_camera_override"):
+		_base_map.set_meta("social_camera_override", false)
 
 func get_current_target() -> Node:
 	if is_instance_valid(_target_entity):
@@ -443,10 +463,11 @@ func get_target_3d_info(target: Node) -> Dictionary:
 	elif "global_position" in target:
 		base_pos = _get_3d_pos_from_2d(target.global_position, 0.0)
 	
-	# Determinar altura real de cabeza / ojos según la escala del modelo
+	# Determinar altura real de cabeza / cabina según el modelo
 	var is_player = target.is_in_group("player")
+	var fwd_dist = 2.4 if is_player else 2.0
 	if is_player:
-		head_height = 2.2
+		head_height = 1.6
 	else:
 		var entity_type = int(target.get("entity_type") if "entity_type" in target else 1)
 		var raw_type = str(target.get("raw_entity_type") if "raw_entity_type" in target else str(entity_type))
@@ -482,12 +503,11 @@ func get_target_3d_info(target: Node) -> Dictionary:
 				head_height = max_mesh_y * 0.88
 	
 	var corr_z = float(_base_map.correction_z) if (_base_map and "correction_z" in _base_map) else 1.4142
-	# En Descon 2D, las naves y enemigos apuntan hacia arriba (-Y en 2D, es decir rotation = angle + PI/2).
-	# Por lo tanto, el ángulo frontal hacia donde mira la proa es: visual_angle = rot_2d - (PI * 0.5)
-	var visual_angle = rot_2d - (PI * 0.5)
-	var forward = Vector3(cos(visual_angle), 0.0, sin(visual_angle) * corr_z).normalized()
+	# En Descon 2D, el ángulo rot_2d apunta hacia Vector2(cos(rot_2d), sin(rot_2d)).
+	# En el plano 3D (X, Z), el vector frontal hacia donde viaja la proa es exactamente:
+	var forward = Vector3(cos(rot_2d), 0.0, sin(rot_2d) * corr_z).normalized()
 	
-	var final_head_pos = base_pos + Vector3(0.0, max(0.5, head_height + eye_height_offset), 0.0) + forward * eye_forward_offset
+	var final_head_pos = base_pos + Vector3(0.0, max(0.5, head_height + eye_height_offset), 0.0) + forward * (fwd_dist + eye_forward_offset)
 	
 	return {
 		"base_pos": base_pos,
@@ -589,34 +609,30 @@ func _update_orbit_target(_delta: float):
 	var info = get_target_3d_info(target)
 	var target_center = info.base_pos + Vector3(0, max(0.5, info.head_height * 0.5), 0)
 	
-	# Ángulo horizontal: si es relativo, se orienta con la nave/target para mantenerse detrás al volar
-	var base_rot = 0.0
-	if orbit_relative_to_target and "rotation" in target:
-		base_rot = -(target.rotation - (PI * 0.5))
-	
-	var rad_h = base_rot + deg_to_rad(orbit_h)
-	var rad_v = deg_to_rad(orbit_v)
 	var corr_z = float(_base_map.correction_z) if (_base_map and "correction_z" in _base_map) else 1.4142
-	
+	var rad_v = deg_to_rad(orbit_v)
 	var r_horiz = orbit_distance * cos(rad_v)
 	var y_offset = (orbit_distance * sin(rad_v)) + orbit_height
-	var x_offset = r_horiz * sin(rad_h)
-	var z_offset = r_horiz * cos(rad_h) * corr_z
 	
-	var cam_dest = target_center + Vector3(x_offset, y_offset, z_offset)
+	var cam_dest: Vector3
+	if orbit_relative_to_target:
+		# Órbita relativa a la orientación del objetivo: orbit_h = 180° se sitúa exactamente detrás
+		var forward = info.forward
+		var right = Vector3(-forward.z, 0.0, forward.x).normalized()
+		var rel_angle = deg_to_rad(orbit_h - 180.0)
+		var horiz_dir = -forward * cos(rel_angle) + right * sin(rel_angle)
+		cam_dest = target_center + horiz_dir * r_horiz + Vector3(0, y_offset, 0)
+	else:
+		var rad_h = deg_to_rad(orbit_h)
+		var x_offset = r_horiz * sin(rad_h)
+		var z_offset = r_horiz * cos(rad_h) * corr_z
+		cam_dest = target_center + Vector3(x_offset, y_offset, z_offset)
+	
 	cam.global_position = cam.global_position.lerp(cam_dest, clampf(follow_smoothing * 2.5, 0.02, 1.0))
 	cam.look_at(target_center, Vector3.UP)
-	
-	# Si no estamos en PiP (pantalla completa), sincronizar la cámara principal del mapa
-	if not is_pip_mode and _base_map and is_instance_valid(_camera_3d):
-		_base_map.set_meta("social_camera_override", true)
-		_camera_3d.global_position = cam.global_position
-		_camera_3d.global_transform = cam.global_transform
-	elif _base_map and _base_map.has_meta("social_camera_override") and _base_map.get_meta("social_camera_override"):
-		_base_map.set_meta("social_camera_override", false)
 
 func _update_boss_pov(_delta: float):
-	"""Cámara en Primera Persona (POV) desde los ojos de la entidad seleccionada mirando al frente"""
+	"""Cámara en Primera Persona (POV) desde los ojos/cabina de la entidad seleccionada mirando al frente"""
 	var cam = get_active_camera()
 	if not cam: return
 	
@@ -627,19 +643,22 @@ func _update_boss_pov(_delta: float):
 	
 	cam.fov = pov_fov
 	
-	# Look target con compensación de pitch
-	var pitch_offset = Vector3(0.0, pov_pitch * 0.8, 0.0)
-	var look_target = head_pos + forward * 80.0 + pitch_offset
-	
 	# Si la cámara está lejos de la cabeza (cambio reciente de target), reubicarla inmediatamente
-	if cam.global_position.distance_to(head_pos) > 30.0:
+	if cam.global_position.distance_to(head_pos) > 20.0:
 		cam.global_position = head_pos
 	else:
-		cam.global_position = cam.global_position.lerp(head_pos, clampf(pov_smoothing * 2.5, 0.15, 1.0))
+		cam.global_position = cam.global_position.lerp(head_pos, clampf(pov_smoothing * 3.5, 0.15, 1.0))
+	
+	# Look target con compensación de pitch, proyectado desde la posición actual de la cámara
+	var pitch_offset = Vector3(0.0, pov_pitch * 0.8, 0.0)
+	var look_target = cam.global_position + forward * 80.0 + pitch_offset
 	
 	cam.look_at(look_target, Vector3.UP)
 
 func _update_panoramic(delta: float):
+	"""Cámara panorámica 360° desacoplada: gira de forma continua alrededor del centro del objetivo
+	a la velocidad configurada (panoramic_speed) respetando la altura (orbit_height), distancia (orbit_distance)
+	e inclinación vertical (orbit_v) que elija el usuario, sin verse afectada por las rotaciones de la nave."""
 	var cam = get_active_camera()
 	if not cam: return
 	cam.fov = 70.0
@@ -647,8 +666,26 @@ func _update_panoramic(delta: float):
 	if panoramic_auto_rotate:
 		_panoramic_angle += panoramic_speed * delta
 		orbit_h = fmod(_panoramic_angle, 360.0)
+		if _panoramic_angle >= 360000.0:
+			_panoramic_angle = fmod(_panoramic_angle, 360.0)
 	
-	_update_orbit_target(delta)
+	var target = get_current_target()
+	var info = get_target_3d_info(target)
+	var target_center = info.base_pos + Vector3(0, max(0.5, info.head_height * 0.5), 0)
+	
+	var corr_z = float(_base_map.correction_z) if (_base_map and "correction_z" in _base_map) else 1.4142
+	var rad_v = deg_to_rad(orbit_v)
+	var r_horiz = orbit_distance * cos(rad_v)
+	var y_offset = (orbit_distance * sin(rad_v)) + orbit_height
+	
+	# Rotación horizontal pura 360° en coordenadas de mundo (totalmente desacoplada del rumbo de la nave)
+	var rad_h = deg_to_rad(orbit_h)
+	var x_offset = r_horiz * sin(rad_h)
+	var z_offset = r_horiz * cos(rad_h) * corr_z
+	var cam_dest = target_center + Vector3(x_offset, y_offset, z_offset)
+	
+	cam.global_position = cam.global_position.lerp(cam_dest, clampf(follow_smoothing * 2.5, 0.02, 1.0))
+	cam.look_at(target_center, Vector3.UP)
 
 func _update_cinematic(delta: float):
 	"""Tomas cinematográficas continuas y fluidas de drone/cine alrededor del objetivo"""
@@ -815,8 +852,9 @@ func get_platform_name() -> String:
 func get_mode_name() -> String:
 	match current_mode:
 		CameraMode.FREE: return "Libre (WASD)"
-		CameraMode.PLAYER_VIEW: return "Vista Jugador"
-		CameraMode.BOSS_POV: return "1ª Persona Boss (POV)"
+		CameraMode.BOSS_POV:
+			var t = get_current_target()
+			return "1ª Persona Jugador (POV)" if is_instance_valid(t) and t.is_in_group("player") else "1ª Persona (POV)"
 		CameraMode.ENEMY_VIEW: return "Órbita Boss / Enemigo"
 		CameraMode.PANORAMIC: return "Panorámica 360°"
 		CameraMode.CINEMATIC: return "Cinemática"
@@ -845,7 +883,9 @@ func start_recording():
 	var target_vp = pip_viewport if (is_pip_mode and is_instance_valid(pip_viewport)) else null
 	
 	if _recording_manager:
-		if "_render_target" in _recording_manager and is_instance_valid(target_vp):
+		if _recording_manager.has_method("set_source_viewport"):
+			_recording_manager.set_source_viewport(target_vp)
+		elif "_render_target" in _recording_manager and is_instance_valid(target_vp):
 			_recording_manager.set("_render_target", target_vp)
 		_recording_manager.start_recording(int(current_platform), res, recording_fps, recording_quality, recording_path)
 	
@@ -860,10 +900,38 @@ func stop_recording() -> String:
 	if _recording_manager:
 		file_path = _recording_manager.stop_recording()
 	is_recording = false
+	if _ui:
+		if _ui.has_method("set_encoding_state"):
+			_ui.set_encoding_state(true)
+		else:
+			_ui.set_recording_state(false)
+	return file_path
+
+func _on_rec_manager_stopped(file_path: String):
 	recording_stopped.emit(file_path)
 	if _ui:
+		if _ui.has_method("set_encoding_state"):
+			_ui.set_encoding_state(false)
 		_ui.set_recording_state(false)
-	return file_path
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and hud.has_method("notify"):
+		hud.notify("✅ Video guardado: " + file_path.get_file(), "success")
+
+func _on_rec_manager_error(error_msg: String):
+	if _ui:
+		if _ui.has_method("set_encoding_state"):
+			_ui.set_encoding_state(false)
+		_ui.set_recording_state(false)
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and hud.has_method("notify"):
+		hud.notify("❌ Error de video: " + error_msg, "error")
+
+func _on_rec_manager_encoding_started(msg: String):
+	if _ui and _ui.has_method("set_encoding_state"):
+		_ui.set_encoding_state(true)
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and hud.has_method("notify"):
+		hud.notify("⏳ " + msg, "info")
 
 func open_recordings_folder():
 	if _recording_manager and _recording_manager.has_method("open_output_folder"):

@@ -690,17 +690,21 @@ func _rebuild_dynamic_settings(mode: int):
 			_dynamic_settings_box.add_child(_create_slider_setting("Inclinación Vertical", 5.0, 85.0, float(cfg.get("orbit_v", 25.0)), 1.0, "orbit_v"))
 			_dynamic_settings_box.add_child(_create_slider_setting("Suavizado Seguimiento", 0.01, 0.5, float(cfg.get("follow_smoothing", 0.12)), 0.01, "follow_smoothing"))
 		2: # BOSS_POV (1ª Persona)
-			if _dynamic_settings_title: _dynamic_settings_title.text = "⚙️ PERSONALIZAR: 1ª PERSONA (POV)"
-			_dynamic_settings_box.add_child(_create_slider_setting("Altura de Ojos (Y)", -5.0, 25.0, float(cfg.get("eye_height_offset", 0.0)), 0.5, "eye_height_offset"))
-			_dynamic_settings_box.add_child(_create_slider_setting("Avance Frontal (Z)", -2.0, 6.0, float(cfg.get("eye_forward_offset", 0.8)), 0.2, "eye_forward_offset"))
+			var is_player = is_instance_valid(cam) and is_instance_valid(cam.get_current_target()) and cam.get_current_target().is_in_group("player")
+			if _dynamic_settings_title:
+				_dynamic_settings_title.text = "⚙️ PERSONALIZAR: 1ª PERSONA (JUGADOR)" if is_player else "⚙️ PERSONALIZAR: 1ª PERSONA (POV)"
+			_dynamic_settings_box.add_child(_create_slider_setting("Altura Cabina/Ojos (Y)", -5.0, 20.0, float(cfg.get("eye_height_offset", 0.0)), 0.2, "eye_height_offset"))
+			_dynamic_settings_box.add_child(_create_slider_setting("Avance Frontal/Proa", -3.0, 8.0, float(cfg.get("eye_forward_offset", 0.0)), 0.2, "eye_forward_offset"))
 			_dynamic_settings_box.add_child(_create_slider_setting("Inclinación (Pitch)", -35.0, 35.0, float(cfg.get("pov_pitch", 0.0)), 1.0, "pov_pitch"))
 			_dynamic_settings_box.add_child(_create_slider_setting("Campo de Visión (FOV)", 50.0, 110.0, float(cfg.get("pov_fov", 75.0)), 1.0, "pov_fov"))
 			_dynamic_settings_box.add_child(_create_slider_setting("Suavizado de Giro", 0.05, 0.9, float(cfg.get("pov_smoothing", 0.35)), 0.05, "pov_smoothing"))
 		4: # PANORAMIC
 			if _dynamic_settings_title: _dynamic_settings_title.text = "⚙️ PERSONALIZAR: PANORÁMICA 360°"
-			_dynamic_settings_box.add_child(_create_slider_setting("Velocidad de Giro", 1.0, 50.0, float(cfg.get("panoramic_speed", 10.0)), 1.0, "panoramic_speed"))
-			_dynamic_settings_box.add_child(_create_slider_setting("Distancia Panorámica", 10.0, 150.0, float(cfg.get("orbit_distance", 35.0)), 1.0, "orbit_distance"))
-			_dynamic_settings_box.add_child(_create_slider_setting("Ángulo Vertical", 10.0, 80.0, float(cfg.get("orbit_v", 30.0)), 1.0, "orbit_v"))
+			_dynamic_settings_box.add_child(_create_slider_setting("Velocidad de Giro (360°)", 1.0, 60.0, float(cfg.get("panoramic_speed", 10.0)), 1.0, "panoramic_speed"))
+			_dynamic_settings_box.add_child(_create_slider_setting("Altura de Enfoque (Y)", -5.0, 40.0, float(cfg.get("orbit_height", 4.0)), 0.5, "orbit_height"))
+			_dynamic_settings_box.add_child(_create_slider_setting("Distancia Panorámica", 10.0, 160.0, float(cfg.get("orbit_distance", 35.0)), 1.0, "orbit_distance"))
+			_dynamic_settings_box.add_child(_create_slider_setting("Inclinación Vertical", 5.0, 85.0, float(cfg.get("orbit_v", 30.0)), 1.0, "orbit_v"))
+			_dynamic_settings_box.add_child(_create_slider_setting("Suavizado de Giro", 0.01, 0.5, float(cfg.get("follow_smoothing", 0.12)), 0.01, "follow_smoothing"))
 		5: # CINEMATIC
 			if _dynamic_settings_title: _dynamic_settings_title.text = "⚙️ PERSONALIZAR: CINEMÁTICA"
 			_dynamic_settings_box.add_child(_create_slider_setting("Velocidad Cinemática", 0.2, 4.0, float(cfg.get("cinematic_speed", 1.0)), 0.1, "cinematic_speed"))
@@ -856,6 +860,12 @@ func update_mode_display(mode: int):
 		7: "ENEMY_VIEW"
 	}
 	
+	var cam_sys = _get_camera_system()
+	if mode == 2 and cam_sys:
+		var cur_target = cam_sys.get_current_target()
+		if is_instance_valid(cur_target) and cur_target.is_in_group("player"):
+			mode_names[2] = "1ª PERSONA (JUGADOR)"
+	
 	if _mode_display:
 		_mode_display.text = "MODO: " + mode_names.get(mode, "DESCONOCIDO")
 	
@@ -997,12 +1007,23 @@ func notify_orbit_changed(distance: float, h: float, v: float):
 
 func set_recording_state(recording: bool):
 	if _recording_btn:
+		_recording_btn.disabled = false
 		if recording:
 			_recording_btn.text = "⏹ STOP"
 			_style_button(_recording_btn, Color(0.9, 0.1, 0.1, 1.0))
 		else:
 			_recording_btn.text = "⏺ REC"
 			_style_button(_recording_btn, Color(0.8, 0.12, 0.12, 1.0))
+
+func set_encoding_state(encoding: bool):
+	if _recording_btn:
+		if encoding:
+			_recording_btn.text = "⏳ Procesando..."
+			_recording_btn.disabled = true
+			_style_button(_recording_btn, Color(0.18, 0.22, 0.28, 1.0))
+		else:
+			_recording_btn.disabled = false
+			set_recording_state(false)
 
 func _update_button_highlight(btn: Button, active: bool):
 	if active:
