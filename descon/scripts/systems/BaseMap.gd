@@ -468,7 +468,7 @@ func _create_celestial_planet():
 			for i in range(num_rocks):
 				var a = randf() * TAU
 				var d = pow(randf(), 0.6) * 17.0 + 17.0
-				var s = randf_range(0.12, 0.65)
+				var s = randf_range(0.2, 0.85)
 				var pos = Vector3(cos(a) * d, sin(a) * d, randf_range(-1.8, 1.8) * (1.0 - (d - 17.0) / 34.0))
 				var rot = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
 				var t = Transform3D(Basis.from_euler(rot), pos)
