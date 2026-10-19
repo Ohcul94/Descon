@@ -338,7 +338,11 @@ func _reload_autoloads():
 		"GameConstants": "res://scripts/autoloads/Constants.gd",
 		"PartyManager": "res://scripts/systems/PartyManager.gd",
 		"VFXSystem": "res://scripts/systems/VFXManager.gd",
-		"SettingsManager": "res://scripts/autoloads/SettingsManager.gd"
+		"SettingsManager": "res://scripts/autoloads/SettingsManager.gd",
+		"ModelIconGenerator": "res://scripts/autoloads/ModelIconGenerator.gd",
+		"SocialCamera": "res://scripts/systems/SocialMediaCamera.gd",
+		"RecManager": "res://scripts/systems/RecordingManager.gd",
+		"RecordingOverlay": "res://scripts/RecordingOverlay.gd"
 	}
 	
 	for autoload_name in autoloads:

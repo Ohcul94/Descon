@@ -80,18 +80,31 @@ void fragment() {
 	}
 
 	// 2. Si no hay geometría sólida (cielo o hueco entre montañas):
+	// - Rayo hacia el cielo / horizonte: descarte (cielo y estrellas limpios).
+	// - Rayo hacia abajo (hueco/desfiladero): se rellena con bruma volumétrica, PERO solo si el
+	//   punto de suelo imaginario cae DENTRO del mapa. Fuera del mapa (más allá del borde del
+	//   terreno) no hay nada que cubrir: pintar ahí generaba la franja oscura sobre el cielo.
+	float gap_fade = 1.0;
 	if (!has_solid) {
-		// Si el rayo apunta hacia el cielo (por encima del horizonte de niebla):
-		// DESCARTE INMEDIATO -> El cielo y las estrellas quedan 100% nítidos y libres.
 		if (ray_dir.y >= -0.015) {
 			discard;
 		}
-		
-		// El rayo apunta hacia abajo o hacia el horizonte bajo (hueco / desfiladero entre montañas)
-		// Simular el trayecto a través de la masa de niebla hacia el fondo
+
 		float t_ground = (0.0 - cam_y) / ray_dir.y;
-		t_solid = min(t_ground, 180.0);
-		solid_world = ray_origin + ray_dir * t_solid;
+		if (t_ground <= 0.0 || t_ground > 180.0) {
+			discard;
+		}
+		vec3 ground_pt = ray_origin + ray_dir * t_ground;
+		vec2 g_uv = (ground_pt.xz - map_offset_3d) / map_size_3d;
+		float g_edge = min(min(g_uv.x, 1.0 - g_uv.x), min(g_uv.y, 1.0 - g_uv.y));
+		if (g_edge <= 0.0) {
+			discard;
+		}
+		// Fade suave hacia el horizonte y hacia el borde del mapa (sin cortes secos)
+		gap_fade = smoothstep(0.015, 0.09, -ray_dir.y) * smoothstep(0.0, 0.05, g_edge);
+
+		t_solid = t_ground;
+		solid_world = ground_pt;
 	}
 
 	// 3. Cálculo volumétrico de entrada y salida del estrato de niebla [fog_floor, fog_ceiling]
@@ -173,6 +186,7 @@ void fragment() {
 
 	float max_density = mix(fog_opacity, shroud_opacity, explored * (1.0 - current_vision));
 	optical_fog = min(optical_fog, max_density);
+	optical_fog *= gap_fade;
 
 	if (optical_fog <= 0.005) {
 		discard;

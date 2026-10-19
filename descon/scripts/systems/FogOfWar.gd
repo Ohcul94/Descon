@@ -463,7 +463,7 @@ func _process(_delta):
 		if _vision_dirty or _restoration_pending:
 			if is_instance_valid(vision_drawer):
 				vision_drawer.queue_redraw()
-			if is_instance_valid(history_drawer):
+			if is_instance_valid(history_drawer) and _restoration_pending:
 				history_drawer.queue_redraw()
 			_vision_dirty = false
 			_restoration_pending = false

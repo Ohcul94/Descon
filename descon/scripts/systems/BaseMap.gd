@@ -242,8 +242,7 @@ func _register_input_actions():
 
 func _force_altar_lighting_to_map2():
 	# v770.8: Fuerza iluminación idéntica a Mapa2 (copia exacta de MapEditor3D_2_Mapa_2.tscn)
-	# Mapa2: DirectionalLight transform 0.819/-0.519..., color 0.999/0.869/0.747 energy 1.1 bias 0.04
-	# Evento_2 venía con 0.707..., color 1/0.95/0.9 energy 2.0 bias 0.02 -> se veía más brillante/duplicado
+	# Mapa2: DirectionalLight transform 45° isométrica, color 1.0/0.95/0.9 energy 1.6 bias 0.02 normal_bias 0.5
 	if not is_instance_valid(sub_viewport):
 		return
 	var nodes = []
@@ -254,16 +253,16 @@ func _force_altar_lighting_to_map2():
 	for n in nodes:
 		if n is DirectionalLight3D:
 			var light = n as DirectionalLight3D
-			light.light_color = Color(0.99999994, 0.86934006, 0.74698997)
-			light.light_energy = 1.1
+			light.light_color = Color(1.0, 0.95, 0.9, 1.0)
+			light.light_energy = 1.6
 			light.light_specular = 0.3
 			light.shadow_enabled = true
-			light.shadow_bias = 0.04
-			light.shadow_normal_bias = 1.5
+			light.shadow_bias = 0.02
+			light.shadow_normal_bias = 0.5
 			light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 			light.directional_shadow_max_distance = 65.0
-			# Transform de Mapa2
-			light.transform = Transform3D(Vector3(0.81915206, -0.5198368, 0.24240388), Vector3(0, 0.42261827, 0.9063078), Vector3(-0.5735764, -0.74240386, 0.3461886), Vector3.ZERO)
+			# Transform estándar de Mapa2
+			light.transform = Transform3D(Vector3(0.70710677, 0, -0.70710677), Vector3(-0.5, 0.70710677, -0.5), Vector3(0.5, 0.70710677, 0.5), Vector3.ZERO)
 			print("[BaseMap] Iluminación altar forzada a Mapa2 para ", n.get_path())
 	var envs = []
 	envs.append_array(sub_viewport.find_children("*", "WorldEnvironment", true, false))
@@ -362,8 +361,9 @@ func _create_sky_dome():
 	var mesh = SphereMesh.new()
 	mesh.radius = 250.0
 	mesh.height = 500.0
-	mesh.radial_segments = 64
-	mesh.rings = 48
+	mesh.radial_segments = 48
+	mesh.rings = 32
+	mesh.flip_faces = true
 	var mat = ShaderMaterial.new()
 	mat.shader = SHADER_DOME_STARFIELD
 	mat.render_priority = -128
@@ -630,8 +630,6 @@ func _process_sky_atmosphere_cycle(delta: float, dome: MeshInstance3D):
 			# Armonización de niebla con el horizonte:
 			if env.fog_enabled:
 				env.fog_light_color = env.fog_light_color.lerp(target_fog, delta * 0.5)
-				if env.fog_light_energy < 0.95:
-					env.fog_light_energy = lerp(env.fog_light_energy, 1.0, delta * 0.5)
 
 		# 3. Posicionamiento en el plano visual alejado en la escena, traslación celeste y órbita rocosa
 		if is_instance_valid(celestial_planet):
@@ -671,18 +669,8 @@ func _process_sky_atmosphere_cycle(delta: float, dome: MeshInstance3D):
 
 				var rock_orbit = celestial_planet.get_node_or_null("RockOrbit") as Node3D
 				if is_instance_valid(rock_orbit):
-					var rock_mm = rock_orbit.get_node_or_null("RockMultiMesh") as MultiMeshInstance3D
-					if is_instance_valid(rock_mm) and rock_mm.multimesh:
-						var mm = rock_mm.multimesh
-						for i in range(mm.instance_count):
-							var inst = mm.get_instance_transform(i)
-							var pos = inst.origin
-							var dist = Vector2(pos.x, pos.y).length()
-							var speed = 0.012 / max(0.2, sqrt(dist))
-							var angle = delta * speed
-							var new_pos = Vector3(pos.x * cos(angle) - pos.y * sin(angle), pos.x * sin(angle) + pos.y * cos(angle), pos.z)
-							var rot_basis = inst.basis.rotated(Vector3.RIGHT, delta * 0.012).rotated(Vector3.UP, delta * 0.008)
-							mm.set_instance_transform(i, Transform3D(rot_basis, new_pos))
+					# Las rocas orbitan suavemente en el plano del anillo (1 draw call, 0 costo CPU, 0 re-upload a VRAM)
+					rock_orbit.rotate_object_local(Vector3.FORWARD, delta * 0.007)
 
 				# D. ROTACIÓN Y WOBBLE LEVE DEL PLANETA:
 				var wobble_angle = sin(_sky_cycle_time * 0.08) * 0.03

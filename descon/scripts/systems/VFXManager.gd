@@ -1626,7 +1626,19 @@ func _create_skills_and_auras_warmup_node() -> Node3D:
 		"res://resources/shaders/border_nebula.gdshader",
 		"res://resources/shaders/starfield.gdshader",
 		"res://resources/shaders/dome_starfield.gdshader",
-		"res://shaders/vfx/fire_explosion.gdshader"
+		"res://resources/shaders/dome_force_field.gdshader",
+		"res://resources/shaders/celestial_planet.gdshader",
+		"res://resources/shaders/celestial_rings.gdshader",
+		"res://resources/shaders/water_laguna.gdshader",
+		"res://resources/shaders/water_bubble.gdshader",
+		"res://resources/shaders/water_waterfall.gdshader",
+		"res://resources/shaders/ambient_bird.gdshader",
+		"res://resources/shaders/ambient_bird_shadow.gdshader",
+		"res://shaders/vfx/fire_explosion.gdshader",
+		"res://VFX/shaders/s_distortion_sphere_wLine.gdshader",
+		"res://VFX/shaders/s_distortion_wLine.gdshader",
+		"res://VFX/shaders/s_shield1.gdshader",
+		"res://VFX/shaders/s_shield_color_wLine.gdshader"
 	]
 
 	for s_path in shader_paths:

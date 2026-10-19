@@ -106,11 +106,8 @@ func _trigger_fish_jump() -> void:
 	tween.tween_method(jump_anim, 0.0, 1.0, duration)
 
 	# Salpicadura al zambullirse de cabeza
-	tween.tween_callback(func():
-		_create_splash(end_pos)
-		if is_instance_valid(fish):
-			fish.queue_free()
-	)
+	tween.tween_callback(_create_splash.bind(end_pos))
+	tween.tween_callback(fish.queue_free)
 
 func _create_splash(pos: Vector3) -> void:
 	var particles = CPUParticles3D.new()
@@ -144,10 +141,7 @@ func _create_splash(pos: Vector3) -> void:
 
 	add_child(particles)
 
-	get_tree().create_timer(0.6).timeout.connect(func():
-		if is_instance_valid(particles):
-			particles.queue_free()
-	)
+	particles.finished.connect(particles.queue_free)
 
 func _build_realistic_piranha_mesh() -> Node3D:
 	var fish_root = Node3D.new()

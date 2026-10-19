@@ -25,7 +25,8 @@ func _ready():
 	if AudioServer.get_bus_count() == 0:
 		AudioServer.add_bus()
 		AudioServer.set_bus_name(0, "Master")
-	# Crear buses SFX/UI si no existen (default_bus_layout ya los trae, pero por seguridad)
+	# Crear buses SFX/UI/Music si no existen (default_bus_layout ya los trae, pero por seguridad)
+	_ensure_bus("Music")
 	_ensure_bus("SFX")
 	_ensure_bus("UI")
 
