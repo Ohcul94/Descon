@@ -1,21 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
-		<title>Descon</title>
+		<title>Descon Online</title>
 		<style>
 html, body, #canvas {
 	margin: 0;
 	padding: 0;
 	border: 0;
+	width: 100%;
+	height: 100%;
 }
 
 body {
-	color: white;
-	background-color: black;
+	color: #ffffff;
+	background-color: #030712;
 	overflow: hidden;
 	touch-action: none;
+	font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
 }
 
 #canvas {
@@ -26,86 +29,165 @@ body {
 	outline: none;
 }
 
-#status, #status-splash, #status-progress {
+#status {
 	position: absolute;
 	left: 0;
-	right: 0;
-}
-
-#status, #status-splash {
 	top: 0;
+	right: 0;
 	bottom: 0;
-}
-
-#status {
-	background-color: #242424;
+	background: radial-gradient(circle at center, #0d1b3e 0%, #050c1e 50%, #02050c 100%);
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
 	visibility: hidden;
+	z-index: 100;
+}
+
+.logo-wrapper {
+	position: relative;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-bottom: 20px;
 }
 
 #status-splash {
-	max-height: 100%;
-	max-width: 100%;
-	margin: auto;
-}
-
-#status-splash.show-image--false {
-	display: none;
-}
-
-#status-splash.fullsize--true {
-	height: 100%;
-	width: 100%;
+	width: 220px;
+	height: 220px;
 	object-fit: contain;
+	filter: drop-shadow(0 0 30px rgba(0, 217, 255, 0.45));
+	animation: pulseLogo 3s ease-in-out infinite alternate;
 }
 
-#status-splash.use-filter--false {
-	image-rendering: pixelated;
+@keyframes pulseLogo {
+	0% {
+		transform: scale(0.97);
+		filter: drop-shadow(0 0 20px rgba(0, 217, 255, 0.35));
+	}
+	100% {
+		transform: scale(1.03);
+		filter: drop-shadow(0 0 45px rgba(0, 217, 255, 0.65));
+	}
 }
 
-#status-progress, #status-notice {
-	display: none;
+.title-container {
+	text-align: center;
+	margin-bottom: 25px;
 }
 
-#status-progress {
-	bottom: 10%;
-	width: 50%;
+.title-main {
+	font-size: 28px;
+	font-weight: 800;
+	letter-spacing: 6px;
+	color: #ffffff;
+	text-transform: uppercase;
+	margin: 0;
+	text-shadow: 0 0 25px rgba(0, 217, 255, 0.7);
+}
+
+.title-sub {
+	font-size: 13px;
+	letter-spacing: 3px;
+	color: #00d9ff;
+	margin-top: 6px;
+	font-weight: 500;
+	opacity: 0.9;
+	text-transform: uppercase;
+}
+
+.progress-box {
+	width: min(480px, 86vw);
 	margin: 0 auto;
+	text-align: center;
+}
+
+.progress-bar-container {
+	height: 18px;
+	background: rgba(5, 14, 30, 0.92);
+	border: 1px solid rgba(0, 217, 255, 0.55);
+	border-radius: 10px;
+	overflow: hidden;
+	padding: 2px;
+	box-shadow: 0 0 25px rgba(0, 217, 255, 0.25), inset 0 0 12px rgba(0, 0, 0, 0.85);
+}
+
+#status-progress-bar {
+	height: 100%;
+	width: 0%;
+	background: linear-gradient(90deg, #0052d4, #0084ff, #00d9ff, #6efffc);
+	background-size: 200% 100%;
+	border-radius: 7px;
+	box-shadow: 0 0 16px rgba(0, 217, 255, 0.85);
+	transition: width 0.15s ease-out;
+	animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+	0% { background-position: 100% 0; }
+	100% { background-position: -100% 0; }
+}
+
+#status-percentage {
+	font-family: 'Consolas', 'Courier New', monospace;
+	font-size: 13px;
+	color: #00d9ff;
+	margin-top: 12px;
+	font-weight: 600;
+	letter-spacing: 1px;
+	text-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+}
+
+#status-server-info {
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.45);
+	margin-top: 6px;
+	letter-spacing: 1px;
+	text-transform: uppercase;
 }
 
 #status-notice {
-	background-color: #5b3943;
-	border-radius: 0.5rem;
-	border: 1px solid #9b3943;
-	color: #e0e0e0;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	line-height: 1.3;
-	margin: 0 2rem;
-	overflow: hidden;
-	padding: 1rem;
+	display: none;
+	background: rgba(45, 10, 20, 0.9);
+	border-radius: 0.75rem;
+	border: 1px solid #ff4757;
+	color: #ffd2d6;
+	font-family: 'Segoe UI', sans-serif;
+	line-height: 1.4;
+	margin-top: 1.5rem;
+	padding: 1rem 1.5rem;
 	text-align: center;
-	z-index: 1;
+	box-shadow: 0 0 30px rgba(255, 71, 87, 0.35);
+	max-width: 520px;
 }
 		</style>
-		<link id="-gd-engine-icon" rel="icon" type="image/png" href="Descon.icon.png" />
-<link rel="apple-touch-icon" href="Descon.apple-touch-icon.png"/>
-
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="Descon.png" />
+		<link rel="apple-touch-icon" href="Descon.apple-touch-icon.png"/>
 	</head>
 	<body>
 		<canvas id="canvas">
-			Your browser does not support the canvas tag.
+			Tu navegador no soporta WebGL o Canvas.
 		</canvas>
 
 		<noscript>
-			Your browser does not support JavaScript.
+			Tu navegador debe tener JavaScript habilitado para jugar Descon.
 		</noscript>
 
 		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="Descon.png" alt="">
-			<progress id="status-progress"></progress>
+			<div class="logo-wrapper">
+				<img id="status-splash" src="Descon.png" alt="Descon">
+			</div>
+			<div class="title-container">
+				<h1 class="title-main">DESCON ONLINE</h1>
+				<div class="title-sub">Universo Virtual 2.5D</div>
+			</div>
+			<div class="progress-box">
+				<div class="progress-bar-container">
+					<div id="status-progress-bar"></div>
+				</div>
+				<div id="status-percentage">Iniciando conexión segura...</div>
+				<div id="status-server-info">Servidor: Oracle Cloud MMO | Conexión Segura</div>
+			</div>
 			<div id="status-notice"></div>
 		</div>
 
@@ -117,7 +199,8 @@ const engine = new Engine(GODOT_CONFIG);
 
 (function () {
 	const statusOverlay = document.getElementById('status');
-	const statusProgress = document.getElementById('status-progress');
+	const progressBar = document.getElementById('status-progress-bar');
+	const percentageLabel = document.getElementById('status-percentage');
 	const statusNotice = document.getElementById('status-notice');
 
 	let initializing = true;
@@ -128,12 +211,15 @@ const engine = new Engine(GODOT_CONFIG);
 			return;
 		}
 		if (mode === 'hidden') {
-			statusOverlay.remove();
+			statusOverlay.style.opacity = '0';
+			statusOverlay.style.transition = 'opacity 0.6s ease';
+			setTimeout(() => {
+				statusOverlay.remove();
+			}, 600);
 			initializing = false;
 			return;
 		}
 		statusOverlay.style.visibility = 'visible';
-		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
 		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
 		statusMode = mode;
 	}
@@ -156,7 +242,7 @@ const engine = new Engine(GODOT_CONFIG);
 		} else if (typeof err === 'string') {
 			setStatusNotice(err);
 		} else {
-			setStatusNotice('An unknown error occurred.');
+			setStatusNotice('Ocurrió un error inesperado al iniciar.');
 		}
 		setStatusMode('notice');
 		initializing = false;
@@ -167,46 +253,21 @@ const engine = new Engine(GODOT_CONFIG);
 	}).filter((feat) => GODOT_THREADS_ENABLED || !feat.includes('Secure Context'));
 
 	if (missing.length !== 0) {
-		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
-			let serviceWorkerRegistrationPromise;
-			try {
-				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
-			} catch (err) {
-				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
-			}
-			// There's a chance that installing the service worker would fix the issue
-			Promise.race([
-				serviceWorkerRegistrationPromise.then((registration) => {
-					if (registration != null) {
-						return Promise.reject(new Error('Service worker already exists.'));
-					}
-					return registration;
-				}).then(() => engine.installServiceWorker()),
-				// For some reason, `getRegistration()` can stall
-				new Promise((resolve) => {
-					setTimeout(() => resolve(), 2000);
-				}),
-			]).then(() => {
-				// Reload if there was no error.
-				window.location.reload();
-			}).catch((err) => {
-				console.error('Error while registering service worker:', err);
-			});
-		} else {
-			// Display the message as usual
-			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
-			displayFailureNotice(missingMsg + missing.join('\n'));
-		}
+		const missingMsg = 'Aviso\nFaltan las siguientes características del navegador:\n';
+		displayFailureNotice(missingMsg + missing.join('\n'));
 	} else {
 		setStatusMode('progress');
 		engine.startGame({
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
+					const pct = Math.min(100, Math.round((current / total) * 100));
+					const curMB = (current / (1024 * 1024)).toFixed(1);
+					const totMB = (total / (1024 * 1024)).toFixed(1);
+					if (progressBar) progressBar.style.width = pct + '%';
+					if (percentageLabel) percentageLabel.innerText = 'Cargando recursos... ' + pct + '% (' + curMB + ' MB / ' + totMB + ' MB)';
 				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
+					if (progressBar) progressBar.style.width = '100%';
+					if (percentageLabel) percentageLabel.innerText = 'Iniciando motor gráfico...';
 				}
 			},
 		}).then(() => {
@@ -217,4 +278,3 @@ const engine = new Engine(GODOT_CONFIG);
 		</script>
 	</body>
 </html>
-

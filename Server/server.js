@@ -289,8 +289,20 @@ app.use((req, res, next) => {
     next();
 });
 
-// Servir archivos estáticos desde la carpeta 'public'
-app.use(express.static(path.join(__dirname, 'public')));
+// Servir archivos estáticos desde la carpeta 'public' con caché persistente inteligente
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: '7d',
+    etag: true,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+            // El HTML siempre se revalida para detectar parches o actualizaciones al instante
+            res.setHeader('Cache-Control', 'no-cache');
+        } else {
+            // Los archivos pesados (.pck, .wasm, .png) quedan guardados en disco del cliente
+            res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+        }
+    }
+}));
 // Assets del juego: permitir embeber desde AdminDash/file:// y el juego (COEP)
 app.use('/assets', (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
