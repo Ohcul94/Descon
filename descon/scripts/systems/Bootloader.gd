@@ -54,6 +54,25 @@ func _ready():
 	if os_name == "Android":
 		platform_key = "android"
 		target_ip = "138.2.241.76" # Celular siempre apunta a Oracle Cloud
+	elif os_name == "Web":
+		platform_key = "web"
+		# En Web el juego se entrega ya actualizado directamente desde el servidor web.
+		# Resolvemos dinámicamente el host de conexión del socket o apuntamos a Oracle Cloud.
+		if OS.has_feature("web"):
+			var web_host = JavaScriptBridge.eval("window.location.hostname")
+			if web_host != null and str(web_host) != "" and str(web_host) != "null":
+				target_ip = str(web_host)
+			else:
+				target_ip = "138.2.241.76"
+		else:
+			target_ip = "138.2.241.76"
+		print("[Bootloader] Ejecutando en Web. Conectando a: ", target_ip)
+		status_lbl.text = "Iniciando Descon Web..."
+		await get_tree().process_frame
+		_setup_background_cinematic()
+		await get_tree().create_timer(0.3).timeout
+		_finish_bootloader_and_start()
+		return
 	else:
 		platform_key = "windows"
 		# PC standalone: si estamos en editor o --local apunta a local, sino a producción

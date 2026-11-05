@@ -112,6 +112,7 @@ ui_battlepass={
 [physics]
 
 3d/physics_engine="Jolt Physics"
+3d/physics_engine.web="DEFAULT"
 
 [plugins]
 

@@ -450,8 +450,7 @@ func apply_fps_limit(limit: int):
 func apply_window_mode(mode: int):
 	window_mode = mode
 	var os = OS.get_name()
-	if os == "Android" or os == "iOS":
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	if os == "Android" or os == "iOS" or os == "Web":
 		return
 
 	match mode:
@@ -473,7 +472,7 @@ func apply_window_mode(mode: int):
 func apply_resolution(res_str: String):
 	screen_resolution = res_str
 	var os = OS.get_name()
-	if os == "Android" or os == "iOS":
+	if os == "Android" or os == "iOS" or os == "Web":
 		return
 	
 	var screen_res = DisplayServer.screen_get_size()
