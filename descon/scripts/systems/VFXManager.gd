@@ -430,10 +430,6 @@ func _create_projectile(parent: Node3D, from_pos: Vector3, to_pos: Vector3, colo
 	, 0.0, 1.0, 0.0)
 
 func _on_login_done(_data = null):
-	# Si ya se limpió, salimos
-	if _loading_refs.get("viewport_canvas") == null and _loading_refs.get("viewport_display") == null:
-		return
-
 	# Desconectar por seguridad si estaban conectadas
 	if NetworkManager:
 		if NetworkManager.auth_success.is_connected(_on_login_done):
@@ -625,14 +621,12 @@ func reset_for_new_session():
 	call_deferred("_run_shader_warmup")
 
 func _run_shader_warmup():
-	# Ocultar el entorno de juego real al inicio
-	_set_world_environment_visible(false)
-
 	var login_ui = get_tree().root.find_child("LoginUI", true, false)
 
 	# v1.1 MODO WEB: Omitir warmup masivo de 40+ escenas 3D y cinemática pesada para evitar congelar el navegador
 	if OS.get_name() == "Web":
 		print("[VFXManager] Modo Web: activando LoginUI inmediatamente con maxima fluidez.")
+		_set_world_environment_visible(true)
 		if login_ui and is_instance_valid(login_ui):
 			login_ui.visible = true
 			login_ui.modulate.a = 1.0
@@ -642,6 +636,9 @@ func _run_shader_warmup():
 			if NetworkManager.has_signal("login_success") and not NetworkManager.login_success.is_connected(_on_login_done):
 				NetworkManager.login_success.connect(_on_login_done)
 		return
+
+	# Ocultar el entorno de juego real al inicio (Solo PC/Android)
+	_set_world_environment_visible(false)
 
 	if login_ui:
 		login_ui.visible = false
