@@ -69,8 +69,6 @@ func _ready():
 		print("[Bootloader] Ejecutando en Web. Conectando a: ", target_ip)
 		status_lbl.text = "Iniciando Descon Web..."
 		await get_tree().process_frame
-		_setup_background_cinematic()
-		await get_tree().create_timer(0.3).timeout
 		_finish_bootloader_and_start()
 		return
 	else:

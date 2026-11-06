@@ -546,6 +546,8 @@ func _set_world_environment_visible(value: bool):
 				e_uiw.visible = value
 
 func _setup_cinematic_3d():
+	if OS.get_name() == "Web":
+		return
 	# Si ya existe, no creamos de nuevo
 	if _loading_refs.has("viewport_canvas") and is_instance_valid(_loading_refs["viewport_canvas"]):
 		return
@@ -627,6 +629,20 @@ func _run_shader_warmup():
 	_set_world_environment_visible(false)
 
 	var login_ui = get_tree().root.find_child("LoginUI", true, false)
+
+	# v1.1 MODO WEB: Omitir warmup masivo de 40+ escenas 3D y cinemática pesada para evitar congelar el navegador
+	if OS.get_name() == "Web":
+		print("[VFXManager] Modo Web: activando LoginUI inmediatamente con maxima fluidez.")
+		if login_ui and is_instance_valid(login_ui):
+			login_ui.visible = true
+			login_ui.modulate.a = 1.0
+		if NetworkManager:
+			if not NetworkManager.auth_success.is_connected(_on_login_done):
+				NetworkManager.auth_success.connect(_on_login_done)
+			if NetworkManager.has_signal("login_success") and not NetworkManager.login_success.is_connected(_on_login_done):
+				NetworkManager.login_success.connect(_on_login_done)
+		return
+
 	if login_ui:
 		login_ui.visible = false
 
