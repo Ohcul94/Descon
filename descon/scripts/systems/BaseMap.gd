@@ -976,12 +976,6 @@ func _update_perimeter_collisions_2d(map_w: float, map_h: float):
 func _fix_scene_floor_to_black(root: Node):
 	if not is_instance_valid(root):
 		return
-		
-	# Si existiera algún WebTerrainMesh previo, aseguramos retirarlo
-	var existing_web_mesh = root.get_node_or_null("WebTerrainMesh")
-	if is_instance_valid(existing_web_mesh):
-		existing_web_mesh.queue_free()
-
 	var stack: Array = [root]
 	while stack.size() > 0:
 		var n = stack.pop_back() as Node
@@ -995,9 +989,6 @@ func _fix_scene_floor_to_black(root: Node):
 					var alb_tex: Texture2D = null
 					var nrm_tex: Texture2D = null
 					var z_id = str(zone_id)
-					if "." in z_id and z_id.is_valid_float():
-						var z_f = float(z_id)
-						if z_f == int(z_f): z_id = str(int(z_f))
 					if z_id == "1":
 						if ResourceLoader.exists("res://assets/Pared Corrompida_Pared+Corrompida_basecolor.jpg"):
 							alb_tex = load("res://assets/Pared Corrompida_Pared+Corrompida_basecolor.jpg")
@@ -3646,22 +3637,7 @@ func _setup_terrain_2d_colliders():
 			print("[BaseMap] %d colisionadores 2D cargados instantáneamente desde TerrainColliders pre-horneado." % polys.size())
 			return
 			
-	# 1.1 Caso B: Archivo pre-horneado externo (para Web y rendimiento instantáneo en alturas y depresiones)
-	var z_id = str(zone_id)
-	if "." in z_id and z_id.is_valid_float():
-		var z_f = float(z_id)
-		if z_f == int(z_f): z_id = str(int(z_f))
-	var baked_colliders_path = "res://assets/Mapas/Mapa" + z_id + "/Terreno/baked_terrain_colliders.res"
-	if ResourceLoader.exists(baked_colliders_path):
-		var res = load(baked_colliders_path)
-		if res and res.has_meta("terrain_polygons"):
-			var polys = res.get_meta("terrain_polygons")
-			if polys is Array and polys.size() > 0:
-				TerrainCollisionBaker2D.spawn_2d_colliders(self, polys, "MapWall_Terrain")
-				print("[BaseMap] %d colisionadores 2D (alturas y depresiones) cargados desde archivo pre-horneado: %s" % [polys.size(), baked_colliders_path])
-				return
-
-	# 2. Caso C: La escena tiene Terrain3D pero no ha sido pre-horneada. Hornear dinámicamente al cargar.
+	# 2. Caso B: La escena tiene Terrain3D pero no ha sido pre-horneada. Hornear dinámicamente al cargar.
 	if is_instance_valid(terrain_node):
 		print("[BaseMap] Terrain3D detectado sin pre-horneado. Generando colisiones 2D automáticas...")
 		var polys = TerrainCollisionBaker2D.generate_terrain_polygons(
