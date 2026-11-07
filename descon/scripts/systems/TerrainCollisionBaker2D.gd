@@ -21,7 +21,8 @@ static func generate_terrain_polygons(
 	height_threshold: float = 0.8,
 	grid_step_3d: float = 1.0,
 	min_polygon_area: float = 400.0,
-	simplification_epsilon: float = 2.0
+	simplification_epsilon: float = 2.0,
+	depression_threshold: float = -999.0
 ) -> Array:
 	var result: Array = []
 	if not is_instance_valid(terrain_node):
@@ -60,9 +61,10 @@ static func generate_terrain_polygons(
 			var pos_3d = Vector3(pos_x, 0.0, pos_z)
 			
 			var h = get_height_at_3d_pos(terrain_node, pos_3d)
-			if not is_nan(h) and not is_inf(h) and h >= height_threshold:
-				bitmap.set_bit(gx, gz, true)
-				blocked_cells += 1
+			if not is_nan(h) and not is_inf(h):
+				if h >= height_threshold or (depression_threshold > -900.0 and h <= depression_threshold):
+					bitmap.set_bit(gx, gz, true)
+					blocked_cells += 1
 				
 	var sample_duration = Time.get_ticks_msec() - start_time
 	print("[TerrainCollisionBaker2D] Muestreo completado en %d ms. Celdas bloqueadas: %d / %d" % [sample_duration, blocked_cells, grid_w * grid_h])

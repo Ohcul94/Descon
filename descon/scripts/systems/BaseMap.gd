@@ -977,81 +977,10 @@ func _fix_scene_floor_to_black(root: Node):
 	if not is_instance_valid(root):
 		return
 		
-	# v1002.0: Soporte Web con relieve 3D real y gradiente topografico ultra liviano (sin texturas pesadas)
-	if OS.get_name() == "Web":
-		var z_id = str(zone_id)
-		if "." in z_id and z_id.is_valid_float():
-			var z_f = float(z_id)
-			if z_f == int(z_f): z_id = str(int(z_f))
-			
-		var baked_mesh_path = "res://assets/Mapas/Mapa" + z_id + "/Terreno/baked_terrain_mesh.res"
-		var has_baked_mesh = ResourceLoader.exists(baked_mesh_path)
-		
-		if has_baked_mesh:
-			var m_res = load(baked_mesh_path)
-			if m_res and m_res is ArrayMesh:
-				var web_terrain = root.get_node_or_null("WebTerrainMesh")
-				if not is_instance_valid(web_terrain):
-					web_terrain = MeshInstance3D.new()
-					web_terrain.name = "WebTerrainMesh"
-					root.add_child(web_terrain)
-				
-				web_terrain.mesh = m_res
-				web_terrain.scale = Vector3(1.0, 0.35, 1.0)
-				web_terrain.visible = true
-				
-				var mat = ShaderMaterial.new()
-				var shader = Shader.new()
-				shader.code = """
-shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
-
-uniform vec4 low_color : source_color;
-uniform vec4 mid_color : source_color;
-uniform vec4 high_color : source_color;
-uniform float min_height = -5.0;
-uniform float mid_height = 0.0;
-uniform float max_height = 20.0;
-uniform float roughness : hint_range(0.0, 1.0) = 0.88;
-
-varying float v_y;
-
-void vertex() {
-	v_y = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y;
-}
-
-void fragment() {
-	vec3 col;
-	if (v_y < mid_height) {
-		float t = clamp((v_y - min_height) / max(mid_height - min_height, 0.001), 0.0, 1.0);
-		col = mix(low_color.rgb, mid_color.rgb, t);
-	} else {
-		float t = clamp((v_y - mid_height) / max(max_height - mid_height, 0.001), 0.0, 1.0);
-		col = mix(mid_color.rgb, high_color.rgb, t);
-	}
-	ALBEDO = col;
-	ROUGHNESS = roughness;
-	METALLIC = 0.05;
-}
-"""
-				mat.shader = shader
-				if z_id == "3":
-					mat.set_shader_parameter("low_color", Color(0.18, 0.22, 0.24, 1.0))
-					mat.set_shader_parameter("mid_color", Color(0.42, 0.45, 0.40, 1.0))
-					mat.set_shader_parameter("high_color", Color(0.65, 0.67, 0.60, 1.0))
-					mat.set_shader_parameter("min_height", -18.0)
-					mat.set_shader_parameter("mid_height", 0.0)
-					mat.set_shader_parameter("max_height", 20.0)
-				else:
-					mat.set_shader_parameter("low_color", Color(0.24, 0.20, 0.16, 1.0))
-					mat.set_shader_parameter("mid_color", Color(0.50, 0.44, 0.35, 1.0))
-					mat.set_shader_parameter("high_color", Color(0.70, 0.62, 0.50, 1.0))
-					mat.set_shader_parameter("min_height", -4.0)
-					mat.set_shader_parameter("mid_height", 0.0)
-					mat.set_shader_parameter("max_height", 20.0)
-				
-				web_terrain.material_override = mat
-				print("[BaseMap] Web: WebTerrainMesh 3D instanciado con relieve y gradiente topografico (zona ", z_id, ").")
+	# Si existiera algún WebTerrainMesh previo, aseguramos retirarlo
+	var existing_web_mesh = root.get_node_or_null("WebTerrainMesh")
+	if is_instance_valid(existing_web_mesh):
+		existing_web_mesh.queue_free()
 
 	var stack: Array = [root]
 	while stack.size() > 0:
@@ -1061,47 +990,53 @@ void fragment() {
 			# GridVisual y GroundPlane son los que traen el azul (0.05,0.08,0.15) y la malla subdividida
 			if m.name == "GridVisual" or m.name == "GroundPlane" or m.name.begins_with("Grid"):
 				if OS.get_name() == "Web":
+					m.visible = true
+					var ground_mat = StandardMaterial3D.new()
+					var alb_tex: Texture2D = null
+					var nrm_tex: Texture2D = null
 					var z_id = str(zone_id)
 					if "." in z_id and z_id.is_valid_float():
 						var z_f = float(z_id)
 						if z_f == int(z_f): z_id = str(int(z_f))
-					var baked_mesh_path = "res://assets/Mapas/Mapa" + z_id + "/Terreno/baked_terrain_mesh.res"
-					if ResourceLoader.exists(baked_mesh_path):
-						m.visible = true
-						var black_mat = StandardMaterial3D.new()
-						black_mat.albedo_color = Color(0.02, 0.02, 0.03, 1.0)
-						black_mat.roughness = 1.0
-						m.material_override = black_mat
-						if m.mesh is PlaneMesh:
-							m.mesh.subdivide_width = 1
-							m.mesh.subdivide_depth = 1
+					if z_id == "1":
+						if ResourceLoader.exists("res://assets/Pared Corrompida_Pared+Corrompida_basecolor.jpg"):
+							alb_tex = load("res://assets/Pared Corrompida_Pared+Corrompida_basecolor.jpg")
+						if ResourceLoader.exists("res://assets/Pared Corrompida_Pared+Corrompida_normal.jpg"):
+							nrm_tex = load("res://assets/Pared Corrompida_Pared+Corrompida_normal.jpg")
+						ground_mat.uv1_scale = Vector3(120, 120, 1)
+					elif z_id == "2":
+						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png"):
+							alb_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png")
+						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png"):
+							nrm_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png")
+						ground_mat.uv1_scale = Vector3(150, 150, 1)
+					elif z_id == "3":
+						if ResourceLoader.exists("res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/Rocas de Arena Costeras.png"):
+							alb_tex = load("res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/Rocas de Arena Costeras.png")
+						if ResourceLoader.exists("res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/packed_normal_roughness.png"):
+							nrm_tex = load("res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/packed_normal_roughness.png")
+						ground_mat.uv1_scale = Vector3(150, 150, 1)
 					else:
-						m.visible = true
-						var ground_mat = StandardMaterial3D.new()
-						var alb_tex: Texture2D = null
-						var nrm_tex: Texture2D = null
-						if z_id == "1":
-							if ResourceLoader.exists("res://assets/Pared Corrompida_Pared+Corrompida_basecolor.jpg"):
-								alb_tex = load("res://assets/Pared Corrompida_Pared+Corrompida_basecolor.jpg")
-							if ResourceLoader.exists("res://assets/Pared Corrompida_Pared+Corrompida_normal.jpg"):
-								nrm_tex = load("res://assets/Pared Corrompida_Pared+Corrompida_normal.jpg")
-							ground_mat.uv1_scale = Vector3(120, 120, 1)
-						else:
-							ground_mat.albedo_color = Color(0.2, 0.22, 0.25, 1.0)
-						if alb_tex:
-							ground_mat.albedo_texture = alb_tex
-							ground_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-						if nrm_tex:
-							ground_mat.normal_enabled = true
-							ground_mat.normal_texture = nrm_tex
-						ground_mat.roughness = 0.88
-						ground_mat.metallic = 0.08
-						ground_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-						m.material_override = ground_mat
-						if m.mesh is PlaneMesh:
-							m.mesh.subdivide_width = 1
-							m.mesh.subdivide_depth = 1
-					print("[BaseMap] Web: GridVisual/GroundPlane configurado (zona ", z_id, "): ", m.get_path())
+						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png"):
+							alb_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png")
+						ground_mat.uv1_scale = Vector3(150, 150, 1)
+					
+					if alb_tex:
+						ground_mat.albedo_texture = alb_tex
+						ground_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+					else:
+						ground_mat.albedo_color = Color(0.2, 0.22, 0.25, 1.0)
+					if nrm_tex:
+						ground_mat.normal_enabled = true
+						ground_mat.normal_texture = nrm_tex
+					ground_mat.roughness = 0.88
+					ground_mat.metallic = 0.08
+					ground_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					m.material_override = ground_mat
+					if m.mesh is PlaneMesh:
+						m.mesh.subdivide_width = 1
+						m.mesh.subdivide_depth = 1
+					print("[BaseMap] Web: GridVisual/GroundPlane configurado con textura de terreno (zona ", z_id, "): ", m.get_path())
 				else:
 					var black = StandardMaterial3D.new()
 					black.albedo_color = Color(0.0, 0.0, 0.0, 1.0)
@@ -3711,7 +3646,22 @@ func _setup_terrain_2d_colliders():
 			print("[BaseMap] %d colisionadores 2D cargados instantáneamente desde TerrainColliders pre-horneado." % polys.size())
 			return
 			
-	# 2. Caso B: La escena tiene Terrain3D pero no ha sido pre-horneada. Hornear dinámicamente al cargar.
+	# 1.1 Caso B: Archivo pre-horneado externo (para Web y rendimiento instantáneo en alturas y depresiones)
+	var z_id = str(zone_id)
+	if "." in z_id and z_id.is_valid_float():
+		var z_f = float(z_id)
+		if z_f == int(z_f): z_id = str(int(z_f))
+	var baked_colliders_path = "res://assets/Mapas/Mapa" + z_id + "/Terreno/baked_terrain_colliders.res"
+	if ResourceLoader.exists(baked_colliders_path):
+		var res = load(baked_colliders_path)
+		if res and res.has_meta("terrain_polygons"):
+			var polys = res.get_meta("terrain_polygons")
+			if polys is Array and polys.size() > 0:
+				TerrainCollisionBaker2D.spawn_2d_colliders(self, polys, "MapWall_Terrain")
+				print("[BaseMap] %d colisionadores 2D (alturas y depresiones) cargados desde archivo pre-horneado: %s" % [polys.size(), baked_colliders_path])
+				return
+
+	# 2. Caso C: La escena tiene Terrain3D pero no ha sido pre-horneada. Hornear dinámicamente al cargar.
 	if is_instance_valid(terrain_node):
 		print("[BaseMap] Terrain3D detectado sin pre-horneado. Generando colisiones 2D automáticas...")
 		var polys = TerrainCollisionBaker2D.generate_terrain_polygons(
