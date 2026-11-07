@@ -620,10 +620,68 @@ func reset_for_new_session():
 	_loading_refs.clear()
 	call_deferred("_run_shader_warmup")
 
+func _run_web_background_warmup() -> void:
+	print("[VFXManager Web] Iniciando precarga de inventario y warmup progresivo de shaders...")
+	# 1. Precarga completa de iconos, slots e inventario
+	InventoryCache.preload_all()
+	await get_tree().process_frame
+	
+	# 2. Shaders críticos de combate: compilar 1 por frame en GPU fuera de pantalla
+	var core_scenes = [
+		"res://VFX/scenes/VFX_Laser_projectile.tscn",
+		"res://VFX/scenes/VFX_Laser_Hit.tscn",
+		"res://VFX/scenes/VFX_Laser_Anticipation.tscn",
+		"res://VFX/scenes/VFX_Hit_cyber.tscn",
+		"res://VFX/scenes/VFX_Shield_hex.tscn",
+		"res://VFX/scenes/VFX_Shield_green.tscn",
+		"res://VFX/scenes/VFX_Shield_blue_basic.tscn",
+		"res://VFX/scenes/VFX_Fire_ball_type_B.tscn",
+		"res://VFX/scenes/VFX_Fire_ball_standar.tscn",
+		"res://VFX/scenes/VFX_Hit_fire_1.tscn",
+		"res://VFX/scenes/VFX_Hit_fire_2.tscn",
+		"res://VFX/scenes/VFX_Hit_blue_wild.tscn",
+		"res://VFX/scenes/VFX_Siphon_projectile.tscn",
+		"res://VFX/scenes/VFX_Siphon_Hit.tscn",
+		"res://VFX/scenes/VFX_Hadouken.tscn",
+		"res://VFX/scenes/VFX_Cube_projectile.tscn",
+		"res://scenes/entities/Enemy.tscn"
+	]
+	
+	var tn = Node3D.new()
+	tn.name = "WebWarmupRoot"
+	get_tree().root.add_child(tn)
+	var tc = Camera3D.new()
+	tc.position = Vector3(999.0, 999.0, 1004.0)
+	tn.add_child(tc)
+	tc.look_at_from_position(tc.position, Vector3(999.0, 999.0, 999.0))
+	
+	for path in core_scenes:
+		if ResourceLoader.exists(path):
+			var sc = load(path)
+			if sc:
+				_warmup_cache[path] = sc
+				var inst = sc.instantiate()
+				if inst is Node3D:
+					tn.add_child(inst)
+					inst.position = Vector3(999.0, 999.0, 999.0)
+					_cache_materials_recursive(inst)
+					await get_tree().process_frame
+					inst.queue_free()
+				elif inst is Node2D:
+					get_tree().root.add_child(inst)
+					inst.position = Vector2(-9999.0, -9999.0)
+					await get_tree().process_frame
+					inst.queue_free()
+		await get_tree().process_frame
+		
+	if is_instance_valid(tn):
+		tn.queue_free()
+	print("[VFXManager Web] Warmup progresivo completado exitosamente.")
+
 func _run_shader_warmup():
 	var login_ui = get_tree().root.find_child("LoginUI", true, false)
 
-	# v1.1 MODO WEB: Omitir warmup masivo de 40+ escenas 3D y cinemática pesada para evitar congelar el navegador
+	# v1.1 MODO WEB: Activar LoginUI inmediatamente y precargar inventario y shaders en segundo plano progresivo
 	if OS.get_name() == "Web":
 		print("[VFXManager] Modo Web: activando LoginUI inmediatamente con maxima fluidez.")
 		_set_world_environment_visible(true)
@@ -635,6 +693,7 @@ func _run_shader_warmup():
 				NetworkManager.auth_success.connect(_on_login_done)
 			if NetworkManager.has_signal("login_success") and not NetworkManager.login_success.is_connected(_on_login_done):
 				NetworkManager.login_success.connect(_on_login_done)
+		_run_web_background_warmup()
 		return
 
 	# Ocultar el entorno de juego real al inicio (Solo PC/Android)

@@ -1001,6 +1001,12 @@ func _fix_scene_floor_to_black(root: Node):
 						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png"):
 							nrm_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png")
 						ground_mat.uv1_scale = Vector3(150, 150, 1)
+					elif z_id == "3":
+						if ResourceLoader.exists("res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/Rocas de Arena Costeras.png"):
+							alb_tex = load("res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/Rocas de Arena Costeras.png")
+						if ResourceLoader.exists("res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/packed_normal_roughness.png"):
+							nrm_tex = load("res://assets/Mapas/Mapa3/Terreno/Rocas de arena costeras/Normal + Albedo/packed_normal_roughness.png")
+						ground_mat.uv1_scale = Vector3(150, 150, 1)
 					else:
 						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png"):
 							alb_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png")
