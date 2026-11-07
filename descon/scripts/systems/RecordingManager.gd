@@ -56,6 +56,9 @@ var _render_target: Viewport:
 		_source_viewport = val
 
 func _ready():
+	if OS.get_name() == "Web":
+		set_process(false)
+		return
 	_ensure_output_dir()
 	_viewport = get_viewport()
 	set_process(true)

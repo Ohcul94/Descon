@@ -983,18 +983,80 @@ func _fix_scene_floor_to_black(root: Node):
 			var m = n as MeshInstance3D
 			# GridVisual y GroundPlane son los que traen el azul (0.05,0.08,0.15) y la malla subdividida
 			if m.name == "GridVisual" or m.name == "GroundPlane" or m.name.begins_with("Grid"):
-				var black = StandardMaterial3D.new()
-				black.albedo_color = Color(0.0, 0.0, 0.0, 1.0)
-				black.roughness = 1.0
-				black.metallic = 0.0
-				black.emission_enabled = false
-				black.cull_mode = BaseMaterial3D.CULL_DISABLED
-				m.material_override = black
-				# Quitar subdivisión aparente: si es PlaneMesh, reducir a 1x1 para que sea perfectamente plano
-				if m.mesh is PlaneMesh:
-					m.mesh.subdivide_width = 1
-					m.mesh.subdivide_depth = 1
-				print("[BaseMap] GridVisual/GroundPlane forzado a negro plano: ", m.get_path())
+				if OS.get_name() == "Web":
+					m.visible = true
+					var ground_mat = StandardMaterial3D.new()
+					var alb_tex: Texture2D = null
+					var nrm_tex: Texture2D = null
+					var z_id = str(zone_id)
+					if z_id == "1":
+						if ResourceLoader.exists("res://assets/Pared Corrompida_Pared+Corrompida_basecolor.jpg"):
+							alb_tex = load("res://assets/Pared Corrompida_Pared+Corrompida_basecolor.jpg")
+						if ResourceLoader.exists("res://assets/Pared Corrompida_Pared+Corrompida_normal.jpg"):
+							nrm_tex = load("res://assets/Pared Corrompida_Pared+Corrompida_normal.jpg")
+						ground_mat.uv1_scale = Vector3(120, 120, 1)
+					elif z_id == "2":
+						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png"):
+							alb_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png")
+						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png"):
+							nrm_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png")
+						ground_mat.uv1_scale = Vector3(150, 150, 1)
+						
+						# Instanciar malla 3D horneada de montañas/relieve para Web
+						var baked_mesh_path = "res://assets/Mapas/Mapa2/Terreno/baked_terrain_mesh.res"
+						if ResourceLoader.exists(baked_mesh_path) and root.get_node_or_null("WebBakedTerrain") == null:
+							var baked_res = load(baked_mesh_path)
+							if baked_res:
+								var baked_inst = MeshInstance3D.new()
+								baked_inst.name = "WebBakedTerrain"
+								baked_inst.mesh = baked_res
+								var terrain_mat = StandardMaterial3D.new()
+								if alb_tex:
+									terrain_mat.albedo_texture = alb_tex
+									terrain_mat.uv1_scale = Vector3(150, 150, 1)
+									terrain_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+								if nrm_tex:
+									terrain_mat.normal_enabled = true
+									terrain_mat.normal_texture = nrm_tex
+								terrain_mat.roughness = 0.88
+								terrain_mat.metallic = 0.08
+								baked_inst.material_override = terrain_mat
+								root.add_child(baked_inst)
+								print("[BaseMap] Web: Malla 3D horneada de relieve de terreno instanciada con éxito.")
+					else:
+						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png"):
+							alb_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png")
+						ground_mat.uv1_scale = Vector3(150, 150, 1)
+					
+					if alb_tex:
+						ground_mat.albedo_texture = alb_tex
+						ground_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+					else:
+						ground_mat.albedo_color = Color(0.2, 0.22, 0.25, 1.0)
+					if nrm_tex:
+						ground_mat.normal_enabled = true
+						ground_mat.normal_texture = nrm_tex
+					ground_mat.roughness = 0.88
+					ground_mat.metallic = 0.08
+					ground_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					m.material_override = ground_mat
+					if m.mesh is PlaneMesh:
+						m.mesh.subdivide_width = 1
+						m.mesh.subdivide_depth = 1
+					print("[BaseMap] Web: GridVisual/GroundPlane configurado con textura de terreno (zona ", z_id, "): ", m.get_path())
+				else:
+					var black = StandardMaterial3D.new()
+					black.albedo_color = Color(0.0, 0.0, 0.0, 1.0)
+					black.roughness = 1.0
+					black.metallic = 0.0
+					black.emission_enabled = false
+					black.cull_mode = BaseMaterial3D.CULL_DISABLED
+					m.material_override = black
+					# Quitar subdivisión aparente: si es PlaneMesh, reducir a 1x1 para que sea perfectamente plano
+					if m.mesh is PlaneMesh:
+						m.mesh.subdivide_width = 1
+						m.mesh.subdivide_depth = 1
+					print("[BaseMap] GridVisual/GroundPlane forzado a negro plano: ", m.get_path())
 		for child in n.get_children():
 			stack.append(child)
 
@@ -1276,6 +1338,13 @@ func _find_terrain_node_recursive(node: Node) -> Node:
 # v905.1: Optimizar Terrain3D desactivando la proyección de sombras (el suelo es la base 2.5D, no proyecta sombras hacia abajo)
 func _optimize_terrain_node(t_node: Node) -> void:
 	if not is_instance_valid(t_node):
+		return
+	if OS.get_name() == "Web":
+		if "visible" in t_node:
+			t_node.visible = false
+		t_node.set_process(false)
+		t_node.set_physics_process(false)
+		print("[BaseMap] Web: Terrain3D desactivado (usando piso texturizado PBR compatible con WebGL2).")
 		return
 	if "cast_shadow" in t_node:
 		t_node.set("cast_shadow", GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
