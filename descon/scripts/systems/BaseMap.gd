@@ -1001,28 +1001,6 @@ func _fix_scene_floor_to_black(root: Node):
 						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png"):
 							nrm_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_nrm_rgh.png")
 						ground_mat.uv1_scale = Vector3(150, 150, 1)
-						
-						# Instanciar malla 3D horneada de montañas/relieve para Web
-						var baked_mesh_path = "res://assets/Mapas/Mapa2/Terreno/baked_terrain_mesh.res"
-						if ResourceLoader.exists(baked_mesh_path) and root.get_node_or_null("WebBakedTerrain") == null:
-							var baked_res = load(baked_mesh_path)
-							if baked_res:
-								var baked_inst = MeshInstance3D.new()
-								baked_inst.name = "WebBakedTerrain"
-								baked_inst.mesh = baked_res
-								var terrain_mat = StandardMaterial3D.new()
-								if alb_tex:
-									terrain_mat.albedo_texture = alb_tex
-									terrain_mat.uv1_scale = Vector3(150, 150, 1)
-									terrain_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-								if nrm_tex:
-									terrain_mat.normal_enabled = true
-									terrain_mat.normal_texture = nrm_tex
-								terrain_mat.roughness = 0.88
-								terrain_mat.metallic = 0.08
-								baked_inst.material_override = terrain_mat
-								root.add_child(baked_inst)
-								print("[BaseMap] Web: Malla 3D horneada de relieve de terreno instanciada con éxito.")
 					else:
 						if ResourceLoader.exists("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png"):
 							alb_tex = load("res://assets/Mapas/Mapa2/Terreno/rock023_alb_ht.png")
