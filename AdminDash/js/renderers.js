@@ -89,6 +89,9 @@ function renderAll() {
     renderBattlePass();
     renderRanking();
     renderMarket();
+    if (typeof window.initSidebarAmmoIcons === 'function') {
+        window.initSidebarAmmoIcons();
+    }
 }
 
 function updateSidebar() {
@@ -200,7 +203,42 @@ function updateSidebar() {
             bossList.appendChild(link);
         }
     }
+    if (typeof window.initSidebarAmmoIcons === 'function') {
+        window.initSidebarAmmoIcons();
+    }
 }
+
+window.initSidebarAmmoIcons = function() {
+    const ammoMap = {
+        laser: 'res://assets/Municiones/Iconos/laser/Laser.png',
+        missile: 'res://assets/Municiones/Iconos/missile/Missile.png',
+        mine: 'res://assets/Municiones/Iconos/mine/Mine.png',
+        melee: 'res://assets/Municiones/Iconos/melee/Melee.png',
+        heal: 'res://assets/Municiones/Iconos/heal/Heal.png',
+        siphon: 'res://assets/Municiones/Iconos/siphon/Siphon.png',
+        emp: 'res://assets/Municiones/Iconos/emp/Emp.png',
+        electron: 'res://assets/Municiones/Iconos/electron/Electron.png'
+    };
+    for (const [key, godotPath] of Object.entries(ammoMap)) {
+        const el = document.querySelector(`#subfolder-ammo .nav-link.sub[onclick*="setAmmoTab('${key}')"]`);
+        if (el) {
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.gap = '0.6rem';
+
+            let img = el.querySelector('.sidebar-ammo-icon');
+            const url = resolveAssetWebUrl(godotPath);
+            if (!img) {
+                img = document.createElement('img');
+                img.className = 'sidebar-ammo-icon';
+                el.insertBefore(img, el.firstChild);
+            }
+            img.style.cssText = 'width:18px;height:18px;min-width:18px;object-fit:contain;border-radius:4px;background:rgba(0,0,0,0.4);padding:2px;border:1px solid rgba(255,255,255,0.12);flex-shrink:0;';
+            img.src = url;
+            img.onerror = () => { img.style.display = 'none'; };
+        }
+    }
+};
 
 function initWebHUDDesigner() {
     const canvas = document.getElementById('web-hud-canvas');

@@ -1112,14 +1112,34 @@ func _process(delta):
 		_bank_target = clamp(rot_diff * 25.0, -0.7, 0.7)
 		_bank_current = lerp(_bank_current, _bank_target, 0.1)
 		
-		# 3. ROTACIÓN DE LA NAVE (v254.60: Revertido a original por pedido del usuario)
+		# 3. ROTACIÓN DE LA NAVE
+		# v1002.0: El morro se alinea con el movimiento 3D REAL del mapa.
+		# La posición 3D mapea (x, y) -> (x, y * correction_z), por lo que a 45°
+		# el ángulo 3D no coincide con el ángulo 2D (hasta ~9.7° de desvío).
 		# v400.700: Durante el hundimiento (burrow dive) la rotación queda congelada
 		# apuntando al target para que no se vea girando mientras entra bajo tierra.
-		var target_yaw = -rotation
 		if not _burrow_lock_free_rotation:
-			_3d_model.rotation.y = lerp_angle(_3d_model.rotation.y, target_yaw, 0.2)
-			_3d_model.rotation.x = abs(_bank_current) * 0.12
-			_3d_model.rotation.z = -_bank_current * 0.4
+			var map_node = _get_map_node()
+			var cz: float = 1.41421356
+			if is_instance_valid(map_node) and "correction_z" in map_node:
+				cz = float(map_node.correction_z)
+
+			# Dirección real del movimiento en el plano XZ 3D -> yaw exacto.
+			var target_yaw: float = -atan2(sin(rotation) * cz, cos(rotation))
+
+			# Inclinación (banking): roll en X y cabeceo en Z.
+			var bank_roll: float = absf(_bank_current) * 0.12
+			var bank_pitch: float = -_bank_current * 0.4
+			_3d_model.rotation.x = bank_roll
+			_3d_model.rotation.z = bank_pitch
+			_3d_model.rotation.y = target_yaw
+
+			# v1002.0: En orden YXZ, pitch+roll desvían levemente el morro en el
+			# plano XZ (~1.4° con el banking máximo). Se mide el eje +X resultante
+			# y se corrige el yaw para que la nave apunte 100% a su trayectoria.
+			var fwd := _3d_model.basis.x
+			var heading := atan2(-fwd.z, fwd.x)
+			_3d_model.rotation.y += angle_difference(heading, target_yaw)
 		
 		# Propulsión 3D: encendido tipo soplete/calefactor (Solo naves de jugadores, nunca enemigos/bosses)
 		if not is_in_group("enemies") and is_instance_valid(_3d_propulsion):

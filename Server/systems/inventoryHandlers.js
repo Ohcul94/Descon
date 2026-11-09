@@ -475,29 +475,27 @@ function registerInventoryHandlers(socket, io, state) {
                 else if (itemId.startsWith("am_el")) ammoType = "electron";
                 else if (itemId.startsWith("am_e")) ammoType = "emp";
 
-                const tierIndex = parseInt(itemId.slice(-1)) - 1;
+                const tierIndex = 0;
                 
                 if (!user.gameData.ammo) {
                     user.gameData.ammo = { 
-                        laser: [0,0,0,0,0,0], 
-                        missile: [0,0,0,0,0,0], 
-                        mine: [0,0,0,0,0,0],
-                        melee: [0,0,0,0,0,0],
-                        heal: [0,0,0,0,0,0],
-                        siphon: [0,0,0,0,0,0],
-                        emp: [0,0,0,0,0,0],
-                        electron: [0,0,0,0,0,0]
+                        laser: [0], 
+                        missile: [0], 
+                        mine: [0],
+                        melee: [0],
+                        heal: [0],
+                        siphon: [0],
+                        emp: [0],
+                        electron: [0]
                     };
                 }
-                if (!user.gameData.ammo[ammoType]) user.gameData.ammo[ammoType] = [0,0,0,0,0,0];
+                if (!user.gameData.ammo[ammoType] || !Array.isArray(user.gameData.ammo[ammoType])) user.gameData.ammo[ammoType] = [0];
 
-                const oldAmmo = user.gameData.ammo[ammoType][tierIndex] || 0;
-                // v269.90: Mongoose Array Tracking Fix
-                const newArr = [...user.gameData.ammo[ammoType]];
-                newArr[tierIndex] = oldAmmo + parseInt(amount || 0);
+                const oldAmmo = user.gameData.ammo[ammoType][0] || 0;
+                const newArr = [oldAmmo + parseInt(amount || 0)];
                 user.gameData.ammo[ammoType] = newArr;
 
-                console.log(`[SHOP-DEBUG] Munición ${ammoType}[${tierIndex}] actualizada: ${oldAmmo} -> ${newArr[tierIndex]}`);
+                console.log(`[SHOP-DEBUG] Munición ${ammoType} actualizada: ${oldAmmo} -> ${newArr[0]}`);
                 user.markModified(`gameData.ammo.${ammoType}`);
                 user.markModified('gameData.ammo');
             }
@@ -1482,24 +1480,24 @@ function registerInventoryHandlers(socket, io, state) {
                 else if (resultItemId.startsWith("am_s")) ammoType = "siphon";
                 else if (resultItemId.startsWith("am_e")) ammoType = "emp";
 
-                const tierIndex = parseInt(resultItemId.slice(-1)) - 1;
+                const tierIndex = 0;
                 
                 if (!user.gameData.ammo) {
                     user.gameData.ammo = { 
-                        laser: [0,0,0,0,0,0], 
-                        missile: [0,0,0,0,0,0], 
-                        mine: [0,0,0,0,0,0],
-                        melee: [0,0,0,0,0,0],
-                        heal: [0,0,0,0,0,0],
-                        siphon: [0,0,0,0,0,0],
-                        emp: [0,0,0,0,0,0]
+                        laser: [0], 
+                        missile: [0], 
+                        mine: [0],
+                        melee: [0],
+                        heal: [0],
+                        siphon: [0],
+                        emp: [0],
+                        electron: [0]
                     };
                 }
-                if (!user.gameData.ammo[ammoType]) user.gameData.ammo[ammoType] = [0,0,0,0,0,0];
+                if (!user.gameData.ammo[ammoType] || !Array.isArray(user.gameData.ammo[ammoType])) user.gameData.ammo[ammoType] = [0];
 
-                const oldAmmo = user.gameData.ammo[ammoType][tierIndex] || 0;
-                const newArr = [...user.gameData.ammo[ammoType]];
-                newArr[tierIndex] = oldAmmo + resultAmount;
+                const oldAmmo = user.gameData.ammo[ammoType][0] || 0;
+                const newArr = [oldAmmo + resultAmount];
                 user.gameData.ammo[ammoType] = newArr;
 
                 user.markModified(`gameData.ammo.${ammoType}`);

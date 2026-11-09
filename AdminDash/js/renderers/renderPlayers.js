@@ -361,31 +361,38 @@ function renderPilot() {
     if(ammoGrid) {
         if(!config.pilotConfig.startingAmmo) {
             config.pilotConfig.startingAmmo = {
-                laser: [1000, 0, 0, 0, 0, 0],
-                missile: [50, 0, 0, 0, 0, 0],
-                mine: [10, 0, 0, 0, 0, 0]
+                laser: [1000],
+                missile: [50],
+                mine: [10]
             };
         }
         
         const types = [
-            { id: 'laser', name: '🔫 LÁSER', color: '#31dfff' },
-            { id: 'missile', name: '🚀 MISIL', color: '#ff5500' },
-            { id: 'mine', name: '💣 MINA', color: '#ffe031' }
+            { id: 'laser', name: 'LÁSER', color: '#31dfff', icon: 'res://assets/Municiones/Iconos/laser/Laser.png' },
+            { id: 'missile', name: 'MISIL', color: '#ff5500', icon: 'res://assets/Municiones/Iconos/missile/Missile.png' },
+            { id: 'mine', name: 'MINA', color: '#ffe031', icon: 'res://assets/Municiones/Iconos/mine/Mine.png' }
         ];
         
-        ammoGrid.innerHTML = types.map(t => `
+        ammoGrid.innerHTML = types.map(t => {
+            const currentVal = Array.isArray(config.pilotConfig.startingAmmo[t.id])
+                ? (config.pilotConfig.startingAmmo[t.id][0] || 0)
+                : (parseInt(config.pilotConfig.startingAmmo[t.id]) || 0);
+            const iconUrl = resolveAssetWebUrl(t.icon);
+            return `
             <div class="ammo-col">
-                <h5 style="color:${t.color}; margin-bottom:1rem; border-bottom:1px solid ${t.color}33; padding-bottom:5px;">${t.name}</h5>
-                ${[0,1,2,3,4,5].map(tier => `
-                    <div class="field" style="margin-bottom:10px;">
-                        <label style="font-size:0.7rem;">Tier ${tier + 1}</label>
-                        <input type="number" value="${config.pilotConfig.startingAmmo[t.id][tier]}" 
-                               onchange="config.pilotConfig.startingAmmo['${t.id}'][${tier}] = parseInt(this.value)"
-                               style="border-color:${t.color}66; color:${t.color}; font-family:'JetBrains Mono';">
-                    </div>
-                `).join('')}
+                <h5 style="color:${t.color}; margin-bottom:1rem; border-bottom:1px solid ${t.color}33; padding-bottom:6px; display:flex; align-items:center; gap:8px;">
+                    ${iconUrl ? `<img src="${iconUrl}" style="width:24px; height:24px; object-fit:contain; border-radius:4px; background:rgba(0,0,0,0.3); padding:2px; border:1px solid ${t.color}55;">` : ''}
+                    <span>${t.name}</span>
+                </h5>
+                <div class="field" style="margin-bottom:10px;">
+                    <label style="font-size:0.75rem;">Cantidad Inicial</label>
+                    <input type="number" value="${currentVal}" 
+                           onchange="config.pilotConfig.startingAmmo['${t.id}'] = [parseInt(this.value) || 0]"
+                           style="border-color:${t.color}66; color:${t.color}; font-family:'JetBrains Mono';">
+                </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     const expGrid = document.getElementById('exp-grid');

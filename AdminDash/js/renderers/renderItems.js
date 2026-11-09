@@ -91,166 +91,140 @@ function renderMarketListingsTable() {
 }
 
 function renderAmmo() {
-    const grid = document.getElementById('ammo-grid'); grid.innerHTML = '';
+    const grid = document.getElementById('ammo-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
     const f = getFilter();
     
-    const type = currentAmmoTab;
-    const multipliers = config.ammoMultipliers[type] || [];
-    const shopItems = (config.shopItems.ammo && config.shopItems.ammo[type]) ? config.shopItems.ammo[type] : [];
-
-    const descMap = {
-        'laser': 'Proyectil estándar directo. Daño enfocado a distancia media/larga.',
-        'missile': 'Misil teledirigido de largo alcance con gran capacidad destructiva.',
-        'mine': 'Munición explosiva de proximidad. Ideal para control de zonas o defensa.',
-        'melee': 'Ataque cuerpo a cuerpo de muy corto alcance. Podés configurarle efectos de impacto abajo.',
-        'heal': 'Munición curativa. Podés configurarle el efecto de Curación como efecto de impacto abajo.',
-        'siphon': 'Munición vampírica. Podés configurarle el efecto de Robo de Vida como efecto de impacto abajo.',
-        'emp': 'Proyectil electromagnético. Podés configurarle efectos de impacto abajo.',
-        'electron': 'Lanza una bomba de energía en parábola que explota en área. Podés configurarle el aumento de velocidad u otros efectos de impacto abajo.'
-    };
+    const type = currentAmmoTab || 'laser';
+    const multipliers = (config.ammoMultipliers && config.ammoMultipliers[type]) ? config.ammoMultipliers[type] : [];
+    const shopItems = (config.shopItems && config.shopItems.ammo && config.shopItems.ammo[type]) ? config.shopItems.ammo[type] : [];
 
     const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[type]) || (type ? (type.charAt(0).toUpperCase() + type.slice(1)) : 'Munición');
-    const ammoIcon = (window.AMMO_ICONS && window.AMMO_ICONS[type]) || '📦';
+    const ammoColor = (window.AMMO_COLORS && window.AMMO_COLORS[type]) || 'var(--primary)';
 
-    const descDiv = document.createElement('div');
-    descDiv.style.gridColumn = '1 / -1';
-    descDiv.style.background = 'rgba(255, 255, 255, 0.02)';
-    descDiv.style.border = '1px solid rgba(255, 255, 255, 0.08)';
-    descDiv.style.padding = '1rem 1.25rem';
-    descDiv.style.borderRadius = '8px';
-    descDiv.style.marginBottom = '1rem';
-    descDiv.style.color = '#ccc';
-    descDiv.style.fontSize = '0.9rem';
-    descDiv.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:1.5rem;">${ammoIcon}</span>
-                <span style="font-size:1.15rem; font-weight:bold; color:var(--primary); letter-spacing:1px;">MUNICIÓN ${ammoName.toUpperCase()}</span>
+    // 3. Tarjeta de Configuración
+    const i = 0;
+    const m = (config.ammoMultipliers && config.ammoMultipliers[type] && config.ammoMultipliers[type][0] !== undefined) ? config.ammoMultipliers[type][0] : 1;
+    const item = shopItems[i] || { name: ammoName, range: 0, cooldown: 1000, prices: { hubs:0, ohcu:0 } };
+    if(item.cooldown === undefined) item.cooldown = 1000;
+    if(item.bulletSpeed === undefined) item.bulletSpeed = 800;
+    if(!item.mechanics) item.mechanics = [];
+    
+    if(f && !item.name.toLowerCase().includes(f) && !JSON.stringify(item).toLowerCase().includes(f)) return;
+
+    const ammoIconKey = type + '_' + i;
+    if (!config.shopItems) config.shopItems = {};
+    if (!config.shopItems.ammo_icons) config.shopItems.ammo_icons = {};
+    const defaultGameIcon = (window.AMMO_GAME_ICONS && window.AMMO_GAME_ICONS[type]) || '';
+    const ammoIconPath = config.shopItems.ammo_icons[ammoIconKey] || item.icon || defaultGameIcon || '';
+    const ammoIconWeb = resolveAssetWebUrl(ammoIconPath);
+    const ammoIconPreview = ammoIconWeb
+        ? `<img src="${ammoIconWeb}" style="width:68px; height:68px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); padding:4px;" onerror="this.style.display='none';">`
+        : `<div style="width:68px; height:68px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.6rem; text-align:center; padding:2px;">Sin Ícono</div>`;
+
+    let extraFieldsHTML = '';
+    if (type === 'electron') {
+        extraFieldsHTML = `
+            <div class="field full" style="margin-top: 1rem;">
+                <label>Radio de Explosión (px)</label>
+                <input type="number" value="${item.explosionRadius !== undefined ? item.explosionRadius : 120}" onchange="config.shopItems.ammo['${type}'][0].explosionRadius = parseInt(this.value)">
             </div>
-            <span style="font-size:0.7rem; color:#888; font-family:'JetBrains Mono';">Tiers 1 al 6 · Catálogo de Mercado</span>
-        </div>
-        <div style="font-size:0.82rem; color:#aaa; line-height:1.4;">${descMap[type] || 'Configuración de munición comercial.'}</div>
-    `;
-    grid.appendChild(descDiv);
-
-    multipliers.forEach((m, i) => {
-        const item = shopItems[i] || { name: `Tier ${i+1}`, range: 0, cooldown: 1000, prices: { hubs:0, ohcu:0 } };
-        if(item.cooldown === undefined) item.cooldown = 1000;
-        if(item.bulletSpeed === undefined) item.bulletSpeed = 800;
-        if(!item.mechanics) item.mechanics = [];
-        
-        if(f && !item.name.toLowerCase().includes(f) && !JSON.stringify(item).toLowerCase().includes(f)) return;
-
-        const ammoIconKey = type + '_' + i;
-        if (!config.shopItems.ammo_icons) config.shopItems.ammo_icons = {};
-        const ammoIconPath = config.shopItems.ammo_icons[ammoIconKey] || '';
-        const ammoIconWeb = resolveAssetWebUrl(ammoIconPath);
-        const ammoIconPreview = ammoIconWeb
-            ? `<img src="${ammoIconWeb}" style="width:64px; height:64px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
-            : `<div style="width:64px; height:64px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.6rem; text-align:center; padding:2px;">Sin Ícono</div>`;
-
-        let extraFieldsHTML = '';
-        if (type === 'electron') {
-            extraFieldsHTML = `
-                <div class="field full" style="margin-top: 1rem;">
-                    <label>Radio de Explosión (px)</label>
-                    <input type="number" value="${item.explosionRadius !== undefined ? item.explosionRadius : 120}" onchange="config.shopItems.ammo['${type}'][${i}].explosionRadius = parseInt(this.value)">
-                </div>
-            `;
-        }
-
-        const card = document.createElement('div'); card.className = 'card';
-        card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <div class="card-tag">TIER ${i+1}</div>
-                <button style="background:none; border:none; color:${item.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleAmmoVisibility('${type}', ${i})">
-                    ${item.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
-                </button>
-            </div>
-            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
-                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
-                    ${ammoIconPreview}
-                    <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload('${ammoIconKey}', 'ammo_icon')">🖼️ ICONO</button>
-                    ${ammoIconPath ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="delete config.shopItems.ammo_icons['${ammoIconKey}']; renderAmmo();">✕ Quitar</button>` : ''}
-                </div>
-                <div style="flex-grow:1;">
-                    <div class="field full"><label>Nombre Comercial</label><input type="text" value="${item.name}" onchange="config.shopItems.ammo['${type}'][${i}].name = this.value"></div>
-                </div>
-            </div>
-            
-            <div class="form-grid" style="margin-top:1.5rem;">
-                <div class="field"><label>Mult. Daño (x)</label><input type="number" step="0.1" value="${m}" style="color:var(--accent); font-weight:bold;" onchange="config.ammoMultipliers['${type}'][${i}] = parseFloat(this.value)"></div>
-                <div class="field"><label>Alcance (px)</label><input type="number" value="${item.range || 0}" onchange="config.shopItems.ammo['${type}'][${i}].range = parseInt(this.value)"></div>
-                <div class="field"><label>Vel. Bala (px/s)</label><input type="number" value="${item.bulletSpeed}" onchange="config.shopItems.ammo['${type}'][${i}].bulletSpeed = parseInt(this.value)"></div>
-                <div class="field"><label>Cooldown (ms)</label><input type="number" value="${item.cooldown}" onchange="config.shopItems.ammo['${type}'][${i}].cooldown = parseInt(this.value)"></div>
-                <div class="field"><label>Casteo (ms)</label><input type="number" min="0" max="5000" step="50" value="${item.castTimeMs || 0}" onchange="config.shopItems.ammo['${type}'][${i}].castTimeMs = parseInt(this.value) || 0"></div>
-            </div>
-
-            ${extraFieldsHTML}
-            <div style="margin-top:0.8rem; padding:0.7rem; background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.15); border-radius:6px;">
-                <label style="color:#fbbf24; font-size:0.6rem; font-weight:bold;">SONIDO DE DISPARO (assets/Sonidos/Mecanicas/)</label>
-                <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
-                    <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${item.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.shopItems.ammo['${type}'][${i}].sound = this.value; renderAmmo();">
-                    <button class="btn" style="padding:4px 8px; font-size:0.6rem; background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.25); color:#fbbf24;" onclick="triggerAssetUpload('${type}_${i}', 'ammo_sound')">SONIDO</button>
-                    ${item.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.shopItems.ammo['${type}'][${i}].sound=''; renderAmmo();">X</button>` : ''}
-                </div>
-                ${item.sound ? `<audio controls preload="none" src="${resolveAssetWebUrl(item.sound)}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen <input type="number" id="ammo-vol-input-${type}-${i}" min="0" max="100" value="${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 50}" style="width:55px; display:inline-block; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.shopItems.ammo['${type}'][${i}].soundVolumePercent=v; let s=document.getElementById('ammo-vol-slider-${type}-${i}'); if(s) s.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.shopItems.ammo['${type}'][${i}].soundVolumePercent=v; let s=document.getElementById('ammo-vol-slider-${type}-${i}'); if(s) s.value=v;"> %</label><input type="range" id="ammo-vol-slider-${type}-${i}" min="0" max="100" value="${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 50}" oninput="config.shopItems.ammo['${type}'][${i}].soundVolumePercent=parseFloat(this.value); let inp=document.getElementById('ammo-vol-input-${type}-${i}'); if(inp) inp.value=this.value;"></div>
-                    <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${item.soundMaxDist || 1000}" onchange="config.shopItems.ammo['${type}'][${i}].soundMaxDist = parseInt(this.value) || 1000"></div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #333;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                    <label style="color:var(--accent); font-size: 0.7rem; font-weight:bold;">✨ EFECTOS DE IMPACTO</label>
-                    <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.6rem;" onclick="addAmmoMechanic('${type}', ${i})">+ EFECTO</button>
-                </div>
-                <div id="ammo-mech-${type}-${i}">
-                    ${(item.mechanics || []).map((me, midx) => {
-                        const mDef = AMMO_MECH_LIB[me.type] || AMMO_MECH_LIB.slow || { fields: [], label: me.type, icon: '✨' };
-                        const fieldLabels = {
-                            duration: "Duración (ms)",
-                            amount: "Ralentización (pts)",
-                            slowAmount: "Ralentización (pts)",
-                            damagePerSecond: "DPS",
-                            chance: "Probabilidad (%)",
-                            radius: "Radio (px)",
-                            healPctPvE: "Cura PvE (%)",
-                            healPctVictimPvP: "Cura Aliado PvP (%)",
-                            healPctAttackerPvP: "Cura Propia PvP (%)",
-                            siphonPct: "Robo de Vida (%)",
-                            speedBuffPct: "Velocidad (%)",
-                            speedBuffDurationMs: "Duración Buff (ms)",
-                            speedBuffMaxStacks: "Stacks Máx."
-                        };
-                        return `
-                        <div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
-                            <button style="position:absolute; top:4px; right:4px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:10px;" onclick="config.shopItems.ammo['${type}'][${i}].mechanics.splice(${midx},1); renderAmmo();">✕</button>
-                            <select style="background:transparent; border:none; color:var(--accent); font-size:0.7rem; font-weight:bold; cursor:pointer;" onchange="updateAmmoMechanicType('${type}', ${i}, ${midx}, this.value)">
-                                ${Object.keys(AMMO_MECH_LIB).map(mt => `<option value="${mt}" ${me.type===mt?'selected':''}>${AMMO_MECH_LIB[mt].icon} ${AMMO_MECH_LIB[mt].label}</option>`).join('')}
-                            </select>
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:5px;">
-                                ${mDef.fields.map(fld => `
-                                    <div class="field" style="margin:0;"><label style="font-size:9px;">${fieldLabels[fld] || fld}</label><input type="number" value="${me[fld] !== undefined ? me[fld] : 0}" style="font-size:10px; height:20px;" onchange="config.shopItems.ammo['${type}'][${i}].mechanics[${midx}].${fld} = parseInt(this.value)"></div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-
-            <div class="price-group" style="margin-top:1rem; border-top:1px solid #333; padding-top:1rem;">
-                <div class="field"><label>Hubs (qty)</label><input type="number" value="${item.prices.hubs}" onchange="config.shopItems.ammo['${type}'][${i}].prices.hubs = parseInt(this.value)"></div>
-                <div class="field"><label>Ohcu (qty)</label><input type="number" value="${item.prices.ohcu}" onchange="config.shopItems.ammo['${type}'][${i}].prices.ohcu = parseInt(this.value)"></div>
-                <div class="field"><label>No Comerciable</label><input type="checkbox" ${item.soulbound ? 'checked' : ''} onchange="config.shopItems.ammo['${type}'][${i}].soulbound = this.checked"></div>
-            </div>
-
-            ${requirementsSectionHtml('req_ammo_' + reqSectionIdSanitize(type) + '_' + i, `config.shopItems.ammo["${type.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"][${i}]`)}
         `;
-        grid.appendChild(card);
-    });
+    }
+
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div class="card-tag" style="border-color:${ammoColor}; color:${ammoColor};">MUNICIÓN ${ammoName.toUpperCase()}</div>
+            <button style="background:none; border:none; color:${item.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleAmmoVisibility('${type}', 0)">
+                ${item.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
+            </button>
+        </div>
+        <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
+            <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                ${ammoIconPreview}
+                <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload('${ammoIconKey}', 'ammo_icon')">🖼️ CAMBIAR ÍCONO</button>
+                ${ammoIconPath && ammoIconPath !== defaultGameIcon ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="config.shopItems.ammo_icons['${ammoIconKey}']='${defaultGameIcon}'; if(config.shopItems.ammo['${type}'][0]) config.shopItems.ammo['${type}'][0].icon='${defaultGameIcon}'; renderAmmo();">↺ Restaurar Oficial</button>` : ''}
+            </div>
+            <div style="flex-grow:1;">
+                <div class="field full"><label>Nombre Comercial</label><input type="text" value="${item.name}" onchange="config.shopItems.ammo['${type}'][0].name = this.value"></div>
+                <div style="font-size:0.75rem; color:#888; margin-top:0.5rem;">Ícono oficial del juego: <span style="font-family:'JetBrains Mono'; color:${ammoColor};">${defaultGameIcon}</span></div>
+            </div>
+        </div>
+        
+        <div class="form-grid" style="margin-top:1.5rem;">
+            <div class="field"><label>Mult. Daño (x)</label><input type="number" step="0.1" value="${m}" style="color:var(--accent); font-weight:bold;" onchange="config.ammoMultipliers['${type}'][0] = parseFloat(this.value)"></div>
+            <div class="field"><label>Alcance (px)</label><input type="number" value="${item.range || 0}" onchange="config.shopItems.ammo['${type}'][0].range = parseInt(this.value)"></div>
+            <div class="field"><label>Vel. Bala (px/s)</label><input type="number" value="${item.bulletSpeed}" onchange="config.shopItems.ammo['${type}'][0].bulletSpeed = parseInt(this.value)"></div>
+            <div class="field"><label>Cooldown (ms)</label><input type="number" value="${item.cooldown}" onchange="config.shopItems.ammo['${type}'][0].cooldown = parseInt(this.value)"></div>
+            <div class="field"><label>Casteo (ms)</label><input type="number" min="0" max="5000" step="50" value="${item.castTimeMs || 0}" onchange="config.shopItems.ammo['${type}'][0].castTimeMs = parseInt(this.value) || 0"></div>
+        </div>
+
+        ${extraFieldsHTML}
+        <div style="margin-top:0.8rem; padding:0.7rem; background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.15); border-radius:6px;">
+            <label style="color:#fbbf24; font-size:0.6rem; font-weight:bold;">SONIDO DE DISPARO (assets/Sonidos/Mecanicas/)</label>
+            <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
+                <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${item.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.shopItems.ammo['${type}'][0].sound = this.value; renderAmmo();">
+                <button class="btn" style="padding:4px 8px; font-size:0.6rem; background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.25); color:#fbbf24;" onclick="triggerAssetUpload('${type}_0', 'ammo_sound')">SONIDO</button>
+                ${item.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.shopItems.ammo['${type}'][0].sound=''; renderAmmo();">X</button>` : ''}
+            </div>
+            ${item.sound ? `<audio controls preload="none" src="${resolveAssetWebUrl(item.sound)}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
+                <div class="field"><label>Volumen <input type="number" id="ammo-vol-input-${type}-0" min="0" max="100" value="${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 50}" style="width:55px; display:inline-block; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.shopItems.ammo['${type}'][0].soundVolumePercent=v; let s=document.getElementById('ammo-vol-slider-${type}-0'); if(s) s.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.shopItems.ammo['${type}'][0].soundVolumePercent=v; let s=document.getElementById('ammo-vol-slider-${type}-0'); if(s) s.value=v;"> %</label><input type="range" id="ammo-vol-slider-${type}-0" min="0" max="100" value="${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 50}" oninput="config.shopItems.ammo['${type}'][0].soundVolumePercent=parseFloat(this.value); let inp=document.getElementById('ammo-vol-input-${type}-0'); if(inp) inp.value=this.value;"></div>
+                <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${item.soundMaxDist || 1000}" onchange="config.shopItems.ammo['${type}'][0].soundMaxDist = parseInt(this.value) || 1000"></div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #333;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <label style="color:var(--accent); font-size: 0.7rem; font-weight:bold;">✨ EFECTOS DE IMPACTO</label>
+                <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.6rem;" onclick="addAmmoMechanic('${type}', 0)">+ EFECTO</button>
+            </div>
+            <div id="ammo-mech-${type}-0">
+                ${(item.mechanics || []).map((me, midx) => {
+                    const mDef = AMMO_MECH_LIB[me.type] || AMMO_MECH_LIB.slow || { fields: [], label: me.type, icon: '✨' };
+                    const fieldLabels = {
+                        duration: "Duración (ms)",
+                        amount: "Ralentización (pts)",
+                        slowAmount: "Ralentización (pts)",
+                        damagePerSecond: "DPS",
+                        chance: "Probabilidad (%)",
+                        radius: "Radio (px)",
+                        healPctPvE: "Cura PvE (%)",
+                        healPctVictimPvP: "Cura Aliado PvP (%)",
+                        healPctAttackerPvP: "Cura Propia PvP (%)",
+                        siphonPct: "Robo de Vida (%)",
+                        speedBuffPct: "Velocidad (%)",
+                        speedBuffDurationMs: "Duración Buff (ms)",
+                        speedBuffMaxStacks: "Stacks Máx."
+                    };
+                    return `
+                    <div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
+                        <button style="position:absolute; top:4px; right:4px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:10px;" onclick="config.shopItems.ammo['${type}'][0].mechanics.splice(${midx},1); renderAmmo();">✕</button>
+                        <select style="background:transparent; border:none; color:var(--accent); font-size:0.7rem; font-weight:bold; cursor:pointer;" onchange="updateAmmoMechanicType('${type}', 0, ${midx}, this.value)">
+                            ${Object.keys(AMMO_MECH_LIB).map(mt => `<option value="${mt}" ${me.type===mt?'selected':''}>${AMMO_MECH_LIB[mt].icon} ${AMMO_MECH_LIB[mt].label}</option>`).join('')}
+                        </select>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:5px;">
+                            ${mDef.fields.map(fld => `
+                                <div class="field" style="margin:0;"><label style="font-size:9px;">${fieldLabels[fld] || fld}</label><input type="number" value="${me[fld] !== undefined ? me[fld] : 0}" style="font-size:10px; height:20px;" onchange="config.shopItems.ammo['${type}'][0].mechanics[${midx}].${fld} = parseInt(this.value)"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+
+        <div class="price-group" style="margin-top:1rem; border-top:1px solid #333; padding-top:1rem;">
+            <div class="field"><label>Hubs (qty)</label><input type="number" value="${item.prices.hubs}" onchange="config.shopItems.ammo['${type}'][0].prices.hubs = parseInt(this.value)"></div>
+            <div class="field"><label>Ohcu (qty)</label><input type="number" value="${item.prices.ohcu}" onchange="config.shopItems.ammo['${type}'][0].prices.ohcu = parseInt(this.value)"></div>
+            <div class="field"><label>No Comerciable</label><input type="checkbox" ${item.soulbound ? 'checked' : ''} onchange="config.shopItems.ammo['${type}'][0].soulbound = this.checked"></div>
+        </div>
+
+        ${requirementsSectionHtml('req_ammo_' + reqSectionIdSanitize(type) + '_0', `config.shopItems.ammo["${type.replace(/\\/g, '\\\\').replace(/"/g, '\\\"')}"][0]`)}
+    `;
+    grid.appendChild(card);
 }
 
 function renderWeapons() {

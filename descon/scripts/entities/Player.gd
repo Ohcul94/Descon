@@ -41,13 +41,14 @@ var skill_points: int = 0
 # v300.80: skill_tree delegado totalmente al TalentSystem.gd
 
 var ammo: Dictionary = {
-	"laser": [1000, 0, 0, 0, 0, 0],
-	"missile": [100, 0, 0],
-	"mine": [10, 0, 0],
-	"melee": [0, 0, 0, 0, 0, 0],
-	"heal": [0, 0, 0, 0, 0, 0],
-	"siphon": [0, 0, 0, 0, 0, 0],
-	"emp": [0, 0, 0, 0, 0, 0]
+	"laser": [1000],
+	"missile": [50],
+	"mine": [10],
+	"melee": [0],
+	"heal": [0],
+	"siphon": [0],
+	"emp": [0],
+	"electron": [0]
 }
 var selected_ammo: Dictionary = {
 	"laser": 0,
@@ -56,7 +57,8 @@ var selected_ammo: Dictionary = {
 	"melee": 0,
 	"heal": 0,
 	"siphon": 0,
-	"emp": 0
+	"emp": 0,
+	"electron": 0
 }
 var ammo_slots: Array = ["laser", "missile", "mine"]
 

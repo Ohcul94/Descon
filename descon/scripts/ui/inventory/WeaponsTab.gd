@@ -501,7 +501,7 @@ func _render_equipped_slots(parent, p, is_comb):
 			details_v.add_child(name_lbl)
 			
 			var ammo_lbl = Label.new()
-			ammo_lbl.text = "Tier " + str(int(t_idx) + 1) + " | Cantidad: " + _format_val(count)
+			ammo_lbl.text = "Cantidad: " + _format_val(count)
 			ammo_lbl.add_theme_font_size_override("font_size", 10)
 			ammo_lbl.modulate.a = 0.7
 			details_v.add_child(ammo_lbl)

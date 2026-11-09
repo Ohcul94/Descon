@@ -42,7 +42,7 @@ function isAmmoTierHidden(config, type, tierIndex) {
     if (!config || !config.shopItems || !config.shopItems.ammo) return false;
     const list = config.shopItems.ammo[type];
     if (!Array.isArray(list)) return false;
-    const entry = list[tierIndex];
+    const entry = list[tierIndex || 0] || list[0];
     return !!(entry && entry.hidden);
 }
 

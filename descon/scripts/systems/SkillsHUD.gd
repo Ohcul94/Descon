@@ -506,10 +506,8 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 		l_cd.add_theme_font_size_override("font_size", 12)
 			
 	if l_am and ref.get("ammo") != null:
-		var a_list = ref.get("ammo").get(type, [0,0,0,0,0,0])
-		var sel_data = ref.get("selected_ammo")
-		var sel = sel_data.get(type, 0) if sel_data != null else 0
-		var a_count = a_list[sel] if a_list.size() > sel else 0
+		var a_list = ref.get("ammo").get(type, [0])
+		var a_count = a_list[0] if a_list.size() > 0 else 0
 		
 		var main_label = null
 		for child in slot.get_children():
@@ -533,7 +531,7 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 			if not has_icon:
 				main_label.text = type_names.get(type, type.to_upper())
 		
-		l_am.text = "T" + str(int(sel + 1)) + ": " + _format_val(a_count)
+		l_am.text = _format_val(a_count)
 		if rv > 0.05:
 			l_am.modulate = Color(0.5, 0.5, 0.5) # Modulado gris opaco en CD
 		else:

@@ -449,8 +449,9 @@ function registerCombatHandlers(socket, io, state) {
     function getAmmoCastTimeMs(ammoType, ammoTier, p) {
         try {
             const list = state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo ? state.SERVER_CONFIG.shopItems.ammo[ammoType] : null;
-            if (Array.isArray(list) && list[ammoTier]) {
-                let base = Math.max(0, Number(list[ammoTier].castTimeMs || 0));
+            const entry = Array.isArray(list) ? (list[ammoTier || 0] || list[0]) : null;
+            if (entry) {
+                let base = Math.max(0, Number(entry.castTimeMs || 0));
                 if (p && p._talentBonuses) {
                     const globalCastRed = Math.abs(Number(p._talentBonuses.cast_time_reduction) || 0);
                     const ammoCastRed = Math.abs(Number(p._talentBonuses[`ammo:${ammoType}:castTimeMs`]) || 0);
@@ -523,7 +524,7 @@ function registerCombatHandlers(socket, io, state) {
         if (castData.ammoType !== undefined || castData.type === 'ammo' || ammoTypes.includes(castData.ammoType) || ammoTypes.includes(castData.type)) isAmmo = true;
         if (isAmmo) {
             const at = castData.ammoType || castData.type || 'laser';
-            const tier = castData.ammoTier !== undefined ? castData.ammoTier : (castData.tier !== undefined ? castData.tier : 0);
+            const tier = 0;
             const typeKey = ammoTypes.includes(at) ? at : 'laser';
             required = getAmmoCastTimeMs(typeKey, tier, p);
             if (required <= 0) return;
@@ -532,7 +533,7 @@ function registerCombatHandlers(socket, io, state) {
             const lastFire = p.lastFireTimes[typeKey] || 0;
             let cooldownMs = 120;
             const ammoList = state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo ? state.SERVER_CONFIG.shopItems.ammo[typeKey] : null;
-            const ammoMaster = (ammoList && Array.isArray(ammoList)) ? ammoList[tier] : null;
+            const ammoMaster = (ammoList && Array.isArray(ammoList)) ? (ammoList[0] || null) : null;
             if (ammoMaster && ammoMaster.cooldown !== undefined) {
                 let baseCd = (Number(ammoMaster.cooldown)||120)*0.9;
                 if (p && p._talentBonuses) {
@@ -547,7 +548,7 @@ function registerCombatHandlers(socket, io, state) {
                 socket.emit('castRejected', { reason: 'cooldown', type: 'ammo', ammoType: typeKey });
                 return;
             }
-            if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][tier]||0) <= 0) {
+            if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][0]||0) <= 0) {
                 socket.emit('castRejected', { reason: 'no_ammo', type: 'ammo' });
                 return;
             }
@@ -555,7 +556,7 @@ function registerCombatHandlers(socket, io, state) {
             p.pendingCast = {
                 type: 'ammo',
                 ammoType: typeKey,
-                ammoTier: tier,
+                ammoTier: 0,
                 startTime: Date.now(),
                 duration: required,
                 angle: castData.angle || 0,
@@ -667,14 +668,14 @@ socket.on('playerFire', (fireData) => {
 
         // v308: Soporte dinámico para nuevas municiones
         const ammoType = fireData.type || 'laser';
-        const ammoTier = (fireData.ammoType !== undefined) ? fireData.ammoType : 0;
+        const ammoTier = 0;
         
         const validTypes = ['laser', 'missile', 'mine', 'melee', 'heal', 'siphon', 'emp', 'electron'];
         const typeKey = validTypes.includes(ammoType) ? ammoType : 'laser';
 
         // v400.0: Requisitos de equipamiento de munición (nivel, misiones, etc.)
         const ammoList = (state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo) ? state.SERVER_CONFIG.shopItems.ammo[typeKey] : null;
-        const ammoMaster = (ammoList && Array.isArray(ammoList)) ? ammoList[ammoTier] : null;
+        const ammoMaster = (ammoList && Array.isArray(ammoList)) ? (ammoList[0] || null) : null;
 
         // v314.0: Rate Limiting de Disparos (Anti-Cheat Cooldown Autoritativo dinámico desde Admin Dash)
         const now = Date.now();
@@ -698,9 +699,9 @@ socket.on('playerFire', (fireData) => {
             return;
         }
         // ==== GATE CASTEO MUNICION (Anti-Hack) ====
-        let requiredCastAmmo = getAmmoCastTimeMs(typeKey, ammoTier, p);
+        let requiredCastAmmo = getAmmoCastTimeMs(typeKey, 0, p);
         if (requiredCastAmmo > 0) {
-            if (!p.pendingCast || p.pendingCast.type !== 'ammo' || p.pendingCast.ammoType !== typeKey || p.pendingCast.ammoTier !== ammoTier) {
+            if (!p.pendingCast || p.pendingCast.type !== 'ammo' || p.pendingCast.ammoType !== typeKey) {
                 if (!p.isAdmin) {
                     socket.emit('castRejected', { reason: 'cast_required', type: 'ammo', ammoType: typeKey, required: requiredCastAmmo });
                     socket.emit('gameNotification', { msg: 'CASTEO REQUERIDO: ' + requiredCastAmmo + 'ms', type: 'error' });
@@ -726,7 +727,7 @@ socket.on('playerFire', (fireData) => {
             if (p.pendingCast && p.pendingCast.type === 'ammo') clearPlayerCast(p);
         }
         p.lastFireTimes[typeKey] = now;
-        if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
+        if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][0] || 0) <= 0) {
             return; 
         }
         // v620.0: Ojito de visibilidad — munición hidden no puede dispararse ni siquiera con cliente hackeado (excepto admins)
@@ -741,11 +742,11 @@ socket.on('playerFire', (fireData) => {
             }
         }
 
-        p.ammo[typeKey][ammoTier]--;
+        p.ammo[typeKey][0]--;
         
         // Guardar munición activa en el jugador en el servidor para validar mecánicas en los impactos
         p.selectedAmmo = typeKey;
-        p.selectedAmmoTier = ammoTier;
+        p.selectedAmmoTier = 0;
 
         const shipId = p.currentShipId || 1;
         const model = state.SERVER_CONFIG.shipModels ? state.SERVER_CONFIG.shipModels.find(m => m.id === shipId) : null;
@@ -780,7 +781,7 @@ socket.on('playerFire', (fireData) => {
         const dmgModMult = 1.0 + (dmgModPct / 100);
 
         const mults = state.SERVER_CONFIG.ammoMultipliers[typeKey] || [1];
-        const multiplier = mults[ammoTier] || 1;
+        const multiplier = (mults && mults[0] !== undefined) ? mults[0] : 1;
         const finalAuthorizedDamage = Math.round((baseDamage * multiplier * dmgModMult) + dmgModFlat);
 
         const pData = {
@@ -792,7 +793,7 @@ socket.on('playerFire', (fireData) => {
             angle: Math.round((fireData.angle || 0) * 100) / 100,
             rotation: Math.round((fireData.rotation || 0) * 100) / 100,
             type: ammoType,
-            ammoType: ammoTier,
+            ammoType: 0,
             targetId: fireData.targetId,
             range: Math.round(fireData.range !== undefined ? fireData.range : 600.0)
         };
@@ -1135,18 +1136,9 @@ socket.on('playerFire', (fireData) => {
             });
         }
 
-        // Encontrar el multiplicador máximo absoluto disponible en toda la munición que el jugador posee
-        let maxAmmoMult = 1;
-        if (p.ammo) {
-            Object.keys(p.ammo).forEach(type => {
-                const mults = state.SERVER_CONFIG.ammoMultipliers[type] || [1];
-                p.ammo[type].forEach((qty, tier) => {
-                    if (qty > 0 && mults[tier] > maxAmmoMult) {
-                        maxAmmoMult = mults[tier];
-                    }
-                });
-            });
-        }
+        // Multiplicador de munición activa
+        const mults = state.SERVER_CONFIG.ammoMultipliers?.[p.selectedAmmo || 'laser'] || [1];
+        let maxAmmoMult = (mults && mults[0] !== undefined) ? mults[0] : 1;
 
         // Modificador de daño desde escudos y motores (dmgMod)
         let dmgModFlat = 0;
@@ -1191,9 +1183,9 @@ socket.on('playerFire', (fireData) => {
             finalDamage = maxAllowed;
         }
 
-        const activeTier = p.selectedAmmoTier !== undefined ? p.selectedAmmoTier : 0;
+        const activeTier = 0;
         const ammoList = state.SERVER_CONFIG.shopItems?.ammo?.[activeAmmo] || [];
-        const ammoConfig = ammoList[activeTier] || {};
+        const ammoConfig = ammoList[0] || {};
 
 
         if (isReflect) {
@@ -1816,14 +1808,7 @@ socket.on('playerFire', (fireData) => {
                 // Determinar multiplicador de munición seleccionada por el atacante
                 const attackerAmmoType = attacker.selectedAmmo || 'laser';
                 const mults = state.SERVER_CONFIG.ammoMultipliers[attackerAmmoType] || [1];
-                let maxMultiplier = 1;
-                if (attacker.ammo && attacker.ammo[attackerAmmoType]) {
-                    attacker.ammo[attackerAmmoType].forEach((qty, tier) => {
-                        if (qty > 0 && mults[tier] > maxMultiplier) {
-                            maxMultiplier = mults[tier];
-                        }
-                    });
-                }
+                let maxMultiplier = (mults && mults[0] !== undefined) ? mults[0] : 1;
                 
                 // Modificador de daño desde escudos y motores (dmgMod)
                 let dmgModFlat = 0;
@@ -1864,9 +1849,9 @@ socket.on('playerFire', (fireData) => {
                     dmg = maxAllowedDmg; // Truncar al máximo permitido
                 }
                 
-                const attackerAmmoTier = attacker.selectedAmmoTier !== undefined ? attacker.selectedAmmoTier : 0;
+                const attackerAmmoTier = 0;
                 const attackerAmmoList = state.SERVER_CONFIG.shopItems?.ammo?.[attackerAmmoType] || [];
-                const attackerAmmoConfig = attackerAmmoList[attackerAmmoTier] || {};
+                const attackerAmmoConfig = attackerAmmoList[0] || {};
 
                 if (isReflect) {
                     // Daño directo de reflejo en PvP (no activa curación ni sifones de la munición del atacante)

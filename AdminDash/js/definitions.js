@@ -145,6 +145,28 @@ window.AMMO_ICONS = {
     electron: "⚛️"
 };
 
+window.AMMO_GAME_ICONS = {
+    laser: "res://assets/Municiones/Iconos/laser/Laser.png",
+    missile: "res://assets/Municiones/Iconos/missile/Missile.png",
+    mine: "res://assets/Municiones/Iconos/mine/Mine.png",
+    melee: "res://assets/Municiones/Iconos/melee/Melee.png",
+    heal: "res://assets/Municiones/Iconos/heal/Heal.png",
+    siphon: "res://assets/Municiones/Iconos/siphon/Siphon.png",
+    emp: "res://assets/Municiones/Iconos/emp/Emp.png",
+    electron: "res://assets/Municiones/Iconos/electron/Electron.png"
+};
+
+window.AMMO_COLORS = {
+    laser: "#00d2ff",
+    missile: "#ff5500",
+    mine: "#ffe031",
+    melee: "#ff9f0a",
+    heal: "#30d158",
+    siphon: "#bf5af2",
+    emp: "#5e5ce6",
+    electron: "#64d2ff"
+};
+
 let AMBIENCE_LIB = {
     "radiation": { label: "Radiación", icon: "☢️", desc: "Daño constante por intervalos de tiempo.", fields: ["damage", "intervalMs"] },
     "nebula": { label: "Nebulosa", icon: "🌫️", desc: "Efecto de slow ambiental.", fields: ["slowPercentage", "visibility"] },

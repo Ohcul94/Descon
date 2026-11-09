@@ -204,68 +204,28 @@
   },
   "ammoMultipliers": {
     "electron": [
-      0.4,
-      2,
-      3.5,
-      6,
-      12,
-      25
+      0.4
     ],
     "emp": [
-      0.5,
-      1,
-      1.5,
-      3,
-      6,
-      12
+      0.5
     ],
     "heal": [
-      0.5,
-      1.8,
-      3,
-      5.5,
-      12,
-      25
+      0.5
     ],
     "laser": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      15
+      1
     ],
     "melee": [
-      3,
-      3,
-      5,
-      10,
-      22,
-      50
+      3
     ],
     "mine": [
-      3,
-      3,
-      7,
-      15,
-      40,
-      100
+      3
     ],
     "missile": [
-      2,
-      2,
-      4,
-      8,
-      16,
-      30
+      2
     ],
     "siphon": [
-      0.7,
-      1.5,
-      2.5,
-      5,
-      10,
-      20
+      0.7
     ]
   },
   "battlePassConfig": {
@@ -12575,28 +12535,13 @@
     ],
     "startingAmmo": {
       "laser": [
-        1000,
-        0,
-        0,
-        0,
-        0,
-        0
+        1000
       ],
       "mine": [
-        10,
-        0,
-        0,
-        0,
-        0,
-        0
+        10
       ],
       "missile": [
-        50,
-        0,
-        0,
-        0,
-        0,
-        0
+        50
       ]
     },
     "startingHubs": 0,
@@ -13376,7 +13321,7 @@
               "speedBuffMaxStacks": 4
             }
           ],
-          "name": "Electrón T1",
+          "name": "Electrón",
           "prices": {
             "hubs": 4000,
             "ohcu": 40
@@ -13396,116 +13341,8 @@
               ],
               "type": "spheres"
             }
-          ]
-        },
-        {
-          "bulletSpeed": 600,
-          "castTimeMs": 0,
-          "cooldown": 1800,
-          "explosionRadius": 120,
-          "id": "am_el2",
-          "mechanics": [
-            {
-              "type": "speed_buff",
-              "speedBuffPct": 18,
-              "speedBuffDurationMs": 3000,
-              "speedBuffMaxStacks": 4
-            }
           ],
-          "name": "Electrón T2",
-          "prices": {
-            "hubs": 8000,
-            "ohcu": 10
-          },
-          "range": 520
-        },
-        {
-          "bulletSpeed": 600,
-          "castTimeMs": 0,
-          "cooldown": 1800,
-          "explosionRadius": 130,
-          "hidden": true,
-          "id": "am_el3",
-          "mechanics": [
-            {
-              "type": "speed_buff",
-              "speedBuffPct": 20,
-              "speedBuffDurationMs": 3500,
-              "speedBuffMaxStacks": 4
-            }
-          ],
-          "name": "Electrón T3",
-          "prices": {
-            "hubs": 16000,
-            "ohcu": 20
-          },
-          "range": 540
-        },
-        {
-          "bulletSpeed": 600,
-          "castTimeMs": 0,
-          "cooldown": 1800,
-          "explosionRadius": 130,
-          "hidden": true,
-          "id": "am_el4",
-          "mechanics": [
-            {
-              "type": "speed_buff",
-              "speedBuffPct": 22,
-              "speedBuffDurationMs": 3500,
-              "speedBuffMaxStacks": 5
-            }
-          ],
-          "name": "Electrón T4",
-          "prices": {
-            "hubs": 32000,
-            "ohcu": 40
-          },
-          "range": 560
-        },
-        {
-          "bulletSpeed": 600,
-          "castTimeMs": 0,
-          "cooldown": 1800,
-          "explosionRadius": 140,
-          "hidden": true,
-          "id": "am_el5",
-          "mechanics": [
-            {
-              "type": "speed_buff",
-              "speedBuffPct": 25,
-              "speedBuffDurationMs": 4000,
-              "speedBuffMaxStacks": 5
-            }
-          ],
-          "name": "Electrón T5",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 100
-          },
-          "range": 580
-        },
-        {
-          "bulletSpeed": 650,
-          "castTimeMs": 0,
-          "cooldown": 1800,
-          "explosionRadius": 150,
-          "hidden": true,
-          "id": "am_el6",
-          "mechanics": [
-            {
-              "type": "speed_buff",
-              "speedBuffPct": 30,
-              "speedBuffDurationMs": 4000,
-              "speedBuffMaxStacks": 5
-            }
-          ],
-          "name": "Electrón T6",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 200
-          },
-          "range": 600
+          "icon": "res://assets/Municiones/Iconos/electron/Electron.png"
         }
       ],
       "emp": [
@@ -13520,7 +13357,7 @@
               "duration": 2000
             }
           ],
-          "name": "Pulso EMP T1",
+          "name": "Pulso EMP",
           "prices": {
             "hubs": 4000,
             "ohcu": 40
@@ -13540,76 +13377,8 @@
               ],
               "type": "spheres"
             }
-          ]
-        },
-        {
-          "bulletSpeed": 700,
-          "castTimeMs": 0,
-          "cooldown": 2000,
-          "id": "am_e2",
-          "mechanics": [],
-          "name": "Pulso EMP T2",
-          "prices": {
-            "hubs": 8000,
-            "ohcu": 10
-          },
-          "range": 420
-        },
-        {
-          "bulletSpeed": 700,
-          "castTimeMs": 0,
-          "cooldown": 2000,
-          "hidden": true,
-          "id": "am_e3",
-          "mechanics": [],
-          "name": "Pulso EMP T3",
-          "prices": {
-            "hubs": 16000,
-            "ohcu": 20
-          },
-          "range": 440
-        },
-        {
-          "bulletSpeed": 700,
-          "castTimeMs": 0,
-          "cooldown": 2000,
-          "hidden": true,
-          "id": "am_e4",
-          "mechanics": [],
-          "name": "Pulso EMP T4",
-          "prices": {
-            "hubs": 32000,
-            "ohcu": 40
-          },
-          "range": 460
-        },
-        {
-          "bulletSpeed": 750,
-          "castTimeMs": 0,
-          "cooldown": 2000,
-          "hidden": true,
-          "id": "am_e5",
-          "mechanics": [],
-          "name": "Pulso EMP T5",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 100
-          },
-          "range": 480
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 2000,
-          "hidden": true,
-          "id": "am_e6",
-          "mechanics": [],
-          "name": "Pulso EMP T6",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 200
-          },
-          "range": 500
+          ],
+          "icon": "res://assets/Municiones/Iconos/emp/Emp.png"
         }
       ],
       "heal": [
@@ -13626,7 +13395,7 @@
               "healPctAttackerPvP": 25
             }
           ],
-          "name": "Curativa T1",
+          "name": "Curativa",
           "prices": {
             "hubs": 4000,
             "ohcu": 40
@@ -13646,111 +13415,8 @@
               ],
               "type": "spheres"
             }
-          ]
-        },
-        {
-          "bulletSpeed": 900,
-          "castTimeMs": 0,
-          "cooldown": 1200,
-          "id": "am_h2",
-          "mechanics": [
-            {
-              "type": "heal",
-              "healPctPvE": 40,
-              "healPctVictimPvP": 80,
-              "healPctAttackerPvP": 30
-            }
           ],
-          "name": "Curativa T2",
-          "prices": {
-            "hubs": 3000,
-            "ohcu": 3
-          },
-          "range": 520
-        },
-        {
-          "bulletSpeed": 900,
-          "castTimeMs": 0,
-          "cooldown": 1200,
-          "hidden": true,
-          "id": "am_h3",
-          "mechanics": [
-            {
-              "type": "heal",
-              "healPctPvE": 40,
-              "healPctVictimPvP": 80,
-              "healPctAttackerPvP": 30
-            }
-          ],
-          "name": "Curativa T3",
-          "prices": {
-            "hubs": 6000,
-            "ohcu": 6
-          },
-          "range": 540
-        },
-        {
-          "bulletSpeed": 900,
-          "castTimeMs": 0,
-          "cooldown": 1200,
-          "hidden": true,
-          "id": "am_h4",
-          "mechanics": [
-            {
-              "type": "heal",
-              "healPctPvE": 40,
-              "healPctVictimPvP": 80,
-              "healPctAttackerPvP": 30
-            }
-          ],
-          "name": "Curativa T4",
-          "prices": {
-            "hubs": 12000,
-            "ohcu": 12
-          },
-          "range": 560
-        },
-        {
-          "bulletSpeed": 950,
-          "castTimeMs": 0,
-          "cooldown": 1200,
-          "hidden": true,
-          "id": "am_h5",
-          "mechanics": [
-            {
-              "type": "heal",
-              "healPctPvE": 40,
-              "healPctVictimPvP": 80,
-              "healPctAttackerPvP": 30
-            }
-          ],
-          "name": "Curativa T5",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 30
-          },
-          "range": 580
-        },
-        {
-          "bulletSpeed": 1000,
-          "castTimeMs": 0,
-          "cooldown": 1200,
-          "hidden": true,
-          "id": "am_h6",
-          "mechanics": [
-            {
-              "type": "heal",
-              "healPctPvE": 40,
-              "healPctVictimPvP": 80,
-              "healPctAttackerPvP": 30
-            }
-          ],
-          "name": "Curativa T6",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 60
-          },
-          "range": 600
+          "icon": "res://assets/Municiones/Iconos/heal/Heal.png"
         }
       ],
       "laser": [
@@ -13760,7 +13426,7 @@
           "cooldown": 1000,
           "id": "am_l1",
           "mechanics": [],
-          "name": "Láser T1",
+          "name": "Láser",
           "prices": {
             "hubs": 1000,
             "ohcu": 10
@@ -13768,77 +13434,8 @@
           "range": 1000,
           "requirements": [],
           "sound": "",
-          "soundVolumePercent": 50
-        },
-        {
-          "bulletSpeed": 1000,
-          "castTimeMs": 200,
-          "cooldown": 1000,
-          "hidden": false,
-          "id": "am_l2",
-          "mechanics": [],
-          "name": "Láser T2",
-          "prices": {
-            "hubs": 2000,
-            "ohcu": 2
-          },
-          "range": 1000
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_l3",
-          "mechanics": [],
-          "name": "Láser T3",
-          "prices": {
-            "hubs": 3000,
-            "ohcu": 4
-          },
-          "range": 700
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_l4",
-          "mechanics": [],
-          "name": "Láser T4",
-          "prices": {
-            "hubs": 4000,
-            "ohcu": 6
-          },
-          "range": 750
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_l5",
-          "mechanics": [],
-          "name": "Láser T5",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 10
-          },
-          "range": 800
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_l6",
-          "mechanics": [],
-          "name": "Láser T6",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 20
-          },
-          "range": 1000
+          "soundVolumePercent": 50,
+          "icon": "res://assets/Municiones/Iconos/laser/Laser.png"
         }
       ],
       "melee": [
@@ -13854,7 +13451,7 @@
               "amount": 30
             }
           ],
-          "name": "Melee T1",
+          "name": "Melee",
           "prices": {
             "hubs": 4000,
             "ohcu": 40
@@ -13874,106 +13471,8 @@
               ],
               "type": "spheres"
             }
-          ]
-        },
-        {
-          "bulletSpeed": 2500,
-          "castTimeMs": 0,
-          "cooldown": 800,
-          "id": "am_me2",
-          "mechanics": [
-            {
-              "chance": 15,
-              "duration": 300,
-              "type": "stun"
-            }
           ],
-          "name": "Melee T2",
-          "prices": {
-            "hubs": 4000,
-            "ohcu": 4
-          },
-          "range": 150
-        },
-        {
-          "bulletSpeed": 2500,
-          "castTimeMs": 0,
-          "cooldown": 800,
-          "hidden": true,
-          "id": "am_me3",
-          "mechanics": [
-            {
-              "chance": 20,
-              "duration": 400,
-              "type": "stun"
-            }
-          ],
-          "name": "Melee T3",
-          "prices": {
-            "hubs": 8000,
-            "ohcu": 8
-          },
-          "range": 150
-        },
-        {
-          "bulletSpeed": 2500,
-          "castTimeMs": 0,
-          "cooldown": 800,
-          "hidden": true,
-          "id": "am_me4",
-          "mechanics": [
-            {
-              "chance": 25,
-              "duration": 400,
-              "type": "stun"
-            }
-          ],
-          "name": "Melee T4",
-          "prices": {
-            "hubs": 16000,
-            "ohcu": 16
-          },
-          "range": 150
-        },
-        {
-          "bulletSpeed": 2500,
-          "castTimeMs": 0,
-          "cooldown": 800,
-          "hidden": true,
-          "id": "am_me5",
-          "mechanics": [
-            {
-              "chance": 35,
-              "duration": 500,
-              "type": "stun"
-            }
-          ],
-          "name": "Melee T5",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 40
-          },
-          "range": 160
-        },
-        {
-          "bulletSpeed": 2500,
-          "castTimeMs": 0,
-          "cooldown": 800,
-          "hidden": true,
-          "id": "am_me6",
-          "mechanics": [
-            {
-              "chance": 50,
-              "duration": 600,
-              "type": "stun"
-            }
-          ],
-          "name": "Melee T6",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 80
-          },
-          "range": 170
+          "icon": "res://assets/Municiones/Iconos/melee/Melee.png"
         }
       ],
       "mine": [
@@ -13986,99 +13485,15 @@
           "id": "am_n1",
           "lifetimeMs": 10000,
           "mechanics": [],
-          "name": "Mina T1",
+          "name": "Mina",
           "prices": {
             "hubs": 3000,
             "ohcu": 30
           },
           "range": 300,
           "sound": "",
-          "soundVolumePercent": 50
-        },
-        {
-          "bulletSpeed": 1200,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "deceleration": 1.8,
-          "explosionRadius": 175,
-          "hidden": false,
-          "id": "am_n2",
-          "lifetimeMs": 12000,
-          "mechanics": [],
-          "name": "Mina T2",
-          "prices": {
-            "hubs": 20000,
-            "ohcu": 20
-          },
-          "range": 1100
-        },
-        {
-          "bulletSpeed": 1200,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "deceleration": 1.6,
-          "explosionRadius": 200,
-          "hidden": true,
-          "id": "am_n3",
-          "lifetimeMs": 14000,
-          "mechanics": [],
-          "name": "Mina T3",
-          "prices": {
-            "hubs": 30000,
-            "ohcu": 30
-          },
-          "range": 1100
-        },
-        {
-          "bulletSpeed": 1200,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "deceleration": 1.4,
-          "explosionRadius": 225,
-          "hidden": true,
-          "id": "am_n4",
-          "lifetimeMs": 16000,
-          "mechanics": [],
-          "name": "Mina T4",
-          "prices": {
-            "hubs": 40000,
-            "ohcu": 40
-          },
-          "range": 1100
-        },
-        {
-          "bulletSpeed": 1200,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "deceleration": 1.2,
-          "explosionRadius": 250,
-          "hidden": true,
-          "id": "am_n5",
-          "lifetimeMs": 18000,
-          "mechanics": [],
-          "name": "Mina T5",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 100
-          },
-          "range": 1100
-        },
-        {
-          "bulletSpeed": 1200,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "deceleration": 1,
-          "explosionRadius": 300,
-          "hidden": true,
-          "id": "am_n6",
-          "lifetimeMs": 20000,
-          "mechanics": [],
-          "name": "Mina T6",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 200
-          },
-          "range": 1100
+          "soundVolumePercent": 50,
+          "icon": "res://assets/Municiones/Iconos/mine/Mine.png"
         }
       ],
       "missile": [
@@ -14088,7 +13503,7 @@
           "cooldown": 3000,
           "id": "am_m1",
           "mechanics": [],
-          "name": "Misil T1",
+          "name": "Misil",
           "prices": {
             "hubs": 2000,
             "ohcu": 20
@@ -14097,77 +13512,8 @@
           "requirements": [],
           "soulbound": false,
           "sound": "res://assets/Sonidos/Disparos/Misiles/Misil.mp3",
-          "soundVolumePercent": 50
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 350,
-          "cooldown": 10000,
-          "hidden": false,
-          "id": "am_m2",
-          "mechanics": [],
-          "name": "Misil T2",
-          "prices": {
-            "hubs": 10000,
-            "ohcu": 10
-          },
-          "range": 900
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_m3",
-          "mechanics": [],
-          "name": "Misil T3",
-          "prices": {
-            "hubs": 15000,
-            "ohcu": 15
-          },
-          "range": 1000
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_m4",
-          "mechanics": [],
-          "name": "Misil T4",
-          "prices": {
-            "hubs": 20000,
-            "ohcu": 20
-          },
-          "range": 1100
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_m5",
-          "mechanics": [],
-          "name": "Misil T5",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 50
-          },
-          "range": 1200
-        },
-        {
-          "bulletSpeed": 800,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_m6",
-          "mechanics": [],
-          "name": "Misil T6",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 100
-          },
-          "range": 1500
+          "soundVolumePercent": 50,
+          "icon": "res://assets/Municiones/Iconos/missile/Missile.png"
         }
       ],
       "siphon": [
@@ -14182,7 +13528,7 @@
               "siphonPct": 10
             }
           ],
-          "name": "Robo de Vida T1",
+          "name": "Robo de Vida",
           "prices": {
             "hubs": 4000,
             "ohcu": 40
@@ -14202,111 +13548,20 @@
               ],
               "type": "spheres"
             }
-          ]
-        },
-        {
-          "bulletSpeed": 1200,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "id": "am_s2",
-          "mechanics": [
-            {
-              "type": "siphon",
-              "siphonPct": 25
-            }
           ],
-          "name": "Robo de Vida T2",
-          "prices": {
-            "hubs": 6000,
-            "ohcu": 6
-          },
-          "range": 620
-        },
-        {
-          "bulletSpeed": 1200,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_s3",
-          "mechanics": [
-            {
-              "type": "siphon",
-              "siphonPct": 25
-            }
-          ],
-          "name": "Robo de Vida T3",
-          "prices": {
-            "hubs": 12000,
-            "ohcu": 12
-          },
-          "range": 640
-        },
-        {
-          "bulletSpeed": 1200,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_s4",
-          "mechanics": [
-            {
-              "type": "siphon",
-              "siphonPct": 25
-            }
-          ],
-          "name": "Robo de Vida T4",
-          "prices": {
-            "hubs": 24000,
-            "ohcu": 24
-          },
-          "range": 660
-        },
-        {
-          "bulletSpeed": 1300,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_s5",
-          "mechanics": [
-            {
-              "type": "siphon",
-              "siphonPct": 25
-            }
-          ],
-          "name": "Robo de Vida T5",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 60
-          },
-          "range": 680
-        },
-        {
-          "bulletSpeed": 1400,
-          "castTimeMs": 0,
-          "cooldown": 1000,
-          "hidden": true,
-          "id": "am_s6",
-          "mechanics": [
-            {
-              "type": "siphon",
-              "siphonPct": 25
-            }
-          ],
-          "name": "Robo de Vida T6",
-          "prices": {
-            "hubs": 0,
-            "ohcu": 120
-          },
-          "range": 700
+          "icon": "res://assets/Municiones/Iconos/siphon/Siphon.png"
         }
       ]
     },
     "ammo_icons": {
-      "siphon_0": "res://assets/Municiones/Siphon/Siphon1/Siphon1.png",
-      "siphon_1": "res://assets/Municiones/Siphon/Siphon1/Siphon1.png",
-      "siphon_2": "res://assets/Municiones/Siphon/Siphon1/Siphon1.png",
-      "siphon_3": "res://assets/Municiones/Siphon/Siphon1/Siphon1.png",
-      "siphon_4": "res://assets/Municiones/Siphon/Siphon1/Siphon1.png",
-      "siphon_5": "res://assets/Municiones/Siphon/Siphon1/Siphon1.png"
+      "siphon_0": "res://assets/Municiones/Iconos/siphon/Siphon.png",
+      "laser_0": "res://assets/Municiones/Iconos/laser/Laser.png",
+      "missile_0": "res://assets/Municiones/Iconos/missile/Missile.png",
+      "mine_0": "res://assets/Municiones/Iconos/mine/Mine.png",
+      "melee_0": "res://assets/Municiones/Iconos/melee/Melee.png",
+      "heal_0": "res://assets/Municiones/Iconos/heal/Heal.png",
+      "emp_0": "res://assets/Municiones/Iconos/emp/Emp.png",
+      "electron_0": "res://assets/Municiones/Iconos/electron/Electron.png"
     },
     "engines": [
       {

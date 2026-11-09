@@ -753,8 +753,8 @@ func get_secure_server_time_ms() -> int:
 # ============================================================
 func check_equip_requirements(item_id: String = "", skill_name: String = "", ammo_type: String = "", ammo_tier: int = -1) -> Dictionary:
 	var reqs: Array = []
-	if ammo_type != "" and ammo_tier >= 0:
-		reqs = _get_ammo_requirements(ammo_type, ammo_tier)
+	if ammo_type != "":
+		reqs = _get_ammo_requirements(ammo_type, max(0, ammo_tier))
 	elif skill_name != "":
 		reqs = _get_skill_requirements(skill_name)
 	elif item_id != "":
@@ -917,15 +917,16 @@ func get_sector_seal_quest(dest_zone: Variant) -> String:
 					return str(q_def.get("name", q_def.get("id", "")))
 	return ""
 
-func _get_ammo_requirements(ammo_type: String, ammo_tier: int) -> Array:
+func _get_ammo_requirements(ammo_type: String, ammo_tier: int = 0) -> Array:
 	var shop: Dictionary = server_config.get("shopItems", {}) if server_config.has("shopItems") else {}
 	var ammo = shop.get("ammo", {})
 	if typeof(ammo) != TYPE_DICTIONARY or not ammo.has(ammo_type):
 		return []
 	var list = ammo[ammo_type]
-	if typeof(list) != TYPE_ARRAY or ammo_tier < 0 or ammo_tier >= list.size():
+	if typeof(list) != TYPE_ARRAY or list.is_empty():
 		return []
-	var entry = list[ammo_tier]
+	var idx = clamp(ammo_tier, 0, list.size() - 1)
+	var entry = list[idx]
 	if typeof(entry) == TYPE_DICTIONARY:
 		return entry.get("requirements", [])
 	return []

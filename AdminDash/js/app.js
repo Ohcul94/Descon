@@ -3,7 +3,10 @@ let chatSocket = null;
 let config = {};
 window.config = config;
 
-let currentAmmoTab = 'laser';
+let currentTab = localStorage.getItem('admin_last_tab') || 'ammo';
+window.currentTab = currentTab;
+let currentAmmoTab = localStorage.getItem('admin_last_ammo_tab') || 'laser';
+window.currentAmmoTab = currentAmmoTab;
 let currentEnemySubTab = 'regular';
 let currentModeTab = localStorage.getItem('admin_last_mode_tab') || 'hunting';
 let currentSkillTab = localStorage.getItem('admin_last_skill_tab') || 'Ataque';
@@ -58,9 +61,14 @@ function setEnv(env) {
         btnLocal.style.color = 'var(--text-muted)';
         if (urlDisplay) urlDisplay.textContent = '138.2.241.76:3333';
     }
+    if (typeof window.initSidebarAmmoIcons === 'function') {
+        window.initSidebarAmmoIcons();
+    }
 }
 
 function showTab(tabId) {
+    currentTab = tabId;
+    window.currentTab = tabId;
     localStorage.setItem('admin_last_tab', tabId);
 
     if (telemetryInterval) {
@@ -384,9 +392,9 @@ function connect() {
                     startingShipId: 1,
                     startingMapId: 1,
                     startingAmmo: {
-                        laser: [1000, 0, 0, 0, 0, 0],
-                        missile: [50, 0, 0, 0, 0, 0],
-                        mine: [10, 0, 0, 0, 0, 0]
+                        laser: [1000],
+                        missile: [50],
+                        mine: [10]
                     },
                     expRequirements: Array(30).fill(0).map((_, i) => (i + 1) * 1000),
                     sphereSlotRequirements: Array.from({ length: 4 }, (_, i) => ({ name: `Slot ${i + 1}`, requirements: [] }))
@@ -614,13 +622,20 @@ function selectMap(id) {
 
 function setAmmoTab(tab, btn) {
     currentAmmoTab = tab;
-    if (btn) {
-        document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
-        btn.classList.add('active');
-    }
+    window.currentAmmoTab = tab;
+    try { localStorage.setItem('admin_last_ammo_tab', tab); } catch (e) {}
+    document.querySelectorAll('.nav-link[onclick*="setAmmoTab"]').forEach(l => {
+        const onclickStr = l.getAttribute('onclick') || '';
+        if (onclickStr.includes("'" + tab + "'") || onclickStr.includes('"' + tab + '"')) {
+            l.classList.add('active');
+        } else {
+            l.classList.remove('active');
+        }
+    });
+
     const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[tab]) || (tab ? (tab.charAt(0).toUpperCase() + tab.slice(1)) : 'Láser');
     const titleEl = document.getElementById('current-view-title');
-    if (titleEl && currentTab === 'ammo') {
+    if (titleEl && (typeof currentTab === 'undefined' || currentTab === 'ammo')) {
         titleEl.innerText = `Mercado: Munición ${ammoName}`;
     }
     renderAmmo();

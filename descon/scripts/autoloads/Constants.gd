@@ -81,52 +81,28 @@ var SHIP_MODELS = [
 var SHOP_ITEMS = {
 	"ammo": {
 		"laser": [
-			{ "id": "am_l1", "name": "Láser T1", "prices": { "hubs": 1000, "ohcu": 10 }, "range": 600 },
-			{ "id": "am_l2", "name": "Láser T2", "prices": { "hubs": 2000, "ohcu": 2 }, "range": 650 },
-			{ "id": "am_l3", "name": "Láser T3", "prices": { "hubs": 3000, "ohcu": 4 }, "range": 700 },
-			{ "id": "am_l4", "name": "Láser T4", "prices": { "hubs": 4000, "ohcu": 6 }, "range": 750 },
-			{ "id": "am_l5", "name": "Láser T5", "prices": { "hubs": 0, "ohcu": 10 }, "range": 800 },
-			{ "id": "am_l6", "name": "Láser T6", "prices": { "hubs": 0, "ohcu": 20 }, "range": 1000 }
+			{ "id": "am_l1", "name": "Láser", "prices": { "hubs": 1000, "ohcu": 10 }, "range": 600, "icon": "res://assets/Municiones/Iconos/laser/Laser.png" }
 		],
 		"mine": [
-			{ "id": "am_n1", "name": "Mina T1", "prices": { "hubs": 10000, "ohcu": 1 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 150, "lifetimeMs": 10000, "deceleration": 2.0 },
-			{ "id": "am_n2", "name": "Mina T2", "prices": { "hubs": 20000, "ohcu": 20 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 175, "lifetimeMs": 12000, "deceleration": 1.8 },
-			{ "id": "am_n3", "name": "Mina T3", "prices": { "hubs": 30000, "ohcu": 30 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 200, "lifetimeMs": 14000, "deceleration": 1.6 },
-			{ "id": "am_n4", "name": "Mina T4", "prices": { "hubs": 40000, "ohcu": 40 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 225, "lifetimeMs": 16000, "deceleration": 1.4 },
-			{ "id": "am_n5", "name": "Mina T5", "prices": { "hubs": 0, "ohcu": 100 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 250, "lifetimeMs": 18000, "deceleration": 1.2 },
-			{ "id": "am_n6", "name": "Mina T6", "prices": { "hubs": 0, "ohcu": 200 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 300, "lifetimeMs": 20000, "deceleration": 1.0 }
+			{ "id": "am_n1", "name": "Mina", "prices": { "hubs": 10000, "ohcu": 1 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 150, "lifetimeMs": 10000, "deceleration": 2.0, "icon": "res://assets/Municiones/Iconos/mine/Mine.png" }
 		],
 		"missile": [
-			{ "id": "am_m1", "name": "Misil T1", "prices": { "hubs": 5000, "ohcu": 1 }, "range": 800 },
-			{ "id": "am_m2", "name": "Misil T2", "prices": { "hubs": 10000, "ohcu": 10 }, "range": 900 },
-			{ "id": "am_m3", "name": "Misil T3", "prices": { "hubs": 15000, "ohcu": 15 }, "range": 1000 },
-			{ "id": "am_m4", "name": "Misil T4", "prices": { "hubs": 20000, "ohcu": 20 }, "range": 1100 },
-			{ "id": "am_m5", "name": "Misil T5", "prices": { "hubs": 0, "ohcu": 50 }, "range": 1200 },
-			{ "id": "am_m6", "name": "Misil T6", "prices": { "hubs": 0, "ohcu": 100 }, "range": 1500 }
+			{ "id": "am_m1", "name": "Misil", "prices": { "hubs": 5000, "ohcu": 1 }, "range": 800, "icon": "res://assets/Municiones/Iconos/missile/Missile.png" }
 		],
 		"electron": [
-			{ "id": "am_el1", "name": "Electrón T1", "prices": { "hubs": 4000, "ohcu": 5 }, "range": 500 },
-			{ "id": "am_el2", "name": "Electrón T2", "prices": { "hubs": 8000, "ohcu": 10 }, "range": 520 },
-			{ "id": "am_el3", "name": "Electrón T3", "prices": { "hubs": 16000, "ohcu": 20 }, "range": 540 },
-			{ "id": "am_el4", "name": "Electrón T4", "prices": { "hubs": 32000, "ohcu": 40 }, "range": 560 },
-			{ "id": "am_el5", "name": "Electrón T5", "prices": { "hubs": 0, "ohcu": 100 }, "range": 580 },
-			{ "id": "am_el6", "name": "Electrón T6", "prices": { "hubs": 0, "ohcu": 200 }, "range": 600 }
+			{ "id": "am_el1", "name": "Electrón", "prices": { "hubs": 4000, "ohcu": 5 }, "range": 500, "icon": "res://assets/Municiones/Iconos/electron/Electron.png" }
 		],
 		"siphon": [
-			{ "id": "am_s1", "name": "Vampire Beam T1", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 600, "bulletSpeed": 1200 },
-			{ "id": "am_s2", "name": "Vampire Beam T2", "prices": { "hubs": 6000, "ohcu": 6 }, "range": 620, "bulletSpeed": 1200 },
-			{ "id": "am_s3", "name": "Vampire Beam T3", "prices": { "hubs": 12000, "ohcu": 12 }, "range": 640, "bulletSpeed": 1200 },
-			{ "id": "am_s4", "name": "Vampire Beam T4", "prices": { "hubs": 24000, "ohcu": 24 }, "range": 660, "bulletSpeed": 1200 },
-			{ "id": "am_s5", "name": "Vampire Beam T5", "prices": { "hubs": 0, "ohcu": 60 }, "range": 680, "bulletSpeed": 1300 },
-			{ "id": "am_s6", "name": "Vampire Beam T6", "prices": { "hubs": 0, "ohcu": 120 }, "range": 700, "bulletSpeed": 1400 }
+			{ "id": "am_s1", "name": "Vampire Beam", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 600, "bulletSpeed": 1200, "icon": "res://assets/Municiones/Iconos/siphon/Siphon.png" }
 		],
 		"emp": [
-			{ "id": "am_e1", "name": "EMP Pulse T1", "prices": { "hubs": 4000, "ohcu": 4 }, "range": 500, "bulletSpeed": 800 },
-			{ "id": "am_e2", "name": "EMP Pulse T2", "prices": { "hubs": 8000, "ohcu": 8 }, "range": 550, "bulletSpeed": 850 },
-			{ "id": "am_e3", "name": "EMP Pulse T3", "prices": { "hubs": 16000, "ohcu": 16 }, "range": 600, "bulletSpeed": 900 },
-			{ "id": "am_e4", "name": "EMP Pulse T4", "prices": { "hubs": 32000, "ohcu": 32 }, "range": 650, "bulletSpeed": 950 },
-			{ "id": "am_e5", "name": "EMP Pulse T5", "prices": { "hubs": 0, "ohcu": 80 }, "range": 700, "bulletSpeed": 1000 },
-			{ "id": "am_e6", "name": "EMP Pulse T6", "prices": { "hubs": 0, "ohcu": 160 }, "range": 750, "bulletSpeed": 1100 }
+			{ "id": "am_e1", "name": "EMP Pulse", "prices": { "hubs": 4000, "ohcu": 4 }, "range": 500, "bulletSpeed": 800, "icon": "res://assets/Municiones/Iconos/emp/Emp.png" }
+		],
+		"melee": [
+			{ "id": "am_mel1", "name": "Melee", "prices": { "hubs": 2000, "ohcu": 2 }, "range": 200, "icon": "res://assets/Municiones/Iconos/melee/Melee.png" }
+		],
+		"heal": [
+			{ "id": "am_h1", "name": "Curativa", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 600, "icon": "res://assets/Municiones/Iconos/heal/Heal.png" }
 		]
 	},
 	"weapons": [
@@ -182,14 +158,14 @@ var ENEMY_MODELS = {
 }
 
 var AMMO_MULTIPLIERS = {
-	"laser": [1, 2, 3, 4, 5, 15],
-	"missile": [1, 2, 4, 8, 16, 30],
-	"mine": [1, 3, 7, 15, 40, 100],
-	"melee": [1.5, 3, 5, 10, 22, 50],
-	"heal": [1, 1.8, 3, 5.5, 12, 25],
-	"siphon": [0.8, 1.5, 2.5, 5, 10, 20],
-	"emp": [0.5, 1, 1.5, 3, 6, 12],
-	"electron": [1.0, 2.0, 3.5, 6.0, 12.0, 25.0]
+	"laser": [1],
+	"missile": [2],
+	"mine": [3],
+	"melee": [3],
+	"heal": [0.5],
+	"siphon": [0.7],
+	"emp": [0.5],
+	"electron": [0.4]
 }
 
 var SKILLS_DATA = {

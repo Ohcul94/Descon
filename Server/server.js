@@ -610,38 +610,44 @@ const handleUserLogin = async (socket, user, username) => {
     if (ammoReset) {
         user.gameData.ammo = undefined;
         user.gameData.ammo = {
-            laser: [1000, 0, 0, 0, 0, 0],
-            missile: [50, 0, 0, 0, 0, 0],
-            mine: [10, 0, 0, 0, 0, 0],
-            melee: [0, 0, 0, 0, 0, 0],
-            heal: [0, 0, 0, 0, 0, 0],
-            siphon: [0, 0, 0, 0, 0, 0],
-            emp: [0, 0, 0, 0, 0, 0],
-            electron: [0, 0, 0, 0, 0, 0]
+            laser: [1000],
+            missile: [50],
+            mine: [10],
+            melee: [0],
+            heal: [0],
+            siphon: [0],
+            emp: [0],
+            electron: [0]
         };
         ammoModified = true;
     }
 
     const defaultAmmo = {
-        laser: [1000, 0, 0, 0, 0, 0],
-        missile: [50, 0, 0, 0, 0, 0],
-        mine: [10, 0, 0, 0, 0, 0],
-        melee: [0, 0, 0, 0, 0, 0],
-        heal: [0, 0, 0, 0, 0, 0],
-        siphon: [0, 0, 0, 0, 0, 0],
-        emp: [0, 0, 0, 0, 0, 0],
-        electron: [0, 0, 0, 0, 0, 0]
+        laser: [1000],
+        missile: [50],
+        mine: [10],
+        melee: [0],
+        heal: [0],
+        siphon: [0],
+        emp: [0],
+        electron: [0]
     };
     
-    // Si no se reseteó por completo, normalizar tiers
+    // Normalización: Consolidar todos los tiers en un único total sin perder munición previa
     if (!ammoReset) {
         for (const key in defaultAmmo) {
-            if (!user.gameData.ammo[key] || !Array.isArray(user.gameData.ammo[key]) || user.gameData.ammo[key].length < 6) {
-                var baseArr = Array.isArray(user.gameData.ammo[key]) ? user.gameData.ammo[key] : [];
-                while (baseArr.length < 6) {
-                    baseArr.push(key === "laser" && baseArr.length === 0 ? 1000 : (key === "missile" && baseArr.length === 0 ? 50 : (key === "mine" && baseArr.length === 0 ? 10 : 0)));
+            const current = user.gameData.ammo[key];
+            if (Array.isArray(current)) {
+                const total = current.reduce((acc, v) => acc + (Number(v) || 0), 0);
+                if (current.length !== 1 || current[0] !== total) {
+                    user.gameData.ammo[key] = [total];
+                    ammoModified = true;
                 }
-                user.gameData.ammo[key] = baseArr;
+            } else if (typeof current === 'number') {
+                user.gameData.ammo[key] = [current];
+                ammoModified = true;
+            } else {
+                user.gameData.ammo[key] = [...defaultAmmo[key]];
                 ammoModified = true;
             }
         }

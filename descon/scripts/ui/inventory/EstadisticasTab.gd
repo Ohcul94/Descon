@@ -909,31 +909,19 @@ func _add_ammo_section(parent, player):
 	var active_count = 0
 	for atype in ammo_types:
 		if not ammo.has(atype): continue
-		var tiers = ammo[atype]
-		if typeof(tiers) != TYPE_ARRAY: continue
-		var has_any = false
-		for t in tiers:
-			if int(t) > 0:
-				has_any = true; break
-		if not has_any: continue
+		var a_list = ammo[atype]
+		if typeof(a_list) != TYPE_ARRAY or a_list.is_empty(): continue
+		var count = int(a_list[0])
+		if count <= 0: continue
 
 		var is_active_type = atype in active_slots
 		var display = ammo_names.get(atype, atype)
-		var tier_str = ""
-		for i in range(tiers.size()):
-			var count = int(tiers[i])
-			if count > 0:
-				var marker = ""
-				if is_active_type:
-					marker = " [ACTIVA]"
-					if i == int(selected.get(atype, 0)):
-						marker = " [ACTIVA T" + str(i + 1) + "]"
-					else:
-						marker = " [Slot " + str(active_slots.find(atype) + 1) + "]"
-				tier_str += " T" + str(i + 1) + ": " + str(count) + marker
+		var marker = ""
 		if is_active_type:
 			active_count += 1
-		_add_info_row(parent, "💣 " + display, tier_str.strip_edges(), Color(1.0, 0.85, 0.3) if is_active_type else Color(0.6, 0.65, 0.7))
+			marker = " [ACTIVA - Slot " + str(active_slots.find(atype) + 1) + "]"
+		var ammo_str = str(count) + marker
+		_add_info_row(parent, "💣 " + display, ammo_str, Color(1.0, 0.85, 0.3) if is_active_type else Color(0.6, 0.65, 0.7))
 
 	_add_info_row(parent, "", str(active_count) + " de 3 slots activos", Color(0.4, 0.5, 0.6))
 
