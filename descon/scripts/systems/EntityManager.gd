@@ -46,6 +46,111 @@ const TEX_ESFERA_VERDE_1 = preload("res://assets/Esferas/EsferaVerde1.png")
 const CONE_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
 const CONE_SPARK_TEX = preload("res://VFX/textures/T_VFX_sparks42.jpg")
 
+# --- Flyweight Static Cache para Tormenta de Hielo (Zero Allocation / Zero Shader Hitch) ---
+static var _is_charging_ground_mat: StandardMaterial3D = null
+static var _is_charging_ring_mat: StandardMaterial3D = null
+static var _is_ground_mat: StandardMaterial3D = null
+static var _is_ring_outer_mat: StandardMaterial3D = null
+static var _is_spike_mesh: CylinderMesh = null
+static var _is_spike_mat: StandardMaterial3D = null
+static var _is_spike_ppm_template: ParticleProcessMaterial = null
+static var _is_spike_grad_tex: GradientTexture1D = null
+static var _is_fog_mesh: SphereMesh = null
+static var _is_fog_mat: StandardMaterial3D = null
+static var _is_fog_ppm_template: ParticleProcessMaterial = null
+
+static func _ensure_ice_storm_static_cache() -> void:
+	if _is_ground_mat != null:
+		return
+	
+	_is_charging_ground_mat = StandardMaterial3D.new()
+	_is_charging_ground_mat.albedo_color = Color(0.3, 0.7, 1.0, 0.15)
+	_is_charging_ground_mat.emission_enabled = true
+	_is_charging_ground_mat.emission = Color(0.2, 0.6, 1.0)
+	_is_charging_ground_mat.emission_energy_multiplier = 0.8
+	_is_charging_ground_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_is_charging_ground_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	_is_charging_ring_mat = StandardMaterial3D.new()
+	_is_charging_ring_mat.albedo_color = Color(0.5, 0.85, 1.0, 0.8)
+	_is_charging_ring_mat.emission_enabled = true
+	_is_charging_ring_mat.emission = Color(0.3, 0.8, 1.0)
+	_is_charging_ring_mat.emission_energy_multiplier = 2.5
+	_is_charging_ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_is_charging_ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	_is_ground_mat = StandardMaterial3D.new()
+	_is_ground_mat.albedo_color = Color(0.4, 0.8, 1.0, 0.28)
+	_is_ground_mat.emission_enabled = true
+	_is_ground_mat.emission = Color(0.25, 0.7, 1.0)
+	_is_ground_mat.emission_energy_multiplier = 1.0
+	_is_ground_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_is_ground_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	_is_ring_outer_mat = StandardMaterial3D.new()
+	_is_ring_outer_mat.albedo_color = Color(0.7, 0.95, 1.0, 0.85)
+	_is_ring_outer_mat.emission_enabled = true
+	_is_ring_outer_mat.emission = Color(0.4, 0.85, 1.0)
+	_is_ring_outer_mat.emission_energy_multiplier = 3.0
+	_is_ring_outer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_is_ring_outer_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	_is_spike_mat = StandardMaterial3D.new()
+	_is_spike_mat.albedo_color = Color(0.85, 0.95, 1.0, 0.95)
+	_is_spike_mat.emission_enabled = true
+	_is_spike_mat.emission = Color(0.4, 0.85, 1.0)
+	_is_spike_mat.emission_energy_multiplier = 2.0
+	_is_spike_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_is_spike_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+
+	_is_spike_mesh = CylinderMesh.new()
+	_is_spike_mesh.top_radius = 0.08
+	_is_spike_mesh.bottom_radius = 0.0
+	_is_spike_mesh.height = 0.65
+	_is_spike_mesh.material = _is_spike_mat
+
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.7, 0.9, 1.0, 0.0))
+	grad.add_point(0.1, Color(0.85, 0.95, 1.0, 1.0))
+	grad.add_point(0.8, Color(0.9, 0.98, 1.0, 0.9))
+	grad.set_color(grad.get_point_count() - 1, Color(1.0, 1.0, 1.0, 0.0))
+	_is_spike_grad_tex = GradientTexture1D.new()
+	_is_spike_grad_tex.gradient = grad
+
+	_is_spike_ppm_template = ParticleProcessMaterial.new()
+	_is_spike_ppm_template.direction = Vector3(0, -1, 0)
+	_is_spike_ppm_template.spread = 2.0
+	_is_spike_ppm_template.initial_velocity_min = 6.0
+	_is_spike_ppm_template.initial_velocity_max = 9.5
+	_is_spike_ppm_template.gravity = Vector3(0, -10.0, 0)
+	_is_spike_ppm_template.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	_is_spike_ppm_template.scale_min = 0.7
+	_is_spike_ppm_template.scale_max = 1.3
+	_is_spike_ppm_template.color_ramp = _is_spike_grad_tex
+
+	_is_fog_mat = StandardMaterial3D.new()
+	_is_fog_mat.albedo_color = Color(0.6, 0.85, 1.0, 0.18)
+	_is_fog_mat.emission_enabled = true
+	_is_fog_mat.emission = Color(0.3, 0.7, 1.0)
+	_is_fog_mat.emission_energy_multiplier = 0.5
+	_is_fog_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_is_fog_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+
+	_is_fog_mesh = SphereMesh.new()
+	_is_fog_mesh.radius = 0.25
+	_is_fog_mesh.height = 0.25
+	_is_fog_mesh.material = _is_fog_mat
+
+	_is_fog_ppm_template = ParticleProcessMaterial.new()
+	_is_fog_ppm_template.direction = Vector3(0, 1, 0)
+	_is_fog_ppm_template.spread = 45.0
+	_is_fog_ppm_template.initial_velocity_min = 0.2
+	_is_fog_ppm_template.initial_velocity_max = 0.6
+	_is_fog_ppm_template.gravity = Vector3(0, 0.1, 0)
+	_is_fog_ppm_template.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	_is_fog_ppm_template.scale_min = 0.8
+	_is_fog_ppm_template.scale_max = 1.8
+
 func _safe_free_node(target: Variant) -> void:
 	if not is_instance_valid(target):
 		return
@@ -2553,6 +2658,7 @@ func _on_enemy_action(data: Dictionary):
 			var _charge_dur = float(data.get("duration", 1500.0)) / 1000.0
 
 			if is_3d_active:
+				_ensure_ice_storm_static_cache()
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var vp = current_map.sub_viewport
@@ -2574,13 +2680,8 @@ func _on_enemy_action(data: Dictionary):
 				g_mesh.bottom_radius = outer_r3d
 				g_mesh.height = 0.01
 				ground_disc.mesh = g_mesh
-				var g_mat = StandardMaterial3D.new()
-				g_mat.albedo_color = Color(0.3, 0.7, 1.0, 0.15)
-				g_mat.emission_enabled = true
-				g_mat.emission = Color(0.2, 0.6, 1.0)
-				g_mat.emission_energy_multiplier = 0.8
-				g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				# Usar duplicado liviano para animar alfa del pulso sin recompilar shader
+				var g_mat = _is_charging_ground_mat.duplicate()
 				ground_disc.material_override = g_mat
 				ground_disc.position.y = 0.01
 				circle_3d.add_child(ground_disc)
@@ -2590,14 +2691,7 @@ func _on_enemy_action(data: Dictionary):
 				torus.inner_radius = max(0.01, outer_r3d - 0.12)
 				torus.outer_radius = outer_r3d
 				ring.mesh = torus
-				var r_mat = StandardMaterial3D.new()
-				r_mat.albedo_color = Color(0.5, 0.85, 1.0, 0.8)
-				r_mat.emission_enabled = true
-				r_mat.emission = Color(0.3, 0.8, 1.0)
-				r_mat.emission_energy_multiplier = 2.5
-				r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				ring.material_override = r_mat
+				ring.material_override = _is_charging_ring_mat
 				ring.position.y = 0.02
 				circle_3d.add_child(ring)
 
@@ -2617,6 +2711,7 @@ func _on_enemy_action(data: Dictionary):
 			if active_areas.has("icestorm_" + enemy_id): return
 
 			if is_3d_active:
+				_ensure_ice_storm_static_cache()
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var vp = current_map.sub_viewport
@@ -2642,14 +2737,7 @@ func _on_enemy_action(data: Dictionary):
 				g_mesh.bottom_radius = r3d
 				g_mesh.height = 0.02
 				ground.mesh = g_mesh
-				var g_mat = StandardMaterial3D.new()
-				g_mat.albedo_color = Color(0.4, 0.8, 1.0, 0.28)
-				g_mat.emission_enabled = true
-				g_mat.emission = Color(0.25, 0.7, 1.0)
-				g_mat.emission_energy_multiplier = 1.0
-				g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				ground.material_override = g_mat
+				ground.material_override = _is_ground_mat
 				ground.position.y = 0.01
 				storm.add_child(ground)
 
@@ -2659,14 +2747,7 @@ func _on_enemy_action(data: Dictionary):
 				torus.inner_radius = max(0.01, r3d - 0.15)
 				torus.outer_radius = r3d
 				ring_outer.mesh = torus
-				var r_mat = StandardMaterial3D.new()
-				r_mat.albedo_color = Color(0.7, 0.95, 1.0, 0.85)
-				r_mat.emission_enabled = true
-				r_mat.emission = Color(0.4, 0.85, 1.0)
-				r_mat.emission_energy_multiplier = 3.0
-				r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				ring_outer.material_override = r_mat
+				ring_outer.material_override = _is_ring_outer_mat
 				ring_outer.position.y = 0.03
 				storm.add_child(ring_outer)
 
@@ -2678,40 +2759,10 @@ func _on_enemy_action(data: Dictionary):
 				spike_particles.explosiveness = 0.1
 				spike_particles.randomness = 0.6
 				spike_particles.position.y = 3.5
+				spike_particles.draw_pass_1 = _is_spike_mesh
 
-				var spike_mesh = CylinderMesh.new()
-				spike_mesh.top_radius = 0.08
-				spike_mesh.bottom_radius = 0.0
-				spike_mesh.height = 0.65
-				var spike_mat = StandardMaterial3D.new()
-				spike_mat.albedo_color = Color(0.85, 0.95, 1.0, 0.95)
-				spike_mat.emission_enabled = true
-				spike_mat.emission = Color(0.4, 0.85, 1.0)
-				spike_mat.emission_energy_multiplier = 2.0
-				spike_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				spike_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				spike_mesh.material = spike_mat
-				spike_particles.draw_pass_1 = spike_mesh
-
-				var pm = ParticleProcessMaterial.new()
-				pm.direction = Vector3(0, -1, 0)
-				pm.spread = 2.0
-				pm.initial_velocity_min = 6.0
-				pm.initial_velocity_max = 9.5
-				pm.gravity = Vector3(0, -10.0, 0)
-				pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+				var pm = _is_spike_ppm_template.duplicate()
 				pm.emission_box_extents = Vector3(r3d * 0.88, 0.1, r3d * 0.88)
-				pm.scale_min = 0.7
-				pm.scale_max = 1.3
-
-				var grad = Gradient.new()
-				grad.set_color(0, Color(0.7, 0.9, 1.0, 0.0))
-				grad.add_point(0.1, Color(0.85, 0.95, 1.0, 1.0))
-				grad.add_point(0.8, Color(0.9, 0.98, 1.0, 0.9))
-				grad.set_color(grad.get_point_count() - 1, Color(1.0, 1.0, 1.0, 0.0))
-				pm.color_ramp = GradientTexture1D.new()
-				pm.color_ramp.gradient = grad
-
 				spike_particles.process_material = pm
 				storm.add_child(spike_particles)
 				spike_particles.emitting = true
@@ -2721,29 +2772,10 @@ func _on_enemy_action(data: Dictionary):
 				fog_particles.amount = 25
 				fog_particles.lifetime = 1.2
 				fog_particles.position.y = 0.15
-				var fog_mesh = SphereMesh.new()
-				fog_mesh.radius = 0.25
-				fog_mesh.height = 0.25
-				var fog_mat = StandardMaterial3D.new()
-				fog_mat.albedo_color = Color(0.6, 0.85, 1.0, 0.18)
-				fog_mat.emission_enabled = true
-				fog_mat.emission = Color(0.3, 0.7, 1.0)
-				fog_mat.emission_energy_multiplier = 0.5
-				fog_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				fog_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				fog_mesh.material = fog_mat
-				fog_particles.draw_pass_1 = fog_mesh
+				fog_particles.draw_pass_1 = _is_fog_mesh
 
-				var fog_pm = ParticleProcessMaterial.new()
-				fog_pm.direction = Vector3(0, 1, 0)
-				fog_pm.spread = 45.0
-				fog_pm.initial_velocity_min = 0.2
-				fog_pm.initial_velocity_max = 0.6
-				fog_pm.gravity = Vector3(0, 0.1, 0)
-				fog_pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+				var fog_pm = _is_fog_ppm_template.duplicate()
 				fog_pm.emission_box_extents = Vector3(r3d * 0.85, 0.05, r3d * 0.85)
-				fog_pm.scale_min = 0.8
-				fog_pm.scale_max = 1.8
 				fog_particles.process_material = fog_pm
 				storm.add_child(fog_particles)
 				fog_particles.emitting = true
@@ -3213,6 +3245,11 @@ func _on_enemy_updated(data):
 		var enemy_zone = _parse_zone_to_int(data.get("zone", -1))
 		if enemy_zone != -1:
 			eref.set_meta("zone", enemy_zone)
+		if is_new and not data.has("name") and not data.has("username") and GameConstants and "ENEMY_MODELS" in GameConstants:
+			var raw_t = str(data.get("type", eref.entity_type))
+			var fallback_cfg = GameConstants.ENEMY_MODELS.get(raw_t, {})
+			if fallback_cfg.has("name"):
+				data["name"] = fallback_cfg["name"]
 		eref.update_stats(data)
 		if is_new and eref.has_method("_update_3d_root_sync"):
 			eref._update_3d_root_sync()
@@ -3222,7 +3259,7 @@ func _on_enemy_updated(data):
 				eref.world_root_3d.visible = false
 			if is_instance_valid(eref.get("_ui_wrapper")):
 				eref._ui_wrapper.visible = false
-		elif not eref.is_burrowed:
+		elif not eref.is_burrowed and not eref.is_dead and eref.current_hp > 0:
 			eref.visible = true; eref.show()
 	else:
 		enemies.erase(id)
@@ -3304,6 +3341,7 @@ func _on_enemy_dead(data: Dictionary):
 		if is_instance_valid(indicator):
 			indicator.queue_free()
 		enemy.die()
+		enemy.deactivate_for_pooling()
 	if enemies.has(id): enemies.erase(id)
 
 func _on_enemy_damaged(data: Dictionary):
@@ -3333,7 +3371,7 @@ func _on_hook_pulled(data: Dictionary):
 	var attacker_node = enemies.get(attacker_id)
 	var victim_node = null
 	
-	if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == victim_id:
+	if is_instance_valid(world) and is_instance_valid(world.local_player) and (str(world.local_player.entity_id) == victim_id or (NetworkManager and str(NetworkManager.my_socket_id) == victim_id)):
 		victim_node = world.local_player
 	elif remote_players.has(victim_id):
 		victim_node = remote_players[victim_id]
@@ -3365,13 +3403,13 @@ func _on_hook_pulled(data: Dictionary):
 			target_pos = Vector2(float(data.targetX), float(data.targetY))
 		else:
 			var angle = (victim_node.global_position - attacker_node.global_position).angle()
-			target_pos = attacker_node.global_position + Vector2.RIGHT.rotated(angle) * 100.0
+			target_pos = attacker_node.global_position + Vector2.RIGHT.rotated(angle) * 110.0
 		
 		var pull_speed = float(data.get("pullSpeed", 1500.0))
 		if pull_speed < 1200.0:
 			pull_speed = 1500.0
 		var dist = victim_node.global_position.distance_to(target_pos)
-		var duration = clamp(dist / pull_speed, 0.05, 1.2)
+		var duration = clamp(dist / pull_speed, 0.05, 1.5)
 		if data.has("duration"):
 			duration = float(data.duration) / 1000.0
 		
@@ -3390,7 +3428,8 @@ func _on_hook_pulled(data: Dictionary):
 				if victim_node.has_meta("_active_pull_tween"):
 					victim_node.remove_meta("_active_pull_tween")
 				if victim_node == world.local_player:
-					victim_node.target_position = victim_node.global_position
+					victim_node.global_position = target_pos
+					victim_node.target_position = target_pos
 					victim_node._force_move_sync()
 		)
 
@@ -4862,7 +4901,7 @@ func _get_entity_visual_position(entity: Node) -> Vector2:
 				var cam3d = current_map.camera_3d
 				var sub_vp = current_map.sub_viewport
 				var world_root_3d = entity.world_root_3d
-				if not cam3d.is_position_behind(world_root_3d.global_position):
+				if is_instance_valid(world_root_3d) and world_root_3d.is_inside_tree() and cam3d.is_inside_tree() and not cam3d.is_position_behind(world_root_3d.global_position):
 					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
 					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
 						var main_size = Vector2(get_viewport().get_visible_rect().size)

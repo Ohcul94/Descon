@@ -50,6 +50,14 @@ var _shake_strength = 0.0
 var _is_interference_active = false
 var _blind_tween: Tween = null
 
+# Transición Asíncrona de Zona (Warp Overlay)
+var _warp_canvas: CanvasLayer = null
+var _warp_overlay: ColorRect = null
+var _warp_label_tag: Label = null
+var _warp_label_title: Label = null
+var _warp_label_status: Label = null
+var _warp_tween: Tween = null
+
 # 650 Estrellas Procesales (v73.31) - PRE-BAKED para rendimiento
 var _star_sprites: Array = [] # [far, mid, near] Sprite2Ds
 const WORLD_DRAW_SIZE = 4000.0
@@ -80,10 +88,11 @@ func _ready():
 	# _generate_stellar_data() # v73.31: Eliminado por solicitud del usuario para limpiar el fondo
 	update_stars_visibility()
 	
-	# v267.900: Inicializar Overlays de Ambiente
+	# v267.900: Inicializar Overlays de Ambiente y Transición
 	_setup_blindness_overlay()
 	_setup_interference_overlay() 
 	_setup_freeze_overlay() # v268.40
+	_setup_warp_overlay() # Transición asíncrona de sector con cero caída de FPS
 	NetworkManager.blindness_event.connect(_on_blindness_event)
 	NetworkManager.interference_event.connect(_on_interference_event)
 	NetworkManager.freeze_event.connect(_on_freeze_event) # v268.40
@@ -211,6 +220,145 @@ func _on_freeze_event(data):
 		tw_out.tween_property(overlay, "modulate:a", 0.0, 1.0)
 		await tw_out.finished
 		overlay.visible = false
+
+# ==============================================================================
+# TRANSICIÓN DE SECTOR ASÍNCRONA (WARP OVERLAY)
+# ==============================================================================
+func _setup_warp_overlay() -> void:
+	var canvas = CanvasLayer.new()
+	canvas.name = "WarpTransitionLayer"
+	canvas.layer = 120 # Por encima del HUD y de los overlays ambientales
+	add_child(canvas)
+	_warp_canvas = canvas
+	
+	var overlay = ColorRect.new()
+	overlay.name = "WarpBG"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.015, 0.02, 0.04, 1.0) # Fondo espacial profundo
+	overlay.visible = false
+	overlay.modulate.a = 0.0
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(overlay)
+	_warp_overlay = overlay
+	
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+	
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 10)
+	center.add_child(vbox)
+	
+	var tag = Label.new()
+	tag.name = "WarpTag"
+	tag.text = "TRANSICIÓN ESPACIAL"
+	tag.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_color_override("font_color", Color(0.2, 0.95, 0.4, 0.8)) # Neón verde
+	vbox.add_child(tag)
+	_warp_label_tag = tag
+	
+	var title = Label.new()
+	title.name = "WarpTitle"
+	title.text = "SALTANDO A SECTOR..."
+	title.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0, 1.0))
+	vbox.add_child(title)
+	_warp_label_title = title
+	
+	var status = Label.new()
+	status.name = "WarpStatus"
+	status.text = "Sincronizando bioma y coordenadas 2.5D..."
+	status.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+	status.add_theme_font_size_override("font_size", 12)
+	status.add_theme_color_override("font_color", Color(0.5, 0.65, 0.8, 0.7))
+	vbox.add_child(status)
+	_warp_label_status = status
+
+func _show_warp_transition(destination_text: String, immediate: bool = false, tag_text: String = "TRANSICIÓN ESPACIAL", status_text: String = "Sincronizando bioma y coordenadas 2.5D...") -> void:
+	if not is_instance_valid(_warp_overlay):
+		return
+	if is_instance_valid(_warp_label_tag):
+		_warp_label_tag.text = tag_text
+	if is_instance_valid(_warp_label_title):
+		_warp_label_title.text = destination_text
+	if is_instance_valid(_warp_label_status):
+		_warp_label_status.text = status_text
+		
+	if _warp_tween and _warp_tween.is_valid():
+		_warp_tween.kill()
+		
+	_warp_overlay.visible = true
+	_warp_overlay.mouse_filter = Control.MOUSE_FILTER_STOP # Bloquear clics accidentales en el salto
+	if immediate:
+		_warp_overlay.modulate.a = 1.0
+		return
+	_warp_tween = create_tween()
+	_warp_tween.tween_property(_warp_overlay, "modulate:a", 1.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	await _warp_tween.finished
+
+func _hide_warp_transition() -> void:
+	if not is_instance_valid(_warp_overlay):
+		return
+	if _warp_tween and _warp_tween.is_valid():
+		_warp_tween.kill()
+		
+	_warp_tween = create_tween()
+	_warp_tween.tween_property(_warp_overlay, "modulate:a", 0.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await _warp_tween.finished
+	_warp_overlay.visible = false
+	_warp_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func get_zone_display_name(zone_id) -> String:
+	var zid = int(zone_id) if typeof(zone_id) != TYPE_STRING else 0
+	if typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_"):
+		var parts = zone_id.split("_")
+		if parts.size() > 1:
+			zid = int(parts[1])
+	elif typeof(zone_id) == TYPE_STRING and zone_id.begins_with("arena_"):
+		zid = 0
+	elif typeof(zone_id) != TYPE_STRING:
+		zid = int(zone_id)
+	else:
+		zid = int(zone_id) if zone_id.is_valid_int() else 0
+		
+	var full_cfg = GameConstants.get("FULL_CONFIG")
+	var is_arena = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("arena_")
+	if not is_arena and zid > 0 and full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("arenas"):
+		var arena_maps = full_cfg.gameModes.arenas.get("maps", [])
+		for m in arena_maps:
+			if int(m) == zid:
+				is_arena = true
+				break
+	
+	var ad_map_ids = []
+	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+		var ad_cfg = full_cfg.gameModes.altar_defense
+		if ad_cfg.has("maps"):
+			for m in ad_cfg.maps:
+				ad_map_ids.append(int(m))
+	
+	var is_altar_defense = (zid > 0 and zid in ad_map_ids)
+	var is_extraction = (typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_")) or zid == 10
+	
+	var z_display_name = "SECTOR DESCONOCIDO"
+	var z_id_str = str(zid)
+	if z_id_str in GameConstants.MAPS_CONFIG:
+		z_display_name = GameConstants.MAPS_CONFIG[z_id_str].name
+	elif is_arena:
+		z_display_name = "ARENA DE COMBATE"
+	elif is_extraction:
+		z_display_name = "ZONA DE EXTRACCIÓN"
+	elif is_altar_defense:
+		z_display_name = "DEFENSA DEL ALTAR"
+	elif zid >= 500:
+		z_display_name = "INSTANCIA PRIVADA"
+	else:
+		z_display_name = "SECTOR " + str(zid).pad_zeros(2)
+	return z_display_name
 
 func _setup_blindness_overlay():
 	var canvas = CanvasLayer.new()
@@ -504,6 +652,7 @@ func _process(delta):
 					current_map_node.remove_from_group("map")
 					current_map_node.queue_free()
 					current_map_node = null
+				_last_zone_id = null
 				
 				# F. Limpiar referencias visuales y caché de local_player
 				if is_instance_valid(local_player):
@@ -530,12 +679,12 @@ func _process(delta):
 		if is_instance_valid(local_player) and is_logged:
 			if local_player.visible != is_logged:
 				local_player.visible = is_logged
-			var wr3d = local_player.get("world_root_3d")
-			if wr3d and is_instance_valid(wr3d) and wr3d.visible != is_logged:
-				wr3d.visible = is_logged
-			var uiw = local_player.get("_ui_wrapper")
-			if uiw and is_instance_valid(uiw) and uiw.visible != is_logged:
-				uiw.visible = is_logged
+			var wr3d_active = local_player.get("world_root_3d")
+			if wr3d_active and is_instance_valid(wr3d_active) and wr3d_active.visible != is_logged:
+				wr3d_active.visible = is_logged
+			var uiw_active = local_player.get("_ui_wrapper")
+			if uiw_active and is_instance_valid(uiw_active) and uiw_active.visible != is_logged:
+				uiw_active.visible = is_logged
 		if is_instance_valid(current_map_node) and is_logged:
 			if current_map_node.visible != is_logged:
 				current_map_node.visible = is_logged
@@ -666,8 +815,16 @@ func _on_login_success(data):
 	elif is_instance_valid(local_player) and "current_zone" in local_player:
 		target_zone = local_player.current_zone
 	
-	# v600.1: Cargar el mapa primero de forma asíncrona para que su SubViewport y Camera3D existan
-	await _update_background(target_zone)
+	# v915.0: Desplegar INMEDIATAMENTE la pantalla de carga (Warp Overlay) antes de exponer el mundo
+	var z_display_name = get_zone_display_name(target_zone)
+	_show_warp_transition("CONECTANDO A " + z_display_name.to_upper() + "...", true, "INICIANDO SESIÓN", "Sincronizando bioma y coordenadas 2.5D...")
+	
+	var login_ui_node = get_node_or_null("HUD/LoginUI")
+	if is_instance_valid(login_ui_node):
+		login_ui_node.visible = false
+	
+	# Cargar el mapa primero de forma asíncrona sin ocultar el telón de carga
+	await _update_background(target_zone, false)
 	_update_hud_map_name(target_zone)
 
 	if is_instance_valid(local_player):
@@ -685,6 +842,13 @@ func _on_login_success(data):
 	# v531.2: ChatUI NO se fuerza a visible — MainHUD restaura estado guardado en hudConfig
 	# (si estaba cerrada queda cerrada, si abierta queda abierta). Si no hay config (jugador nuevo), MainHUD aplica default visible.
 	# No tocar ui_chat aquí.
+	
+	# Esperar dos frames para que la cámara 2.5D, shaders y visuales 3D se asienten completamente
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
+	# Retirar el telón de carga suavemente para revelar el mapa y nave limpios
+	await _hide_warp_transition()
 
 func _unhandled_input(event):
 	if not NetworkManager or not NetworkManager.is_logged_in: return
@@ -726,7 +890,12 @@ func _on_admin_config_received(data: Dictionary):
 			if AudioManager and AudioManager.has_method("play_zone_music"):
 				AudioManager.play_zone_music(local_player.current_zone)
 
-func _update_background(zone_id):
+func _update_background(zone_id, auto_hide_warp: bool = true, force_reload: bool = false):
+	# Si ya tenemos el mapa cargado para esta misma zona y no se fuerza recarga, salir
+	if is_instance_valid(current_map_node) and str(_last_zone_id) == str(zone_id) and not force_reload:
+		print("[WORLD] Mapa ya cargado y activo para zona: ", zone_id, ". Omitiendo recarga redundante.")
+		return
+
 	# Guardar zone_id para el safety-net de arena
 	_last_zone_id = zone_id
 	
@@ -776,6 +945,17 @@ func _update_background(zone_id):
 		scene_path = "res://scenes/maps/Map_Evento.tscn"
 	
 	print("[WORLD _update_background] zone_id=", zone_id, " zid=", zid, " is_arena=", is_arena, " scene=", scene_path)
+	
+	# 1. Determinar el nombre para mostrar de la zona de destino
+	var z_display_name = get_zone_display_name(zone_id)
+	var z_id_str = str(zid)
+
+	# 2. Si ya estamos en juego y el telón no está visible, desplegar el telón de warp suave
+	var is_in_game_transition = NetworkManager.is_logged_in and is_instance_valid(local_player)
+	if is_in_game_transition and (not is_instance_valid(_warp_overlay) or not _warp_overlay.visible):
+		await _show_warp_transition("SALTANDO A " + z_display_name.to_upper() + "...")
+	elif is_instance_valid(_warp_label_title):
+		_warp_label_title.text = "SALTANDO A " + z_display_name.to_upper() + "..."
 		
 	# Ocultar o mostrar las estrellas generadas según si es mapa de extracción o altar
 	var hide_stars = false
@@ -783,23 +963,45 @@ func _update_background(zone_id):
 		if is_instance_valid(spr):
 			spr.visible = not hide_stars
 		
+	# 3. Destruir mapa anterior y purgar su caché de zona de la memoria RAM/VRAM
 	if is_instance_valid(current_map_node):
 		current_map_node.remove_from_group("map")
 		current_map_node.queue_free()
-		# v500.9: Esperar UN frame para que el destructor de Terrain3D (C++ nativo) libere
-		# completamente sus recursos de GPU antes de instanciar el nuevo mapa.
-		# Sin este await, el nuevo Terrain3D intenta usar recursos que aún no fueron liberados
-		# por el destructor del Terrain3D anterior, causando un terreno invisible.
+		current_map_node = null
+		
+		# v500.9: Purgar recursos de mapa/zona anteriores de la memoria RAM/VRAM
+		var vfx_sys = get_node_or_null("/root/VFXSystem")
+		if vfx_sys and vfx_sys.has_method("purge_zone_cache"):
+			vfx_sys.purge_zone_cache()
+		# Esperar UN frame para que el destructor de Terrain3D (C++ nativo) y la VRAM se liberen completamente
 		await get_tree().process_frame
 		
-	var map_scene = load(scene_path)
+	# 4. Carga multihilo asíncrona en segundo plano (Zero Frame Drops)
+	var map_scene: PackedScene = null
+	if ResourceLoader.exists(scene_path):
+		var req_err = ResourceLoader.load_threaded_request(scene_path, "PackedScene")
+		if req_err == OK:
+			while true:
+				var progress_arr = []
+				var load_status = ResourceLoader.load_threaded_get_status(scene_path, progress_arr)
+				if load_status == ResourceLoader.THREAD_LOAD_LOADED:
+					map_scene = ResourceLoader.load_threaded_get(scene_path)
+					break
+				elif load_status == ResourceLoader.THREAD_LOAD_FAILED or load_status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+					push_warning("[WORLD] Falló la carga multihilo de %s. Usando fallback síncrono." % scene_path)
+					map_scene = load(scene_path)
+					break
+				await get_tree().process_frame
+		else:
+			map_scene = load(scene_path)
+	else:
+		push_error("[WORLD] No existe el mapa en: %s" % scene_path)
 	if map_scene:
 		current_map_node = map_scene.instantiate()
 		if "zone_id" in current_map_node:
 			current_map_node.zone_id = zone_id
 			
 		# v311.2: Aplicar tamaño de mapa dinámico desde el servidor al nodo cargado
-		var z_id_str = str(zid)
 		if "world_size" in current_map_node and z_id_str in GameConstants.MAPS_CONFIG:
 			var z_cfg = GameConstants.MAPS_CONFIG[z_id_str]
 			if z_cfg.has("width") and float(z_cfg.width) > 0:
@@ -838,13 +1040,14 @@ func _update_background(zone_id):
 		
 		# v306.4: Reconstruir visuales 3D en todas las entidades activas para el nuevo mapa
 		get_tree().call_group("entities", "rebuild_3d_layout")
-		
-		# v1.0: Desactivado para evitar duplicados (BaseMap.gd ya maneja el spawn de 'wall' nativamente con correction_z)
-		# if is_instance_valid(dungeon_builder):
-		# 	await get_tree().process_frame
-		# 	dungeon_builder.build_for_zone(zone_id, current_map_node)
-			
 		update_stars_visibility()
+		
+		# Esperar un frame para que los shaders 3D y la iluminación se rendericen limpios fuera de la vista
+		await get_tree().process_frame
+
+	# 6. Retirar suavemente el telón de transición solo si auto_hide_warp es true
+	if auto_hide_warp and is_in_game_transition:
+		_hide_warp_transition()
 
 func clear_remote_players():
 	if is_instance_valid(entity_manager):

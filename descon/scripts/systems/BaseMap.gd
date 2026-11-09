@@ -2544,7 +2544,12 @@ func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: V
 		print("[BaseMap _instantiate_map_object_3d] ERROR: sub_viewport es INVÁLIDO o NULO.")
 		return null
 		
-	var scene = load(asset_path)
+	var scene = null
+	var vfx_sys = get_node_or_null("/root/VFXSystem")
+	if vfx_sys and vfx_sys.has_method("get_cached_resource"):
+		scene = vfx_sys.get_cached_resource(asset_path)
+	elif ResourceLoader.exists(asset_path):
+		scene = load(asset_path)
 	if not scene:
 		print("[BaseMap _instantiate_map_object_3d] ADVERTENCIA: Falló al cargar ", asset_path, ". Usando cilindro 3D de fallback.")
 		# Fallback visual simple

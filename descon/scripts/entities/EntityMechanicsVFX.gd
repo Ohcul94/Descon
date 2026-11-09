@@ -23,6 +23,65 @@ const VFX_WaterNormalTexture = preload("res://VFX/textures/T_GW_WaterNormal_01_b
 const TEX_REFLECT_AURA = preload("res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png")
 const TEX_REFLECT_IMPACT = preload("res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png")
 
+static var _cached_scroll_shader: Shader = null
+static var _cached_water_shader: Shader = null
+
+static func _ensure_mechanics_static_cache() -> void:
+	if _cached_scroll_shader != null:
+		return
+	
+	_cached_scroll_shader = Shader.new()
+	_cached_scroll_shader.code = """shader_type spatial;
+render_mode blend_add, depth_draw_opaque, cull_disabled, unshaded;
+
+uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec4 albedo_color : source_color = vec4(1.0);
+uniform vec2 scroll_speed = vec2(0.0, -0.5);
+uniform vec2 uv_scale = vec2(1.0, 1.0);
+uniform float fade_exponent = 2.0;
+
+void fragment() {
+	vec2 uv = UV * uv_scale + scroll_speed * TIME;
+	vec4 tex = texture(albedo_texture, uv);
+	float vertical_fade = sin(UV.y * 3.14159265);
+	vertical_fade = pow(vertical_fade, fade_exponent);
+	ALBEDO = albedo_color.rgb * tex.rgb;
+	ALPHA = albedo_color.a * tex.a * vertical_fade;
+}"""
+
+	_cached_water_shader = Shader.new()
+	_cached_water_shader.code = """shader_type spatial;
+render_mode blend_add, depth_draw_opaque, cull_disabled, unshaded;
+
+uniform sampler2D normal_map : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec4 albedo_color : source_color = vec4(0.0, 0.6, 1.0, 0.45);
+uniform vec4 emission_color : source_color = vec4(0.0, 0.8, 1.0, 1.0);
+uniform float emission_energy = 4.0;
+uniform float wave_speed = 0.5;
+uniform float wave_strength = 0.3;
+
+void vertex() {
+	vec3 pos = VERTEX;
+	float w = sin(pos.x * 2.5 + TIME * wave_speed) * wave_strength * 0.08;
+	w += sin(pos.y * 3.2 + TIME * wave_speed * 1.2) * wave_strength * 0.06;
+	w += sin(pos.z * 2.0 + TIME * wave_speed * 0.8) * wave_strength * 0.07;
+	VERTEX = pos + NORMAL * w;
+}
+
+void fragment() {
+	vec2 uv1 = UV * 2.0 + vec2(TIME * 0.04, TIME * 0.02);
+	vec2 uv2 = UV * 3.0 + vec2(TIME * -0.03, TIME * 0.05);
+	vec3 n1 = texture(normal_map, uv1).rgb - 0.5;
+	vec3 n2 = texture(normal_map, uv2).rgb - 0.5;
+	vec3 n = normalize(n1 + n2);
+	vec3 view_dir = normalize(VIEW);
+	float fresnel = pow(1.0 - abs(dot(view_dir, n)), 2.5);
+	float ripple = sin(UV.x * 25.0 + UV.y * 18.0 + TIME * 2.5) * 0.5 + 0.5;
+	ALBEDO = albedo_color.rgb;
+	ALPHA = albedo_color.a * (0.5 + fresnel * 0.5);
+	EMISSION = emission_color.rgb * emission_energy * (0.6 + fresnel * 1.2 + ripple * 0.3);
+}"""
+
 var _color_aura_3d_root: Node3D = null
 var is_orbital_active: bool = false
 
@@ -1213,26 +1272,9 @@ func _make_column_mesh(radius_3d: float, top_scale: float, bottom_scale: float) 
 	return mesh
 
 func _make_scroll_shader_material(tex: Texture2D, scroll: Vector2, uv_scale: Vector2, fade_exp: float, col: Color) -> ShaderMaterial:
-	var shader = Shader.new()
-	shader.code = """shader_type spatial;
-render_mode blend_add, depth_draw_opaque, cull_disabled, unshaded;
-
-uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_enable;
-uniform vec4 albedo_color : source_color = vec4(1.0);
-uniform vec2 scroll_speed = vec2(0.0, -0.5);
-uniform vec2 uv_scale = vec2(1.0, 1.0);
-uniform float fade_exponent = 2.0;
-
-void fragment() {
-	vec2 uv = UV * uv_scale + scroll_speed * TIME;
-	vec4 tex = texture(albedo_texture, uv);
-	float vertical_fade = sin(UV.y * 3.14159265);
-	vertical_fade = pow(vertical_fade, fade_exponent);
-	ALBEDO = albedo_color.rgb * tex.rgb;
-	ALPHA = albedo_color.a * tex.a * vertical_fade;
-}"""
+	_ensure_mechanics_static_cache()
 	var mat = ShaderMaterial.new()
-	mat.shader = shader
+	mat.shader = _cached_scroll_shader
 	mat.set_shader_parameter("albedo_texture", tex)
 	mat.set_shader_parameter("scroll_speed", scroll)
 	mat.set_shader_parameter("uv_scale", uv_scale)
@@ -1719,41 +1761,9 @@ func setup_water_orb_3d() -> void:
 	var orb_size = map_scale_val * 100.0
 	var water_normal = VFX_WaterNormalTexture
 
-	var water_shader = Shader.new()
-	water_shader.code = """shader_type spatial;
-render_mode blend_add, depth_draw_opaque, cull_disabled, unshaded;
-
-uniform sampler2D normal_map : source_color, filter_linear_mipmap, repeat_enable;
-uniform vec4 albedo_color : source_color = vec4(0.0, 0.6, 1.0, 0.45);
-uniform vec4 emission_color : source_color = vec4(0.0, 0.8, 1.0, 1.0);
-uniform float emission_energy = 4.0;
-uniform float wave_speed = 0.5;
-uniform float wave_strength = 0.3;
-
-void vertex() {
-	vec3 pos = VERTEX;
-	float w = sin(pos.x * 2.5 + TIME * wave_speed) * wave_strength * 0.08;
-	w += sin(pos.y * 3.2 + TIME * wave_speed * 1.2) * wave_strength * 0.06;
-	w += sin(pos.z * 2.0 + TIME * wave_speed * 0.8) * wave_strength * 0.07;
-	VERTEX = pos + NORMAL * w;
-}
-
-void fragment() {
-	vec2 uv1 = UV * 2.0 + vec2(TIME * 0.04, TIME * 0.02);
-	vec2 uv2 = UV * 3.0 + vec2(TIME * -0.03, TIME * 0.05);
-	vec3 n1 = texture(normal_map, uv1).rgb - 0.5;
-	vec3 n2 = texture(normal_map, uv2).rgb - 0.5;
-	vec3 n = normalize(n1 + n2);
-	vec3 view_dir = normalize(VIEW);
-	float fresnel = pow(1.0 - abs(dot(view_dir, n)), 2.5);
-	float ripple = sin(UV.x * 25.0 + UV.y * 18.0 + TIME * 2.5) * 0.5 + 0.5;
-	ALBEDO = albedo_color.rgb;
-	ALPHA = albedo_color.a * (0.5 + fresnel * 0.5);
-	EMISSION = emission_color.rgb * emission_energy * (0.6 + fresnel * 1.2 + ripple * 0.3);
-}"""
-
+	_ensure_mechanics_static_cache()
 	var orb_mat = ShaderMaterial.new()
-	orb_mat.shader = water_shader
+	orb_mat.shader = _cached_water_shader
 	orb_mat.set_shader_parameter("normal_map", water_normal)
 	orb_mat.set_shader_parameter("albedo_color", Color(0.0, 0.6, 1.0, 0.45))
 	orb_mat.set_shader_parameter("emission_color", Color(0.0, 0.8, 1.0))

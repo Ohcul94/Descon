@@ -6,6 +6,7 @@ extends Node
 signal warmup_complete  # Emitida al finalizar el warmup de recursos
 
 var _warmup_cache: Dictionary = {}
+var _zone_cache: Dictionary = {} # Caché dinámica de recursos de mapa/zona (se purga al salir del mapa)
 var _vfx_pools: Dictionary = {} # { scene_path: Array[Node] } (v313.6)
 var _warmed_materials: Array[Material] = [] # Caché de retención fuerte de materiales (v313.8)
 var _loading_refs: Dictionary = {}
@@ -206,11 +207,7 @@ var static_models_to_cache = [
 	"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
 	"res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb",
 	"res://assets/Altares/3D/Altar1/Altar1.glb",
-	"res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb",
-	"res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb",
-	"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb",
-	"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb",
-	"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb"
+	"res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
 ]
 
 func _ready():
@@ -488,10 +485,13 @@ func start_login_cinematic():
 
 	# Conectar señal para cuando el login sea exitoso
 	if NetworkManager:
-		if not NetworkManager.auth_success.is_connected(_on_login_done):
-			NetworkManager.auth_success.connect(_on_login_done, CONNECT_ONE_SHOT)
-		if NetworkManager.has_signal("login_success") and not NetworkManager.login_success.is_connected(_on_login_done):
-			NetworkManager.login_success.connect(_on_login_done, CONNECT_ONE_SHOT)
+		if NetworkManager.is_logged_in:
+			_on_login_done()
+		else:
+			if not NetworkManager.auth_success.is_connected(_on_login_done):
+				NetworkManager.auth_success.connect(_on_login_done, CONNECT_ONE_SHOT)
+			if NetworkManager.has_signal("login_success") and not NetworkManager.login_success.is_connected(_on_login_done):
+				NetworkManager.login_success.connect(_on_login_done, CONNECT_ONE_SHOT)
 
 func _set_world_environment_visible(value: bool):
 	# 1. Jugador Local
@@ -812,54 +812,8 @@ func _run_shader_warmup():
 		if not queue.has(p): queue.append(p)
 	
 	# Compilar shaders gráficos instanciando efectos fuera de cámara
-	var scenes = [
-		"res://VFX/scenes/VFX_Shield_green.tscn",
-		"res://VFX/scenes/VFX_Shield_green_plane.tscn",
-		"res://VFX/scenes/VFX_Cube_projectile.tscn",
-		"res://VFX/scenes/VFX_Hadouken.tscn",
-		"res://VFX/scenes/VFX_Anticipation_wave_digital.tscn",
-		"res://VFX/scenes/VFX_Anticipation_hadouken.tscn",
-		"res://VFX/scenes/VFX_Hit_cyber.tscn",
-		"res://VFX/scenes/VFX_Hit_hadouken.tscn",
-		"res://VFX/scenes/VFX_Laser_projectile.tscn",
-		"res://VFX/scenes/VFX_Laser_Hit.tscn",
-		"res://VFX/scenes/VFX_Siphon_projectile.tscn",
-		"res://VFX/scenes/VFX_Siphon_Hit.tscn",
-		"res://VFX/scenes/VFX_Fire_ball_type_B.tscn",
-		"res://VFX/scenes/VFX_Fire_strike.tscn",
-		"res://VFX/scenes/VFX_Shield_hex.tscn",
-		"res://VFX/scenes/VFX_Shield_demon.tscn",
-		"res://VFX/scenes/VFX_Shield_yellow.tscn",
-		"res://VFX/scenes/VFX_Hit_Hex_Sphere.tscn",
-		"res://VFX/scenes/VFX_Hit_sphere_demon.tscn",
-		"res://VFX/scenes/VFX_Hit_sphere_green.tscn",
-		"res://VFX/scenes/VFX_Hit_sphere_bbasic.tscn",
-		"res://VFX/scenes/VFX_Anticipation_fire_1.tscn",
-		"res://VFX/scenes/VFX_Anticipation_fire_3.tscn",
-		"res://VFX/scenes/VFX_Anticipation_wave_1.tscn",
-		"res://VFX/scenes/VFX_Darkness_projectile.tscn",
-		"res://VFX/scenes/VFX_Electric_strike.tscn",
-		"res://VFX/scenes/VFX_Fire_ball_standar.tscn",
-		"res://VFX/scenes/VFX_Hit_blue_wild.tscn",
-		"res://VFX/scenes/VFX_Hit_dark.tscn",
-		"res://VFX/scenes/VFX_Hit_electric.tscn",
-		"res://VFX/scenes/VFX_Hit_fire_1.tscn",
-		"res://VFX/scenes/VFX_Hit_fire_2.tscn",
-		"res://VFX/scenes/VFX_Hit_fire_3.tscn",
-		"res://VFX/scenes/VFX_Laser_Anticipation.tscn",
-		"res://VFX/scenes/VFX_Shield_blue_basic.tscn",
-		"res://VFX/scenes/VFX_Shield_blue_w_pyramid.tscn",
-		"res://VFX/scenes/VFX_Shield_blue_wild.tscn",
-		"res://VFX/scenes/vfx_std_fire_ball.tscn",
-		"res://scenes/entities/Enemy.tscn",
-		"res://scenes/entities/Ship.tscn",
-		"res://scenes/ui/PartyMemberRow.tscn",
-		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
-		"res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb",
-		"res://assets/Altares/3D/Altar1/Altar1.glb",
-		"res://assets/Pilares/3D/Pilar1/Pilar1.glb",
-		"res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
-	]
+	# Descubrimiento 100% dinámico de escenas de VFX, proyectiles, municiones y habilidades
+	var scenes: Array = discover_combat_scenes()
 	
 	# v500.5: Agregar todos los modelos estáticos (enemigos, naves, jefes) a las escenas para instanciar en warmup
 	for p in static_models_to_cache:
@@ -1032,10 +986,14 @@ func _run_shader_warmup():
 		fade.tween_property(login_ui, "modulate:a", 1.0, 0.5)
 
 	if NetworkManager:
-		if not NetworkManager.auth_success.is_connected(_on_login_done):
-			NetworkManager.auth_success.connect(_on_login_done, CONNECT_ONE_SHOT)
-		if NetworkManager.has_signal("login_success") and not NetworkManager.login_success.is_connected(_on_login_done):
-			NetworkManager.login_success.connect(_on_login_done, CONNECT_ONE_SHOT)
+		if NetworkManager.is_logged_in:
+			print("[VFXManager] Usuario ya autenticado al finalizar warmup. Restaurando entorno de juego.")
+			_on_login_done()
+		else:
+			if not NetworkManager.auth_success.is_connected(_on_login_done):
+				NetworkManager.auth_success.connect(_on_login_done, CONNECT_ONE_SHOT)
+			if NetworkManager.has_signal("login_success") and not NetworkManager.login_success.is_connected(_on_login_done):
+				NetworkManager.login_success.connect(_on_login_done, CONNECT_ONE_SHOT)
 
 	print("[VFX-WarmUp] Cinematic PvP activa. LoginUI visible sobre naves.")
 	emit_signal("warmup_complete")
@@ -1189,18 +1147,132 @@ func _apply_nova_push(pos: Vector2, radius: float):
 
 
 # ==========================================
-# SISTEMA DE CACHÉ DE RECURSOS Y OBJECT POOLING (v313.6)
+# SISTEMA DE CACHÉ DE RECURSOS Y OBJECT POOLING DINÁMICO (v313.6+)
 # ==========================================
 
-# Recuperar recursos cargados durante el warmup o cargarlos bajo demanda y guardarlos
+## Detecta si un recurso pertenece a la zona/mapa actual (transitorio) o es global de combate (permanente)
+func is_zone_asset(path: String) -> bool:
+	if path.begins_with("res://assets/Mapas/"): return true
+	if path.contains("/Decorativos/"): return true
+	if path.contains("/Estructuras/"): return true
+	if path.contains("/Terreno/"): return true
+	if path.contains("/Bosses/"): return true
+	if path.begins_with("res://scenes/maps/"): return true
+	return false
+
+## Recuperar recursos con separación limpia: los de mapa en _zone_cache y los de combate en _warmup_cache
 func get_cached_resource(path: String) -> Resource:
-	if _warmup_cache.has(path):
-		return _warmup_cache[path]
-	if ResourceLoader.exists(path):
+	if path.is_empty():
+		return null
+		
+	if is_zone_asset(path):
+		if _zone_cache.has(path):
+			return _zone_cache[path]
+		if ResourceLoader.exists(path):
+			var res_zone = load(path)
+			_zone_cache[path] = res_zone
+			return res_zone
+		return null
+	else:
+		if _warmup_cache.has(path):
+			return _warmup_cache[path]
+		if ResourceLoader.exists(path):
+			var res_global = load(path)
+			_warmup_cache[path] = res_global
+			return res_global
+		return null
+
+## Libera todos los recursos cacheados exclusivos del mapa/zona anterior
+func purge_zone_cache() -> void:
+	var count = _zone_cache.size()
+	if count > 0:
+		print("[VFXManager] Purgando recursos de zona anterior de la memoria RAM (Total liberados: %d)" % count)
+		_zone_cache.clear()
+
+## Descubre automáticamente todas las escenas de VFX, proyectiles, municiones y habilidades en el proyecto
+func discover_combat_scenes() -> Array[String]:
+	var found: Array[String] = []
+	var scan_folders = [
+		"res://VFX/scenes",
+		"res://scenes/entities/projectiles",
+		"res://scenes/projectiles"
+	]
+	
+	for fpath in scan_folders:
+		if DirAccess.dir_exists_absolute(fpath):
+			var dir = DirAccess.open(fpath)
+			if dir:
+				dir.list_dir_begin()
+				var fname = dir.get_next()
+				while fname != "":
+					if not dir.current_is_dir():
+						var clean = fname.replace(".remap", "")
+						if clean.ends_with(".tscn"):
+							var full = fpath + "/" + clean
+							if not found.has(full):
+								found.append(full)
+					fname = dir.get_next()
+					
+	# Entidades y props de combate base indispensables
+	var core_scenes = [
+		"res://scenes/entities/Enemy.tscn",
+		"res://scenes/entities/Ship.tscn",
+		"res://scenes/ui/PartyMemberRow.tscn",
+		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
+		"res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb",
+		"res://assets/Altares/3D/Altar1/Altar1.glb",
+		"res://assets/Pilares/3D/Pilar1/Pilar1.glb",
+		"res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
+	]
+	for cs in core_scenes:
+		if ResourceLoader.exists(cs) and not found.has(cs):
+			found.append(cs)
+			
+	return found
+
+## Sincroniza y precarga dinámicamente cualquier VFX, munición, proyectil o habilidad nueva declarada en el servidor
+func sync_mechanics_from_config(cfg: Dictionary) -> void:
+	if not cfg or typeof(cfg) != TYPE_DICTIONARY: return
+	
+	# 1. Escanear mechanicsLib
+	if cfg.has("mechanicsLib") and typeof(cfg.mechanicsLib) == TYPE_DICTIONARY:
+		for m_id in cfg.mechanicsLib:
+			var m_data = cfg.mechanicsLib[m_id]
+			if typeof(m_data) == TYPE_DICTIONARY:
+				for key in ["vfxPath", "bulletScene", "visualScene", "projectileScene", "scene"]:
+					if m_data.has(key):
+						_register_dynamic_combat_resource(str(m_data[key]))
+						
+	# 2. Escanear skillsData
+	if cfg.has("skillsData") and typeof(cfg.skillsData) == TYPE_DICTIONARY:
+		for s_id in cfg.skillsData:
+			var s_data = cfg.skillsData[s_id]
+			if typeof(s_data) == TYPE_DICTIONARY:
+				for key in ["vfxPath", "bulletScene", "projectileScene", "icon", "scene"]:
+					if s_data.has(key):
+						_register_dynamic_combat_resource(str(s_data[key]))
+						
+	# 3. Escanear mecánicas de tipos de enemigos
+	if cfg.has("enemyTypes") and typeof(cfg.enemyTypes) == TYPE_DICTIONARY:
+		for e_id in cfg.enemyTypes:
+			var e_data = cfg.enemyTypes[e_id]
+			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("mechanics") and typeof(e_data.mechanics) == TYPE_ARRAY:
+				for mech in e_data.mechanics:
+					if typeof(mech) == TYPE_DICTIONARY:
+						for key in ["vfxPath", "bulletScene", "customVisual", "scene"]:
+							if mech.has(key):
+								_register_dynamic_combat_resource(str(mech[key]))
+
+func _register_dynamic_combat_resource(path: String) -> void:
+	if path.is_empty(): return
+	if not ResourceLoader.exists(path): return
+	if not _warmup_cache.has(path):
 		var res = load(path)
-		_warmup_cache[path] = res
-		return res
-	return null
+		if res:
+			_warmup_cache[path] = res
+			if not _vfx_pools.has(path):
+				_vfx_pools[path] = []
+			print("[VFXManager] Habilidad/Mecánica dinámica registrada y cacheada en RAM: ", path)
 
 # Obtener una instancia del pool para evitar instantiate() en combate
 func get_vfx_from_pool(scene_source) -> Node:
@@ -1372,68 +1444,111 @@ func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 		"res://VFX/scenes/vfx_std_fire_ball.tscn"
 	]
 	
+	# Contenedor temporal de precalentamiento fuera de cámara (durante la transición Warp)
+	var warmup_container = Node3D.new()
+	warmup_container.name = "WarmupOffscreenContainer"
+	warmup_container.position = Vector3(0.0, -9999.0, 0.0)
+	sub_vp.add_child(warmup_container)
+
 	for path in prewarm_scenes:
 		if not _vfx_pools.has(path):
 			_vfx_pools[path] = []
 		
-		# Mantener al menos 2 instancias listas en el pool
-		var needed = 2 - _vfx_pools[path].size()
-		if needed <= 0:
-			continue
-			
+		# Determinar profundidad de pool requerida según frecuencia de uso en combate
+		var target_pool_size = 6
+		var p_lower = path.to_lower()
+		if "laser" in p_lower or "hit" in p_lower or "fire" in p_lower or "projectile" in p_lower or "strike" in p_lower or "hadouken" in p_lower or "ball" in p_lower or "siphon" in p_lower:
+			target_pool_size = 18 # Alta frecuencia: misiles, lásers y explosiones múltiples (hasta 15+ simultáneos)
+		elif "shield" in p_lower:
+			target_pool_size = 8 # Escudos 3D por entidad/enemigo
+		elif "anticipation" in p_lower:
+			target_pool_size = 8
+
+		var needed = target_pool_size - _vfx_pools[path].size()
 		var scene = get_cached_resource(path)
 		if not scene and ResourceLoader.exists(path):
 			scene = load(path)
 			_warmup_cache[path] = scene
 			
 		if scene:
-			for k in range(needed):
+			for k in range(maxi(needed, 0)):
 				var inst = scene.instantiate()
 				inst.set_meta("pool_scene_path", path)
-				if inst is Node3D:
-					inst.position = Vector3(0.0, -9999.0, 0.0)
-					sub_vp.add_child(inst)
-					_cache_materials_recursive(inst)
-					sub_vp.remove_child(inst)
 				_vfx_pools[path].append(inst)
+			
+			# Añadir 1 instancia de muestra en warmup_container durante la pantalla de carga
+			# para forzar al rasterizador GPU a compilar todos los shaders y passes sin tirones en combate
+			var sample_inst = scene.instantiate()
+			if sample_inst is Node3D:
+				warmup_container.add_child(sample_inst)
+				_cache_materials_recursive(sample_inst)
+			elif sample_inst is CanvasItem:
+				sample_inst.visible = false
+				warmup_container.add_child(sample_inst)
+				_cache_materials_recursive(sample_inst)
+
+	# Precalentar cachés estáticas de jefes y mecánicas complejas (Zero Shader Hitch)
+	var fb_script = load("res://scripts/systems/FireballSunVisual.gd")
+	if fb_script and fb_script.has_method("_ensure_static_cache"):
+		fb_script._ensure_static_cache()
+	
+	var bah_script = load("res://scripts/systems/BossActionHandler.gd")
+	if bah_script and bah_script.has_method("_ensure_meteor_static_cache"):
+		bah_script._ensure_meteor_static_cache()
+
+	var em_script = load("res://scripts/systems/EntityManager.gd")
+	if em_script and em_script.has_method("_ensure_ice_storm_static_cache"):
+		em_script._ensure_ice_storm_static_cache()
+
+	var whip_script = load("res://scripts/systems/WhipSummonVisual.gd")
+	if whip_script and whip_script.has_method("_ensure_whip_static_cache"):
+		whip_script._ensure_whip_static_cache()
+
+	var proj_script = load("res://scripts/entities/projectiles/Projectile.gd")
+	if proj_script:
+		if proj_script.has_method("_ensure_mega_laser_static_cache"):
+			proj_script._ensure_mega_laser_static_cache()
+		if proj_script.has_method("_ensure_projectile_static_cache"):
+			proj_script._ensure_projectile_static_cache()
+
+	var ent_script = load("res://scripts/entities/Entity.gd")
+	if ent_script and ent_script.has_method("_ensure_entity_vfx_static_cache"):
+		ent_script._ensure_entity_vfx_static_cache()
+
+	var mech_script = load("res://scripts/entities/EntityMechanicsVFX.gd")
+	if mech_script and mech_script.has_method("_ensure_mechanics_static_cache"):
+		mech_script._ensure_mechanics_static_cache()
 
 	# Precalentar habilidades, auras y shaders de combate en el SubViewport activo
 	var s_warm = _create_skills_and_auras_warmup_node()
 	if s_warm:
-		s_warm.position = Vector3(0.0, -9999.0, 0.0)
-		sub_vp.add_child(s_warm)
+		warmup_container.add_child(s_warm)
 		_cache_materials_recursive(s_warm)
-		sub_vp.remove_child(s_warm)
-		s_warm.queue_free()
 
 	# Precalentar también meteorito y fuego en el SubViewport activo
 	var m_warm = _create_meteor_warmup_node()
 	if m_warm:
-		m_warm.position = Vector3(0.0, -9999.0, 0.0)
-		sub_vp.add_child(m_warm)
+		warmup_container.add_child(m_warm)
 		_cache_materials_recursive(m_warm)
-		sub_vp.remove_child(m_warm)
-		m_warm.queue_free()
 
 	# Precalentar también el Mega Láser en el SubViewport activo
 	var l_warm = _create_mega_laser_warmup_node()
 	if l_warm:
-		l_warm.position = Vector3(0.0, -9999.0, 0.0)
-		sub_vp.add_child(l_warm)
+		warmup_container.add_child(l_warm)
 		_cache_materials_recursive(l_warm)
-		sub_vp.remove_child(l_warm)
-		l_warm.queue_free()
 
 	# Precalentar también mallas y partículas del Blink en el SubViewport activo
 	var b_warm = _create_blink_warmup_node()
 	if b_warm:
-		b_warm.position = Vector3(0.0, -9999.0, 0.0)
-		sub_vp.add_child(b_warm)
+		warmup_container.add_child(b_warm)
 		_cache_materials_recursive(b_warm)
-		sub_vp.remove_child(b_warm)
-		b_warm.queue_free()
 
-	print("[VFXManager] Pool precalentado en SubViewport con éxito (38 escenas VFX + auras + Blink).")
+	# Permitir que el motor de renderizado procese los shaders durante la pantalla de carga (Warp) antes de liberar
+	var tw = warmup_container.create_tween()
+	tw.tween_interval(0.6)
+	tw.tween_callback(warmup_container.queue_free)
+
+	print("[VFXManager] Pool precalentado en SubViewport con éxito (38 escenas VFX profundas [18x proyectiles/hits, 8x escudos] + auras + Blink + Bosses + Projectiles).")
 
 func _create_meteor_warmup_node() -> Node3D:
 	var root = Node3D.new()

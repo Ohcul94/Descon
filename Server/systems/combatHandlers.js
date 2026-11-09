@@ -1569,45 +1569,97 @@ socket.on('playerFire', (fireData) => {
                     }
                 }
 
-                // v268.900: Lógica de Gancho (Hook)
+                // v268.900 / v920.0: Lógica de Gancho del Jefe/Enemigo (Hook Pull Autoritativo)
                 if (data.bulletType === "hook") {
                     const attackerId = data.attackerId || data.enemyId || data.senderId;
                     const attacker = state.enemies[attackerId];
                     if (attacker) {
                         const mech = cfg.mechanics ? cfg.mechanics.find(m => m.type === "hook") : null;
-                        const pullSpeed = (mech?.pullSpeed || 1500);
+                        const pullSpeed = Math.max(1200, Number(mech?.pullSpeed) || 1500);
                         
-                        // v266.695: Inmovilidad TOTAL durante el lanzamiento
+                        // Inmovilidad TOTAL del atacante durante el lanzamiento
                         attacker.isHooking = true;
                         
-                        // Calcular tiempo de viaje estimado (en ms)
-                        const dist = Math.sqrt(Math.pow(attacker.x - p.x, 2) + Math.pow(attacker.y - p.y, 2));
-                        const pullDurationMs = Math.min(1000, Math.max(100, (dist / pullSpeed) * 1000));
+                        // Cancelar cualquier arrastre previo
+                        if (p._hookPullTimer) {
+                            clearTimeout(p._hookPullTimer);
+                            p._hookPullTimer = null;
+                        }
 
-                        // v269.120: STUN UNIFICADO (Desde el impacto hasta el final de la penalización)
-                        const stunDur = (data.stunDuration || 2000);
+                        // Calcular posición destino exacta (al lado del atacante, a 110px de distancia)
+                        const startX = p.x;
+                        const startY = p.y;
+                        const angleFromAttacker = Math.atan2(p.y - attacker.y, p.x - attacker.x);
+                        const pullDist = 110;
+                        const targetX = attacker.x + Math.cos(angleFromAttacker) * pullDist;
+                        const targetY = attacker.y + Math.sin(angleFromAttacker) * pullDist;
+                        const dist = Math.hypot(targetX - startX, targetY - startY);
+                        const pullDurationMs = Math.min(1500, Math.max(100, Math.round((dist / pullSpeed) * 1000)));
+
+                        const pullId = Date.now() + '_' + Math.random();
+                        p._activeHookPull = {
+                            id: pullId,
+                            startX: startX,
+                            startY: startY,
+                            targetX: targetX,
+                            targetY: targetY,
+                            speed: pullSpeed,
+                            startTime: Date.now(),
+                            duration: pullDurationMs,
+                            attackerId: attacker.id
+                        };
+
+                        // STUN UNIFICADO (Desde el impacto hasta el final de la penalización)
+                        const stunDur = Number(data.stunDuration || mech?.stunDuration || 1500);
                         p.isStunned = true;
                         p.stunEndTime = Date.now() + pullDurationMs + stunDur;
 
-                        // Emitir el tirón inmediatamente para el cliente
+                        // Emitir el tirón con los datos sincronizados completos para el cliente
                         io.to(`zone_${p.zone}`).emit('hookPulled', { 
                             victimId: p.socketId, 
                             attackerId: attacker.id,
-                            pullSpeed: pullSpeed
+                            pullSpeed: pullSpeed,
+                            targetX: targetX,
+                            targetY: targetY,
+                            duration: pullDurationMs
                         });
 
                         io.to(p.socketId).emit('stunState', { active: true, duration: pullDurationMs + stunDur });
 
-                        // Programar el fin del tirón (Atracción física)
-                        setTimeout(() => {
-                            // 1. ATRAER FÍSICAMENTE en el servidor
-                            const angleToAttacker = Math.atan2(attacker.y - p.y, attacker.x - p.x);
-                            p.x = attacker.x - Math.cos(angleToAttacker) * 100;
-                            p.y = attacker.y - Math.sin(angleToAttacker) * 100;
+                        // Programar el fin del tirón (Atracción física autoritativa)
+                        p._hookPullTimer = setTimeout(() => {
+                            p._hookPullTimer = null;
+                            if (!p._activeHookPull || p._activeHookPull.id !== pullId) return;
+
+                            p._activeHookPull = null;
+                            p.x = targetX;
+                            p.y = targetY;
+                            p.justBlinked = true;
+                            p.authorizedTeleport = { x: targetX, y: targetY, zone: p.zone, timestamp: Date.now() };
+                            p.lastMoveTime = Date.now();
+
+                            // Sincronizar posición autoritativa en el socket de la víctima
+                            socket.emit('playerStatSync', {
+                                id: socket.id,
+                                x: p.x,
+                                y: p.y,
+                                hp: p.hp,
+                                shield: p.shield,
+                                maxHp: p.maxHp,
+                                maxShield: p.maxShield,
+                                spheres: p.spheres || []
+                            });
+
+                            // Notificar a todos en la zona de la nueva posición del jugador arrastrado
+                            io.to(`zone_${p.zone}`).emit('playerMoved', {
+                                id: socket.id,
+                                x: p.x,
+                                y: p.y,
+                                rotation: p.rotation || 0
+                            });
                             
-                            // v269.65: Espera configurable del bicho
+                            // Espera configurable del bicho tras conectar el gancho
                             const postWait = mech?.postHookWaitMs || 500;
-                            
                             if (attacker._hookSafetyTimeout) {
                                 clearTimeout(attacker._hookSafetyTimeout);
                                 attacker._hookSafetyTimeout = null;
@@ -1616,7 +1668,7 @@ socket.on('playerFire', (fireData) => {
                             setTimeout(() => {
                                 attacker.isHooking = false;
                             }, postWait);
-                        }, pullDurationMs);
+                        }, pullDurationMs + 30);
                     }
                 }
             }

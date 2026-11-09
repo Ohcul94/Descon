@@ -24,6 +24,151 @@ const FOLLOW_ORB_3D_SCRIPT = preload("res://scripts/entities/projectiles/FollowO
 const WHIP_SUMMON_VISUAL_SCRIPT = preload("res://scripts/systems/WhipSummonVisual.gd")
 const ENRAIZADA_VISUAL_SCRIPT = preload("res://scripts/systems/EnraizadaVisual.gd")
 
+# --- Flyweight Static Cache para Meteoritos (Zero Allocation / Zero Shader Hitch) ---
+static var _m_rock_mat: StandardMaterial3D = null
+static var _m_chunk_mat: StandardMaterial3D = null
+static var _m_fire_ppm: ParticleProcessMaterial = null
+static var _m_fire_mat: StandardMaterial3D = null
+static var _m_fire_quad: QuadMesh = null
+static var _m_embers_ppm: ParticleProcessMaterial = null
+static var _m_embers_mat: StandardMaterial3D = null
+static var _m_embers_quad: QuadMesh = null
+static var _m_flash_mat: StandardMaterial3D = null
+static var _m_sw_mat: StandardMaterial3D = null
+static var _m_burst_ppm_template: ParticleProcessMaterial = null
+static var _m_burst_mat: StandardMaterial3D = null
+static var _m_burst_quad: QuadMesh = null
+static var _m_warn_ring_mat: StandardMaterial3D = null
+static var _m_warn_fill_mat: StandardMaterial3D = null
+
+static func _ensure_meteor_static_cache() -> void:
+	if _m_rock_mat != null:
+		return
+	
+	_m_rock_mat = StandardMaterial3D.new()
+	_m_rock_mat.albedo_color = Color(0.18, 0.13, 0.1)
+	_m_rock_mat.roughness = 0.95
+	_m_rock_mat.metallic = 0.1
+	_m_rock_mat.emission_enabled = true
+	_m_rock_mat.emission = Color(1.0, 0.4, 0.05)
+	_m_rock_mat.emission_energy_multiplier = 0.6
+
+	_m_chunk_mat = StandardMaterial3D.new()
+	_m_chunk_mat.albedo_color = Color(0.22, 0.16, 0.12)
+	_m_chunk_mat.roughness = 1.0
+	_m_chunk_mat.emission_enabled = true
+	_m_chunk_mat.emission = Color(1.0, 0.35, 0.05)
+	_m_chunk_mat.emission_energy_multiplier = 0.3
+
+	_m_fire_ppm = ParticleProcessMaterial.new()
+	_m_fire_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	_m_fire_ppm.emission_sphere_radius = 0.6
+	_m_fire_ppm.direction = Vector3(0, 1, 0)
+	_m_fire_ppm.spread = 22.0
+	_m_fire_ppm.initial_velocity_min = 1.0
+	_m_fire_ppm.initial_velocity_max = 3.0
+	_m_fire_ppm.gravity = Vector3(0, 3.5, 0)
+	_m_fire_ppm.scale_min = 0.4
+	_m_fire_ppm.scale_max = 0.85
+	_m_fire_ppm.color = Color(1.0, 0.45, 0.08, 0.95)
+
+	var scale_curve = Curve.new()
+	scale_curve.add_point(Vector2(0.0, 0.3))
+	scale_curve.add_point(Vector2(0.3, 1.0))
+	scale_curve.add_point(Vector2(1.0, 0.05))
+	var scale_tex = CurveTexture.new()
+	scale_tex.curve = scale_curve
+	_m_fire_ppm.scale_curve = scale_tex
+
+	_m_fire_quad = QuadMesh.new()
+	_m_fire_quad.size = Vector2(0.55, 0.75)
+
+	_m_fire_mat = StandardMaterial3D.new()
+	_m_fire_mat.albedo_texture = METEOR_FIRE_TEX
+	_m_fire_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_m_fire_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_m_fire_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_m_fire_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_m_fire_mat.vertex_color_use_as_albedo = true
+
+	_m_embers_ppm = ParticleProcessMaterial.new()
+	_m_embers_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	_m_embers_ppm.emission_sphere_radius = 0.5
+	_m_embers_ppm.direction = Vector3(0, 1, 0)
+	_m_embers_ppm.spread = 35.0
+	_m_embers_ppm.initial_velocity_min = 1.5
+	_m_embers_ppm.initial_velocity_max = 4.0
+	_m_embers_ppm.gravity = Vector3(0, 2.5, 0)
+	_m_embers_ppm.scale_min = 0.15
+	_m_embers_ppm.scale_max = 0.35
+	_m_embers_ppm.color = Color(2.2, 1.4, 0.4, 1.0)
+
+	_m_embers_quad = QuadMesh.new()
+	_m_embers_quad.size = Vector2(0.2, 0.2)
+
+	_m_embers_mat = StandardMaterial3D.new()
+	_m_embers_mat.albedo_texture = METEOR_SPARKS_TEX
+	_m_embers_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_m_embers_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_m_embers_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_m_embers_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_m_embers_mat.vertex_color_use_as_albedo = true
+
+	_m_flash_mat = StandardMaterial3D.new()
+	_m_flash_mat.albedo_color = Color(1.0, 0.5, 0.1, 0.9)
+	_m_flash_mat.emission_enabled = true
+	_m_flash_mat.emission = Color(1.0, 0.5, 0.1)
+	_m_flash_mat.emission_energy_multiplier = 8.0
+	_m_flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	_m_sw_mat = StandardMaterial3D.new()
+	_m_sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.8)
+	_m_sw_mat.emission_enabled = true
+	_m_sw_mat.emission = Color(1.0, 0.4, 0.05)
+	_m_sw_mat.emission_energy_multiplier = 3.0
+	_m_sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	_m_burst_ppm_template = ParticleProcessMaterial.new()
+	_m_burst_ppm_template.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	_m_burst_ppm_template.direction = Vector3(0, 1, 0)
+	_m_burst_ppm_template.spread = 180.0
+	_m_burst_ppm_template.initial_velocity_min = 1.0
+	_m_burst_ppm_template.initial_velocity_max = 5.0
+	_m_burst_ppm_template.gravity = Vector3(0, -4.0, 0)
+	_m_burst_ppm_template.scale_min = 0.15
+	_m_burst_ppm_template.scale_max = 0.5
+	_m_burst_ppm_template.color = Color(1.0, 0.5, 0.1, 1.0)
+
+	_m_burst_quad = QuadMesh.new()
+	_m_burst_quad.size = Vector2(0.4, 0.4)
+
+	_m_burst_mat = StandardMaterial3D.new()
+	_m_burst_mat.albedo_texture = METEOR_SPARKS_TEX
+	_m_burst_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_m_burst_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_m_burst_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_m_burst_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+
+	_m_warn_ring_mat = StandardMaterial3D.new()
+	_m_warn_ring_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.75)
+	_m_warn_ring_mat.emission_enabled = true
+	_m_warn_ring_mat.emission = Color(1.0, 0.4, 0.05)
+	_m_warn_ring_mat.emission_energy_multiplier = 2.5
+	_m_warn_ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_m_warn_ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_m_warn_ring_mat.no_depth_test = true
+	_m_warn_ring_mat.render_priority = 2
+
+	_m_warn_fill_mat = StandardMaterial3D.new()
+	_m_warn_fill_mat.albedo_color = Color(1.0, 0.35, 0.05, 0.12)
+	_m_warn_fill_mat.emission_enabled = true
+	_m_warn_fill_mat.emission = Color(1.0, 0.35, 0.05)
+	_m_warn_fill_mat.emission_energy_multiplier = 0.4
+	_m_warn_fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_m_warn_fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_m_warn_fill_mat.no_depth_test = true
+	_m_warn_fill_mat.render_priority = 2
+
 func setup(entity_manager_ref: Node) -> void:
 	em = entity_manager_ref
 
@@ -987,6 +1132,7 @@ func _detonate_meteor(unique_id: String) -> void:
 	active_meteors.erase(unique_id)
 
 func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor: float, correction_z: float) -> Node3D:
+	_ensure_meteor_static_cache()
 	var root = Node3D.new()
 	root.name = "MeteorWarn_" + str(tx) + "_" + str(ty)
 	var r3d = radius * s_factor
@@ -999,13 +1145,7 @@ func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor:
 	rm.inner_radius = r3d * 0.9
 	rm.outer_radius = r3d
 	ring.mesh = rm
-	var ring_mat = StandardMaterial3D.new()
-	ring_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.75)
-	ring_mat.emission_enabled = true
-	ring_mat.emission = Color(1.0, 0.4, 0.05)
-	ring_mat.emission_energy_multiplier = 2.5
-	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	ring.material_override = ring_mat
+	ring.material_override = _m_warn_ring_mat
 	ring.position.y = 0.02
 	root.add_child(ring)
 
@@ -1015,19 +1155,7 @@ func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor:
 	fm.bottom_radius = r3d * 0.88
 	fm.height = 0.01
 	fill.mesh = fm
-	var fill_mat = StandardMaterial3D.new()
-	fill_mat.albedo_color = Color(1.0, 0.35, 0.05, 0.12)
-	fill_mat.emission_enabled = true
-	fill_mat.emission = Color(1.0, 0.35, 0.05)
-	fill_mat.emission_energy_multiplier = 0.4
-	fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fill_mat.no_depth_test = true
-	fill_mat.render_priority = 2
-	fill.material_override = fill_mat
-	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	ring_mat.no_depth_test = true
-	ring_mat.render_priority = 2
+	fill.material_override = _m_warn_fill_mat
 	root.add_child(fill)
 
 	var _map_m = get_tree().get_first_node_in_group("map")
@@ -1044,6 +1172,7 @@ func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor:
 	return root
 
 func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor_size: float, s_factor: float, correction_z: float) -> Node3D:
+	_ensure_meteor_static_cache()
 	var root = Node3D.new()
 	root.name = "Meteor3D_" + str(tx) + "_" + str(ty)
 	root.position = Vector3(tx * s_factor, fall_height * s_factor, ty * s_factor * correction_z)
@@ -1058,14 +1187,7 @@ func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor
 	sphere.radial_segments = 16
 	sphere.rings = 10
 	rock.mesh = sphere
-	var rock_mat = StandardMaterial3D.new()
-	rock_mat.albedo_color = Color(0.18, 0.13, 0.1)
-	rock_mat.roughness = 0.95
-	rock_mat.metallic = 0.1
-	rock_mat.emission_enabled = true
-	rock_mat.emission = Color(1.0, 0.4, 0.05)
-	rock_mat.emission_energy_multiplier = 0.6
-	rock.material_override = rock_mat
+	rock.material_override = _m_rock_mat
 	rock.scale = Vector3(1.15, 0.9, 1.0)
 	root.add_child(rock)
 
@@ -1075,13 +1197,7 @@ func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor
 		cs.radius = 0.14 + i * 0.04
 		cs.height = cs.radius * 2.0
 		chunk.mesh = cs
-		var cm = StandardMaterial3D.new()
-		cm.albedo_color = Color(0.22, 0.16, 0.12)
-		cm.roughness = 1.0
-		cm.emission_enabled = true
-		cm.emission = Color(1.0, 0.35, 0.05)
-		cm.emission_energy_multiplier = 0.3
-		chunk.material_override = cm
+		chunk.material_override = _m_chunk_mat
 		chunk.position = Vector3(randf_range(-0.6, 0.6), randf_range(-0.4, 0.4), randf_range(-0.6, 0.6))
 		root.add_child(chunk)
 
@@ -1090,39 +1206,9 @@ func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor
 	fire.name = "MeteorFire"
 	fire.amount = 75
 	fire.lifetime = 0.65
-	var fire_ppm = ParticleProcessMaterial.new()
-	fire_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	fire_ppm.emission_sphere_radius = 0.6
-	fire_ppm.direction = Vector3(0, 1, 0)
-	fire_ppm.spread = 22.0
-	fire_ppm.initial_velocity_min = 1.0
-	fire_ppm.initial_velocity_max = 3.0
-	fire_ppm.gravity = Vector3(0, 3.5, 0)
-	fire_ppm.scale_min = 0.4
-	fire_ppm.scale_max = 0.85
-	fire_ppm.color = Color(1.0, 0.45, 0.08, 0.95)
-
-	var scale_curve = Curve.new()
-	scale_curve.add_point(Vector2(0.0, 0.3))
-	scale_curve.add_point(Vector2(0.3, 1.0))
-	scale_curve.add_point(Vector2(1.0, 0.05))
-	var scale_tex = CurveTexture.new()
-	scale_tex.curve = scale_curve
-	fire_ppm.scale_curve = scale_tex
-	fire.process_material = fire_ppm
-
-	var fire_quad = QuadMesh.new()
-	fire_quad.size = Vector2(0.55, 0.75)
-	fire.draw_pass_1 = fire_quad
-
-	var fire_mat = StandardMaterial3D.new()
-	fire_mat.albedo_texture = METEOR_FIRE_TEX
-	fire_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	fire_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	fire_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	fire_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fire_mat.vertex_color_use_as_albedo = true
-	fire.material_override = fire_mat
+	fire.process_material = _m_fire_ppm
+	fire.draw_pass_1 = _m_fire_quad
+	fire.material_override = _m_fire_mat
 	root.add_child(fire)
 
 	# 2. Brasas y chispas incandescentes que se desprenden en el descenso
@@ -1130,31 +1216,9 @@ func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor
 	embers.name = "MeteorEmbers"
 	embers.amount = 45
 	embers.lifetime = 0.85
-	var embers_ppm = ParticleProcessMaterial.new()
-	embers_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	embers_ppm.emission_sphere_radius = 0.5
-	embers_ppm.direction = Vector3(0, 1, 0)
-	embers_ppm.spread = 35.0
-	embers_ppm.initial_velocity_min = 1.5
-	embers_ppm.initial_velocity_max = 4.0
-	embers_ppm.gravity = Vector3(0, 2.5, 0)
-	embers_ppm.scale_min = 0.15
-	embers_ppm.scale_max = 0.35
-	embers_ppm.color = Color(2.2, 1.4, 0.4, 1.0)
-	embers.process_material = embers_ppm
-
-	var embers_quad = QuadMesh.new()
-	embers_quad.size = Vector2(0.2, 0.2)
-	embers.draw_pass_1 = embers_quad
-
-	var embers_mat = StandardMaterial3D.new()
-	embers_mat.albedo_texture = METEOR_SPARKS_TEX
-	embers_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	embers_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	embers_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	embers_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	embers_mat.vertex_color_use_as_albedo = true
-	embers.material_override = embers_mat
+	embers.process_material = _m_embers_ppm
+	embers.draw_pass_1 = _m_embers_quad
+	embers.material_override = _m_embers_mat
 	root.add_child(embers)
 
 	var light = OmniLight3D.new()
@@ -1166,6 +1230,7 @@ func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor
 	return root
 
 func _spawn_meteor_impact_3d(vp, tx: float, ty: float, radius: float, _meteor_size: float, s_factor: float, correction_z: float) -> void:
+	_ensure_meteor_static_cache()
 	var _map_mi = get_tree().get_first_node_in_group("map")
 	var _h_mi = 0.05
 	if is_instance_valid(_map_mi) and is_instance_valid(_map_mi.get("terrain_node")) and is_instance_valid(em):
@@ -1178,12 +1243,7 @@ func _spawn_meteor_impact_3d(vp, tx: float, ty: float, radius: float, _meteor_si
 	flash_s.radius = r3d * 0.35
 	flash_s.height = r3d * 0.7
 	flash.mesh = flash_s
-	var flash_mat = StandardMaterial3D.new()
-	flash_mat.albedo_color = Color(1.0, 0.5, 0.1, 0.9)
-	flash_mat.emission_enabled = true
-	flash_mat.emission = Color(1.0, 0.5, 0.1)
-	flash_mat.emission_energy_multiplier = 8.0
-	flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var flash_mat = _m_flash_mat.duplicate()
 	flash.material_override = flash_mat
 	flash.position = pos_3d
 	vp.add_child(flash)
@@ -1198,12 +1258,7 @@ func _spawn_meteor_impact_3d(vp, tx: float, ty: float, radius: float, _meteor_si
 	ring_mesh.inner_radius = r3d * 0.5
 	ring_mesh.outer_radius = r3d * 0.55
 	shockwave.mesh = ring_mesh
-	var sw_mat = StandardMaterial3D.new()
-	sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.8)
-	sw_mat.emission_enabled = true
-	sw_mat.emission = Color(1.0, 0.4, 0.05)
-	sw_mat.emission_energy_multiplier = 3.0
-	sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var sw_mat = _m_sw_mat.duplicate()
 	shockwave.material_override = sw_mat
 	shockwave.position = pos_3d + Vector3(0,0.02,0)
 	vp.add_child(shockwave)
@@ -1218,30 +1273,11 @@ func _spawn_meteor_impact_3d(vp, tx: float, ty: float, radius: float, _meteor_si
 	burst.lifetime = 0.7
 	burst.one_shot = true
 	burst.explosiveness = 0.95
-	var burst_ppm = ParticleProcessMaterial.new()
-	burst_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	var burst_ppm = _m_burst_ppm_template.duplicate()
 	burst_ppm.emission_sphere_radius = r3d * 0.2
-	burst_ppm.direction = Vector3(0, 1, 0)
-	burst_ppm.spread = 180.0
-	burst_ppm.initial_velocity_min = 1.0
-	burst_ppm.initial_velocity_max = 5.0
-	burst_ppm.gravity = Vector3(0, -4.0, 0)
-	burst_ppm.scale_min = 0.15
-	burst_ppm.scale_max = 0.5
-	burst_ppm.color = Color(1.0, 0.5, 0.1, 1.0)
 	burst.process_material = burst_ppm
-	var burst_quad = QuadMesh.new()
-	burst_quad.size = Vector2(0.4, 0.4)
-	burst.draw_pass_1 = burst_quad
-	var burst_tex = METEOR_SPARKS_TEX
-	if burst_tex:
-		var burst_mat = StandardMaterial3D.new()
-		burst_mat.albedo_texture = burst_tex
-		burst_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		burst_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		burst_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-		burst_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		burst.material_override = burst_mat
+	burst.draw_pass_1 = _m_burst_quad
+	burst.material_override = _m_burst_mat
 	burst.position = pos_3d
 	vp.add_child(burst)
 	burst.emitting = true

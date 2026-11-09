@@ -15,6 +15,67 @@ const WHIP_FIRE_TEX = preload("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
 const WHIP_SPARK_TEX = preload("res://VFX/textures/T_VFX_Spark41.jpg")
 const WHIP_FLARE_TEX = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
 
+# --- Flyweight Static Cache para Látigo Dominante (Zero Allocation / Zero Shader Hitch) ---
+static var _cached_charge_mat: StandardMaterial3D = null
+static var _cached_ribbon_mat: StandardMaterial3D = null
+static var _cached_flash_mat: StandardMaterial3D = null
+static var _cached_ring_mat: StandardMaterial3D = null
+static var _cached_flash_mesh: QuadMesh = null
+static var _cached_ring_mesh: TorusMesh = null
+
+static func _ensure_whip_static_cache() -> void:
+	if _cached_ribbon_mat != null:
+		return
+	
+	_cached_charge_mat = StandardMaterial3D.new()
+	_cached_charge_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_cached_charge_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_cached_charge_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_cached_charge_mat.albedo_color = Color(1.0, 0.4, 0.1, 0.4)
+	_cached_charge_mat.emission_enabled = true
+	_cached_charge_mat.emission = Color(1.0, 0.3, 0.0)
+	_cached_charge_mat.emission_energy_multiplier = 2.0
+
+	_cached_ribbon_mat = StandardMaterial3D.new()
+	_cached_ribbon_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_cached_ribbon_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_cached_ribbon_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_cached_ribbon_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_cached_ribbon_mat.albedo_texture = WHIP_THUNDER_TEX
+	_cached_ribbon_mat.albedo_color = Color(1.0, 0.82, 0.28, 0.95)
+	_cached_ribbon_mat.emission_enabled = true
+	_cached_ribbon_mat.emission = Color(1.0, 0.45, 0.08)
+	_cached_ribbon_mat.emission_energy_multiplier = 6.5
+
+	_cached_flash_mesh = QuadMesh.new()
+	_cached_flash_mesh.size = Vector2(2.0, 2.0)
+
+	_cached_flash_mat = StandardMaterial3D.new()
+	_cached_flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_cached_flash_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_cached_flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_cached_flash_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_cached_flash_mat.albedo_texture = WHIP_SPARK_TEX
+	_cached_flash_mat.albedo_color = Color(1.0, 0.92, 0.45, 1.0)
+	_cached_flash_mat.emission_enabled = true
+	_cached_flash_mat.emission = Color(1.0, 0.5, 0.1)
+	_cached_flash_mat.emission_energy_multiplier = 6.0
+
+	_cached_ring_mesh = TorusMesh.new()
+	_cached_ring_mesh.inner_radius = 0.35
+	_cached_ring_mesh.outer_radius = 0.50
+	_cached_ring_mesh.rings = 16
+	_cached_ring_mesh.ring_segments = 6
+
+	_cached_ring_mat = StandardMaterial3D.new()
+	_cached_ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_cached_ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_cached_ring_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_cached_ring_mat.albedo_color = Color(1.0, 0.7, 0.2, 0.85)
+	_cached_ring_mat.emission_enabled = true
+	_cached_ring_mat.emission = Color(1.0, 0.35, 0.05)
+	_cached_ring_mat.emission_energy_multiplier = 5.0
+
 # Parámetros y referencias
 var map_node: Node = null
 var enemy_node: Node = null
@@ -136,16 +197,10 @@ func _start_charge_visual() -> void:
 	_charge_elapsed = 0.0
 	if not is_instance_valid(root_3d): return
 
+	_ensure_whip_static_cache()
 	_charge_beam_3d = MeshInstance3D.new()
 	_charge_beam_3d.name = "ChargeAimLine"
-	_charge_mat = StandardMaterial3D.new()
-	_charge_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_charge_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_charge_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_charge_mat.albedo_color = Color(1.0, 0.4, 0.1, 0.4)
-	_charge_mat.emission_enabled = true
-	_charge_mat.emission = Color(1.0, 0.3, 0.0)
-	_charge_mat.emission_energy_multiplier = 2.0
+	_charge_mat = _cached_charge_mat.duplicate()
 	_charge_beam_3d.material_override = _charge_mat
 	root_3d.add_child(_charge_beam_3d)
 	_update_charge_mesh()
@@ -217,21 +272,13 @@ func _spawn_whip_strike_3d(hit_idx: int) -> void:
 	strike_node.name = "Strike_" + str(hit_idx) + "_" + str(Time.get_ticks_msec())
 	root_3d.add_child(strike_node)
 
+	_ensure_whip_static_cache()
 	var mesh_inst = MeshInstance3D.new()
 	mesh_inst.name = "WhipRibbon"
 	strike_node.add_child(mesh_inst)
 
-	# Material de fuego/energía puro con blending aditivo
-	var mat = StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.albedo_texture = WHIP_THUNDER_TEX
-	mat.albedo_color = Color(1.0, 0.82, 0.28, 0.95)
-	mat.emission_enabled = true
-	mat.emission = Color(1.0, 0.45, 0.08)
-	mat.emission_energy_multiplier = 6.5
+	# Material de fuego/energía puro con blending aditivo (duplicado liviano sin recompilar shader)
+	var mat = _cached_ribbon_mat.duplicate()
 	mesh_inst.material_override = mat
 
 	# Luz dinámica en la punta del látigo
@@ -413,42 +460,18 @@ func _spawn_hit_impact_3d(hit_pos3d: Vector3) -> void:
 	impact_root.position = hit_pos3d
 	root_3d.add_child(impact_root)
 
+	_ensure_whip_static_cache()
 	# 1. Destello Billboard en el centro de la nave (mirando a la cámara)
 	var flash_inst = MeshInstance3D.new()
-	var qmesh = QuadMesh.new()
-	qmesh.size = Vector2(2.0, 2.0)
-	flash_inst.mesh = qmesh
-
-	var fmat = StandardMaterial3D.new()
-	fmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fmat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	fmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	fmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	fmat.albedo_texture = WHIP_SPARK_TEX
-	fmat.albedo_color = Color(1.0, 0.92, 0.45, 1.0)
-	fmat.emission_enabled = true
-	fmat.emission = Color(1.0, 0.5, 0.1)
-	fmat.emission_energy_multiplier = 6.0
+	flash_inst.mesh = _cached_flash_mesh
+	var fmat = _cached_flash_mat.duplicate()
 	flash_inst.material_override = fmat
 	impact_root.add_child(flash_inst)
 
 	# 2. Onda de choque anular expandiéndose en el aire alrededor de la nave
 	var ring_inst = MeshInstance3D.new()
-	var rmesh = TorusMesh.new()
-	rmesh.inner_radius = 0.35
-	rmesh.outer_radius = 0.50
-	rmesh.rings = 16
-	rmesh.ring_segments = 6
-	ring_inst.mesh = rmesh
-
-	var rmat = StandardMaterial3D.new()
-	rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	rmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	rmat.albedo_color = Color(1.0, 0.7, 0.2, 0.85)
-	rmat.emission_enabled = true
-	rmat.emission = Color(1.0, 0.35, 0.05)
-	rmat.emission_energy_multiplier = 5.0
+	ring_inst.mesh = _cached_ring_mesh
+	var rmat = _cached_ring_mat.duplicate()
 	ring_inst.material_override = rmat
 	impact_root.add_child(ring_inst)
 

@@ -47,4 +47,5 @@ Server/keys/
 # Media & Raw assets
 Redes Sociales/
 *.mp4
+*.original_backup
 

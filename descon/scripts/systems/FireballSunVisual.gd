@@ -21,6 +21,109 @@ extends Node2D
 const RAY_COUNT := 30
 const BOLT_STEPS := 6
 
+# --- Flyweight Static Cache (Zero Allocation / Zero Shader Hitch) ---
+static var _cached_ball_gradient: GradientTexture2D = null
+static var _cached_glow_gradient: GradientTexture2D = null
+static var _cached_core_gradient: GradientTexture2D = null
+static var _cached_flares_gradient: GradientTexture2D = null
+static var _cached_flares_ramp: GradientTexture1D = null
+
+static var _cached_disc_mat: StandardMaterial3D = null
+static var _cached_glow_mat: StandardMaterial3D = null
+static var _cached_core_mat: StandardMaterial3D = null
+static var _cached_flares_mat: StandardMaterial3D = null
+static var _cached_ray_mat: StandardMaterial3D = null
+
+static func _ensure_static_cache() -> void:
+	if _cached_ball_gradient != null:
+		return
+	
+	# 1. Gradientes de textura reutilizables
+	_cached_ball_gradient = _build_ball_gradient_resource()
+	_cached_glow_gradient = _build_radial_gradient_resource(1.0, 1.0, 0.55)
+	_cached_core_gradient = _build_radial_gradient_resource(1.0, 1.0, 1.0)
+	_cached_flares_gradient = _build_radial_gradient_resource(0.9, 1.0, 0.75)
+	
+	var fgrad := Gradient.new()
+	fgrad.set_color(0, Color(1.0, 0.9, 0.4, 0.95))
+	fgrad.set_color(1, Color(1.0, 0.2, 0.0, 0.0))
+	_cached_flares_ramp = GradientTexture1D.new()
+	_cached_flares_ramp.gradient = fgrad
+	
+	# 2. Materiales estáticos con shader precompilado
+	_cached_disc_mat = _build_billboard_material_resource(Color(1.0, 0.78, 0.32, 0.95), 5)
+	_cached_disc_mat.albedo_texture = _cached_ball_gradient
+	
+	_cached_glow_mat = _build_billboard_material_resource(Color(1.0, 0.5, 0.1, 0.6), 4)
+	_cached_glow_mat.albedo_texture = _cached_glow_gradient
+	
+	_cached_core_mat = _build_billboard_material_resource(Color(1.0, 0.95, 0.7, 0.9), 6)
+	_cached_core_mat.albedo_texture = _cached_core_gradient
+	
+	_cached_flares_mat = _build_billboard_material_resource(Color(1.0, 0.72, 0.28, 0.9), 0)
+	_cached_flares_mat.billboard_keep_scale = false
+	_cached_flares_mat.render_priority = 0
+	_cached_flares_mat.albedo_texture = _cached_flares_gradient
+	
+	_cached_ray_mat = _build_ray_material_resource()
+
+static func _build_radial_gradient_resource(inner_alpha: float, outer_stop: float, brightness: float) -> GradientTexture2D:
+	var grad := Gradient.new()
+	grad.add_point(clampf(outer_stop * 0.35, 0.05, 0.95), Color(1, 1, 1, 1))
+	grad.set_color(0, Color(1.0, clampf(0.85 * brightness + 0.15, 0.0, 1.0), clampf(0.45 * brightness + 0.1, 0.0, 1.0), inner_alpha))
+	grad.set_color(1, Color(1.0, clampf(0.6 * brightness, 0.0, 1.0), 0.1, inner_alpha * 0.45))
+	grad.set_color(2, Color(1.0, 0.3, 0.02, 0.0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.width = 128
+	tex.height = 128
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 0.0)
+	return tex
+
+static func _build_ball_gradient_resource() -> GradientTexture2D:
+	var grad := Gradient.new()
+	grad.add_point(0.42, Color(1.0, 0.9, 0.35, 0.9))
+	grad.add_point(0.74, Color(1.0, 0.48, 0.06, 0.5))
+	grad.add_point(1.0, Color(1.0, 0.18, 0.0, 0.0))
+	grad.set_color(0, Color(1.0, 0.98, 0.86, 1.0))
+	grad.set_color(1, Color(1.0, 0.9, 0.35, 0.9))
+	grad.set_color(2, Color(1.0, 0.48, 0.06, 0.5))
+	grad.set_color(3, Color(1.0, 0.18, 0.0, 0.0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.width = 128
+	tex.height = 128
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 0.0)
+	return tex
+
+static func _build_billboard_material_resource(p_color: Color, p_priority: int) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.no_depth_test = true
+	m.render_priority = p_priority
+	m.albedo_color = p_color
+	return m
+
+static func _build_ray_material_resource() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.vertex_color_use_as_albedo = true
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.no_depth_test = true
+	m.render_priority = 3
+	return m
+
 var map_node: Node = null
 var enemy_node: Node = null
 
@@ -178,6 +281,9 @@ func _ray_direction(spec: Dictionary) -> Vector3:
 func _build_sun_3d() -> void:
 	if not _is_3d:
 		return
+	
+	_ensure_static_cache()
+	
 	root_3d = Node3D.new()
 	root_3d.name = "FireballSun3D_" + str(get_instance_id())
 	map_node.sub_viewport.add_child(root_3d)
@@ -189,7 +295,7 @@ func _build_sun_3d() -> void:
 	ray_root = Node3D.new()
 	ray_root.name = "Rays"
 	root_3d.add_child(ray_root)
-	var ray_mat := _make_ray_material()
+	var ray_mat := _cached_ray_mat
 	_ray_nodes.clear()
 	for spec in _specs:
 		var dir := _ray_direction(spec)
@@ -205,14 +311,11 @@ func _build_sun_3d() -> void:
 		_ray_nodes.append({"node": ray_wrap, "spec": spec})
 
 	# 2. Disco de fuego circular (billboard): es la silueta redonda de la bola.
-	#    Es un sprite radial, NO una malla esférica.
 	_disc = MeshInstance3D.new()
 	var disc_quad := QuadMesh.new()
 	disc_quad.size = Vector2(r3d * 2.6, r3d * 2.6)
 	_disc.mesh = disc_quad
-	var disc_mat := _make_billboard_material(Color(1.0, 0.78, 0.32, 0.95), 5)
-	disc_mat.albedo_texture = _make_ball_gradient()
-	_disc.material_override = disc_mat
+	_disc.material_override = _cached_disc_mat
 	root_3d.add_child(_disc)
 
 	# 3. Halo de fuego (billboard aditivo): dilata la silueta sin endurecerla
@@ -220,9 +323,7 @@ func _build_sun_3d() -> void:
 	var quad := QuadMesh.new()
 	quad.size = Vector2(r3d * 7.0, r3d * 7.0)
 	_glow.mesh = quad
-	var glow_mat := _make_billboard_material(Color(1.0, 0.5, 0.1, 0.6), 4)
-	glow_mat.albedo_texture = _make_radial_gradient(1.0, 1.0, 0.55)
-	_glow.material_override = glow_mat
+	_glow.material_override = _cached_glow_mat
 	root_3d.add_child(_glow)
 
 	# 4. Centro incandescente (blanco amarillo, pequeño)
@@ -230,9 +331,7 @@ func _build_sun_3d() -> void:
 	var core_quad := QuadMesh.new()
 	core_quad.size = Vector2(r3d * 1.5, r3d * 1.5)
 	_glow_core.mesh = core_quad
-	var core_mat := _make_billboard_material(Color(1.0, 0.95, 0.7, 0.9), 6)
-	core_mat.albedo_texture = _make_radial_gradient(1.0, 1.0, 1.0)
-	_glow_core.material_override = core_mat
+	_glow_core.material_override = _cached_core_mat
 	root_3d.add_child(_glow_core)
 
 	# 5. Luz que ilumina el entorno
@@ -252,11 +351,7 @@ func _build_sun_3d() -> void:
 	_flares.local_coords = false
 	var fmesh := QuadMesh.new()
 	fmesh.size = Vector2(maxf(r3d * 0.55, 0.06), maxf(r3d * 0.55, 0.06))
-	var fmat := _make_billboard_material(Color(1.0, 0.72, 0.28, 0.9), 0)
-	fmat.billboard_keep_scale = false
-	fmat.render_priority = 0
-	fmat.albedo_texture = _make_radial_gradient(0.9, 1.0, 0.75)
-	fmesh.material = fmat # SI NO SE ASIGNA, el QuadMesh usa el material gris por defecto
+	fmesh.material = _cached_flares_mat
 	_flares.draw_pass_1 = fmesh
 
 	var pm := ParticleProcessMaterial.new()
@@ -269,12 +364,7 @@ func _build_sun_3d() -> void:
 	pm.gravity = Vector3.ZERO
 	pm.scale_min = 0.4
 	pm.scale_max = 1.7
-	var fgrad := Gradient.new()
-	fgrad.set_color(0, Color(1.0, 0.9, 0.4, 0.95))
-	fgrad.set_color(1, Color(1.0, 0.2, 0.0, 0.0))
-	var fgrad_tex := GradientTexture1D.new()
-	fgrad_tex.gradient = fgrad
-	pm.color_ramp = fgrad_tex
+	pm.color_ramp = _cached_flares_ramp
 	_flares.process_material = pm
 	root_3d.add_child(_flares)
 	_flares.emitting = true
@@ -282,28 +372,20 @@ func _build_sun_3d() -> void:
 	_sync_sun_3d()
 
 func _make_billboard_material(p_color: Color, p_priority: int) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	m.billboard_keep_scale = true
-	m.no_depth_test = true
-	m.render_priority = p_priority
-	m.albedo_color = p_color
-	return m
+	_ensure_static_cache()
+	if p_priority == 5 and p_color == Color(1.0, 0.78, 0.32, 0.95):
+		return _cached_disc_mat
+	elif p_priority == 4:
+		return _cached_glow_mat
+	elif p_priority == 6:
+		return _cached_core_mat
+	elif p_priority == 0:
+		return _cached_flares_mat
+	return _build_billboard_material_resource(p_color, p_priority)
 
 func _make_ray_material() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.vertex_color_use_as_albedo = true # el degradado vive en los vértices, no en UVs
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	m.no_depth_test = true
-	m.render_priority = 3
-	return m
+	_ensure_static_cache()
+	return _cached_ray_mat
 
 # Degradado de fuego a lo largo del rayo: incandescente -> naranja -> rojo -> transparente
 func _bolt_color(f: float) -> Color:
@@ -366,40 +448,20 @@ func _make_bolt_mesh(length: float, half_w: float, phase: float) -> ArrayMesh:
 	return mesh
 
 func _make_radial_gradient(inner_alpha: float, outer_stop: float, brightness: float) -> GradientTexture2D:
-	var grad := Gradient.new()
-	# Se añaden los puntos ANTES de pintarlos: los índices se reordenan al insertar
-	grad.add_point(clampf(outer_stop * 0.35, 0.05, 0.95), Color(1, 1, 1, 1))
-	grad.set_color(0, Color(1.0, clampf(0.85 * brightness + 0.15, 0.0, 1.0), clampf(0.45 * brightness + 0.1, 0.0, 1.0), inner_alpha))
-	grad.set_color(1, Color(1.0, clampf(0.6 * brightness, 0.0, 1.0), 0.1, inner_alpha * 0.45))
-	grad.set_color(2, Color(1.0, 0.3, 0.02, 0.0))
-	var tex := GradientTexture2D.new()
-	tex.gradient = grad
-	tex.width = 128
-	tex.height = 128
-	tex.fill = GradientTexture2D.FILL_RADIAL
-	tex.fill_from = Vector2(0.5, 0.5)
-	tex.fill_to = Vector2(0.5, 0.0)
-	return tex
+	_ensure_static_cache()
+	if inner_alpha == 1.0 and outer_stop == 1.0 and brightness == 0.55:
+		return _cached_glow_gradient
+	elif inner_alpha == 1.0 and outer_stop == 1.0 and brightness == 1.0:
+		return _cached_core_gradient
+	elif inner_alpha == 0.9 and outer_stop == 1.0 and brightness == 0.75:
+		return _cached_flares_gradient
+	return _build_radial_gradient_resource(inner_alpha, outer_stop, brightness)
 
 # Degradado del disco: centro blanco caliente -> amarillo -> naranja -> rojo (borde
 # transparente para que la silueta sea redonda y no se vea el cuadrado del QuadMesh)
 func _make_ball_gradient() -> GradientTexture2D:
-	var grad := Gradient.new()
-	grad.add_point(0.42, Color(1.0, 0.9, 0.35, 0.9))
-	grad.add_point(0.74, Color(1.0, 0.48, 0.06, 0.5))
-	grad.add_point(1.0, Color(1.0, 0.18, 0.0, 0.0))
-	grad.set_color(0, Color(1.0, 0.98, 0.86, 1.0))
-	grad.set_color(1, Color(1.0, 0.9, 0.35, 0.9))
-	grad.set_color(2, Color(1.0, 0.48, 0.06, 0.5))
-	grad.set_color(3, Color(1.0, 0.18, 0.0, 0.0))
-	var tex := GradientTexture2D.new()
-	tex.gradient = grad
-	tex.width = 128
-	tex.height = 128
-	tex.fill = GradientTexture2D.FILL_RADIAL
-	tex.fill_from = Vector2(0.5, 0.5)
-	tex.fill_to = Vector2(0.5, 0.0)
-	return tex
+	_ensure_static_cache()
+	return _cached_ball_gradient
 
 # ------------------------------------------------------------------------------
 # Sincronización de posiciones 2D (px de mundo) -> 3D

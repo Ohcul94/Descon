@@ -48,6 +48,412 @@ const TEXTURE_CACHE = {
 	"heal": TEXTURE_HEAL
 }
 
+# --- Flyweight Static Cache para Mega Laser y Proyectiles 3D (Zero Allocation / Zero Shader Hitch) ---
+static var _ml_glow_mat: StandardMaterial3D = null
+static var _ml_beam_mat: StandardMaterial3D = null
+static var _ml_core_mat: StandardMaterial3D = null
+static var _ml_flare_mat: StandardMaterial3D = null
+static var _ml_flare_core_mat: StandardMaterial3D = null
+
+# Minas y Minas orbitales
+static var _cached_mine_core_mesh: SphereMesh = null
+static var _cached_mine_core_mat: StandardMaterial3D = null
+static var _cached_mine_ring_mesh: CylinderMesh = null
+static var _cached_mine_ring_mat: StandardMaterial3D = null
+
+static var _cached_orb_mine_core_mesh: SphereMesh = null
+static var _cached_orb_mine_core_mat: StandardMaterial3D = null
+static var _cached_orb_mine_ring_mesh: TorusMesh = null
+static var _cached_orb_mine_ring_mat: StandardMaterial3D = null
+
+# Hook / Gancho
+static var _cached_hook_shaft_mesh: CylinderMesh = null
+static var _cached_hook_shaft_mat: StandardMaterial3D = null
+static var _cached_hook_tip_mesh: CylinderMesh = null
+static var _cached_hook_tip_mat: StandardMaterial3D = null
+static var _cached_hook_ring_mesh: CylinderMesh = null
+static var _cached_hook_ring_mat: StandardMaterial3D = null
+static var _cached_hook_orb_mesh: SphereMesh = null
+static var _cached_hook_orb_mat: StandardMaterial3D = null
+static var _cached_hook_chain_mesh: CylinderMesh = null
+static var _cached_hook_chain_mat: StandardMaterial3D = null
+
+# Miedo / Esfera de terror
+static var _cached_fear_core_mesh: SphereMesh = null
+static var _cached_fear_core_mat: StandardMaterial3D = null
+static var _cached_fear_glow_mesh: SphereMesh = null
+static var _cached_fear_glow_mat: StandardMaterial3D = null
+
+# Electrón / Bomba
+static var _cached_electron_body_mesh: SphereMesh = null
+static var _cached_electron_body_mat: StandardMaterial3D = null
+static var _cached_electron_glow_mesh: SphereMesh = null
+static var _cached_electron_glow_mat: StandardMaterial3D = null
+static var _cached_electron_fuse_mesh: CylinderMesh = null
+static var _cached_electron_fuse_mat: StandardMaterial3D = null
+static var _cached_electron_spark_mesh: SphereMesh = null
+static var _cached_electron_spark_mat: StandardMaterial3D = null
+static var _cached_electron_subspark_mesh: SphereMesh = null
+static var _cached_electron_subspark_mat: StandardMaterial3D = null
+static var _cached_bomb_marker_mat: StandardMaterial3D = null
+static var _cached_bomb_marker_fill_mat: StandardMaterial3D = null
+
+# Drenaje de escudo y vida (Shield / Life Steal)
+static var _cached_shield_steal_core_mesh: SphereMesh = null
+static var _cached_shield_steal_core_mat: StandardMaterial3D = null
+static var _cached_shield_steal_ring_mesh: TorusMesh = null
+static var _cached_shield_steal_ring_mat: StandardMaterial3D = null
+
+static var _cached_life_steal_core_mesh: SphereMesh = null
+static var _cached_life_steal_core_mat: StandardMaterial3D = null
+static var _cached_life_steal_ring_mesh: TorusMesh = null
+static var _cached_life_steal_ring_mat: StandardMaterial3D = null
+
+# Polimorfia (Cubo)
+static var _cached_poly_mesh: BoxMesh = null
+static var _cached_poly_mat: StandardMaterial3D = null
+
+# Calavera Ejecutora
+static var _cached_exec_cranium_mesh: SphereMesh = null
+static var _cached_exec_bone_mat: StandardMaterial3D = null
+static var _cached_exec_eye_mesh: SphereMesh = null
+static var _cached_exec_eye_mat: StandardMaterial3D = null
+static var _cached_exec_jaw_mesh: BoxMesh = null
+static var _cached_exec_jaw_mat: StandardMaterial3D = null
+static var _cached_exec_trail_mesh: SphereMesh = null
+static var _cached_exec_trail_grad: Gradient = null
+
+static func _ensure_mega_laser_static_cache() -> void:
+	if _ml_beam_mat != null:
+		return
+	
+	_ml_glow_mat = StandardMaterial3D.new()
+	_ml_glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_ml_glow_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_ml_glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_ml_glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_ml_glow_mat.albedo_color = Color(1.0, 0.2, 0.02, 0.22)
+	_ml_glow_mat.emission_enabled = true
+	_ml_glow_mat.emission = Color(1.0, 0.15, 0.02)
+	_ml_glow_mat.emission_energy_multiplier = 3.0
+
+	_ml_beam_mat = StandardMaterial3D.new()
+	_ml_beam_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_ml_beam_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_ml_beam_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_ml_beam_mat.albedo_color = Color(1.0, 0.35, 0.05, 0.85)
+	_ml_beam_mat.emission_enabled = true
+	_ml_beam_mat.emission = Color(1.0, 0.35, 0.08)
+	_ml_beam_mat.emission_energy_multiplier = 7.0
+
+	_ml_core_mat = StandardMaterial3D.new()
+	_ml_core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_ml_core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_ml_core_mat.albedo_color = Color(1.0, 1.0, 0.95)
+	_ml_core_mat.emission_enabled = true
+	_ml_core_mat.emission = Color(1.0, 1.0, 1.0)
+	_ml_core_mat.emission_energy_multiplier = 14.0
+
+	_ml_flare_mat = StandardMaterial3D.new()
+	_ml_flare_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_ml_flare_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_ml_flare_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_ml_flare_mat.albedo_texture = TEXTURE_VFX_FLARE_15
+	_ml_flare_mat.albedo_color = Color(1.0, 0.5, 0.15, 0.95)
+
+	_ml_flare_core_mat = StandardMaterial3D.new()
+	_ml_flare_core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_ml_flare_core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_ml_flare_core_mat.albedo_color = Color(1.0, 0.95, 0.85)
+	_ml_flare_core_mat.emission_enabled = true
+	_ml_flare_core_mat.emission = Color(1.0, 1.0, 1.0)
+	_ml_flare_core_mat.emission_energy_multiplier = 12.0
+
+static func _ensure_projectile_static_cache() -> void:
+	_ensure_mega_laser_static_cache()
+	if _cached_mine_core_mesh != null:
+		return
+
+	# Mina estándar
+	_cached_mine_core_mesh = SphereMesh.new()
+	_cached_mine_core_mesh.radius = 0.5
+	_cached_mine_core_mesh.height = 1.0
+
+	_cached_mine_core_mat = StandardMaterial3D.new()
+	_cached_mine_core_mat.albedo_color = Color(1.0, 0.15, 0.05)
+	_cached_mine_core_mat.emission_enabled = true
+	_cached_mine_core_mat.emission = Color(1.0, 0.15, 0.05)
+	_cached_mine_core_mat.emission_energy_multiplier = 5.0
+
+	_cached_mine_ring_mesh = CylinderMesh.new()
+	_cached_mine_ring_mesh.top_radius = 0.7
+	_cached_mine_ring_mesh.bottom_radius = 0.7
+	_cached_mine_ring_mesh.height = 0.05
+
+	_cached_mine_ring_mat = StandardMaterial3D.new()
+	_cached_mine_ring_mat.albedo_color = Color(1.0, 0.3, 0.1)
+	_cached_mine_ring_mat.emission_enabled = true
+	_cached_mine_ring_mat.emission = Color(1.0, 0.3, 0.1)
+	_cached_mine_ring_mat.emission_energy_multiplier = 3.0
+
+	# Mina orbital
+	_cached_orb_mine_core_mesh = SphereMesh.new()
+	_cached_orb_mine_core_mesh.radius = 0.35
+	_cached_orb_mine_core_mesh.height = 0.7
+
+	_cached_orb_mine_core_mat = StandardMaterial3D.new()
+	_cached_orb_mine_core_mat.albedo_color = Color(0.15, 0.6, 1.0)
+	_cached_orb_mine_core_mat.emission_enabled = true
+	_cached_orb_mine_core_mat.emission = Color(0.15, 0.6, 1.0)
+	_cached_orb_mine_core_mat.emission_energy_multiplier = 4.0
+
+	_cached_orb_mine_ring_mesh = TorusMesh.new()
+	_cached_orb_mine_ring_mesh.inner_radius = 0.5
+	_cached_orb_mine_ring_mesh.outer_radius = 0.65
+
+	_cached_orb_mine_ring_mat = StandardMaterial3D.new()
+	_cached_orb_mine_ring_mat.albedo_color = Color(0.3, 0.8, 1.0)
+	_cached_orb_mine_ring_mat.emission_enabled = true
+	_cached_orb_mine_ring_mat.emission = Color(0.3, 0.8, 1.0)
+	_cached_orb_mine_ring_mat.emission_energy_multiplier = 2.0
+
+	# Hook
+	_cached_hook_shaft_mesh = CylinderMesh.new()
+	_cached_hook_shaft_mesh.top_radius = 0.03
+	_cached_hook_shaft_mesh.bottom_radius = 0.03
+	_cached_hook_shaft_mesh.height = 1.0
+
+	_cached_hook_shaft_mat = StandardMaterial3D.new()
+	_cached_hook_shaft_mat.albedo_color = Color(0.0, 0.7, 0.7)
+	_cached_hook_shaft_mat.metallic = 0.9
+	_cached_hook_shaft_mat.roughness = 0.15
+
+	_cached_hook_tip_mesh = CylinderMesh.new()
+	_cached_hook_tip_mesh.top_radius = 0.0
+	_cached_hook_tip_mesh.bottom_radius = 0.03
+	_cached_hook_tip_mesh.height = 0.2
+
+	_cached_hook_tip_mat = StandardMaterial3D.new()
+	_cached_hook_tip_mat.albedo_color = Color(0.0, 0.9, 0.9)
+	_cached_hook_tip_mat.emission_enabled = true
+	_cached_hook_tip_mat.emission = Color(0.0, 0.9, 0.9)
+	_cached_hook_tip_mat.emission_energy_multiplier = 3.0
+
+	_cached_hook_ring_mesh = CylinderMesh.new()
+	_cached_hook_ring_mesh.top_radius = 0.06
+	_cached_hook_ring_mesh.bottom_radius = 0.02
+	_cached_hook_ring_mesh.height = 0.03
+
+	_cached_hook_ring_mat = StandardMaterial3D.new()
+	_cached_hook_ring_mat.albedo_color = Color(0.0, 0.6, 0.6)
+	_cached_hook_ring_mat.metallic = 1.0
+	_cached_hook_ring_mat.roughness = 0.1
+
+	_cached_hook_orb_mesh = SphereMesh.new()
+	_cached_hook_orb_mesh.radius = 0.07
+	_cached_hook_orb_mesh.height = 0.14
+
+	_cached_hook_orb_mat = StandardMaterial3D.new()
+	_cached_hook_orb_mat.albedo_color = Color(0.2, 1.0, 1.0)
+	_cached_hook_orb_mat.emission_enabled = true
+	_cached_hook_orb_mat.emission = Color(0.2, 1.0, 1.0)
+	_cached_hook_orb_mat.emission_energy_multiplier = 6.0
+
+	_cached_hook_chain_mesh = CylinderMesh.new()
+	_cached_hook_chain_mesh.top_radius = 0.008
+	_cached_hook_chain_mesh.bottom_radius = 0.008
+	_cached_hook_chain_mesh.height = 1.0
+
+	_cached_hook_chain_mat = StandardMaterial3D.new()
+	_cached_hook_chain_mat.albedo_color = Color(0.0, 0.9, 0.9, 0.4)
+	_cached_hook_chain_mat.emission_enabled = true
+	_cached_hook_chain_mat.emission = Color(0.0, 0.9, 0.9)
+	_cached_hook_chain_mat.emission_energy_multiplier = 2.0
+	_cached_hook_chain_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	# Fear / Esfera de Terror
+	_cached_fear_core_mesh = SphereMesh.new()
+	_cached_fear_core_mesh.radius = 0.35
+	_cached_fear_core_mesh.height = 0.7
+
+	_cached_fear_core_mat = StandardMaterial3D.new()
+	_cached_fear_core_mat.albedo_color = Color(0.12, 0.0, 0.18)
+	_cached_fear_core_mat.metallic = 0.8
+	_cached_fear_core_mat.roughness = 0.2
+
+	_cached_fear_glow_mesh = SphereMesh.new()
+	_cached_fear_glow_mesh.radius = 0.45
+	_cached_fear_glow_mesh.height = 0.9
+
+	_cached_fear_glow_mat = StandardMaterial3D.new()
+	_cached_fear_glow_mat.albedo_color = Color(0.8, 0.1, 0.9, 0.35)
+	_cached_fear_glow_mat.emission_enabled = true
+	_cached_fear_glow_mat.emission = Color(0.8, 0.1, 0.9)
+	_cached_fear_glow_mat.emission_energy_multiplier = 3.0
+	_cached_fear_glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	# Electrón / Bomba
+	_cached_electron_body_mesh = SphereMesh.new()
+	_cached_electron_body_mesh.radius = 0.4
+	_cached_electron_body_mesh.height = 0.8
+
+	_cached_electron_body_mat = StandardMaterial3D.new()
+	_cached_electron_body_mat.albedo_color = Color(0.25, 0.25, 0.25)
+	_cached_electron_body_mat.metallic = 0.8
+	_cached_electron_body_mat.roughness = 0.3
+
+	_cached_electron_glow_mesh = SphereMesh.new()
+	_cached_electron_glow_mesh.radius = 0.5
+	_cached_electron_glow_mesh.height = 1.0
+
+	_cached_electron_glow_mat = StandardMaterial3D.new()
+	_cached_electron_glow_mat.albedo_color = Color(1.0, 0.4, 0.0, 0.2)
+	_cached_electron_glow_mat.emission_enabled = true
+	_cached_electron_glow_mat.emission = Color(1.0, 0.4, 0.0)
+	_cached_electron_glow_mat.emission_energy_multiplier = 1.0
+	_cached_electron_glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	_cached_electron_fuse_mesh = CylinderMesh.new()
+	_cached_electron_fuse_mesh.top_radius = 0.03
+	_cached_electron_fuse_mesh.bottom_radius = 0.05
+	_cached_electron_fuse_mesh.height = 0.25
+
+	_cached_electron_fuse_mat = StandardMaterial3D.new()
+	_cached_electron_fuse_mat.albedo_color = Color(0.4, 0.3, 0.2)
+
+	_cached_electron_spark_mesh = SphereMesh.new()
+	_cached_electron_spark_mesh.radius = 0.06
+	_cached_electron_spark_mesh.height = 0.12
+
+	_cached_electron_spark_mat = StandardMaterial3D.new()
+	_cached_electron_spark_mat.albedo_color = Color(1.0, 0.7, 0.0)
+	_cached_electron_spark_mat.emission_enabled = true
+	_cached_electron_spark_mat.emission = Color(1.0, 0.7, 0.0)
+	_cached_electron_spark_mat.emission_energy_multiplier = 8.0
+
+	_cached_electron_subspark_mesh = SphereMesh.new()
+	_cached_electron_subspark_mesh.radius = 0.03
+	_cached_electron_subspark_mesh.height = 0.06
+
+	_cached_electron_subspark_mat = StandardMaterial3D.new()
+	_cached_electron_subspark_mat.albedo_color = Color(1.0, 0.8, 0.2)
+	_cached_electron_subspark_mat.emission_enabled = true
+	_cached_electron_subspark_mat.emission = Color(1.0, 0.8, 0.2)
+	_cached_electron_subspark_mat.emission_energy_multiplier = 6.0
+
+	_cached_bomb_marker_mat = StandardMaterial3D.new()
+	_cached_bomb_marker_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.7)
+	_cached_bomb_marker_mat.emission_enabled = true
+	_cached_bomb_marker_mat.emission = Color(1.0, 0.15, 0.05)
+	_cached_bomb_marker_mat.emission_energy_multiplier = 2.0
+	_cached_bomb_marker_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_cached_bomb_marker_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_cached_bomb_marker_mat.no_depth_test = true
+	_cached_bomb_marker_mat.render_priority = 2
+
+	_cached_bomb_marker_fill_mat = StandardMaterial3D.new()
+	_cached_bomb_marker_fill_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.12)
+	_cached_bomb_marker_fill_mat.emission_enabled = true
+	_cached_bomb_marker_fill_mat.emission = Color(1.0, 0.15, 0.05)
+	_cached_bomb_marker_fill_mat.emission_energy_multiplier = 0.5
+	_cached_bomb_marker_fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_cached_bomb_marker_fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_cached_bomb_marker_fill_mat.no_depth_test = true
+	_cached_bomb_marker_fill_mat.render_priority = 2
+
+	# Shield Steal
+	_cached_shield_steal_core_mesh = SphereMesh.new()
+	_cached_shield_steal_core_mesh.radius = 0.4
+	_cached_shield_steal_core_mesh.height = 0.8
+
+	_cached_shield_steal_core_mat = StandardMaterial3D.new()
+	_cached_shield_steal_core_mat.albedo_color = Color(0.35, 0.85, 1.0)
+	_cached_shield_steal_core_mat.emission_enabled = true
+	_cached_shield_steal_core_mat.emission = Color(0.3, 0.8, 1.0)
+	_cached_shield_steal_core_mat.emission_energy_multiplier = 4.0
+
+	_cached_shield_steal_ring_mesh = TorusMesh.new()
+	_cached_shield_steal_ring_mesh.inner_radius = 0.55
+	_cached_shield_steal_ring_mesh.outer_radius = 0.7
+
+	_cached_shield_steal_ring_mat = StandardMaterial3D.new()
+	_cached_shield_steal_ring_mat.albedo_color = Color(0.2, 0.9, 1.0)
+	_cached_shield_steal_ring_mat.emission_enabled = true
+	_cached_shield_steal_ring_mat.emission = Color(0.2, 0.9, 1.0)
+	_cached_shield_steal_ring_mat.emission_energy_multiplier = 2.5
+
+	# Life Steal
+	_cached_life_steal_core_mesh = SphereMesh.new()
+	_cached_life_steal_core_mesh.radius = 0.4
+	_cached_life_steal_core_mesh.height = 0.8
+
+	_cached_life_steal_core_mat = StandardMaterial3D.new()
+	_cached_life_steal_core_mat.albedo_color = Color(0.3, 1.0, 0.4)
+	_cached_life_steal_core_mat.emission_enabled = true
+	_cached_life_steal_core_mat.emission = Color(0.2, 1.0, 0.3)
+	_cached_life_steal_core_mat.emission_energy_multiplier = 4.0
+
+	_cached_life_steal_ring_mesh = TorusMesh.new()
+	_cached_life_steal_ring_mesh.inner_radius = 0.55
+	_cached_life_steal_ring_mesh.outer_radius = 0.7
+
+	_cached_life_steal_ring_mat = StandardMaterial3D.new()
+	_cached_life_steal_ring_mat.albedo_color = Color(0.2, 0.95, 0.3)
+	_cached_life_steal_ring_mat.emission_enabled = true
+	_cached_life_steal_ring_mat.emission = Color(0.2, 0.95, 0.3)
+	_cached_life_steal_ring_mat.emission_energy_multiplier = 2.5
+
+	# Polimorfia
+	_cached_poly_mesh = BoxMesh.new()
+	_cached_poly_mesh.size = Vector3(0.35, 0.35, 0.35)
+
+	_cached_poly_mat = StandardMaterial3D.new()
+	_cached_poly_mat.albedo_color = Color(0.2, 0.8, 1.0, 0.9)
+	_cached_poly_mat.emission_enabled = true
+	_cached_poly_mat.emission = Color(0.2, 0.8, 1.0)
+	_cached_poly_mat.emission_energy_multiplier = 3.0
+	_cached_poly_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	# Calavera Ejecutora
+	_cached_exec_cranium_mesh = SphereMesh.new()
+	_cached_exec_cranium_mesh.radius = 0.34
+	_cached_exec_cranium_mesh.height = 0.7
+
+	_cached_exec_bone_mat = StandardMaterial3D.new()
+	_cached_exec_bone_mat.albedo_color = Color(0.72, 0.68, 0.62, 0.95)
+	_cached_exec_bone_mat.emission_enabled = true
+	_cached_exec_bone_mat.emission = Color(0.75, 0.55, 0.9, 0.35)
+	_cached_exec_bone_mat.emission_energy_multiplier = 2.0
+	_cached_exec_bone_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_cached_exec_bone_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	_cached_exec_eye_mesh = SphereMesh.new()
+	_cached_exec_eye_mesh.radius = 0.1
+	_cached_exec_eye_mesh.height = 0.2
+
+	_cached_exec_eye_mat = StandardMaterial3D.new()
+	_cached_exec_eye_mat.albedo_color = Color(0.0, 0.0, 0.0, 0.95)
+	_cached_exec_eye_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+
+	_cached_exec_jaw_mesh = BoxMesh.new()
+	_cached_exec_jaw_mesh.size = Vector3(0.55, 0.14, 0.30)
+
+	_cached_exec_jaw_mat = StandardMaterial3D.new()
+	_cached_exec_jaw_mat.albedo_color = Color(0.6, 0.55, 0.5, 0.9)
+	_cached_exec_jaw_mat.emission_enabled = true
+	_cached_exec_jaw_mat.emission = Color(0.75, 0.55, 0.9, 0.3)
+	_cached_exec_jaw_mat.emission_energy_multiplier = 1.5
+	_cached_exec_jaw_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_cached_exec_jaw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	_cached_exec_trail_mesh = SphereMesh.new()
+	_cached_exec_trail_mesh.radius = 0.08
+
+	_cached_exec_trail_grad = Gradient.new()
+	_cached_exec_trail_grad.set_color(0, Color(0.7, 0.4, 0.95, 0.6))
+	_cached_exec_trail_grad.add_point(0.5, Color(0.45, 0.25, 0.75, 0.35))
+	_cached_exec_trail_grad.set_color(_cached_exec_trail_grad.get_point_count() - 1, Color(0.2, 0.1, 0.4, 0.0))
+
 # Projectile.gd (v141.72 - CONE EMP & VECTOR RENDERING)
 # Clase base para todos los proyectiles con soporte de colisión y efectos cónicos para EMP. 
 
@@ -637,35 +1043,19 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "Mine3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
 
 			var core = MeshInstance3D.new()
-			var sphere = SphereMesh.new()
-			sphere.radius = 0.5
-			sphere.height = 1.0
-			core.mesh = sphere
-			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(1.0, 0.15, 0.05)
-			mat.emission_enabled = true
-			mat.emission = Color(1.0, 0.15, 0.05)
-			mat.emission_energy_multiplier = 5.0
-			core.material_override = mat
+			core.mesh = _cached_mine_core_mesh
+			core.material_override = _cached_mine_core_mat
 			world_root_3d.add_child(core)
 
 			var ring = MeshInstance3D.new()
-			var ring_mesh = CylinderMesh.new()
-			ring_mesh.top_radius = 0.7
-			ring_mesh.bottom_radius = 0.7
-			ring_mesh.height = 0.05
-			ring.mesh = ring_mesh
-			var ring_mat = StandardMaterial3D.new()
-			ring_mat.albedo_color = Color(1.0, 0.3, 0.1)
-			ring_mat.emission_enabled = true
-			ring_mat.emission = Color(1.0, 0.3, 0.1)
-			ring_mat.emission_energy_multiplier = 3.0
-			ring.material_override = ring_mat
+			ring.mesh = _cached_mine_ring_mesh
+			ring.material_override = _cached_mine_ring_mat
 			world_root_3d.add_child(ring)
 
 			var light = OmniLight3D.new()
@@ -683,34 +1073,19 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "OrbMine3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
 
 			var core = MeshInstance3D.new()
-			var sphere = SphereMesh.new()
-			sphere.radius = 0.35
-			sphere.height = 0.7
-			core.mesh = sphere
-			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(0.15, 0.6, 1.0)
-			mat.emission_enabled = true
-			mat.emission = Color(0.15, 0.6, 1.0)
-			mat.emission_energy_multiplier = 4.0
-			core.material_override = mat
+			core.mesh = _cached_orb_mine_core_mesh
+			core.material_override = _cached_orb_mine_core_mat
 			world_root_3d.add_child(core)
 
 			var ring = MeshInstance3D.new()
-			var ring_mesh = TorusMesh.new()
-			ring_mesh.inner_radius = 0.5
-			ring_mesh.outer_radius = 0.65
-			ring.mesh = ring_mesh
-			var ring_mat = StandardMaterial3D.new()
-			ring_mat.albedo_color = Color(0.3, 0.8, 1.0)
-			ring_mat.emission_enabled = true
-			ring_mat.emission = Color(0.3, 0.8, 1.0)
-			ring_mat.emission_energy_multiplier = 2.0
-			ring.material_override = ring_mat
+			ring.mesh = _cached_orb_mine_ring_mesh
+			ring.material_override = _cached_orb_mine_ring_mat
 			ring.rotation.x = PI / 2
 			world_root_3d.add_child(ring)
 
@@ -730,6 +1105,7 @@ func _setup_visual_sprite():
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			var _s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "Hook3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
@@ -738,63 +1114,30 @@ func _setup_visual_sprite():
 			var half_len = harpoon_len / 2.0
 
 			var shaft = MeshInstance3D.new()
-			var cyl = CylinderMesh.new()
-			cyl.top_radius = 0.03
-			cyl.bottom_radius = 0.03
-			cyl.height = harpoon_len
-			shaft.mesh = cyl
+			shaft.mesh = _cached_hook_shaft_mesh
 			shaft.rotation.x = PI / 2
 			shaft.position.z = -half_len
-			var shaft_mat = StandardMaterial3D.new()
-			shaft_mat.albedo_color = Color(0.0, 0.7, 0.7)
-			shaft_mat.metallic = 0.9
-			shaft_mat.roughness = 0.15
-			shaft.material_override = shaft_mat
+			shaft.material_override = _cached_hook_shaft_mat
 			world_root_3d.add_child(shaft)
 
 			var tip = MeshInstance3D.new()
-			var tip_cyl = CylinderMesh.new()
-			tip_cyl.top_radius = 0.0
-			tip_cyl.bottom_radius = 0.03
-			tip_cyl.height = 0.2
-			tip.mesh = tip_cyl
+			tip.mesh = _cached_hook_tip_mesh
 			tip.rotation.x = PI / 2
 			tip.position.z = -harpoon_len
-			var tip_mat = StandardMaterial3D.new()
-			tip_mat.albedo_color = Color(0.0, 0.9, 0.9)
-			tip_mat.emission_enabled = true
-			tip_mat.emission = Color(0.0, 0.9, 0.9)
-			tip_mat.emission_energy_multiplier = 3.0
-			tip.material_override = tip_mat
+			tip.material_override = _cached_hook_tip_mat
 			world_root_3d.add_child(tip)
 
 			for i in range(3):
 				var ring = MeshInstance3D.new()
-				var ring_mesh = CylinderMesh.new()
-				ring_mesh.top_radius = 0.06
-				ring_mesh.bottom_radius = 0.02
-				ring_mesh.height = 0.03
-				ring.mesh = ring_mesh
+				ring.mesh = _cached_hook_ring_mesh
 				ring.position.z = -0.65 + i * 0.25
-				var ring_mat = StandardMaterial3D.new()
-				ring_mat.albedo_color = Color(0.0, 0.6, 0.6)
-				ring_mat.metallic = 1.0
-				ring_mat.roughness = 0.1
-				ring.material_override = ring_mat
+				ring.material_override = _cached_hook_ring_mat
 				world_root_3d.add_child(ring)
 
 			var orb = MeshInstance3D.new()
-			var sphere = SphereMesh.new()
-			sphere.radius = 0.07
-			sphere.height = 0.14
-			orb.mesh = sphere
+			orb.mesh = _cached_hook_orb_mesh
 			orb.position.z = 0.05
-			var orb_mat = StandardMaterial3D.new()
-			orb_mat.albedo_color = Color(0.2, 1.0, 1.0)
-			orb_mat.emission_enabled = true
-			orb_mat.emission = Color(0.2, 1.0, 1.0)
-			orb_mat.emission_energy_multiplier = 6.0
-			orb.material_override = orb_mat
+			orb.material_override = _cached_hook_orb_mat
 			world_root_3d.add_child(orb)
 
 			var light = OmniLight3D.new()
@@ -804,18 +1147,8 @@ func _setup_visual_sprite():
 			world_root_3d.add_child(light)
 
 			_hook_chain_3d = MeshInstance3D.new()
-			var chain_cyl = CylinderMesh.new()
-			chain_cyl.top_radius = 0.008
-			chain_cyl.bottom_radius = 0.008
-			chain_cyl.height = 1.0
-			_hook_chain_3d.mesh = chain_cyl
-			var chain_mat = StandardMaterial3D.new()
-			chain_mat.albedo_color = Color(0.0, 0.9, 0.9, 0.4)
-			chain_mat.emission_enabled = true
-			chain_mat.emission = Color(0.0, 0.9, 0.9)
-			chain_mat.emission_energy_multiplier = 2.0
-			chain_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			_hook_chain_3d.material_override = chain_mat
+			_hook_chain_3d.mesh = _cached_hook_chain_mesh
+			_hook_chain_3d.material_override = _cached_hook_chain_mat
 			target_vp.add_child(_hook_chain_3d)
 
 			tree_exiting.connect(_safe_free_world_root_3d)
@@ -828,36 +1161,21 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "FearProj3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
 
 			# Esfera interna oscura
 			var core = MeshInstance3D.new()
-			var sphere = SphereMesh.new()
-			sphere.radius = 0.35
-			sphere.height = 0.7
-			core.mesh = sphere
-			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(0.12, 0.0, 0.18)
-			mat.metallic = 0.8
-			mat.roughness = 0.2
-			core.material_override = mat
+			core.mesh = _cached_fear_core_mesh
+			core.material_override = _cached_fear_core_mat
 			world_root_3d.add_child(core)
 
 			# Esfera de brillo púrpura mágica externa
 			var glow = MeshInstance3D.new()
-			var glow_sphere = SphereMesh.new()
-			glow_sphere.radius = 0.45
-			glow_sphere.height = 0.9
-			glow.mesh = glow_sphere
-			var glow_mat = StandardMaterial3D.new()
-			glow_mat.albedo_color = Color(0.8, 0.1, 0.9, 0.35)
-			glow_mat.emission_enabled = true
-			glow_mat.emission = Color(0.8, 0.1, 0.9)
-			glow_mat.emission_energy_multiplier = 3.0
-			glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			glow.material_override = glow_mat
+			glow.mesh = _cached_fear_glow_mesh
+			glow.material_override = _cached_fear_glow_mat
 			world_root_3d.add_child(glow)
 
 			# Luz omni de ambiente púrpura
@@ -879,59 +1197,30 @@ func _setup_visual_sprite():
 			var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
 			var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
 
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "Bomb3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
 
 			var body = MeshInstance3D.new()
-			var body_sphere = SphereMesh.new()
-			body_sphere.radius = 0.4
-			body_sphere.height = 0.8
-			body.mesh = body_sphere
-			var body_mat = StandardMaterial3D.new()
-			body_mat.albedo_color = Color(0.25, 0.25, 0.25)
-			body_mat.metallic = 0.8
-			body_mat.roughness = 0.3
-			body.material_override = body_mat
+			body.mesh = _cached_electron_body_mesh
+			body.material_override = _cached_electron_body_mat
 			world_root_3d.add_child(body)
 
 			var glow = MeshInstance3D.new()
-			var glow_sphere = SphereMesh.new()
-			glow_sphere.radius = 0.5
-			glow_sphere.height = 1.0
-			glow.mesh = glow_sphere
-			var glow_mat = StandardMaterial3D.new()
-			glow_mat.albedo_color = Color(1.0, 0.4, 0.0, 0.2)
-			glow_mat.emission_enabled = true
-			glow_mat.emission = Color(1.0, 0.4, 0.0)
-			glow_mat.emission_energy_multiplier = 1.0
-			glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			glow.material_override = glow_mat
+			glow.mesh = _cached_electron_glow_mesh
+			glow.material_override = _cached_electron_glow_mat
 			world_root_3d.add_child(glow)
 
 			var fuse = MeshInstance3D.new()
-			var fuse_cyl = CylinderMesh.new()
-			fuse_cyl.top_radius = 0.03
-			fuse_cyl.bottom_radius = 0.05
-			fuse_cyl.height = 0.25
-			fuse.mesh = fuse_cyl
-			var fuse_mat = StandardMaterial3D.new()
-			fuse_mat.albedo_color = Color(0.4, 0.3, 0.2)
+			fuse.mesh = _cached_electron_fuse_mesh
 			fuse.position.y = 1.0
-			fuse.material_override = fuse_mat
+			fuse.material_override = _cached_electron_fuse_mat
 			world_root_3d.add_child(fuse)
 
 			var spark = MeshInstance3D.new()
-			var spark_sphere = SphereMesh.new()
-			spark_sphere.radius = 0.06
-			spark_sphere.height = 0.12
-			spark.mesh = spark_sphere
-			var spark_mat = StandardMaterial3D.new()
-			spark_mat.albedo_color = Color(1.0, 0.7, 0.0)
-			spark_mat.emission_enabled = true
-			spark_mat.emission = Color(1.0, 0.7, 0.0)
-			spark_mat.emission_energy_multiplier = 8.0
-			spark.material_override = spark_mat
+			spark.mesh = _cached_electron_spark_mesh
+			spark.material_override = _cached_electron_spark_mat
 			spark.position.y = 0.65
 			world_root_3d.add_child(spark)
 
@@ -940,16 +1229,8 @@ func _setup_visual_sprite():
 			world_root_3d.add_child(sparks_node)
 			for i in range(3):
 				var s = MeshInstance3D.new()
-				var ss = SphereMesh.new()
-				ss.radius = 0.03
-				ss.height = 0.06
-				s.mesh = ss
-				var sm = StandardMaterial3D.new()
-				sm.albedo_color = Color(1.0, 0.8, 0.2)
-				sm.emission_enabled = true
-				sm.emission = Color(1.0, 0.8, 0.2)
-				sm.emission_energy_multiplier = 6.0
-				s.material_override = sm
+				s.mesh = _cached_electron_subspark_mesh
+				s.material_override = _cached_electron_subspark_mat
 				sparks_node.add_child(s)
 
 			var light = OmniLight3D.new()
@@ -959,14 +1240,11 @@ func _setup_visual_sprite():
 			world_root_3d.add_child(light)
 
 			var target_2d = _start_pos + Vector2(cos(rotation), sin(rotation)) * max_range
-			# Radio real del AdminDash (guardado en setup como _bomb_radius) -> escalar aro como IceStorm
 			var exp_radius = _bomb_radius
 			var r3d_bomb = exp_radius * s_factor
 			var marker_h = 0.05
-			# muestrear altura del terreno como hace Meteor/TormentaHielo
 			var _map_b = map_node
 			if is_instance_valid(_map_b) and is_instance_valid(_map_b.get("terrain_node")):
-				# intentar helper de EntityManager si existe, sino fallback a map_node
 				var em_node = get_tree().get_first_node_in_group("world_node")
 				if em_node and em_node.has_node("EntityManager"):
 					var mgr = em_node.get_node("EntityManager")
@@ -988,17 +1266,7 @@ func _setup_visual_sprite():
 			m_ring.inner_radius = r3d_bomb * 0.92
 			m_ring.outer_radius = r3d_bomb
 			marker_ring.mesh = m_ring
-			var m_mat = StandardMaterial3D.new()
-			m_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.7)
-			m_mat.emission_enabled = true
-			m_mat.emission = Color(1.0, 0.15, 0.05)
-			m_mat.emission_energy_multiplier = 2.0
-			m_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			m_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			m_mat.no_depth_test = true
-			m_mat.render_priority = 2
-			marker_ring.material_override = m_mat
-			# Torus default ya es plano XZ como Cylinder, NO rotar PI/2 (eso lo pone vertical)
+			marker_ring.material_override = _cached_bomb_marker_mat
 			marker_ring.position.y = 0.02
 			_bomb_ground_marker.add_child(marker_ring)
 
@@ -1007,7 +1275,6 @@ func _setup_visual_sprite():
 			m_fill.top_radius = r3d_bomb * 0.88
 			m_fill.bottom_radius = r3d_bomb * 0.88
 			m_fill.height = 0.01
-			# si hay terreno, usar disco conformante igual que Meteor
 			if is_instance_valid(_map_b) and is_instance_valid(_map_b.get("terrain_node")):
 				var em_node2 = get_tree().get_first_node_in_group("world_node")
 				if em_node2 and em_node2.has_node("EntityManager"):
@@ -1015,16 +1282,7 @@ func _setup_visual_sprite():
 					if mgr2 and mgr2.has_method("_make_circle_disc_conforming"):
 						m_fill = mgr2._make_circle_disc_conforming(target_2d, exp_radius * 0.88, _map_b)
 			marker_fill.mesh = m_fill
-			var mf_mat = StandardMaterial3D.new()
-			mf_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.12)
-			mf_mat.emission_enabled = true
-			mf_mat.emission = Color(1.0, 0.15, 0.05)
-			mf_mat.emission_energy_multiplier = 0.5
-			mf_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			mf_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			mf_mat.no_depth_test = true
-			mf_mat.render_priority = 2
-			marker_fill.material_override = mf_mat
+			marker_fill.material_override = _cached_bomb_marker_fill_mat
 			_bomb_ground_marker.add_child(marker_fill)
 
 			tree_exiting.connect(_safe_free_world_root_3d)
@@ -1036,36 +1294,21 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "ShieldSteal3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
 
 			# Orbe celeste (núcleo de energía)
 			var core = MeshInstance3D.new()
-			var sphere = SphereMesh.new()
-			sphere.radius = 0.4
-			sphere.height = 0.8
-			core.mesh = sphere
-			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(0.35, 0.85, 1.0)
-			mat.emission_enabled = true
-			mat.emission = Color(0.3, 0.8, 1.0)
-			mat.emission_energy_multiplier = 4.0
-			core.material_override = mat
+			core.mesh = _cached_shield_steal_core_mesh
+			core.material_override = _cached_shield_steal_core_mat
 			world_root_3d.add_child(core)
 
 			# Anillo de escudo giratorio
 			var ring = MeshInstance3D.new()
-			var ring_mesh = TorusMesh.new()
-			ring_mesh.inner_radius = 0.55
-			ring_mesh.outer_radius = 0.7
-			ring.mesh = ring_mesh
-			var ring_mat = StandardMaterial3D.new()
-			ring_mat.albedo_color = Color(0.2, 0.9, 1.0)
-			ring_mat.emission_enabled = true
-			ring_mat.emission = Color(0.2, 0.9, 1.0)
-			ring_mat.emission_energy_multiplier = 2.5
-			ring.material_override = ring_mat
+			ring.mesh = _cached_shield_steal_ring_mesh
+			ring.material_override = _cached_shield_steal_ring_mat
 			ring.rotation.x = PI / 2
 			world_root_3d.add_child(ring)
 
@@ -1084,36 +1327,21 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "LifeSteal3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
 
 			# Orbe verde (núcleo de energía vital)
 			var core = MeshInstance3D.new()
-			var sphere = SphereMesh.new()
-			sphere.radius = 0.4
-			sphere.height = 0.8
-			core.mesh = sphere
-			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(0.3, 1.0, 0.4)
-			mat.emission_enabled = true
-			mat.emission = Color(0.2, 1.0, 0.3)
-			mat.emission_energy_multiplier = 4.0
-			core.material_override = mat
+			core.mesh = _cached_life_steal_core_mesh
+			core.material_override = _cached_life_steal_core_mat
 			world_root_3d.add_child(core)
 
 			# Anillo de vida giratorio
 			var ring = MeshInstance3D.new()
-			var ring_mesh = TorusMesh.new()
-			ring_mesh.inner_radius = 0.55
-			ring_mesh.outer_radius = 0.7
-			ring.mesh = ring_mesh
-			var ring_mat = StandardMaterial3D.new()
-			ring_mat.albedo_color = Color(0.2, 0.95, 0.3)
-			ring_mat.emission_enabled = true
-			ring_mat.emission = Color(0.2, 0.95, 0.3)
-			ring_mat.emission_energy_multiplier = 2.5
-			ring.material_override = ring_mat
+			ring.mesh = _cached_life_steal_ring_mesh
+			ring.material_override = _cached_life_steal_ring_mat
 			ring.rotation.x = PI / 2
 			world_root_3d.add_child(ring)
 
@@ -1133,23 +1361,15 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "PolymorphCube3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
 			
-			# Crear el cubo (BoxMesh)
+			# Usar cubo en caché
 			_orb_mesh = MeshInstance3D.new()
-			var box_mesh = BoxMesh.new()
-			box_mesh.size = Vector3(0.35, 0.35, 0.35)
-			_orb_mesh.mesh = box_mesh
-			
-			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(0.2, 0.8, 1.0, 0.9)
-			mat.emission_enabled = true
-			mat.emission = Color(0.2, 0.8, 1.0)
-			mat.emission_energy_multiplier = 3.0
-			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			_orb_mesh.material_override = mat
+			_orb_mesh.mesh = _cached_poly_mesh
+			_orb_mesh.material_override = _cached_poly_mat
 			world_root_3d.add_child(_orb_mesh)
 			
 			# Luz puntual
@@ -1174,7 +1394,7 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-
+			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "ExecutionSkull3D_" + str(get_instance_id())
 			target_vp.add_child(world_root_3d)
@@ -1185,47 +1405,22 @@ func _setup_visual_sprite():
 
 			# --- Cráneo (esfera hueso) ---
 			var cranium = MeshInstance3D.new()
-			var sphere = SphereMesh.new()
-			sphere.radius = 0.34
-			sphere.height = 0.7
-			cranium.mesh = sphere
-			var bone_mat = StandardMaterial3D.new()
-			bone_mat.albedo_color = Color(0.72, 0.68, 0.62, 0.95)
-			bone_mat.emission_enabled = true
-			bone_mat.emission = Color(0.75, 0.55, 0.9, 0.35)
-			bone_mat.emission_energy_multiplier = 2.0
-			bone_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			bone_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			cranium.material_override = bone_mat
+			cranium.mesh = _cached_exec_cranium_mesh
+			cranium.material_override = _cached_exec_bone_mat
 			world_root_3d.add_child(cranium)
 
 			# --- Ojos vacíos (dos esferas negras hundidas) ---
 			for side in [-1, 1]:
 				var eye = MeshInstance3D.new()
-				var eye_mesh = SphereMesh.new()
-				eye_mesh.radius = 0.1
-				eye_mesh.height = 0.2
-				eye.mesh = eye_mesh
-				var eye_mat = StandardMaterial3D.new()
-				eye_mat.albedo_color = Color(0.0, 0.0, 0.0, 0.95)
-				eye_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				eye.material_override = eye_mat
+				eye.mesh = _cached_exec_eye_mesh
+				eye.material_override = _cached_exec_eye_mat
 				eye.position = Vector3(0.11 * side, 0.03, 0.22)
 				cranium.add_child(eye)
 
 			# --- Mandíbula inferior ---
 			var jaw = MeshInstance3D.new()
-			var jaw_mesh = BoxMesh.new()
-			jaw_mesh.size = Vector3(0.55, 0.14, 0.30)
-			jaw.mesh = jaw_mesh
-			var jaw_mat = StandardMaterial3D.new()
-			jaw_mat.albedo_color = Color(0.6, 0.55, 0.5, 0.9)
-			jaw_mat.emission_enabled = true
-			jaw_mat.emission = Color(0.75, 0.55, 0.9, 0.3)
-			jaw_mat.emission_energy_multiplier = 1.5
-			jaw_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			jaw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			jaw.material_override = jaw_mat
+			jaw.mesh = _cached_exec_jaw_mesh
+			jaw.material_override = _cached_exec_jaw_mat
 			jaw.position = Vector3(0.0, -0.3, 0.0)
 			world_root_3d.add_child(jaw)
 
@@ -1253,14 +1448,8 @@ func _setup_visual_sprite():
 			trail.scale_amount_min = 0.18
 			trail.scale_amount_max = 0.32
 			trail.color = Color(0.6, 0.35, 0.95, 0.55)
-			var grad = Gradient.new()
-			grad.set_color(0, Color(0.7, 0.4, 0.95, 0.6))
-			grad.add_point(0.5, Color(0.45, 0.25, 0.75, 0.35))
-			grad.set_color(1, Color(0.2, 0.1, 0.4, 0.0))
-			trail.color_ramp = grad
-			var skull_draw_mesh = SphereMesh.new()
-			skull_draw_mesh.radius = 0.08
-			trail.mesh = skull_draw_mesh
+			trail.color_ramp = _cached_exec_trail_grad
+			trail.mesh = _cached_exec_trail_mesh
 			world_root_3d.add_child(trail)
 
 			sprite = null
@@ -1307,6 +1496,8 @@ func _setup_visual_sprite():
 				var half_len = beam_len_3d / 2.0
 				var w3d = beam_w * s_factor
 
+				_ensure_mega_laser_static_cache()
+
 				# 1. Capa Exterior: Corona/Halo Suave de Plasma (CylinderMesh)
 				var glow = MeshInstance3D.new()
 				var glow_cyl = CylinderMesh.new()
@@ -1318,22 +1509,13 @@ func _setup_visual_sprite():
 				glow_cyl.cap_top = false
 				glow_cyl.cap_bottom = false
 				glow.mesh = glow_cyl
-				var glow_mat = StandardMaterial3D.new()
-				glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				glow_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-				glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				glow_mat.albedo_color = Color(1.0, 0.2, 0.02, 0.22)
-				glow_mat.emission_enabled = true
-				glow_mat.emission = Color(1.0, 0.15, 0.02)
-				glow_mat.emission_energy_multiplier = 3.0
-				glow.material_override = glow_mat
+				glow.material_override = _ml_glow_mat
 				glow.position = Vector3(0, 0.2, -half_len)
 				glow.rotation_degrees = Vector3(90, 0, 0)
 				world_root_3d.add_child(glow)
 				
 				_laser_glow_mesh = glow
-				_laser_glow_mat = glow_mat
+				_laser_glow_mat = _ml_glow_mat
 
 				# 2. Capa Intermedia: Haz Principal de Plasma Denso (CylinderMesh)
 				var beam_mesh = MeshInstance3D.new()
@@ -1346,21 +1528,13 @@ func _setup_visual_sprite():
 				beam_cyl.cap_top = false
 				beam_cyl.cap_bottom = false
 				beam_mesh.mesh = beam_cyl
-				var mat = StandardMaterial3D.new()
-				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-				mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				mat.albedo_color = Color(1.0, 0.35, 0.05, 0.85)
-				mat.emission_enabled = true
-				mat.emission = Color(1.0, 0.35, 0.08)
-				mat.emission_energy_multiplier = 7.0
-				beam_mesh.material_override = mat
+				beam_mesh.material_override = _ml_beam_mat
 				beam_mesh.position = Vector3(0, 0.2, -half_len)
 				beam_mesh.rotation_degrees = Vector3(90, 0, 0)
 				world_root_3d.add_child(beam_mesh)
 				
 				_laser_beam_mesh = beam_mesh
-				_laser_beam_mat = mat
+				_laser_beam_mat = _ml_beam_mat
 
 				# 3. Capa Interior: Núcleo Blanco Incandescente Hiper-Concentrado (CylinderMesh)
 				var core = MeshInstance3D.new()
@@ -1373,20 +1547,13 @@ func _setup_visual_sprite():
 				core_cyl.cap_top = true
 				core_cyl.cap_bottom = true
 				core.mesh = core_cyl
-				var core_mat = StandardMaterial3D.new()
-				core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-				core_mat.albedo_color = Color(1.0, 1.0, 0.95)
-				core_mat.emission_enabled = true
-				core_mat.emission = Color(1.0, 1.0, 1.0)
-				core_mat.emission_energy_multiplier = 14.0
-				core.material_override = core_mat
+				core.material_override = _ml_core_mat
 				core.position = Vector3(0, 0.2, -half_len)
 				core.rotation_degrees = Vector3(90, 0, 0)
 				world_root_3d.add_child(core)
 				
 				_laser_core_mesh = core
-				_laser_core_mat = core_mat
+				_laser_core_mat = _ml_core_mat
 
 				# 4. Muzzle Flare en el origen de disparo de la nave (Flare estético + núcleo)
 				var muzzle_root = Node3D.new()
@@ -1399,13 +1566,7 @@ func _setup_visual_sprite():
 				var qm = QuadMesh.new()
 				qm.size = Vector2(w3d * 3.8, w3d * 3.8)
 				flare_quad.mesh = qm
-				var flare_mat = StandardMaterial3D.new()
-				flare_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				flare_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-				flare_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-				flare_mat.albedo_texture = TEXTURE_VFX_FLARE_15
-				flare_mat.albedo_color = Color(1.0, 0.5, 0.15, 0.95)
-				flare_quad.material_override = flare_mat
+				flare_quad.material_override = _ml_flare_mat
 				muzzle_root.add_child(flare_quad)
 
 				var flare_core = MeshInstance3D.new()
@@ -1413,14 +1574,7 @@ func _setup_visual_sprite():
 				sm.radius = w3d * 0.32
 				sm.height = w3d * 0.64
 				flare_core.mesh = sm
-				var flare_core_mat = StandardMaterial3D.new()
-				flare_core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				flare_core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-				flare_core_mat.albedo_color = Color(1.0, 0.95, 0.85)
-				flare_core_mat.emission_enabled = true
-				flare_core_mat.emission = Color(1.0, 1.0, 1.0)
-				flare_core_mat.emission_energy_multiplier = 12.0
-				flare_core.material_override = flare_core_mat
+				flare_core.material_override = _ml_flare_core_mat
 				muzzle_root.add_child(flare_core)
 
 				# 5. Emisión de chispas y plasma volátil a lo largo del rayo

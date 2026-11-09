@@ -11,11 +11,18 @@ func _process(_delta):
 	_update_position()
 
 func _update_position():
+	if not is_inside_tree():
+		return
 	var t = get_meta("t", null)
 	var cam = get_meta("cam", null)
 	var sub_vp = get_meta("sub_vp", null)
 	var map = get_meta("map", null)
 	if not is_instance_valid(t) or not is_instance_valid(cam) or not is_instance_valid(sub_vp):
+		return
+	if not t.is_inside_tree() or not cam.is_inside_tree() or not sub_vp.is_inside_tree():
+		return
+	var vp = get_viewport()
+	if not is_instance_valid(vp):
 		return
 	if cam.is_position_behind(t.global_position):
 		visible = false
@@ -30,10 +37,10 @@ func _update_position():
 			sv_pixel = container.global_position + sv_pixel * Vector2(container.scale)
 		else:
 			if sub_vp.size.x > 0 and sub_vp.size.y > 0:
-				var main_size = Vector2(get_viewport().get_visible_rect().size)
+				var main_size = Vector2(vp.get_visible_rect().size)
 				sv_pixel *= main_size / Vector2(sub_vp.size)
 	else:
 		if sub_vp.size.x > 0 and sub_vp.size.y > 0:
-			var main_size = Vector2(get_viewport().get_visible_rect().size)
+			var main_size = Vector2(vp.get_visible_rect().size)
 			sv_pixel *= main_size / Vector2(sub_vp.size)
-	global_position = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+	global_position = vp.get_canvas_transform().affine_inverse() * sv_pixel

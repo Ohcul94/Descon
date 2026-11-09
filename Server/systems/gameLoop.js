@@ -295,11 +295,13 @@ function startGameLoop(io, state, aiManager) {
                                             isBurrowed: isBurrowed,
                                             status_effects: Object.assign(status_effects, e.status_effects || {})
                                         };
-                                        if (!last) {
+                                        if (!last || !last.type) {
                                             aoiData[e.id].type = e.type;
                                             aoiData[e.id].name = e.name;
                                         }
                                         p._lastSentEnemies[e.id] = {
+                                            type: e.type,
+                                            name: e.name,
                                             x: roundedX,
                                             y: roundedY,
                                             rotation: roundedRot,

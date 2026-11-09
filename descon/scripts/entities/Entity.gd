@@ -76,6 +76,192 @@ static var _prop_material: StandardMaterial3D = null
 # Rampas de color por tier de velocidad (0 celeste → 4 dorada especial)
 static var _prop_tier_ramps: Array = []
 
+# --- Flyweight Static Cache para Habilidades y Efectos de Combate (Zero Allocation / Zero Shader Hitch) ---
+static var _turbo_mesh: QuadMesh = null
+static var _turbo_mat: StandardMaterial3D = null
+static var _turbo_pm: ParticleProcessMaterial = null
+
+static var _hyper_mesh: QuadMesh = null
+static var _hyper_mat: StandardMaterial3D = null
+static var _hyper_pm: ParticleProcessMaterial = null
+
+static var _taunt_mesh: QuadMesh = null
+static var _taunt_mat: StandardMaterial3D = null
+static var _taunt_grad: Gradient = null
+
+static var _frost_mesh: QuadMesh = null
+static var _frost_mat: StandardMaterial3D = null
+static var _frost_grad: Gradient = null
+static var _frost_line_mat: CanvasItemMaterial = null
+
+static var _blink_core_mesh: SphereMesh = null
+static var _blink_core_mat: StandardMaterial3D = null
+static var _blink_spark_mesh: SphereMesh = null
+static var _blink_spark_mat: StandardMaterial3D = null
+
+static var _sd_core_mesh: SphereMesh = null
+static var _sd_core_mat: ShaderMaterial = null
+static var _sd_ring_mesh: TorusMesh = null
+static var _sd_ring_mat: StandardMaterial3D = null
+
+static var _reflect_spark_mesh: SphereMesh = null
+static var _reflect_spark_mat: StandardMaterial3D = null
+
+static func _ensure_entity_vfx_static_cache() -> void:
+	if _turbo_mesh != null:
+		return
+
+	# 1. Turbo Impulso
+	_turbo_mesh = QuadMesh.new()
+	_turbo_mesh.size = Vector2(0.12, 0.12)
+	_turbo_mat = StandardMaterial3D.new()
+	_turbo_mat.albedo_color = Color(1.0, 0.85, 0.4)
+	_turbo_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_turbo_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_turbo_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_turbo_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_turbo_mat.albedo_texture = DashSparkTexture
+	_turbo_mesh.material = _turbo_mat
+
+	_turbo_pm = ParticleProcessMaterial.new()
+	_turbo_pm.direction = Vector3(-1, 0, 0)
+	_turbo_pm.spread = 22.0
+	_turbo_pm.gravity = Vector3(0, -0.3, 0)
+	_turbo_pm.initial_velocity_min = 2.5
+	_turbo_pm.initial_velocity_max = 5.5
+	_turbo_pm.scale_min = 1.0
+	_turbo_pm.scale_max = 2.0
+	var grad_turbo = Gradient.new()
+	grad_turbo.set_color(0, Color(1.0, 0.9, 0.5, 1.0))
+	grad_turbo.add_point(0.4, Color(1.0, 0.7, 0.2, 0.7))
+	grad_turbo.set_color(grad_turbo.get_point_count() - 1, Color(0.5, 0.15, 0.0, 0.0))
+	var grad_turbo_tex = GradientTexture1D.new()
+	grad_turbo_tex.gradient = grad_turbo
+	_turbo_pm.color_ramp = grad_turbo_tex
+
+	# 2. Hyper Dash
+	_hyper_mat = StandardMaterial3D.new()
+	_hyper_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_hyper_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_hyper_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_hyper_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_hyper_mat.albedo_texture = DashSparkTexture
+
+	_hyper_mesh = QuadMesh.new()
+	_hyper_mesh.size = Vector2(0.4, 0.4)
+	_hyper_mesh.material = _hyper_mat
+
+	_hyper_pm = ParticleProcessMaterial.new()
+	_hyper_pm.gravity = Vector3.ZERO
+	_hyper_pm.direction = Vector3(-1, 0, 0)
+	_hyper_pm.spread = 25.0
+	_hyper_pm.initial_velocity_min = 4.0
+	_hyper_pm.initial_velocity_max = 8.0
+	var grad_hyper = Gradient.new()
+	grad_hyper.set_color(0, Color(1.0, 0.95, 0.6, 1.0))
+	grad_hyper.add_point(0.4, Color(1.0, 0.7, 0.2, 0.8))
+	grad_hyper.set_color(grad_hyper.get_point_count() - 1, Color(0.6, 0.2, 0.05, 0.0))
+	var grad_hyper_tex = GradientTexture1D.new()
+	grad_hyper_tex.gradient = grad_hyper
+	_hyper_pm.color_ramp = grad_hyper_tex
+
+	# 3. Taunt
+	_taunt_mat = StandardMaterial3D.new()
+	_taunt_mat.albedo_color = Color(1.0, 0.35, 0.15, 1.0)
+	_taunt_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_taunt_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_taunt_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_taunt_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+
+	_taunt_mesh = QuadMesh.new()
+	_taunt_mesh.size = Vector2(0.8, 0.8)
+	_taunt_mesh.material = _taunt_mat
+
+	_taunt_grad = Gradient.new()
+	_taunt_grad.set_color(0, Color(1.0, 0.5, 0.2, 0.8))
+	_taunt_grad.add_point(0.5, Color(1.0, 0.2, 0.1, 0.4))
+	_taunt_grad.set_color(_taunt_grad.get_point_count() - 1, Color(0.5, 0.0, 0.0, 0.0))
+
+	# 4. Frost Trail / Activar
+	_frost_mat = StandardMaterial3D.new()
+	_frost_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_frost_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_frost_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_frost_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_frost_mat.vertex_color_use_as_albedo = true
+	_frost_mat.albedo_texture = DashSparkTexture
+
+	_frost_mesh = QuadMesh.new()
+	_frost_mesh.size = Vector2(0.22, 0.22)
+	_frost_mesh.material = _frost_mat
+
+	_frost_grad = Gradient.new()
+	_frost_grad.set_color(0, Color(0.95, 0.99, 1.0, 1.0))
+	_frost_grad.add_point(0.4, Color(0.5, 0.82, 1.0, 0.85))
+	_frost_grad.set_color(_frost_grad.get_point_count() - 1, Color(0.2, 0.5, 1.0, 0.0))
+
+	_frost_line_mat = CanvasItemMaterial.new()
+	_frost_line_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+
+	# 5. Blink
+	_blink_core_mesh = SphereMesh.new()
+	_blink_core_mesh.radius = 0.16
+	_blink_core_mesh.height = 0.32
+	_blink_core_mesh.radial_segments = 10
+	_blink_core_mesh.rings = 5
+
+	_blink_core_mat = StandardMaterial3D.new()
+	_blink_core_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	_blink_core_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+	_blink_core_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_blink_core_mat.albedo_color = Color(3.2, 2.5, 1.4, 0.95)
+
+	_blink_spark_mesh = SphereMesh.new()
+	_blink_spark_mesh.radius = 0.038
+	_blink_spark_mesh.height = 0.076
+	_blink_spark_mesh.radial_segments = 6
+	_blink_spark_mesh.rings = 3
+
+	_blink_spark_mat = StandardMaterial3D.new()
+	_blink_spark_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	_blink_spark_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+
+	# 6. Strange Dimension Portal
+	_sd_core_mesh = SphereMesh.new()
+	_sd_core_mesh.radius = 1.5
+	_sd_core_mesh.radial_segments = 32
+	_sd_core_mesh.rings = 32
+
+	_sd_core_mat = ShaderMaterial.new()
+	_sd_core_mat.shader = VoidAuraShader
+	_sd_core_mat.set_shader_parameter("core_color", Color(0.6, 0.1, 0.9))
+	_sd_core_mat.set_shader_parameter("mid_color", Color(0.4, 0.0, 0.6))
+	_sd_core_mat.set_shader_parameter("rim_color", Color(0.8, 0.2, 1.0))
+	_sd_core_mat.set_shader_parameter("intensity", 2.0)
+
+	_sd_ring_mesh = TorusMesh.new()
+	_sd_ring_mesh.inner_radius = 1.8
+	_sd_ring_mesh.outer_radius = 2.0
+
+	_sd_ring_mat = StandardMaterial3D.new()
+	_sd_ring_mat.albedo_color = Color(0.6, 0.1, 0.9, 0.7)
+	_sd_ring_mat.emission_enabled = true
+	_sd_ring_mat.emission = Color(0.6, 0.1, 0.9)
+	_sd_ring_mat.emission_energy_multiplier = 3.0
+	_sd_ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_sd_ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	# 7. Reflect Sparks
+	_reflect_spark_mesh = SphereMesh.new()
+	_reflect_spark_mesh.radius = 0.03
+	_reflect_spark_mesh.height = 0.06
+
+	_reflect_spark_mat = StandardMaterial3D.new()
+	_reflect_spark_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	_reflect_spark_mat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
+	_reflect_spark_mat.albedo_color = Color(3.5, 0.6, 0.15, 1.0)
+	_reflect_spark_mesh.material = _reflect_spark_mat
+
 # Velocidad (px/s) hasta la que la propulsión va de 0 → intensidad plena.
 # Por encima queda uniforme. Al frenar se recorre la misma rampa al revés.
 const PROPULSION_RAMP_SPEED := 60.0
@@ -516,9 +702,14 @@ func _process(delta):
 				global_position = target_position
 				rotation = target_rotation
 			
-			# v311.5: Forzar visibilidad correcta al estar en pantalla
+			var should_entity_be_visible = not is_dead and not get_meta("is_pooled", false)
+			if is_in_group("enemies") and (current_hp <= 0.0 or username == "" or username == "Unknown"):
+				should_entity_be_visible = false
+			visible = should_entity_be_visible
+			
+			# v416.5: Forzar visibilidad 3D sincronizada con el estado real de la entidad
 			if is_instance_valid(world_root_3d):
-				if not is_visible_in_tree():
+				if not should_entity_be_visible:
 					world_root_3d.visible = false
 				elif is_burrowed and not _burrow_emerging:
 					world_root_3d.visible = false
@@ -527,7 +718,7 @@ func _process(delta):
 				elif (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
 					world_root_3d.visible = _is_currently_camouflaged
 				else:
-					world_root_3d.visible = not is_dead
+					world_root_3d.visible = true
 			if is_instance_valid(_ui_wrapper):
 				if not is_visible_in_tree():
 					_ui_wrapper.visible = false
@@ -1230,8 +1421,11 @@ func _update_3d_root_sync():
 			
 		world_root_3d.position.y = base_y + _burrow_y_offset + _ascension_y_offset
 		
-		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
-		if not is_visible_in_tree() or is_dead:
+		# v416.5: Sincronización autoritativa y robusta de visibilidad 3D
+		# NUNCA mostrar el modelo 3D si la entidad está oculta en 2D, muerta, en el pool o sin HP/nombre
+		if not visible or is_dead or get_meta("is_pooled", false) or not is_visible_in_tree():
+			world_root_3d.visible = false
+		elif is_in_group("enemies") and (current_hp <= 0.0 or username == "" or username == "Unknown"):
 			world_root_3d.visible = false
 		elif is_burrowed and not _burrow_emerging:
 			# Durante el viaje subterráneo el enemigo queda oculto; la grieta del BurrowVisual lo sustituye
@@ -2075,15 +2269,19 @@ func _trigger_reflect_visual(p_dest: Vector2):
 
 		# 2. Destello de impacto sobre la superficie del escudo con shader de Hit Demoníaco
 		if VFXHitDemonScene:
-			var hit_shield = VFXHitDemonScene.instantiate()
-			sub_vp.add_child(hit_shield)
-			hit_shield.position = impact_pos
-			hit_shield.scale = Vector3(0.55, 0.55, 0.55)
-			if hit_shield is GPUParticles3D:
-				hit_shield.emitting = true
-			var tw_hs = hit_shield.create_tween()
-			tw_hs.tween_interval(0.5)
-			tw_hs.tween_callback(hit_shield.queue_free)
+			var hit_shield = VFXSystem.get_vfx_from_pool(VFXHitDemonScene)
+			if is_instance_valid(hit_shield):
+				sub_vp.add_child(hit_shield)
+				hit_shield.position = impact_pos
+				hit_shield.scale = Vector3(0.55, 0.55, 0.55)
+				if hit_shield is GPUParticles3D:
+					hit_shield.emitting = true
+				var tw_hs = hit_shield.create_tween()
+				tw_hs.tween_interval(0.5)
+				tw_hs.tween_callback(func():
+					if is_instance_valid(hit_shield):
+						VFXSystem.recycle_vfx_to_pool(hit_shield)
+				)
 
 		# 3. Luz dinámica de deflexión en la superficie del escudo
 		var defl_light = OmniLight3D.new()
@@ -2097,6 +2295,7 @@ func _trigger_reflect_visual(p_dest: Vector2):
 		tw_dl.tween_callback(defl_light.queue_free)
 
 		# 4. Chispas 3D esféricas de deflexión reflectiva (sin planos cortados)
+		_ensure_entity_vfx_static_cache()
 		var sparks = CPUParticles3D.new()
 		sparks.amount = 14
 		sparks.lifetime = 0.25
@@ -2107,15 +2306,7 @@ func _trigger_reflect_visual(p_dest: Vector2):
 		sparks.gravity = Vector3(0, -5.0, 0)
 		sparks.initial_velocity_min = 2.0
 		sparks.initial_velocity_max = 4.5
-		var spark_mesh = SphereMesh.new()
-		spark_mesh.radius = 0.03
-		spark_mesh.height = 0.06
-		var smat = StandardMaterial3D.new()
-		smat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
-		smat.blend_mode = StandardMaterial3D.BLEND_MODE_ADD
-		smat.albedo_color = Color(3.5, 0.6, 0.15, 1.0)
-		spark_mesh.material = smat
-		sparks.mesh = spark_mesh
+		sparks.mesh = _reflect_spark_mesh
 		sub_vp.add_child(sparks)
 		sparks.position = impact_pos
 		sparks.emitting = true
@@ -2125,58 +2316,65 @@ func _trigger_reflect_visual(p_dest: Vector2):
 
 		# 5. ASSET PROYECTIL DE REFLECT 3D (Devuelve el ataque al agresor con shaders de VFX)
 		if VFXLaserProjectileScene:
-			var reflect_proj = VFXLaserProjectileScene.instantiate()
-			sub_vp.add_child(reflect_proj)
-			reflect_proj.position = impact_pos
-			reflect_proj.scale = Vector3(0.65, 0.65, 0.65)
+			var reflect_proj = VFXSystem.get_vfx_from_pool(VFXLaserProjectileScene)
+			if is_instance_valid(reflect_proj):
+				sub_vp.add_child(reflect_proj)
+				reflect_proj.position = impact_pos
+				reflect_proj.scale = Vector3(0.65, 0.65, 0.65)
 
-			# Orientar hacia la posición del atacante
-			if impact_pos.distance_squared_to(target_pos_3d) > 0.001:
-				reflect_proj.look_at(target_pos_3d, Vector3.UP)
+				# Orientar hacia la posición del atacante
+				if impact_pos.distance_squared_to(target_pos_3d) > 0.001:
+					reflect_proj.look_at(target_pos_3d, Vector3.UP)
 
-			# Luz viva de proyectil en tránsito
-			var p_light = OmniLight3D.new()
-			p_light.light_color = Color(1.0, 0.28, 0.08)
-			p_light.light_energy = 2.8
-			p_light.omni_range = 4.0
-			reflect_proj.add_child(p_light)
+				# Luz viva de proyectil en tránsito
+				var p_light = OmniLight3D.new()
+				p_light.light_color = Color(1.0, 0.28, 0.08)
+				p_light.light_energy = 2.8
+				p_light.omni_range = 4.0
+				reflect_proj.add_child(p_light)
 
-			# Velocidad de contraataque veloz
-			var travel_time = clampf(dist / 38.0, 0.10, 0.28)
+				# Velocidad de contraataque veloz
+				var travel_time = clampf(dist / 38.0, 0.10, 0.28)
 
-			var tw_proj = reflect_proj.create_tween()
-			tw_proj.tween_property(reflect_proj, "position", target_pos_3d, travel_time).set_trans(Tween.TRANS_LINEAR)
+				var tw_proj = reflect_proj.create_tween()
+				tw_proj.tween_property(reflect_proj, "position", target_pos_3d, travel_time).set_trans(Tween.TRANS_LINEAR)
 
-			var on_proj_reach = func():
-				if is_instance_valid(sub_vp):
-					# Impacto detonante en el atacante con shaders de VFX
-					var hit_scene = VFXLaserHitScene if VFXLaserHitScene else VFXHitDemonScene
-					if hit_scene:
-						var target_hit = hit_scene.instantiate()
-						sub_vp.add_child(target_hit)
-						target_hit.position = target_pos_3d
-						target_hit.scale = Vector3(0.75, 0.75, 0.75)
-						if target_hit is GPUParticles3D:
-							target_hit.emitting = true
-						var tw_th = target_hit.create_tween()
-						tw_th.tween_interval(0.55)
-						tw_th.tween_callback(target_hit.queue_free)
+				var on_proj_reach = func():
+					if is_instance_valid(sub_vp):
+						# Impacto detonante en el atacante con shaders de VFX
+						var hit_scene = VFXLaserHitScene if VFXLaserHitScene else VFXHitDemonScene
+						if hit_scene:
+							var target_hit = VFXSystem.get_vfx_from_pool(hit_scene)
+							if is_instance_valid(target_hit):
+								sub_vp.add_child(target_hit)
+								target_hit.position = target_pos_3d
+								target_hit.scale = Vector3(0.75, 0.75, 0.75)
+								if target_hit is GPUParticles3D:
+									target_hit.emitting = true
+								var tw_th = target_hit.create_tween()
+								tw_th.tween_interval(0.55)
+								tw_th.tween_callback(func():
+									if is_instance_valid(target_hit):
+										VFXSystem.recycle_vfx_to_pool(target_hit)
+								)
 
-					# Flash dinámico de impacto en el objetivo
-					var targ_light = OmniLight3D.new()
-					targ_light.light_color = Color(1.0, 0.35, 0.1)
-					targ_light.light_energy = 3.5
-					targ_light.omni_range = 5.0
-					sub_vp.add_child(targ_light)
-					targ_light.position = target_pos_3d
-					var tw_tl = targ_light.create_tween()
-					tw_tl.tween_property(targ_light, "light_energy", 0.0, 0.14)
-					tw_tl.tween_callback(targ_light.queue_free)
+						# Flash dinámico de impacto en el objetivo
+						var targ_light = OmniLight3D.new()
+						targ_light.light_color = Color(1.0, 0.35, 0.1)
+						targ_light.light_energy = 3.5
+						targ_light.omni_range = 5.0
+						sub_vp.add_child(targ_light)
+						targ_light.position = target_pos_3d
+						var tw_tl = targ_light.create_tween()
+						tw_tl.tween_property(targ_light, "light_energy", 0.0, 0.14)
+						tw_tl.tween_callback(targ_light.queue_free)
 
-				if is_instance_valid(reflect_proj):
-					reflect_proj.queue_free()
+					if is_instance_valid(reflect_proj):
+						if is_instance_valid(p_light):
+							p_light.queue_free()
+						VFXSystem.recycle_vfx_to_pool(reflect_proj)
 
-			tw_proj.tween_callback(on_proj_reach)
+				tw_proj.tween_callback(on_proj_reach)
 	else:
 		# Fallback 2D sin lienzo 3D: haz estilizado sin sprites planos rotos
 		var layer := _blink_vfx_layer()
@@ -2202,14 +2400,19 @@ func _play_shield_hit_vfx():
 		"heal": hit_scene = VFXHitGreenScene
 		"invulnerable": hit_scene = VFXHitYellowScene
 	if hit_scene and is_instance_valid(_3d_model):
-		var hit_vfx = hit_scene.instantiate()
-		_3d_model.add_child(hit_vfx)
-		hit_vfx.scale = Vector3(0.65, 0.65, 0.65)
-		if hit_vfx is GPUParticles3D:
-			hit_vfx.emitting = true
+		var hit_vfx = VFXSystem.get_vfx_from_pool(hit_scene)
+		if is_instance_valid(hit_vfx):
+			_3d_model.add_child(hit_vfx)
+			hit_vfx.scale = Vector3(0.65, 0.65, 0.65)
+			if hit_vfx is GPUParticles3D:
+				hit_vfx.emitting = true
 			var tw_vfx = hit_vfx.create_tween()
-			tw_vfx.tween_interval(hit_vfx.lifetime + 0.1)
-			tw_vfx.tween_callback(hit_vfx.queue_free)
+			var life_d = hit_vfx.lifetime if "lifetime" in hit_vfx else 0.4
+			tw_vfx.tween_interval(life_d + 0.1)
+			tw_vfx.tween_callback(func():
+				if is_instance_valid(hit_vfx):
+					VFXSystem.recycle_vfx_to_pool(hit_vfx)
+			)
 
 func _spawn_damage_text(txt: String, clr: Color):
 	var dt_script = DamageTextScript
@@ -2324,7 +2527,8 @@ func die():
 			_safe_free_world_root_3d()
 			queue_free()
 		else:
-			set_meta("is_pooled", true)
+			_safe_free_world_root_3d()
+			deactivate_for_pooling()
 
 # ---------------------------------------------------------
 # v266.985: Mecánicas de Ataque Orbital (Pedido del Usuario)
@@ -2614,9 +2818,9 @@ func _setup_enemy_visuals():
 				enemy_rot_offset = 180.0
 				_enemy_scale = 6.0
 			104: # Stellar Guardian (Boss4)
-				glb_path = "res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"
-				enemy_rot_offset = 0.0
-				_enemy_scale = 8.0
+				glb_path = "res://assets/Enemigos/3D/Bosses/Boss4/Animaciones/AnimacionesBoss4.glb"
+				enemy_rot_offset = 180.0
+				_enemy_scale = 6.0
 			110: # Araña Robótica (Boss10)
 				glb_path = "res://assets/Enemigos/3D/Bosses/Boss10/ArañaRobotica.glb"
 				enemy_rot_offset = 0.0
@@ -2699,6 +2903,7 @@ func _setup_enemy_visuals():
 			10: path = "res://assets/Enemigos/2D/Bosses/Boss2/Boss2.png"
 			11: path = "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png"
 			6: path = "res://assets/Enemigos/2D/Enemigo6/Enemigo6.png"
+			104: path = "res://assets/Enemigos/2D/Bosses/Boss4/Boss4.png"
 	
 	if path == "": path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png"
 	
@@ -2908,40 +3113,15 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				tw_speed.tween_callback(cb_speed)
 
 			if is_instance_valid(_3d_model):
+				_ensure_entity_vfx_static_cache()
 				var parts = GPUParticles3D.new()
 				parts.amount = 40
 				parts.lifetime = 0.5
 				parts.one_shot = false
 				parts.explosiveness = 0.0
 				parts.position = Vector3(-0.5, 0.1, 0.0)
-
-				var mesh = QuadMesh.new()
-				mesh.size = Vector2(0.12, 0.12)
-				var mat = StandardMaterial3D.new()
-				mat.albedo_color = Color(1.0, 0.85, 0.4)
-				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-				mat.albedo_texture = DashSparkTexture
-				mesh.material = mat
-				parts.draw_pass_1 = mesh
-
-				var pm = ParticleProcessMaterial.new()
-				pm.direction = Vector3(-1, 0, 0)
-				pm.spread = 22.0
-				pm.gravity = Vector3(0, -0.3, 0)
-				pm.initial_velocity_min = 2.5
-				pm.initial_velocity_max = 5.5
-				pm.scale_min = 1.0
-				pm.scale_max = 2.0
-				var grad = Gradient.new()
-				grad.set_color(0, Color(1.0, 0.9, 0.5, 1.0))
-				grad.add_point(0.4, Color(1.0, 0.7, 0.2, 0.7))
-				grad.set_color(1, Color(0.5, 0.15, 0.0, 0.0))
-				pm.color_ramp = GradientTexture1D.new()
-				pm.color_ramp.gradient = grad
-				parts.process_material = pm
+				parts.draw_pass_1 = _turbo_mesh
+				parts.process_material = _turbo_pm
 
 				_3d_model.add_child(parts)
 				parts.emitting = true
@@ -2956,35 +3136,15 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				tw_free.tween_callback(parts.queue_free)
 		"HYPER-DASH":
 			if is_instance_valid(_3d_model):
-				var spark_mat = StandardMaterial3D.new()
-				spark_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				spark_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-				spark_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				spark_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-				spark_mat.albedo_texture = DashSparkTexture
-				var mesh = QuadMesh.new()
-				mesh.size = Vector2(0.4, 0.4)
-				mesh.material = spark_mat
-				var proc_mat = ParticleProcessMaterial.new()
-				proc_mat.gravity = Vector3.ZERO
-				proc_mat.direction = Vector3(-1, 0, 0)
-				proc_mat.spread = 25.0
-				proc_mat.initial_velocity_min = 4.0
-				proc_mat.initial_velocity_max = 8.0
-				var grad = Gradient.new()
-				grad.set_color(0, Color(1.0, 0.95, 0.6, 1.0))
-				grad.add_point(0.4, Color(1.0, 0.7, 0.2, 0.8))
-				grad.set_color(1, Color(0.6, 0.2, 0.05, 0.0))
-				proc_mat.color_ramp = GradientTexture1D.new()
-				proc_mat.color_ramp.gradient = grad
+				_ensure_entity_vfx_static_cache()
 				var parts = GPUParticles3D.new()
 				parts.amount = 30
 				parts.lifetime = 0.4
 				parts.one_shot = true
 				parts.explosiveness = 0.8
 				parts.position = Vector3(-0.5, 0.0, 0.0)
-				parts.process_material = proc_mat
-				parts.draw_pass_1 = mesh
+				parts.process_material = _hyper_pm
+				parts.draw_pass_1 = _hyper_mesh
 				_3d_model.add_child(parts)
 				parts.emitting = true
 				var tw = create_tween()
@@ -3007,23 +3167,13 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 		
 		"TAUNT_ACTIVATE":
 			if is_instance_valid(_3d_model):
+				_ensure_entity_vfx_static_cache()
 				var parts = CPUParticles3D.new()
 				parts.amount = 24
 				parts.lifetime = 1.2
 				parts.one_shot = false
 				parts.explosiveness = 0.2
-				
-				# Mesh de partículas más grande y visible
-				var mesh = QuadMesh.new()
-				mesh.size = Vector2(0.8, 0.8)
-				var mat = StandardMaterial3D.new()
-				mat.albedo_color = Color(1.0, 0.35, 0.15, 1.0)
-				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-				mesh.material = mat
-				parts.mesh = mesh
+				parts.mesh = _taunt_mesh
 
 				# Configurar comportamiento de la física de la partícula en CPU
 				parts.direction = Vector3.UP
@@ -3037,13 +3187,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				# Escala dinámica (se encogen al desvanecerse)
 				parts.scale_amount_min = 0.6
 				parts.scale_amount_max = 1.6
-
-				# Rampa de color (Naranja furia -> Rojo suave -> Transparente)
-				var grad = Gradient.new()
-				grad.set_color(0, Color(1.0, 0.5, 0.2, 0.8))
-				grad.add_point(0.5, Color(1.0, 0.2, 0.1, 0.4))
-				grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.0, 0.0, 0.0))
-				parts.color_ramp = grad
+				parts.color_ramp = _taunt_grad
 
 				_3d_model.add_child(parts)
 				parts.emitting = true
@@ -3439,6 +3583,7 @@ func _spawn_blink_vfx(at_pos: Vector2, mode: String) -> void:
 
 
 func _frost_ring(base_radius: float, width: float, dur: float, scale_to: float) -> void:
+	_ensure_entity_vfx_static_cache()
 	var ring := Line2D.new()
 	var pts := PackedVector2Array()
 	for i in range(49):
@@ -3449,9 +3594,7 @@ func _frost_ring(base_radius: float, width: float, dur: float, scale_to: float) 
 	ring.width = width
 	ring.default_color = Color(0.78, 0.94, 1.0, 0.95)
 	ring.antialiased = true
-	var m := CanvasItemMaterial.new()
-	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	ring.material = m
+	ring.material = _frost_line_mat
 	ring.z_index = 6
 	add_child(ring)
 	var tw := create_tween().set_parallel(true)
@@ -3460,6 +3603,7 @@ func _frost_ring(base_radius: float, width: float, dur: float, scale_to: float) 
 	tw.chain().tween_callback(ring.queue_free)
 
 func _play_frost_activate_vfx() -> void:
+	_ensure_entity_vfx_static_cache()
 	_frost_ring(30.0, 3.5, 0.5, 3.2)
 	_frost_ring(17.0, 2.2, 0.42, 2.4)
 	if is_instance_valid(_3d_model):
@@ -3468,17 +3612,7 @@ func _play_frost_activate_vfx() -> void:
 		parts.amount = 30
 		parts.lifetime = 0.6
 		parts.explosiveness = 0.8
-		var mesh := QuadMesh.new()
-		mesh.size = Vector2(0.22, 0.22)
-		var mat := StandardMaterial3D.new()
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-		mat.vertex_color_use_as_albedo = true
-		mat.albedo_texture = DashSparkTexture
-		mesh.material = mat
-		parts.mesh = mesh
+		parts.mesh = _frost_mesh
 		parts.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 		parts.emission_sphere_radius = 0.7
 		parts.direction = Vector3.UP
@@ -3488,11 +3622,7 @@ func _play_frost_activate_vfx() -> void:
 		parts.gravity = Vector3(0, -1.5, 0)
 		parts.scale_amount_min = 0.6
 		parts.scale_amount_max = 1.3
-		var grad := Gradient.new()
-		grad.set_color(0, Color(0.95, 0.99, 1.0, 1.0))
-		grad.add_point(0.4, Color(0.5, 0.82, 1.0, 0.85))
-		grad.set_color(1, Color(0.2, 0.5, 1.0, 0.0))
-		parts.color_ramp = grad
+		parts.color_ramp = _frost_grad
 		parts.position = Vector3(0, 0.2, 0)
 		_3d_model.add_child(parts)
 		parts.emitting = true
@@ -3996,22 +4126,23 @@ func _update_3d_shield(delta: float):
 	if target_type != _active_shield_type:
 		# Eliminar el anterior
 		if is_instance_valid(_active_shield_vfx):
-			# Intentar reproducir end_animation antes de borrar si tiene AnimationPlayer
-			var anim = _active_shield_vfx.get_node_or_null("AnimationPlayer")
+			var temp_vfx = _active_shield_vfx
+			_active_shield_vfx = null
+			var anim = temp_vfx.get_node_or_null("AnimationPlayer")
 			if anim and anim.has_animation("end_animation"):
 				anim.play("end_animation")
-				# Lo borramos tras el término de la animación
-				var temp_vfx = _active_shield_vfx
 				var tw_shield = temp_vfx.create_tween()
 				tw_shield.tween_interval(0.4)
-				tw_shield.tween_callback(temp_vfx.queue_free)
+				tw_shield.tween_callback(func():
+					if is_instance_valid(temp_vfx):
+						VFXSystem.recycle_vfx_to_pool(temp_vfx)
+				)
 			else:
-				_active_shield_vfx.queue_free()
-			_active_shield_vfx = null
+				VFXSystem.recycle_vfx_to_pool(temp_vfx)
 
 		_active_shield_type = target_type
 
-		# Instanciar el nuevo si corresponde
+		# Instanciar el nuevo si corresponde desde el pool
 		if target_type != "" and is_instance_valid(_3d_model):
 			var new_scene = null
 			match target_type:
@@ -4025,22 +4156,23 @@ func _update_3d_shield(delta: float):
 					new_scene = VFXShieldGreenScene
 
 			if new_scene:
-				var vfx = new_scene.instantiate()
-				_3d_model.add_child(vfx)
-				_active_shield_vfx = vfx
-				
-				# Configurar escala local relativa al pivote de la nave
-				var base_scale = 0.75 if target_type == "reflect" else 0.65
-				if target_type == "heal" and _heal_shield_scale != 1.0:
-					base_scale *= _heal_shield_scale
-					_heal_shield_scale = 1.0
-				vfx.scale = Vector3(base_scale, base_scale, base_scale)
-				vfx.position = Vector3(0.0, 0.12, 0.0)
-				
-				# Iniciar animación de entrada
-				var anim = vfx.get_node_or_null("AnimationPlayer")
-				if anim and anim.has_animation("start_animation"):
-					anim.play("start_animation")
+				var vfx = VFXSystem.get_vfx_from_pool(new_scene)
+				if is_instance_valid(vfx):
+					_3d_model.add_child(vfx)
+					_active_shield_vfx = vfx
+					
+					# Configurar escala local relativa al pivote de la nave
+					var base_scale = 0.75 if target_type == "reflect" else 0.65
+					if target_type == "heal" and _heal_shield_scale != 1.0:
+						base_scale *= _heal_shield_scale
+						_heal_shield_scale = 1.0
+					vfx.scale = Vector3(base_scale, base_scale, base_scale)
+					vfx.position = Vector3(0.0, 0.12, 0.0)
+					
+					# Iniciar animación de entrada
+					var anim = vfx.get_node_or_null("AnimationPlayer")
+					if anim and anim.has_animation("start_animation"):
+						anim.play("start_animation")
 
 
 # Radio orbital de esferas configurable desde AdminDash (pilotConfig.sphereOrbitRadius).
@@ -4938,8 +5070,9 @@ func deactivate_for_pooling():
 	if is_instance_valid(name_tag):
 		name_tag.visible = false
 		name_tag.text = ""
-	if is_instance_valid(world_root_3d):
-		world_root_3d.visible = false
+	_safe_free_world_root_3d()
+	_3d_model = null
+	accessory_pivot_3d = null
 		
 	# Mover fuera de pantalla para no interferir en proyecciones ni detecciones
 	global_position = Vector2(-999999, -999999)
@@ -5027,6 +5160,7 @@ func rebuild_3d_layout():
 		_setup_enemy_visuals()
 	else:
 		_setup_ship_visuals()
+	_update_3d_root_sync()
 
 func _spawn_wreckage_marker():
 	_clear_wreckage_marker()
@@ -5500,39 +5634,18 @@ func _spawn_strange_dimension_vfx() -> void:
 		vp.add_child(portal_3d)
 		
 		# Núcleo del portal (esfera violeta)
+		_ensure_entity_vfx_static_cache()
 		var core = MeshInstance3D.new()
 		core.name = "PortalCore"
-		var core_mesh = SphereMesh.new()
-		core_mesh.radius = 1.5
-		core_mesh.radial_segments = 32
-		core_mesh.rings = 32
-		core.mesh = core_mesh
-		
-		var core_mat = ShaderMaterial.new()
-		core_mat.shader = VoidAuraShader
-		core_mat.set_shader_parameter("core_color", Color(0.6, 0.1, 0.9))
-		core_mat.set_shader_parameter("mid_color", Color(0.4, 0.0, 0.6))
-		core_mat.set_shader_parameter("rim_color", Color(0.8, 0.2, 1.0))
-		core_mat.set_shader_parameter("intensity", 2.0)
-		core.material_override = core_mat
+		core.mesh = _sd_core_mesh
+		core.material_override = _sd_core_mat
 		portal_3d.add_child(core)
 		
 		# Anillo exterior del portal
 		var ring = MeshInstance3D.new()
 		ring.name = "PortalRing"
-		var ring_mesh = TorusMesh.new()
-		ring_mesh.inner_radius = 1.8
-		ring_mesh.outer_radius = 2.0
-		ring.mesh = ring_mesh
-		
-		var ring_mat = StandardMaterial3D.new()
-		ring_mat.albedo_color = Color(0.6, 0.1, 0.9, 0.7)
-		ring_mat.emission_enabled = true
-		ring_mat.emission = Color(0.6, 0.1, 0.9)
-		ring_mat.emission_energy_multiplier = 3.0
-		ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-		ring.material_override = ring_mat
+		ring.mesh = _sd_ring_mesh
+		ring.material_override = _sd_ring_mat
 		portal_3d.add_child(ring)
 		
 		# Luz violeta
