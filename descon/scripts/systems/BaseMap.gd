@@ -89,7 +89,12 @@ var terrain_node: Node3D = null
 @export var enable_physical_border: bool = false # false = fantasma visual-only, true = choque duro
 var _perimeter_walls_2d: Array = []
 
-var fixed_cam_zoom: float = 0.55
+# Límites de zoom de cámara optimizados y consistentes
+const MIN_CAM_ZOOM: float = 0.18
+const MAX_CAM_ZOOM: float = 0.44  # v1000.5: Acortado (antes 0.55) para evitar zoom out excesivo
+const DEFAULT_CAM_ZOOM: float = 0.35
+
+var fixed_cam_zoom: float = DEFAULT_CAM_ZOOM
 
 # Variables para Cámara Híbrida (1ª / 3ª Persona WoW-Style)
 var hybrid_cam_h: float = 180.0
@@ -116,7 +121,7 @@ var _classic_cam_smoothed_y: float = -999.0
 var free_cam_active: bool = false
 var free_cam_h: float = 180.0  # ángulo horizontal en grados (180 = detrás de la nave)
 var free_cam_v: float = 40.0   # ángulo vertical (10-85°, 0 = horizontal, 90 = top-down)
-var free_cam_zoom: float = 35.0
+var free_cam_zoom: float = 17.5
 var free_cam_center: Vector3 = Vector3.ZERO
 var free_orbit_mode: bool = true  # true=orbita jugador, false=libre (WASD)
 var _mid_dragging: bool = false
@@ -338,7 +343,10 @@ func _deferred_ready():
 	
 	# v770.12: Re-sincronizar el zoom de la cámara con el alto real de pantalla ya renderizado
 	# Evita que al warpear a un mapa la cámara inicie calculada con alto fallback (1080p) y requiera scroll para corregirse.
-	_sync_free_from_fixed()
+	if free_cam_active or use_hybrid_camera:
+		_sync_zooms_from_free()
+	else:
+		_sync_free_from_fixed()
 	
 	print("[BaseMap _deferred_ready] process_frame completado. Llamando a _spawn_map_objects...")
 	_spawn_map_objects()
@@ -1231,7 +1239,7 @@ func _setup_3d_dynamic():
 	# ¡CREADA ANTES de instanciar la escena 3D para que Terrain3D registre la cámara activa correctamente!
 	camera_3d = Camera3D.new()
 	camera_3d.name = "Camera3D"
-	camera_3d.fov = 35.0
+	camera_3d.fov = 55.0
 	camera_3d.transform = Transform3D(
 		Basis(
 			Vector3(1, 0, 0),
@@ -1579,24 +1587,24 @@ func set_camera_2d_mode(_active: bool):
 func _get_base_height_and_factor() -> Dictionary:
 	var viewport_height = 1080.0
 	var target_visible_height = viewport_height * scale_factor
-	var fov_val = camera_3d.fov if is_instance_valid(camera_3d) else 55.0
-	var fov_rad = deg_to_rad(fov_val / 2.0)
+	const BASE_FOV = 55.0
+	var fov_rad = deg_to_rad(BASE_FOV / 2.0)
 	var base_height = target_visible_height / (2.0 * tan(fov_rad))
 	var factor = sqrt(1.0 + 1.0 / (tan(deg_to_rad(25.0)) * tan(deg_to_rad(25.0))))
 	return {"base_height": base_height, "factor": factor}
 
 func _sync_zooms_from_free():
 	var res = _get_base_height_and_factor()
-	var min_dist = 0.18 * res.base_height * res.factor
-	var max_dist = 0.55 * res.base_height * res.factor
+	var min_dist = MIN_CAM_ZOOM * res.base_height * res.factor
+	var max_dist = MAX_CAM_ZOOM * res.base_height * res.factor
 	free_cam_zoom = clamp(free_cam_zoom, min_dist, max_dist)
 	fixed_cam_zoom = free_cam_zoom / (res.base_height * res.factor)
 
 func _sync_free_from_fixed():
 	var res = _get_base_height_and_factor()
 	free_cam_zoom = fixed_cam_zoom * res.base_height * res.factor
-	var min_dist = 0.18 * res.base_height * res.factor
-	var max_dist = 0.55 * res.base_height * res.factor
+	var min_dist = MIN_CAM_ZOOM * res.base_height * res.factor
+	var max_dist = MAX_CAM_ZOOM * res.base_height * res.factor
 	free_cam_zoom = clamp(free_cam_zoom, min_dist, max_dist)
 
 # Guardar estado de cámara en SettingsManager (persiste entre mapas, no en disco)
@@ -1616,9 +1624,9 @@ func _restore_camera_state():
 	if not has_node("/root/SettingsManager"):
 		return
 	var sm = get_node("/root/SettingsManager")
-	if sm.cam_fixed_zoom > 0.55 or sm.cam_fixed_zoom < 0.18:
-		sm.cam_fixed_zoom = 0.35
-	fixed_cam_zoom = clamp(sm.cam_fixed_zoom, 0.18, 0.55)
+	if sm.cam_fixed_zoom > MAX_CAM_ZOOM or sm.cam_fixed_zoom < MIN_CAM_ZOOM:
+		sm.cam_fixed_zoom = DEFAULT_CAM_ZOOM
+	fixed_cam_zoom = clamp(sm.cam_fixed_zoom, MIN_CAM_ZOOM, MAX_CAM_ZOOM)
 	free_cam_active = sm.cam_free_active
 	emit_signal("camera_mode_changed", free_cam_active)
 	free_cam_h = sm.cam_free_h
@@ -1627,7 +1635,12 @@ func _restore_camera_state():
 	free_orbit_mode = sm.cam_free_orbit
 	if sm.get("cam_use_hybrid") != null:
 		use_hybrid_camera = sm.get("cam_use_hybrid")
-	_sync_free_from_fixed()
+	
+	if free_cam_active or use_hybrid_camera:
+		_sync_zooms_from_free()
+	else:
+		_sync_free_from_fixed()
+	_save_camera_state()
 
 
 # Actualizar cámara libre (orbit/free mode)
@@ -1655,7 +1668,6 @@ func _update_free_camera(shake_offset: Vector3 = Vector3.ZERO):
 	)
 	
 	camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
-	camera_3d.fov = 55.0
 	camera_3d.position = free_cam_center + offset
 	camera_3d.look_at(free_cam_center, Vector3.UP)
 	# Aplicar sacudida 3D al final
@@ -1941,8 +1953,8 @@ func _process(_delta):
 				var rad_h = _smoothed_yaw + deg_to_rad(hybrid_cam_h - 180.0)
 				var rad_v = deg_to_rad(hybrid_cam_v)
 				
-				# Distancia de órbita fija (suficientemente alejado en 3ª persona)
-				var orbit_dist = 18.0
+				# Distancia de órbita dinámica sincronizada con el zoom general
+				var orbit_dist = free_cam_zoom
 				
 				var offset = Vector3(
 					orbit_dist * cos(rad_v) * sin(rad_h),
@@ -3429,6 +3441,7 @@ func _input(event):
 			# De 3D + Seguimiento a Fija
 			free_cam_active = false
 			use_hybrid_camera = false
+			_sync_zooms_from_free()
 			new_mode_name = "CÁMARA FIJA"
 		
 		emit_signal("camera_mode_changed", free_cam_active)
@@ -3485,9 +3498,10 @@ func _input(event):
 			if hud_check and hud_check.has_method("_is_pos_over_priority_ui") and hud_check._is_pos_over_priority_ui(event.position):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				fixed_cam_zoom = max(0.18, fixed_cam_zoom - 0.04)
+				fixed_cam_zoom = max(MIN_CAM_ZOOM, fixed_cam_zoom - 0.04)
 			else:
-				fixed_cam_zoom = min(0.55, fixed_cam_zoom + 0.04)
+				fixed_cam_zoom = min(MAX_CAM_ZOOM, fixed_cam_zoom + 0.04)
+			_sync_free_from_fixed()
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
 
@@ -3505,10 +3519,14 @@ func _input(event):
 				_drag_last = event.position
 			get_viewport().set_input_as_handled()
 		
-		# Scroll para zoom (solo en cámara libre)
-		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN) and event.pressed:
+	# Scroll para zoom en cámaras 3D (Cámara Libre y Cámara 3D + Seguimiento)
+	if (free_cam_active or use_hybrid_camera) and event is InputEventMouseButton and event.pressed:
+		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			var hovered = get_viewport().gui_get_hovered_control()
 			if hovered != null and not (hovered is SubViewportContainer):
+				return
+			var hud_check = get_tree().get_first_node_in_group("hud")
+			if hud_check and hud_check.has_method("_is_pos_over_priority_ui") and hud_check._is_pos_over_priority_ui(event.position):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				free_cam_zoom -= 2.0

@@ -672,9 +672,9 @@ func _process(delta):
 					SettingsManager.cam_free_active = false
 					SettingsManager.set("cam_use_hybrid", false)
 					SettingsManager.cam_fixed_zoom = 0.35
-					SettingsManager.cam_free_h = 0.0
+					SettingsManager.cam_free_h = 180.0
 					SettingsManager.cam_free_v = 40.0
-					SettingsManager.cam_free_zoom = 35.0
+					SettingsManager.cam_free_zoom = 17.5
 					SettingsManager.cam_free_orbit = true
 		if is_instance_valid(local_player) and is_logged:
 			if local_player.visible != is_logged:

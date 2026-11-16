@@ -266,7 +266,7 @@ func _on_zoom_in_pressed():
 	var map_node = get_tree().get_first_node_in_group("map")
 	if is_instance_valid(map_node):
 		_ensure_free_cam_active(map_node)
-		map_node.free_cam_zoom = clamp(map_node.free_cam_zoom - 4.0, 10.0, 100.0)
+		map_node.free_cam_zoom -= 2.0
 		if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
 		if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
 
@@ -274,7 +274,7 @@ func _on_zoom_out_pressed():
 	var map_node = get_tree().get_first_node_in_group("map")
 	if is_instance_valid(map_node):
 		_ensure_free_cam_active(map_node)
-		map_node.free_cam_zoom = clamp(map_node.free_cam_zoom + 4.0, 10.0, 100.0)
+		map_node.free_cam_zoom += 2.0
 		if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
 		if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
 
@@ -284,8 +284,8 @@ func _on_reset_pressed():
 		_ensure_free_cam_active(map_node)
 		map_node.free_cam_h = 180.0
 		map_node.free_cam_v = 40.0
-		map_node.free_cam_zoom = 28.0
-		if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
+		map_node.fixed_cam_zoom = 0.35
+		if map_node.has_method("_sync_free_from_fixed"): map_node._sync_free_from_fixed()
 		if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.has_method("notify"):
