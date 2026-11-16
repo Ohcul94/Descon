@@ -9,10 +9,19 @@ class_name WorldMapDialog
 var target_zone_id: String = "1"
 var _redraw_accum: float = 0.0
 var root_control: Control = null
+var main_panel: PanelContainer = null
+var map_container: PanelContainer = null
 var map_canvas: Control = null
 var title_lbl: Label = null
 var coord_lbl: Label = null
 var is_dialog_open: bool = false
+
+# Zoom y Paneo interactivo en el Mapa Completo
+var zoom_factor: float = 1.0
+var pan_offset: Vector2 = Vector2.ZERO
+var _is_panning: bool = false
+var _pan_start_pos: Vector2 = Vector2.ZERO
+var _pan_start_offset: Vector2 = Vector2.ZERO
 
 func _init():
 	name = "WorldMapDialog"
@@ -43,15 +52,10 @@ func _build_ui():
 			close()
 	)
 
-	# 2. Panel principal de la ventana (Estilo Sci-Fi Holo)
-	var main_panel = PanelContainer.new()
+	# 2. Panel principal de la ventana (Estilo Sci-Fi Holo responsivo)
+	main_panel = PanelContainer.new()
 	main_panel.name = "MainPanel"
-	main_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	main_panel.custom_minimum_size = Vector2(860, 680)
-	main_panel.offset_left = -430
-	main_panel.offset_right = 430
-	main_panel.offset_top = -340
-	main_panel.offset_bottom = 340
+	main_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	var panel_sb = StyleBoxFlat.new()
 	panel_sb.bg_color = Color(0.015, 0.04, 0.08, 0.96)
@@ -68,7 +72,9 @@ func _build_ui():
 
 	var v_box = VBoxContainer.new()
 	v_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	v_box.add_theme_constant_override("separation", 8)
+	v_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v_box.add_theme_constant_override("separation", 6)
 	main_panel.add_child(v_box)
 
 	# 3. Header de la ventana
@@ -130,26 +136,40 @@ func _build_ui():
 	sep.color = Color(0.0, 0.85, 1.0, 0.3)
 	v_box.add_child(sep)
 
-	# 4. Área del lienzo del mapa completo
-	var center_container = CenterContainer.new()
-	center_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v_box.add_child(center_container)
+	# 4. Contenedor del mapa con RECORTE ESTRICTO (El zoom nunca se sale del marco)
+	map_container = PanelContainer.new()
+	map_container.name = "MapContainer"
+	map_container.clip_contents = true # <<--- RECORTE TOTAL: Confinamiento estricto
+	map_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	var mc_sb = StyleBoxFlat.new()
+	mc_sb.bg_color = Color(0.01, 0.025, 0.04, 1.0)
+	mc_sb.border_width_left = 1
+	mc_sb.border_width_top = 1
+	mc_sb.border_width_right = 1
+	mc_sb.border_width_bottom = 1
+	mc_sb.border_color = Color(0.0, 0.85, 1.0, 0.35)
+	mc_sb.set_corner_radius_all(3)
+	map_container.add_theme_stylebox_override("panel", mc_sb)
+	v_box.add_child(map_container)
 
 	map_canvas = Control.new()
 	map_canvas.name = "MapCanvas"
-	map_canvas.custom_minimum_size = Vector2(800, 580)
+	map_canvas.clip_contents = true # <<--- DOBLE RECORTE
+	map_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map_canvas.mouse_filter = Control.MOUSE_FILTER_STOP
-	center_container.add_child(map_canvas)
+	map_container.add_child(map_canvas)
 	
 	map_canvas.draw.connect(_on_canvas_draw)
 	map_canvas.gui_input.connect(_on_canvas_gui_input)
 
-	# 5. Barra inferior con leyenda
+	# 5. Barra inferior con leyenda responsiva
 	var footer_bar = HBoxContainer.new()
 	footer_bar.custom_minimum_size.y = 26
 	footer_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	footer_bar.add_theme_constant_override("separation", 24)
+	footer_bar.add_theme_constant_override("separation", 16)
 	v_box.add_child(footer_bar)
 
 	_add_legend_item(footer_bar, "⚪ Tu Nave", Color.WHITE)
@@ -158,7 +178,42 @@ func _build_ui():
 	_add_legend_item(footer_bar, "✨ [A] Altares", Color(0.0, 1.0, 0.5))
 	_add_legend_item(footer_bar, "🟡 [B] Baúles", Color(1.0, 0.85, 0.0))
 	_add_legend_item(footer_bar, "🔴 [N] Nexos / Pilares", Color(1.0, 0.3, 0.3))
-	_add_legend_item(footer_bar, "🖱️ Clic Derecho / Toque: Fijar Rumbo", Color(0.7, 0.9, 1.0, 0.7))
+	_add_legend_item(footer_bar, "🔍 Zoom: Rueda | Mover: Arrastre | Rumbo: Clic Der", Color(0.7, 0.9, 1.0, 0.85))
+
+	get_viewport().size_changed.connect(_update_dialog_layout)
+	_update_dialog_layout.call_deferred()
+
+func _update_dialog_layout() -> void:
+	if not is_instance_valid(main_panel): return
+	var vp = get_viewport()
+	if not is_instance_valid(vp): return
+	var vp_size = vp.get_visible_rect().size
+	if vp_size.x <= 0 or vp_size.y <= 0: return
+
+	# 1. Proporción responsiva: 92% del ancho y 90% del alto
+	var target_w = vp_size.x * 0.92
+	var target_h = vp_size.y * 0.90
+
+	# 2. En monitores ultra-wide (21:9 o 32:9), limitar ancho para mantener una estética agradable
+	var max_aspect_w = target_h * 1.70
+	if target_w > max_aspect_w:
+		target_w = max_aspect_w
+
+	# 3. Límites mínimos y márgenes de pantalla
+	target_w = clampf(target_w, minf(420.0, vp_size.x - 20.0), vp_size.x - 20.0)
+	target_h = clampf(target_h, minf(320.0, vp_size.y - 20.0), vp_size.y - 20.0)
+
+	main_panel.custom_minimum_size = Vector2(target_w, target_h)
+	main_panel.size = Vector2(target_w, target_h)
+
+	# Centrado exacto en pantalla
+	var pos_x = (vp_size.x - target_w) * 0.5
+	var pos_y = (vp_size.y - target_h) * 0.5
+	main_panel.position = Vector2(round(pos_x), round(pos_y))
+
+	if is_instance_valid(map_canvas):
+		_clamp_pan_offset()
+		map_canvas.queue_redraw()
 
 func _add_legend_item(parent: Container, label_text: String, col: Color):
 	var lbl = Label.new()
@@ -176,8 +231,13 @@ func open(zone_id_to_show: String = ""):
 	else:
 		target_zone_id = "1"
 
+	zoom_factor = 1.0
+	pan_offset = Vector2.ZERO
+	_is_panning = false
+
 	visible = true
 	is_dialog_open = true
+	_update_dialog_layout()
 	_update_header()
 	if is_instance_valid(map_canvas):
 		map_canvas.queue_redraw()
@@ -232,8 +292,64 @@ func _update_header():
 func get_zone_dimensions(zone_id: String) -> Vector2:
 	return get_zone_rect(zone_id, get_tree()).size
 
+func _change_zoom(factor: float, focus_pos: Vector2) -> void:
+	if not is_instance_valid(map_canvas): return
+	var old_zoom = zoom_factor
+	zoom_factor = clampf(zoom_factor * factor, 1.0, 5.0)
+	if zoom_factor <= 1.02:
+		zoom_factor = 1.0
+		pan_offset = Vector2.ZERO
+	else:
+		var center = map_canvas.size / 2.0
+		var focus_rel = focus_pos - center - pan_offset
+		pan_offset -= focus_rel * ((zoom_factor / old_zoom) - 1.0)
+		_clamp_pan_offset()
+	map_canvas.queue_redraw()
+
+func _clamp_pan_offset() -> void:
+	if not is_instance_valid(map_canvas): return
+	var world_rect = get_zone_rect(target_zone_id, get_tree())
+	if world_rect.size.x <= 0 or world_rect.size.y <= 0: return
+	var canvas_size = map_canvas.size
+	if canvas_size.x <= 0 or canvas_size.y <= 0: return
+	var base_scale = min(canvas_size.x / world_rect.size.x, canvas_size.y / world_rect.size.y)
+	var scale_val = base_scale * zoom_factor
+	var map_draw_size = Vector2(world_rect.size.x * scale_val, world_rect.size.y * scale_val)
+	var max_pan_x = maxf(0.0, (map_draw_size.x - canvas_size.x) * 0.5 + 30.0)
+	var max_pan_y = maxf(0.0, (map_draw_size.y - canvas_size.y) * 0.5 + 30.0)
+	pan_offset.x = clampf(pan_offset.x, -max_pan_x, max_pan_x)
+	pan_offset.y = clampf(pan_offset.y, -max_pan_y, max_pan_y)
+
 func _on_canvas_gui_input(event: InputEvent):
-	# PC: clic derecho. Móvil: toque nativo (InputEventScreenTouch).
+	# 1. Zoom con la rueda del ratón
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_change_zoom(1.20, event.position)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_change_zoom(1.0 / 1.20, event.position)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			_is_panning = true
+			_pan_start_pos = event.position
+			_pan_start_offset = pan_offset
+
+	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_is_panning = false
+
+	# 2. Paneo con arrastre de ratón al tener zoom
+	if event is InputEventMouseMotion and _is_panning and zoom_factor > 1.01:
+		var delta = event.position - _pan_start_pos
+		pan_offset = _pan_start_offset + delta
+		_clamp_pan_offset()
+		if is_instance_valid(map_canvas):
+			map_canvas.queue_redraw()
+		get_viewport().set_input_as_handled()
+		return
+
+	# 3. PC: clic derecho. Móvil: toque nativo -> Fijar Rumbo
 	var is_nav = false
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		is_nav = true
@@ -246,15 +362,16 @@ func _on_canvas_gui_input(event: InputEvent):
 	var player = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(player): return
 	var p_zone = str(player.current_zone) if "current_zone" in player else "1"
-	if p_zone != target_zone_id: return # Solo fijar rumbo si es el mapa en que se encuentra el jugador
+	if p_zone != target_zone_id: return
 	
 	var world_rect = get_zone_rect(target_zone_id, get_tree())
 	var worldW = world_rect.size.x
 	var worldH = world_rect.size.y
 	var canvas_size = map_canvas.size
-	var scale_val = min(canvas_size.x / worldW, canvas_size.y / worldH)
+	var base_scale = min(canvas_size.x / worldW, canvas_size.y / worldH)
+	var scale_val = base_scale * zoom_factor
 	var map_draw_size = Vector2(worldW * scale_val, worldH * scale_val)
-	var map_draw_offset = (canvas_size - map_draw_size) / 2.0
+	var map_draw_offset = ((canvas_size - map_draw_size) / 2.0) + pan_offset
 	
 	var m_pos = event.position - map_draw_offset
 	if m_pos.x >= 0 and m_pos.x <= map_draw_size.x and m_pos.y >= 0 and m_pos.y <= map_draw_size.y:
@@ -269,6 +386,24 @@ func _on_canvas_gui_input(event: InputEvent):
 static var terrain_cache_by_zone: Dictionary = {}
 static var terrain_image_by_zone: Dictionary = {}
 static var terrain_bounds_by_zone: Dictionary = {}
+
+static func purge_zone_cache(keep_zone_id: String = "") -> void:
+	var keys_to_remove = []
+	for z in terrain_cache_by_zone.keys():
+		if str(z) != keep_zone_id:
+			keys_to_remove.append(z)
+	for z in keys_to_remove:
+		terrain_cache_by_zone.erase(z)
+		terrain_image_by_zone.erase(z)
+		terrain_bounds_by_zone.erase(z)
+	if keys_to_remove.size() > 0:
+		print("[WorldMap] 🧹 Caché de mapas purgada (%d zonas liberadas). Zona activa: %s" % [keys_to_remove.size(), keep_zone_id])
+
+static func precache_zone_texture(zone_id: Variant, tree: SceneTree) -> void:
+	var z_key = str(zone_id)
+	purge_zone_cache(z_key)
+	var wr = get_zone_rect(z_key, tree)
+	get_or_create_terrain_texture(z_key, wr, tree)
 
 static func export_terrain_texture_to_png(zone_id: Variant, tree: SceneTree, file_path: String) -> bool:
 	var z_key = str(zone_id)
@@ -352,6 +487,37 @@ static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect
 	if terrain_bounds_by_zone.has(z_key):
 		return terrain_bounds_by_zone[z_key]
 
+	# 1. Máxima Prioridad: GameConstants.MAPS_CONFIG (Autoridad del servidor y AdminDash)
+	if GameConstants.get("MAPS_CONFIG") and z_key in GameConstants.MAPS_CONFIG:
+		var mc = GameConstants.MAPS_CONFIG[z_key]
+		if mc.has("width") and float(mc.width) > 0 and mc.has("height") and float(mc.height) > 0:
+			var min_x = float(mc.get("minX", 0.0))
+			var min_y = float(mc.get("minY", 0.0))
+			var w = float(mc.width)
+			var h = float(mc.height)
+			var r = Rect2(min_x, min_y, w, h)
+			terrain_bounds_by_zone[z_key] = r
+			return r
+
+	# 2. Si no está en memoria, intentar leer de Server/config.json
+	var cfg_path = "res://../Server/config.json"
+	if FileAccess.file_exists(cfg_path):
+		var f = FileAccess.open(cfg_path, FileAccess.READ)
+		if f:
+			var p = JSON.new()
+			if p.parse(f.get_as_text()) == OK:
+				var cdata = p.get_data()
+				if cdata is Dictionary and cdata.has("mapsConfig") and cdata.mapsConfig.has(z_key):
+					var zcfg = cdata.mapsConfig[z_key]
+					var min_x = float(zcfg.get("minX", 0.0))
+					var min_y = float(zcfg.get("minY", 0.0))
+					var w = float(zcfg.get("width", 10000.0))
+					var h = float(zcfg.get("height", 10000.0))
+					if w > 0.0 and h > 0.0:
+						var r = Rect2(min_x, min_y, w, h)
+						terrain_bounds_by_zone[z_key] = r
+						return r
+
 	var terrain_node: Node = null
 	var scale_factor: float = 0.02
 	var correction_z: float = 1.41421356
@@ -362,7 +528,7 @@ static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect
 		var player = tree.get_first_node_in_group("player")
 		var cur_zone = str(player.current_zone) if is_instance_valid(player) and "current_zone" in player else ""
 
-		# 1. Intentar obtener el nodo de terreno del mapa activo en el juego
+		# Intentar obtener el nodo de terreno del mapa activo en el juego
 		if is_instance_valid(map_node) and (cur_zone == z_key or z_key == ""):
 			terrain_node = map_node.get("terrain_node")
 			if not is_instance_valid(terrain_node):
@@ -375,7 +541,7 @@ static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect
 			if "scale_factor" in map_node: scale_factor = float(map_node.scale_factor)
 			if "correction_z" in map_node: correction_z = float(map_node.correction_z)
 
-		# 2. Si es una zona remota o no se encontró en el mapa activo, cargar la escena pre-diseñada
+		# Si es una zona remota o no se encontró en el mapa activo, cargar la escena pre-diseñada
 		if not is_instance_valid(terrain_node):
 			var candidates = _get_scene_candidates(z_key)
 			for p in candidates:
@@ -445,22 +611,31 @@ static func get_zone_rect(zone_id: Variant = "", tree: SceneTree = null) -> Rect
 		temp_scene_to_free.queue_free()
 		temp_scene_to_free = null
 
-	# Fallback si no hay Terrain3D: leer de MAPS_CONFIG o dimensiones base
-	var fallback_w = 10000.0
-	var fallback_h = 10000.0
-	if GameConstants.get("MAPS_CONFIG") and z_key in GameConstants.MAPS_CONFIG:
-		var mc = GameConstants.MAPS_CONFIG[z_key]
-		if mc.has("width") and float(mc.width) > 0: fallback_w = float(mc.width)
-		if mc.has("height") and float(mc.height) > 0: fallback_h = float(mc.height)
-
-	var fallback_rect = Rect2(0.0, 0.0, fallback_w, fallback_h)
+	# Fallback final si nada funcionó
+	var fallback_rect = Rect2(0.0, 0.0, 10000.0, 10000.0)
 	terrain_bounds_by_zone[z_key] = fallback_rect
 	return fallback_rect
 
-static func get_or_create_terrain_texture(zone_id: Variant, rect_or_width: Variant = null, height_or_tree: Variant = null, tree_arg: SceneTree = null) -> ImageTexture:
+static func get_or_create_terrain_texture(zone_id: Variant, rect_or_width: Variant = null, height_or_tree: Variant = null, tree_arg: SceneTree = null) -> Texture2D:
 	var z_key = str(zone_id)
 	if terrain_cache_by_zone.has(z_key) and is_instance_valid(terrain_cache_by_zone[z_key]):
 		return terrain_cache_by_zone[z_key]
+
+	# 1. Prioridad: cargar la textura satelital fidedigna 1:1 generada para la zona
+	var sat_path = "res://assets/maps/terrain_zone_" + z_key + ".png"
+	if ResourceLoader.exists(sat_path):
+		var res_tex = load(sat_path)
+		if res_tex is Texture2D:
+			terrain_cache_by_zone[z_key] = res_tex
+			return res_tex
+	elif FileAccess.file_exists(sat_path):
+		var disk_img = Image.load_from_file(sat_path)
+		if disk_img and not disk_img.is_empty():
+			var sat_tex = ImageTexture.create_from_image(disk_img)
+			if is_instance_valid(sat_tex):
+				terrain_cache_by_zone[z_key] = sat_tex
+				terrain_image_by_zone[z_key] = disk_img
+				return sat_tex
 
 	var tree: SceneTree = null
 	var world_rect: Rect2 = Rect2(0.0, 0.0, 0.0, 0.0)
@@ -672,6 +847,29 @@ static func get_or_create_terrain_texture(zone_id: Variant, rect_or_width: Varia
 	print("[WorldMap] ✅ Textura relieve AAA generada para Zona ", z_key, " Rect: ", world_rect)
 	return tex
 
+func _draw_local_player(c: Control, pos: Vector2, heading_angle: float):
+	c.draw_circle(pos, 8.5, Color(0.0, 0.92, 1.0, 0.22))
+	var cone_len = 18.0
+	var cone_spread = 0.32
+	var cone_arc_pts = PackedVector2Array([pos])
+	for i in range(8):
+		var frac = float(i) / 7.0
+		var a = (heading_angle - cone_spread) + frac * (cone_spread * 2.0)
+		cone_arc_pts.append(pos + Vector2.RIGHT.rotated(a) * cone_len)
+	c.draw_colored_polygon(cone_arc_pts, Color(0.0, 0.95, 1.0, 0.28))
+	c.draw_polyline(cone_arc_pts, Color(0.0, 0.95, 1.0, 0.55), 1.0)
+	var fwd = Vector2.RIGHT.rotated(heading_angle)
+	var right = Vector2.DOWN.rotated(heading_angle)
+	var nose = pos + fwd * 8.5
+	var left_wing = pos - fwd * 5.0 - right * 6.5
+	var right_wing = pos - fwd * 5.0 + right * 6.5
+	var engine_indent = pos - fwd * 2.5
+	var ship_poly = PackedVector2Array([nose, right_wing, engine_indent, left_wing])
+	c.draw_colored_polygon(ship_poly, Color(0.0, 0.92, 1.0, 0.95))
+	c.draw_polyline(ship_poly, Color.WHITE, 1.2, true)
+	c.draw_circle(engine_indent, 2.0, Color(1.0, 0.5, 0.1))
+	c.draw_circle(engine_indent, 1.0, Color.WHITE)
+
 
 func _on_canvas_draw():
 	if not is_instance_valid(map_canvas): return
@@ -682,9 +880,10 @@ func _on_canvas_draw():
 	if worldW <= 0 or worldH <= 0: return
 
 	var canvas_size = canvas.size
-	var scale_val = min(canvas_size.x / worldW, canvas_size.y / worldH)
+	var base_scale = min(canvas_size.x / worldW, canvas_size.y / worldH)
+	var scale_val = base_scale * zoom_factor
 	var map_draw_size = Vector2(worldW * scale_val, worldH * scale_val)
-	var map_draw_offset = (canvas_size - map_draw_size) / 2.0
+	var map_draw_offset = ((canvas_size - map_draw_size) / 2.0) + pan_offset
 
 	var player = get_tree().get_first_node_in_group("player")
 	var is_player_in_zone = false
@@ -695,7 +894,7 @@ func _on_canvas_draw():
 	# 1. Fondo del lienzo
 	canvas.draw_rect(Rect2(Vector2.ZERO, canvas_size), Color(0.01, 0.025, 0.04, 1.0), true)
 
-	# Transformación al área del mapa
+	# Transformación al área del mapa con soporte para zoom y paneo interactivo
 	canvas.draw_set_transform(map_draw_offset)
 
 	var map_rect = Rect2(Vector2.ZERO, map_draw_size)
@@ -708,28 +907,12 @@ func _on_canvas_draw():
 		# Fondo holográfico de sector
 		canvas.draw_rect(map_rect, Color(0.02, 0.06, 0.09, 0.9), true)
 
-	# 3. Retícula y borde del sector
+	# 3. Borde del sector (sin cuadrícula intrusiva)
 	canvas.draw_rect(map_rect, Color(0.0, 0.85, 1.0, 0.6), false, 1.5)
-	
-	var grid_spacing = 2000.0
-	var grid_color = Color(0.0, 0.7, 0.9, 0.12)
-	var start_x = ceil(world_rect.position.x / grid_spacing) * grid_spacing
-	var cur_x = start_x
-	while cur_x < world_rect.end.x:
-		var lx = (cur_x - world_rect.position.x) * scale_val
-		canvas.draw_line(Vector2(lx, 0), Vector2(lx, map_draw_size.y), grid_color, 1.0)
-		cur_x += grid_spacing
-		
-	var start_y = ceil(world_rect.position.y / grid_spacing) * grid_spacing
-	var cur_y = start_y
-	while cur_y < world_rect.end.y:
-		var ly = (cur_y - world_rect.position.y) * scale_val
-		canvas.draw_line(Vector2(0, ly), Vector2(map_draw_size.x, ly), grid_color, 1.0)
-		cur_y += grid_spacing
 
 	var font = canvas.get_theme_font("font")
 
-	# 4. Dibujar Objetos y estructuras del mapa desde GameConstants.MAPS_CONFIG
+	# 4. Dibujar Objetos y estructuras del mapa desde GameConstants.MAPS_CONFIG (Íconos clásicos y limpios con letras)
 	if target_zone_id in GameConstants.MAPS_CONFIG:
 		var zone_cfg = GameConstants.MAPS_CONFIG[target_zone_id]
 		if zone_cfg.has("objects") and zone_cfg.objects is Array:
@@ -771,7 +954,7 @@ func _on_canvas_draw():
 							p_dest_name = GameConstants.MAPS_CONFIG[target_zone].get("name", "Sector " + target_zone)
 						else:
 							p_dest_name = "Sector " + target_zone
-						canvas.draw_string(font, obj_pos + Vector2(12, 4), p_dest_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.0, 0.9, 1.0, 0.85))
+						canvas.draw_string(font, obj_pos + Vector2(14, 4), p_dest_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.0, 0.9, 1.0, 0.85))
 					"nexus":
 						var team = str(obj.get("team", "red")).to_lower()
 						var base_color = Color(1.0, 0.15, 0.15) if team == "red" else Color(0.15, 0.5, 1.0)
@@ -784,10 +967,16 @@ func _on_canvas_draw():
 						if team == "red": base_color = Color(0.9, 0.2, 0.2)
 						elif team == "blue": base_color = Color(0.2, 0.4, 0.9)
 						canvas.draw_circle(obj_pos, 5.5, base_color)
-						canvas.draw_string(font, obj_pos + Vector2(-3.0, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+						canvas.draw_circle(obj_pos, 8.0, Color(base_color.r, base_color.g, base_color.b, 0.3), false, 1.5)
+						canvas.draw_string(font, obj_pos + Vector2(-3.0, 3.0), "C", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 					"tower":
 						canvas.draw_circle(obj_pos, 6.0, Color(1.0, 0.55, 0.0, 0.9))
+						canvas.draw_circle(obj_pos, 8.5, Color(1.0, 0.55, 0.0, 0.25), false, 1.5)
 						canvas.draw_string(font, obj_pos + Vector2(-3.0, 3.0), "T", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+					"market":
+						canvas.draw_circle(obj_pos, 6.0, Color(1.0, 0.8, 0.2, 0.95))
+						canvas.draw_circle(obj_pos, 8.5, Color(1.0, 0.8, 0.2, 0.25), false, 1.5)
+						canvas.draw_string(font, obj_pos + Vector2(-2.5, 3.0), "$", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 					_:
 						if show_explicit:
 							canvas.draw_circle(obj_pos, 5.0, Color(0.0, 0.9, 1.0, 0.85))
@@ -827,14 +1016,7 @@ func _on_canvas_draw():
 				(player.global_position.x - world_rect.position.x) * scale_val,
 				(player.global_position.y - world_rect.position.y) * scale_val
 			)
-			canvas.draw_circle(p_pos, 7.0, Color(0.0, 0.9, 1.0, 0.35))
-			canvas.draw_circle(p_pos, 4.5, Color.WHITE)
-			var cone_len = 16.0
-			var cone_spread = 0.35
-			var cone_angle = player.rotation
-			var cone_left = p_pos + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
-			var cone_right = p_pos + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
-			canvas.draw_colored_polygon(PackedVector2Array([p_pos, cone_left, cone_right]), Color(0.0, 0.9, 1.0, 0.85))
+			_draw_local_player(canvas, p_pos, player.rotation)
 
 			# Trayectoria de autopiloto si está activo
 			if player.get("is_autopilot_active") and player.get("target_position"):

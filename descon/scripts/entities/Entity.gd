@@ -1297,38 +1297,31 @@ func _update_hud_offsets():
 		return
 		
 	var is_projected = get_meta("is_single_world", false) and is_instance_valid(world_root_3d)
+	var y_offset: float
 	
-	# Determinar si se muestran barras actualmente
-	var is_entity_player = is_in_group("player") or is_in_group("remote_players")
-	var show_bars = SettingsManager.show_player_bars if is_entity_player else SettingsManager.show_enemy_bars
-	var is_boss = entity_type >= 101
+	if is_projected:
+		# Modo 3D: el contenedor ya está proyectado sobre el modelo.
+		# Usamos offsets calibrados para que el nombre quede justo encima de las barras.
+		if is_in_group("player"):
+			y_offset = -75.0
+		elif entity_type >= 101: # Boss
+			y_offset = -75.0
+		else:
+			y_offset = -70.0
+	else:
+		# Modo 2D clásico: offsets originales en píxeles desde la base del sprite.
+		if is_in_group("player"):
+			y_offset = -180.0
+		elif entity_type >= 4:
+			y_offset = -300.0
+		else:
+			y_offset = -145.0
 	
-	# Altura de la base de las barras
-	var base_y = 0.0
-	if not is_projected:
-		if is_entity_player: base_y = -105.0
-		elif is_boss: base_y = -220.0
-		else: base_y = -70.0
-	
-	# Calcular la parte superior del conjunto de barras
-	var bar_top_y = base_y
-	if show_bars:
-		var has_shield = max_shield > 0
-		var bar_h = 4.5
-		bar_top_y = base_y - ((bar_h * 2.0 + 2.0) if has_shield else bar_h)
-	
-	# El name_tag debe quedar SIEMPRE encima de las barras, con un margen de 5px
-	var tag_h = name_tag.size.y
+	name_tag.position.y = y_offset
 	var tag_w = name_tag.size.x
 	if name_tag is RichTextLabel:
-		var ch = name_tag.get_content_height()
-		if ch > 0: tag_h = maxf(tag_h, float(ch))
 		var cw = name_tag.get_content_width()
 		if cw > 0: tag_w = maxf(tag_w, float(cw))
-	if tag_h <= 0.0:
-		tag_h = 24.0
-		
-	name_tag.position.y = (bar_top_y - 5.0) - tag_h
 	if tag_w > 0.0:
 		name_tag.position.x = -(tag_w / 2.0)
 

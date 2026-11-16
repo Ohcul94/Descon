@@ -37,6 +37,14 @@ class_name MapEditor3D
 			trigger_clear_terrain_colliders = false
 			notify_property_list_changed()
 
+@export_group("Captura de Mapa Satelital")
+@export var trigger_bake_satellite_map: bool = false:
+	set(val):
+		if val:
+			bake_satellite_map()
+			trigger_bake_satellite_map = false
+			notify_property_list_changed()
+
 @export_group("Herramientas de Colisión de Objetos")
 @export var trigger_auto_colliders_all_decoratives: bool = false:
 	set(val):
@@ -807,6 +815,67 @@ func _round_decimals(val: float, decimals: int = 2) -> float:
 
 func export_json_manual():
 	_export_to_json()
+
+func bake_satellite_map() -> void:
+	print("[MapEditor3D] 📸 Iniciando captura satelital de alta fidelidad para Zona ", zone_id)
+	var world_map_dialog_script = load("res://scripts/ui/WorldMapDialog.gd")
+	var zone_rect = Rect2(0, 0, 4000, 4000)
+	if world_map_dialog_script:
+		zone_rect = world_map_dialog_script.get_zone_rect(zone_id, get_tree())
+	if zone_rect.size.x <= 0 or zone_rect.size.y <= 0:
+		zone_rect = Rect2(0, 0, 4000, 4000)
+		
+	var world_w = zone_rect.size.x
+	var world_h = zone_rect.size.y
+	var width_3d = world_w * scale_factor
+	var height_3d = world_h * scale_factor * correction_z
+	var center_3d_x = (zone_rect.position.x + world_w * 0.5) * scale_factor
+	var center_3d_z = (zone_rect.position.y + world_h * 0.5) * scale_factor * correction_z
+	
+	var res_x = 1024
+	var res_y_raw = int(round(1024.0 * (height_3d / width_3d)))
+	if res_y_raw < 256: res_y_raw = 1024
+	
+	var snap_vp = SubViewport.new()
+	snap_vp.size = Vector2i(res_x, res_y_raw)
+	snap_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(snap_vp)
+	
+	var snap_cam = Camera3D.new()
+	snap_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	snap_cam.size = height_3d
+	snap_cam.position = Vector3(center_3d_x, 180.0, center_3d_z)
+	snap_cam.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	snap_cam.near = 0.1
+	snap_cam.far = 1500.0
+	snap_cam.current = true
+	snap_vp.add_child(snap_cam)
+	
+	var we = find_child("WorldEnvironment", true, false)
+	var old_fog = false
+	if is_instance_valid(we) and we.environment:
+		old_fog = we.environment.fog_enabled
+		we.environment.fog_enabled = false
+		
+	for i in range(4):
+		await get_tree().process_frame
+		
+	var tex = snap_vp.get_texture()
+	if tex:
+		var img = tex.get_image()
+		if img and not img.is_empty():
+			var target_h = int(round(1024.0 * (world_h / world_w)))
+			img.resize(1024, target_h, Image.INTERPOLATE_LANCZOS)
+			var game_path = "res://assets/maps/terrain_zone_" + str(zone_id) + ".png"
+			var admin_path = "res://../AdminDash/assets/maps/terrain_zone_" + str(zone_id) + ".png"
+			img.save_png(game_path)
+			img.save_png(admin_path)
+			print("[MapEditor3D] 🗺️ Captura satelital guardada exitosamente en ", game_path)
+			
+	if is_instance_valid(we) and we.environment:
+		we.environment.fog_enabled = old_fog
+		
+	snap_vp.queue_free()
 
 func bake_terrain_collisions():
 	var terrain_node = find_child("Terrain3D", true, false)
@@ -1659,6 +1728,7 @@ func save_to_server():
 			world_map_dialog_script.export_terrain_texture_to_png(zone_id, get_tree(), png_admin_path)
 			world_map_dialog_script.export_terrain_texture_to_png(zone_id, get_tree(), png_game_path)
 			maps_config[zone_id]["terrainImage"] = "assets/maps/terrain_zone_" + str(zone_id) + ".png"
+			bake_satellite_map()
 			print("MapEditor3D: 🗺️ Límites y textura topográfica sincronizados para AdminDash: Rect ", zone_rect)
 	
 	# v700.5: Sincronizar propiedad local para guardarla físicamente en el archivo .tscn

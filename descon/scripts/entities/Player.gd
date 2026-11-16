@@ -1558,7 +1558,7 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 	
 	if current_ammo <= 0: return
 
-	ammo[p_type][t_idx] -= 1
+	# Munición permanente como ítem (sin descuento por cantidad)
 	_emit_stats()
 	# v900.0: sonido de munición (ammo sound + fallback)
 	if AudioManager and AudioManager.has_method("play_sfx_path"):

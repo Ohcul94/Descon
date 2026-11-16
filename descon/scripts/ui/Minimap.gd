@@ -34,9 +34,34 @@ func get_current_world_dimensions() -> Vector2:
 
 
 
-## --- RETÍCULA TÁCTICA SCI-FI (DESHABILITADA POR PETICIÓN) ---
+## --- RETÍCULA TÁCTICA SCI-FI (DESHABILITADA) ---
 func _draw_tactical_grid(_rect: Rect2, _scale_x: float, _scale_y: float, _worldW: float, _worldH: float, _player: Node2D):
 	return
+
+# 9. JUGADOR LOCAL (Nave Estelar Delta-Wing con halo de radar)
+func _draw_local_player(pos: Vector2, heading_angle: float, _is_rotate: bool):
+	draw_circle(pos, 8.0, Color(0.0, 0.92, 1.0, 0.18))
+	var cone_len = 16.0
+	var cone_spread = 0.32
+	var cone_arc_pts = PackedVector2Array([pos])
+	var num_steps = 7
+	for i in range(num_steps + 1):
+		var frac = float(i) / float(num_steps)
+		var a = (heading_angle - cone_spread) + frac * (cone_spread * 2.0)
+		cone_arc_pts.append(pos + Vector2.RIGHT.rotated(a) * cone_len)
+	draw_colored_polygon(cone_arc_pts, Color(0.0, 0.95, 1.0, 0.28))
+	draw_polyline(cone_arc_pts, Color(0.0, 0.95, 1.0, 0.55), 1.0)
+	var fwd = Vector2.RIGHT.rotated(heading_angle)
+	var right = Vector2.DOWN.rotated(heading_angle)
+	var nose = pos + fwd * 7.5
+	var left_wing = pos - fwd * 4.5 - right * 5.5
+	var right_wing = pos - fwd * 4.5 + right * 5.5
+	var engine_indent = pos - fwd * 2.0
+	var ship_poly = PackedVector2Array([nose, right_wing, engine_indent, left_wing])
+	draw_colored_polygon(ship_poly, Color(0.0, 0.92, 1.0, 0.95))
+	draw_polyline(ship_poly, Color.WHITE, 1.2, true)
+	draw_circle(engine_indent, 1.8, Color(1.0, 0.5, 0.1))
+	draw_circle(engine_indent, 1.0, Color.WHITE)
 
 func _input(event):
 	# Soporte de atajo de teclado para el Mapa Completo
@@ -122,8 +147,6 @@ func _input(event):
 				get_viewport().set_input_as_handled() # Consumir evento
 
 func _ready():
-	WorldMapDialog.terrain_cache_by_zone.clear()
-	WorldMapDialog.terrain_bounds_by_zone.clear()
 	add_to_group("minimap")
 	world_size = GameConstants.GAME_CONFIG.get("worldSize", WORLD_DEFAULT_SIZE)
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -340,30 +363,6 @@ func _draw():
 	# 1. FONDO BASE DEL RADAR
 	# -----------------------------------------------------------------
 	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0.012, 0.03, 0.055, 0.96), true)
-	
-	# v800.0 NIEBLA GRIS en minimapa - overlay de celdas no exploradas
-	var fog_overlay_needed = false
-	var fog_grid_res = 64
-	var fog_explored: Dictionary = {}
-	var fog_zone_id = current_zone_id
-	# Intentar obtener datos de FogOfWarManager si existe
-	var fow_node = null
-	var map_node_fog = get_tree().get_first_node_in_group("map")
-	if is_instance_valid(map_node_fog) and "fog_of_war" in map_node_fog and is_instance_valid(map_node_fog.fog_of_war):
-		fow_node = map_node_fog.fog_of_war
-		if fow_node:
-			# GRID_RES es const 64, no hace falta check dinámico
-			fog_grid_res = 64
-			if "explored_by_zone" in fow_node:
-				if fow_node.explored_by_zone.has(fog_zone_id):
-					fog_explored = fow_node.explored_by_zone[fog_zone_id]
-				else:
-					# Zona nueva sin datos aún: usar diccionario vacío (toda niebla)
-					fog_explored = {}
-				fog_overlay_needed = true
-	# Fallback: si no hay FogOfWar (zona 1 lobby) no hay niebla
-	if fog_zone_id == "1":
-		fog_overlay_needed = false
  
 	# -----------------------------------------------------------------
 	# 2. TRANSFORMADA DEL MUNDO (JUGADOR CENTRADO) — entidades en espacio-mundo
@@ -394,10 +393,11 @@ func _draw():
 	var terrain_tex = WorldMapDialog.get_or_create_terrain_texture(current_zone_id, world_rect, get_tree())
 	if is_instance_valid(terrain_tex):
 		draw_texture_rect(terrain_tex, map_rect, false)
+		draw_rect(map_rect, Color(0.0, 0.85, 1.0, 0.45), false, 1.5)
 
-	# Niebla encima del terreno y bajo las naves
-	if fog_overlay_needed and fog_rendering_enabled:
-		_draw_minimap_fog(scale_x, scale_y, fog_grid_res, fog_explored, world_rect, player)
+	# Niebla en minimapa deshabilitada por petición (la delimitación de visión se define con el círculo táctico)
+	# if fog_overlay_needed and fog_rendering_enabled:
+	# 	_draw_minimap_fog(scale_x, scale_y, fog_grid_res, fog_explored, world_rect, player)
 
 
 	
@@ -522,27 +522,19 @@ func _draw():
 			var dot_r = 2.0
 
 			if is_special:
-				# Crece conforme crezca la escala del enemigo, respetando el espacio físico en el minimapa
 				var tactical_r = clampf(3.5 * (ent_scale / 6.0), 3.5, 12.0)
 				dot_r = max(tactical_r, physical_minimap_r)
-
-				# Fidelidad espacial: si el jugador NO está colisionando con el enemigo en el mundo físico,
-				# el círculo violeta jamás debe sobrepasar ni cubrir la posición de la nave en el minimapa
 				if dist_to_player_w > world_radius:
 					dot_r = min(dot_r, max(2.5, dist_minimap - 2.5))
-
-				# Renderizado táctico de Boss: cuerpo violeta + borde de colisión nítido + núcleo central
-				draw_circle(pos, dot_r, Color(0.65, 0.25, 1.0, 0.85))
-				draw_circle(pos, dot_r, Color(0.85, 0.45, 1.0, 0.95), false, 1.0)
-				draw_circle(pos, min(2.0, dot_r * 0.35), Color.WHITE)
+				draw_circle(pos, dot_r, Color(0.7, 0.2, 0.95))
+				draw_circle(pos, dot_r + 2.0, Color(0.7, 0.2, 0.95, 0.35), false, 1.2)
 			else:
-				# Enemigo común: proporcional al tamaño físico con visibilidad mínima
 				dot_r = max(2.0, physical_minimap_r)
 				if dist_to_player_w > world_radius:
 					dot_r = min(dot_r, max(1.5, dist_minimap - 1.5))
 				draw_circle(pos, dot_r, Color(1.0, 0.4, 0.0))
 
-	# 4. Dibujar Portales de Extracción (Cian de Neón con efecto de pulso!)
+	# 4. Dibujar Portales de Extracción (Cian de Neón clásico con letra de sector)
 	var is_extraction_zone = false
 	if current_zone_id.begins_with("extract_"):
 		is_extraction_zone = true
@@ -561,7 +553,6 @@ func _draw():
 				extract_points = ext.extractPoints
 				
 		if extract_points.size() == 0:
-			# Fallback
 			extract_points = [
 				{"x": 2974, "y": 5038, "label": "Punto Alfa"},
 				{"x": 6920, "y": 5070, "label": "Punto Beta"},
@@ -571,12 +562,9 @@ func _draw():
 			
 		for pt in extract_points:
 			var pt_pos = Vector2(float(pt.x) * scale_x, float(pt.y) * scale_y)
+			draw_circle(pt_pos, 6.0, Color(0.0, 0.95, 1.0, 0.9))
+			draw_circle(pt_pos, 9.0, Color(0.0, 0.95, 1.0, 0.3), false, 1.5)
 			
-			# Dibujar halo cian estático de portal radar (sin parpadeo)
-			draw_circle(pt_pos, 4.5, Color(0, 0.9, 1.0, 0.85))
-			draw_circle(pt_pos, 7.5, Color(0, 0.9, 1.0, 0.25), false, 1.0)
-			
-			# Mostrar primera letra de la zona ("A", "B", "G", "D")
 			var label = str(pt.get("label", "Portal")).to_lower()
 			var letter = "E"
 			if label.contains("alfa"): letter = "A"
@@ -585,9 +573,9 @@ func _draw():
 			elif label.contains("delta"): letter = "D"
 			
 			var font = get_theme_font("font")
-			draw_string(font, pt_pos + Vector2(-3, 3), letter, HORIZONTAL_ALIGNMENT_CENTER, -1, 7, Color.WHITE)
+			draw_string(font, pt_pos + Vector2(-3, 3), letter, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 
-	# 4.5 Dibujar Altar si es zona de Defensa del Altar (Verde neón místico con una 'A' blanca, estático)
+	# 4.5 Dibujar Altar si es zona de Defensa del Altar (Verde esmeralda con letra 'A')
 	var is_altar_defense = false
 	var altar_pos = Vector2(5000.0, 5000.0)
 	
@@ -605,12 +593,12 @@ func _draw():
 
 	if is_altar_defense:
 		var alt_draw_pos = Vector2(altar_pos.x * scale_x, altar_pos.y * scale_y)
-		draw_circle(alt_draw_pos, 6.0, Color(0.0, 1.0, 0.5, 0.95)) # Círculo verde brillante
-		draw_circle(alt_draw_pos, 9.5, Color(0.0, 1.0, 0.5, 0.30), false, 1.0) # Brillo estático
-		var font = get_theme_font("font")
-		draw_string(font, alt_draw_pos + Vector2(-3.5, 3.5), "A", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color.WHITE)
+		draw_circle(alt_draw_pos, 7.0, Color(0.0, 1.0, 0.5, 0.95))
+		draw_circle(alt_draw_pos, 10.0, Color(0.0, 1.0, 0.5, 0.3), false, 1.5)
+		var font_alt = get_theme_font("font")
+		draw_string(font_alt, alt_draw_pos + Vector2(-3.5, 4.0), "A", HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color.WHITE)
 		
-		# Dibujar Spawns de Jugadores en el radar (Verde/Amarillo suave)
+		# Dibujar Spawns de Jugadores en el radar
 		if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
 			var ad = full_cfg.gameModes.altar_defense
 			if ad.has("spawnPoints") and ad.spawnPoints is Array:
@@ -621,7 +609,6 @@ func _draw():
 						draw_circle(sp_pos, 2.0, Color(0.8, 0.9, 0.0, 0.8))
 						draw_circle(sp_pos, radius_canvas, Color(0.8, 0.9, 0.0, 0.12), false, 1.0)
 			
-			# Dibujar Spawners de Enemigos en el radar (Rojo de advertencia)
 			if ad.has("spawners") and ad.spawners is Array:
 				for s in ad.spawners:
 					if s is Dictionary and s.has("x") and s.has("y"):
@@ -630,18 +617,16 @@ func _draw():
 						draw_circle(s_pos, 2.0, Color(1.0, 0.2, 0.2, 0.8))
 						draw_circle(s_pos, radius_canvas, Color(1.0, 0.2, 0.2, 0.12), false, 1.0)
 
-
-	# 6. Dibujar Baúles en el Lobby via grupo de nodos (Punto dorado brillante)
+	# 6. Dibujar Baúles en el Lobby via grupo de nodos (Círculo dorado con letra 'B')
 	for vault in get_tree().get_nodes_in_group("vaults"):
 		if is_instance_valid(vault) and vault.visible:
 			var vault_pos = Vector2(vault.global_position.x * scale_x, vault.global_position.y * scale_y)
-			draw_circle(vault_pos, 5.0, Color(1.0, 0.75, 0.0, 0.9))
-			draw_circle(vault_pos, 7.0, Color(1.0, 0.75, 0.0, 0.25))
-			var font = get_theme_font("font")
-			draw_string(font, vault_pos + Vector2(-2.5, 3.0), "B", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+			draw_circle(vault_pos, 5.0, Color(1.0, 0.85, 0.0, 0.95))
+			draw_circle(vault_pos, 7.5, Color(1.0, 0.85, 0.0, 0.25), false, 1.5)
+			var font_v = get_theme_font("font")
+			draw_string(font_v, vault_pos + Vector2(-2.5, 3.0), "B", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 
-	# 7. Dibujar Objetos del Mundo desde MAPS_CONFIG (Baúles, Puertas, Torres)
-	# Complementa los vaults de escena con los configurados en AdminDash
+	# 7. Dibujar Objetos del Mundo desde MAPS_CONFIG (Íconos clásicos y limpios con letras)
 	var z_id_str = str(current_zone_id)
 	if z_id_str in GameConstants.MAPS_CONFIG:
 		var zone_cfg = GameConstants.MAPS_CONFIG[z_id_str]
@@ -652,11 +637,8 @@ func _draw():
 				var obj_pos = Vector2(float(obj.x) * scale_x, float(obj.y) * scale_y)
 				var obj_type = str(obj.get("type", "chest"))
 				
-				# v1000.0: FILTRO INTELIGENTE DE ESTRUCTURAS
-				# No mostrar colliders, muros o cajas de física a menos que tengan explícitamente show_on_minimap: true
 				var show_explicit = obj.get("show_on_minimap", false) == true or obj.get("showOnMinimap", false) == true
 				
-				# Detectar si es un altar colocado como muro (ej. Altar1)
 				var obj_label = str(obj.get("label", "")).to_lower()
 				var asset_path = str(obj.get("assetPath", "")).to_lower()
 				if obj_type == "wall" and (obj_label.contains("altar") or asset_path.contains("altar")):
@@ -664,26 +646,19 @@ func _draw():
 				
 				match obj_type:
 					"altar":
-						# Altar: Ícono verde esmeralda con letra 'A' y aura brillante estática
 						draw_circle(obj_pos, 6.0, Color(0.0, 1.0, 0.5, 0.95))
 						draw_circle(obj_pos, 9.0, Color(0.0, 1.0, 0.5, 0.3), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-3.0, 3.5), "A", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color.WHITE)
 					"chest", "vault":
-						# Baúl - Dorado brillante con 'B'
 						draw_circle(obj_pos, 5.0, Color(1.0, 0.85, 0.0, 0.95))
 						draw_circle(obj_pos, 7.5, Color(1.0, 0.85, 0.0, 0.25), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "B", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 					"door", "portal":
-						# Obtener destino dinámico
 						var target_zone = str(obj.get("targetZoneId", obj.get("targetZone", "")))
-						
-						# Validar si el destino está inactivo/invisible
 						if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(target_zone):
 							var target_map_cfg = GameConstants.MAPS_CONFIG[target_zone]
 							if target_map_cfg.has("visible") and target_map_cfg.get("visible") == false:
-								continue # Omitir el dibujo en el minimapa
-						
-						# Puerta/Warp - Cian neón estático con 'P'
+								continue
 						draw_circle(obj_pos, 5.5, Color(0.0, 0.9, 1.0, 0.9))
 						draw_circle(obj_pos, 8.0, Color(0.0, 0.9, 1.0, 0.25), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
@@ -695,50 +670,37 @@ func _draw():
 							else:
 								dest_name = "Sector " + target_zone
 							
-							# Si el mouse está posicionado encima del portal en el minimapa (rango de 8px)
-							if is_hovered and world_m_pos.distance_to(obj_pos) < 8.0:
+							if is_hovered and world_m_pos.distance_to(obj_pos) < 10.0:
 								hovered_dest = dest_name
 					"tower":
-						# Torre - Naranja con 'T'
-						draw_circle(obj_pos, 5.0, Color(1.0, 0.55, 0.0, 0.9))
-						draw_circle(obj_pos, 7.5, Color(1.0, 0.55, 0.0, 0.2), false, 1.5)
+						draw_circle(obj_pos, 6.0, Color(1.0, 0.5, 0.0, 0.9))
+						draw_circle(obj_pos, 8.5, Color(1.0, 0.5, 0.0, 0.25), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "T", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
-					
 					"nexus":
-						# Nexo PVP - Rojo para Red, Azul para Blue, estático con letra 'N'
 						var team = str(obj.get("team", "red")).to_lower()
 						var base_color = Color(1.0, 0.15, 0.15) if team == "red" else Color(0.15, 0.5, 1.0)
-						
-						draw_circle(obj_pos, 6.0, base_color)
-						draw_circle(obj_pos, 9.0, Color(base_color.r, base_color.g, base_color.b, 0.25), false, 1.5)
-						draw_string(font, obj_pos + Vector2(-3.0, 3.0), "N", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
-						
+						draw_circle(obj_pos, 7.0, base_color)
+						draw_circle(obj_pos, 10.0, Color(base_color.r, base_color.g, base_color.b, 0.3), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-3.5, 3.5), "N", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color.WHITE)
 					"pillar":
-						# Pilar PVP - Rojo/Azul según equipo y letra 'P'
 						var team = str(obj.get("team", "neutral")).to_lower()
 						var base_color = Color(0.85, 0.85, 0.85)
 						if team == "red":
 							base_color = Color(0.9, 0.2, 0.2)
 						elif team == "blue":
 							base_color = Color(0.2, 0.4, 0.9)
-						
-						draw_circle(obj_pos, 4.5, base_color)
-						draw_circle(obj_pos, 6.5, Color(base_color.r, base_color.g, base_color.b, 0.2), false, 1.0)
-						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
-						
+						draw_circle(obj_pos, 5.5, base_color)
+						draw_circle(obj_pos, 8.0, Color(base_color.r, base_color.g, base_color.b, 0.3), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-3.0, 3.0), "C", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 					"market":
-						# Mercado - Amarillo/Dorado con 'M'
-						draw_circle(obj_pos, 5.0, Color(1.0, 0.85, 0.0, 0.95))
-						draw_circle(obj_pos, 7.5, Color(1.0, 0.85, 0.0, 0.2), false, 1.5)
-						draw_string(font, obj_pos + Vector2(-3.5, 3.0), "M", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
-						
+						draw_circle(obj_pos, 6.0, Color(1.0, 0.8, 0.2, 0.95))
+						draw_circle(obj_pos, 8.5, Color(1.0, 0.8, 0.2, 0.25), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "$", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 					_:
-						# Estructura genérica personalizada SOLO si fue explícitamente marcada
 						if show_explicit:
 							draw_circle(obj_pos, 4.0, Color(0.0, 0.9, 1.0, 0.85))
 							var mark_letter = obj.get("minimap_letter", obj.get("letter", "*"))
 							draw_string(font, obj_pos + Vector2(-2.5, 3.0), str(mark_letter), HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
-						# En caso contrario, se descarta y NO se dibuja (evita colliders y cajas molestas)
 
 
 	# 5.5 Rectángulo de visión en modo PANEO (cámara libre sin seguir al jugador)
@@ -781,6 +743,14 @@ func _draw():
 	# --- Reset transform ---
 	draw_set_transform(Vector2.ZERO)
 
+	# -----------------------------------------------------------------
+	# 4.9 DELIMITACIÓN DEL RANGO DE VISIÓN (CÍRCULO DELICADO)
+	# -----------------------------------------------------------------
+	var vr_draw = vision_r * scale_x
+	if vr_draw > 5.0 and vr_draw < r_size.length():
+		# Círculo simple, delicado y limpio con antialiasing
+		draw_arc(center_screen, vr_draw, 0.0, TAU, 160, Color(0.0, 0.92, 1.0, 0.75), 1.0, true)
+
 	# Cruz de referencia en el centro (muy sutil, sin círculos)
 	draw_line(center_screen + Vector2(-5, 0), center_screen + Vector2(5, 0), Color(0.0, 0.9, 1.0, 0.20), 1.0)
 	draw_line(center_screen + Vector2(0, -5), center_screen + Vector2(0, 5), Color(0.0, 0.9, 1.0, 0.20), 1.0)
@@ -789,19 +759,8 @@ func _draw():
 	# 5. JUGADOR LOCAL (ESTÉTICA AAA NÍTIDA) — SIEMPRE EN EL CENTRO
 	# -----------------------------------------------------------------
 	var p_draw_pos = center_screen
-	
-	# Halo cian sutil y núcleo blanco puro
-	draw_circle(p_draw_pos, 5.5, Color(0.0, 0.9, 1.0, 0.25))
-	draw_circle(p_draw_pos, 3.0, Color.WHITE)
-
-	
-	# Cono de orientación angosto con 80% de opacidad (Petición del usuario)
-	var cone_len = 13.0
-	var cone_spread = 0.30 # Más angosto y preciso
 	var cone_angle = -PI/2 if is_rotate_mode else player.rotation
-	var cone_left = p_draw_pos + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
-	var cone_right = p_draw_pos + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
-	draw_colored_polygon(PackedVector2Array([p_draw_pos, cone_left, cone_right]), Color(0.0, 0.95, 1.0, 0.80)) # Opacidad al 80%
+	_draw_local_player(p_draw_pos, cone_angle, is_rotate_mode)
 	
 	# Brújula fija sutil en el bisel exterior del radar (HUD Compass AAA)
 	var font_compass = get_theme_font("font")
@@ -850,103 +809,5 @@ func _draw():
 		# Renderizar texto
 		draw_string(font, rect_pos + Vector2(6, 14), radar_tooltip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.0, 1.0, 1.0))
 
-func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: Dictionary, world_rect_or_w: Variant, worldH_or_player: Variant, maybe_player: Variant = null):
-	var world_rect: Rect2
-	var player = null
-	if world_rect_or_w is Rect2:
-		world_rect = world_rect_or_w
-		player = worldH_or_player
-	else:
-		world_rect = Rect2(0.0, 0.0, float(world_rect_or_w), float(worldH_or_player))
-		player = maybe_player
-		
-	if not is_instance_valid(player):
-		return
-	var vr = 1300.0
-	if "vision_range" in player:
-		vr = float(player.vision_range)
-	var worldW = world_rect.size.x
-	var worldH = world_rect.size.y
-	var cell_w = (worldW * scale_x) / float(grid_res)
-	var cell_h = (worldH * scale_y) / float(grid_res)
-	var px = player.global_position.x
-	var py = player.global_position.y
-	var vr_sq = vr * vr
-	var world_cell_w = worldW / float(grid_res)
-	var world_cell_h = worldH / float(grid_res)
-	
-	var fade_start = vr * 0.82
-	var fade_end = vr * 1.18
-	var fade_end_sq = fade_end * fade_end
-	var fade_inv_range = 1.0 / max(fade_end - fade_start, 1.0)
-	
-	# Bounding box inteligente teniendo en cuenta el origen real del mundo
-	var min_cx = clampi(int(((px - fade_end) - world_rect.position.x) / world_cell_w), 0, grid_res - 1)
-	var max_cx = clampi(int(((px + fade_end) - world_rect.position.x) / world_cell_w) + 1, 0, grid_res)
-	var min_cy = clampi(int(((py - fade_end) - world_rect.position.y) / world_cell_h), 0, grid_res - 1)
-	var max_cy = clampi(int(((py + fade_end) - world_rect.position.y) / world_cell_h) + 1, 0, grid_res)
-	
-	# Tiempo para elevación (niebla que se mueve lenta)
-	var t = Time.get_ticks_msec() * 0.00018
-	
-	for cy in range(min_cy, max_cy):
-		var cw_y = world_rect.position.y + (float(cy) + 0.5) * world_cell_h
-		var dy = cw_y - py
-		var dy_sq = dy * dy
-		for cx in range(min_cx, max_cx):
-			var cw_x = world_rect.position.x + (float(cx) + 0.5) * world_cell_w
-			var dx = cw_x - px
-			var dist_sq = dx * dx + dy_sq
-			
-			# Descarte rápido en CPU sin raíz cuadrada
-			if dist_sq <= vr_sq or dist_sq >= fade_end_sq:
-				continue
-				
-			var idx = cy * grid_res + cx
-			var is_explored = explored.has(idx)
-			
-			# Degradé en terminaciones de niebla: suavizar borde del círculo de visión
-			var dist = sqrt(dist_sq)
-			var edge_fade = 1.0
-			if dist > fade_start:
-				edge_fade = 1.0 - clamp((dist - fade_start) * fade_inv_range, 0.0, 1.0)
-				if edge_fade <= 0.02:
-					continue
-					
-			# Hash nube por celda + elevación animada (idéntico al estilo artístico original)
-			var cell_hash = fmod(sin(float(idx) * 12.9898 + float(cx)*78.233 + float(cy)*37.719) * 43758.5453, 1.0)
-			cell_hash = abs(cell_hash)
-			# Dos capas de nube para variación
-			var n1 = fmod(sin(float(idx)* 0.11 + t*0.7 + float(cx)*0.12) * 9.3, 1.0)
-			var n2 = fmod(cos(float(idx)* 0.07 - t*0.5 + float(cy)*0.09) * 7.1, 1.0)
-			n1 = abs(n1); n2 = abs(n2)
-			var cloud = cell_hash * 0.55 + n1 * 0.28 + n2 * 0.17
-			# Onda elevación lenta
-			var wave = sin(float(cx)*0.18 + t*1.2) * cos(float(cy)*0.16 + t*0.9) * 0.12
-			cloud = clamp(cloud + wave, 0.0, 1.0)
-			# Degradé de terminación por cloud: bordes de nube más suaves
-			var cloud_edge = smoothstep(0.15, 0.85, cloud)
-			# Seleccionar tono pantano según cloud
-			var col_dark = Color(0.14, 0.16, 0.17)
-			var col_mid = Color(0.34, 0.36, 0.39)
-			var col_light = Color(0.60, 0.62, 0.64)
-			var col_swamp = Color(0.30, 0.34, 0.28)
-			var pal = col_dark.lerp(col_mid, smoothstep(0.22, 0.52, cloud))
-			pal = pal.lerp(col_light, smoothstep(0.48, 0.86, cloud_edge))
-			pal = pal.lerp(col_swamp, cloud * 0.20)
-			# Variación fina
-			pal.r += (n1 - 0.5) * 0.04
-			pal.g += (n2 - 0.5) * 0.04
-			pal.b += (cell_hash - 0.5) * 0.03
-			var world_cell_x = world_rect.position.x + float(cx) * world_cell_w
-			var world_cell_y = world_rect.position.y + float(cy) * world_cell_h
-			var rect = Rect2(world_cell_x * scale_x, world_cell_y * scale_y, cell_w + 0.6, cell_h + 0.6)
-			if not is_explored:
-				# NO EXPLORADO: 80% opacidad pantano denso, degradé por edge_fade
-				pal.a = 0.80 * edge_fade * (0.88 + cloud_edge * 0.12)
-				draw_rect(rect, pal, true)
-			else:
-				# EXPLORADO penumbra: gris claro 30% pero con nube visible
-				var penumbra = pal.lerp(Color(0.66, 0.66, 0.68), 0.45)
-				penumbra.a = 0.30 * edge_fade * (0.75 + cloud * 0.25)
-				draw_rect(rect, penumbra, true)
+func _draw_minimap_fog(_scale_x: float, _scale_y: float, _grid_res: int, _explored: Dictionary, _world_rect_or_w: Variant, _worldH_or_player: Variant, _maybe_player: Variant = null):
+	return

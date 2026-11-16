@@ -973,6 +973,8 @@ func _update_background(zone_id, auto_hide_warp: bool = true, force_reload: bool
 		var vfx_sys = get_node_or_null("/root/VFXSystem")
 		if vfx_sys and vfx_sys.has_method("purge_zone_cache"):
 			vfx_sys.purge_zone_cache()
+		WorldMapDialog.purge_zone_cache(str(zone_id))
+		WorldMapDialog.precache_zone_texture(str(zone_id), get_tree())
 		# Esperar UN frame para que el destructor de Terrain3D (C++ nativo) y la VRAM se liberen completamente
 		await get_tree().process_frame
 		

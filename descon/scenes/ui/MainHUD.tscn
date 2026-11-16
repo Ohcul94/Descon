@@ -226,6 +226,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ammo-q" type="Label" parent="Skills/LaserSlot"]
+visible = false
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -288,6 +289,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ammo-w" type="Label" parent="Skills/MissileSlot"]
+visible = false
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -350,6 +352,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ammo-e" type="Label" parent="Skills/MineSlot"]
+visible = false
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0

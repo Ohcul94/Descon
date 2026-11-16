@@ -437,19 +437,21 @@ func _process(_delta):
 		if dist_moved > MOVE_THRESHOLD:
 			_vision_dirty = true
 			_last_player_pos = ppos
-	
-	# Sincronizacion periodica de exploracion al servidor
-	_sync_timer += _delta
-	if _sync_timer >= SYNC_INTERVAL:
-		_sync_timer = 0.0
+
+	# Recolectar celdas exploradas inmediatamente con el movimiento para exploración fluida en tiempo real
+	if _vision_dirty:
 		var new_cells = _collect_new_explored_cells()
 		if new_cells.size() > 0:
 			for c in new_cells:
 				_pending_sync_cells.append(c)
-			# El historial necesita redibujar las celdas nuevas
 			if is_instance_valid(history_drawer):
 				history_drawer.queue_redraw()
-			_flush_pending_sync()
+	
+	# Sincronizacion periodica de exploracion al servidor (batch cada 2s para red)
+	_sync_timer += _delta
+	if _sync_timer >= SYNC_INTERVAL:
+		_sync_timer = 0.0
+		_flush_pending_sync()
 			
 	_provider_update_timer -= _delta
 	if _provider_update_timer <= 0.0:

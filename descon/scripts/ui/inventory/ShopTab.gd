@@ -102,9 +102,19 @@ func _create_shop_card(it, cat, parent):
 		for owned_id in inv_main.owned_ships:
 			if int(owned_id) == target_id:
 				is_owned = true; break
+	elif cat == "ammo":
+		var p_node = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(p_node) and p_node.get("ammo") != null:
+			var user_ammo = p_node.get("ammo")
+			if user_ammo.has(ammo_sub_tab) and user_ammo[ammo_sub_tab].size() > 0 and user_ammo[ammo_sub_tab][0] > 0:
+				is_owned = true
 				
 	if is_owned:
-		var l = Label.new(); l.text = "\nNAVE ADQUIRIDA"; l.modulate = Color.GREEN; l.horizontal_alignment = 1; v.add_child(l)
+		var l = Label.new()
+		l.text = "\nADQUIRIDO" if cat == "ammo" else "\nNAVE ADQUIRIDA"
+		l.modulate = Color.GREEN
+		l.horizontal_alignment = 1
+		v.add_child(l)
 	else:
 		var pr = it["prices"]
 		if pr.get("hubs", 0) > 0:
@@ -514,33 +524,9 @@ func _buy_request(cat, it, cur):
 	if wallet < price: 
 		inv_main._show_result_modal("FONDOS INSUFICIENTES", "No tienes suficientes " + cur.to_upper() + " para esta operación.")
 		return
-	
-	if cat == "ammo":
-		_show_ammo_modal(it, cur)
-		return
 
 	var msg = "¿Deseas adquirir [color=cyan]" + it["name"] + "[/color] por [color=yellow]" + inv_main._format_val(price) + " " + cur.to_upper() + "[/color]?\n\n"
 	msg += _mods_bbcode(it, cat)
 	inv_main._show_modal("CONFIRMAR ADQUISICIÓN", msg, func():
-		NetworkManager.send_event("buyItem", {"category": cat, "itemId": it["id"], "currency": cur})
+		NetworkManager.send_event("buyItem", {"category": cat, "itemId": it["id"], "currency": cur, "amount": 1})
 	)
-
-func _show_ammo_modal(it, cur):
-	var unit_price = it["prices"][cur]
-	var dial_v = VBoxContainer.new()
-	var lq = Label.new(); lq.text = "CANTIDAD DE RECARGA:"; lq.horizontal_alignment = 1; dial_v.add_child(lq)
-	var slider = HSlider.new(); slider.min_value = 100; slider.max_value = 50000; slider.step = 100; slider.value = 1000; dial_v.add_child(slider)
-	var total_lbl = Label.new(); total_lbl.text = "1.000 unidades = " + inv_main._format_val(unit_price * 10) + " " + cur.to_upper(); total_lbl.horizontal_alignment = 1; dial_v.add_child(total_lbl)
-	
-	slider.value_changed.connect(func(v): 
-		total_lbl.text = inv_main._format_val(v) + " unidades = " + inv_main._format_val(v * (unit_price/100.0)) + " " + cur.to_upper()
-	)
-	
-	inv_main._show_modal("SUMINISTROS TÁCTICOS", "Ajusta la cantidad de [color=cyan]" + it["name"] + "[/color] a comprar:", func():
-		var qty = int(slider.value)
-		var total = int(qty * (unit_price/100.0))
-		if (inv_main.hubs if cur == "hubs" else inv_main.ohcu) >= total:
-			NetworkManager.send_event("buyItem", {"category": "ammo", "itemId": it["id"], "currency": cur, "amount": qty})
-		else:
-			inv_main._show_result_modal("ERROR", "No tienes fondos para esta cantidad.")
-	, dial_v)

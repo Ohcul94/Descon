@@ -898,7 +898,7 @@ func _add_exp_bar(parent, player):
 
 func _add_ammo_section(parent, player):
 	var ammo = player.ammo
-	var selected = player.selected_ammo
+	var _selected = player.selected_ammo
 	var active_slots = player.ammo_slots
 	var ammo_types = ["laser", "missile", "mine", "melee", "heal", "siphon", "emp"]
 	var ammo_names = {

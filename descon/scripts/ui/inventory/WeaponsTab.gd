@@ -454,7 +454,7 @@ func _render_equipped_slots(parent, p, is_comb):
 		# Obtener cantidad del tier seleccionado
 		var t_idx = p.selected_ammo.get(w_id, 0) if not is_empty else 0
 		var a_list = p.ammo.get(w_id, [0]) if not is_empty else [0]
-		var count = a_list[t_idx] if t_idx < a_list.size() else 0
+		var _count = a_list[t_idx] if t_idx < a_list.size() else 0
 		
 		var slot_panel = PanelContainer.new()
 		slot_panel.custom_minimum_size = Vector2(0, 95)
@@ -501,9 +501,9 @@ func _render_equipped_slots(parent, p, is_comb):
 			details_v.add_child(name_lbl)
 			
 			var ammo_lbl = Label.new()
-			ammo_lbl.text = "Cantidad: " + _format_val(count)
-			ammo_lbl.add_theme_font_size_override("font_size", 10)
-			ammo_lbl.modulate.a = 0.7
+			ammo_lbl.text = "ÍTEM DE EQUIPAMIENTO"
+			ammo_lbl.add_theme_font_size_override("font_size", 9)
+			ammo_lbl.modulate = Color(0.2, 0.9, 0.6, 0.8)
 			details_v.add_child(ammo_lbl)
 
 			# Stats dinámicas del tier equipado (Admin Dash)

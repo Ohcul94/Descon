@@ -388,13 +388,25 @@ function registerInventoryHandlers(socket, io, state) {
             if (currency !== 'hubs' && currency !== 'ohcu') {
                 return socket.emit('authError', 'MONEDA NO VALIDA');
             }
-            const cleanAmount = Math.max(1, parseInt(amount) || 100);
-            if (category === 'ammo' && cleanAmount <= 0) {
-                return socket.emit('authError', 'CANTIDAD INVALIDA');
+
+            if (category === 'ammo') {
+                let checkType = "mine";
+                if (itemId.startsWith("am_l")) checkType = "laser";
+                else if (itemId.startsWith("am_me")) checkType = "melee";
+                else if (itemId.startsWith("am_m")) checkType = "missile";
+                else if (itemId.startsWith("am_n")) checkType = "mine";
+                else if (itemId.startsWith("am_h")) checkType = "heal";
+                else if (itemId.startsWith("am_s")) checkType = "siphon";
+                else if (itemId.startsWith("am_el")) checkType = "electron";
+                else if (itemId.startsWith("am_e")) checkType = "emp";
+
+                if (user.gameData.ammo && user.gameData.ammo[checkType] && (user.gameData.ammo[checkType][0] || 0) >= 1) {
+                    return socket.emit('gameNotification', { msg: 'Ya posees esta munición.', type: 'warning' });
+                }
             }
 
             const price = itemConfig.prices[currency] || 0;
-            const totalPrice = category === 'ammo' ? Math.floor((cleanAmount / 100) * price) : price;
+            const totalPrice = price;
             if (totalPrice < 0) {
                 return socket.emit('authError', 'PRECIO INVALIDO');
             }
@@ -491,11 +503,8 @@ function registerInventoryHandlers(socket, io, state) {
                 }
                 if (!user.gameData.ammo[ammoType] || !Array.isArray(user.gameData.ammo[ammoType])) user.gameData.ammo[ammoType] = [0];
 
-                const oldAmmo = user.gameData.ammo[ammoType][0] || 0;
-                const newArr = [oldAmmo + parseInt(amount || 0)];
-                user.gameData.ammo[ammoType] = newArr;
-
-                console.log(`[SHOP-DEBUG] Munición ${ammoType} actualizada: ${oldAmmo} -> ${newArr[0]}`);
+                user.gameData.ammo[ammoType] = [1];
+                console.log(`[SHOP-DEBUG] Munición ${ammoType} desbloqueada como ítem directo.`);
                 user.markModified(`gameData.ammo.${ammoType}`);
                 user.markModified('gameData.ammo');
             }

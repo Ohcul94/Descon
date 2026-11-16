@@ -68,7 +68,7 @@ function refreshCurrentTab() {
         'battlepass': renderBattlePass,
         'talent-creator': renderTalentCreator,
         'talent-mapper': renderTalentMapper,
-        'market': renderMarket,
+        'market': renderMarket, 'modifiers': renderModifiers,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions()),
         'ranking': renderRanking,
         'bugreports': renderBugReports
@@ -79,7 +79,7 @@ function refreshCurrentTab() {
 function renderAll() {
     if(!config || Object.keys(config).length === 0) return;
     renderShips(); renderEnemies(); renderSkills(); renderMechanicsLib();
-    renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines(); renderSpheres();
+    renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines(); renderSpheres(); if(typeof renderModifiers === 'function') renderModifiers();
     renderPilot();
     renderModes();
     renderLootConfig();
@@ -209,6 +209,12 @@ function updateSidebar() {
 }
 
 window.initSidebarAmmoIcons = function() {
+    const ammoHeader = document.querySelector('[onclick*="subfolder-ammo"]');
+    if (ammoHeader) {
+        const orphanImg = ammoHeader.querySelector('img');
+        if (orphanImg) orphanImg.remove();
+    }
+
     const ammoMap = {
         laser: 'res://assets/Municiones/Iconos/laser/Laser.png',
         missile: 'res://assets/Municiones/Iconos/missile/Missile.png',
@@ -220,7 +226,7 @@ window.initSidebarAmmoIcons = function() {
         electron: 'res://assets/Municiones/Iconos/electron/Electron.png'
     };
     for (const [key, godotPath] of Object.entries(ammoMap)) {
-        const el = document.querySelector(`#subfolder-ammo .nav-link.sub[onclick*="setAmmoTab('${key}')"]`);
+        const el = document.querySelector(`#subfolder-ammo .nav-link.sub[onclick*="setAmmoTab('${key}'"]`);
         if (el) {
             el.style.display = 'flex';
             el.style.alignItems = 'center';

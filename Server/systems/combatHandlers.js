@@ -742,7 +742,7 @@ socket.on('playerFire', (fireData) => {
             }
         }
 
-        p.ammo[typeKey][0]--;
+        // Munición como ítem directo permanente (sin decremento por disparo)
         
         // Guardar munición activa en el jugador en el servidor para validar mecánicas en los impactos
         p.selectedAmmo = typeKey;

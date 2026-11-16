@@ -217,8 +217,8 @@ function renderAmmo() {
         </div>
 
         <div class="price-group" style="margin-top:1rem; border-top:1px solid #333; padding-top:1rem;">
-            <div class="field"><label>Hubs (qty)</label><input type="number" value="${item.prices.hubs}" onchange="config.shopItems.ammo['${type}'][0].prices.hubs = parseInt(this.value)"></div>
-            <div class="field"><label>Ohcu (qty)</label><input type="number" value="${item.prices.ohcu}" onchange="config.shopItems.ammo['${type}'][0].prices.ohcu = parseInt(this.value)"></div>
+            <div class="field"><label>Precio Hubs</label><input type="number" value="${item.prices.hubs}" onchange="config.shopItems.ammo['${type}'][0].prices.hubs = parseInt(this.value)"></div>
+            <div class="field"><label>Precio Ohcu</label><input type="number" value="${item.prices.ohcu}" onchange="config.shopItems.ammo['${type}'][0].prices.ohcu = parseInt(this.value)"></div>
             <div class="field"><label>No Comerciable</label><input type="checkbox" ${item.soulbound ? 'checked' : ''} onchange="config.shopItems.ammo['${type}'][0].soulbound = this.checked"></div>
         </div>
 
@@ -1397,4 +1397,175 @@ window.addNewBoss = function() {
     };
     renderEnemies();
     selectEnemy(newId);
+};
+
+
+// --- VISTA: MODIFICADORES DE EQUIPAMIENTO / MUNICIONES ---
+function renderModifiers() {
+    const grid = document.getElementById('modifiers-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const f = getFilter();
+
+    if (!config.shopItems) config.shopItems = {};
+    if (!config.shopItems.modifiers) config.shopItems.modifiers = [];
+
+    // Header con botón de añadir
+    const headerDiv = document.createElement('div');
+    headerDiv.style.gridColumn = '1 / -1';
+    headerDiv.style.display = 'flex';
+    headerDiv.style.justifyContent = 'space-between';
+    headerDiv.style.alignItems = 'center';
+    headerDiv.style.marginBottom = '1.5rem';
+    headerDiv.innerHTML = `
+        <div>
+            <h3 style="color:var(--primary); margin:0; font-size:1.15rem; letter-spacing:0.05em;">🧪 MODIFICADORES BALÍSTICOS Y DE EQUIPAMIENTO</h3>
+            <p style="color:#888; font-size:0.75rem; margin:4px 0 0;">Configura los módulos, cargas elementales y efectos de impacto crafteables/equipables para municiones.</p>
+        </div>
+        <button class="btn btn-primary" onclick="addNewModifier()" style="padding:6px 14px; font-size:0.78rem;">+ AGREGAR MODIFICADOR</button>
+    `;
+    grid.appendChild(headerDiv);
+
+    if (config.shopItems.modifiers.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.gridColumn = '1 / -1';
+        emptyDiv.style.padding = '3rem';
+        emptyDiv.style.textAlign = 'center';
+        emptyDiv.style.color = '#777';
+        emptyDiv.style.background = 'rgba(255,255,255,0.02)';
+        emptyDiv.style.borderRadius = '12px';
+        emptyDiv.style.border = '1px dashed rgba(255,255,255,0.1)';
+        emptyDiv.innerHTML = `
+            <div style="font-size:2.5rem; margin-bottom:0.5rem;">🧪</div>
+            <div style="font-size:1rem; font-weight:bold; color:#aaa;">No hay modificadores creados</div>
+            <p style="font-size:0.78rem; color:#666; margin:6px 0 1rem;">Crea tu primer modificador balístico para que los jugadores puedan craftearlo o comprarlo.</p>
+            <button class="btn btn-primary" onclick="addNewModifier()">+ CREAR MODIFICADOR</button>
+        `;
+        grid.appendChild(emptyDiv);
+        return;
+    }
+
+    const effectOptions = [
+        { type: 'slow', label: '🐢 Ralentización' },
+        { type: 'burn', label: '🔥 Quemadura (Fuego)' },
+        { type: 'bleed', label: '🩸 Sangrado' },
+        { type: 'stun', label: '⚡ Parálisis (Stun)' },
+        { type: 'poison', label: '🤢 Veneno' },
+        { type: 'heal', label: '💚 Curación' },
+        { type: 'siphon', label: '🧛 Robo de Vida' },
+        { type: 'speed_buff', label: '⚡ Aumento de Velocidad' },
+        { type: 'silence', label: '🔇 Silencio' },
+        { type: 'area', label: '💥 Daño de Área' }
+    ];
+
+    config.shopItems.modifiers.forEach((mod, idx) => {
+        if (f && !mod.name.toLowerCase().includes(f) && !mod.id.toLowerCase().includes(f)) return;
+
+        const iconWeb = resolveAssetWebUrl(mod.icon || '');
+        const iconPreview = iconWeb
+            ? `<img src="${iconWeb}" style="width:72px; height:72px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
+            : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="card-tag" style="border-color:#a855f7; color:#a855f7;">ID: ${mod.id} · TIER ${mod.tier || 1}</div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button style="background:none; border:none; color:${mod.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleModifierVisibility(${idx})">
+                        ${mod.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
+                    </button>
+                    <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.75rem; font-weight:bold;" onclick="removeModifier(${idx})" title="Eliminar modificador">🗑️</button>
+                </div>
+            </div>
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${iconPreview}
+                    <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.3); color:#c084fc; cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload(${idx}, 'modifier_icon')">🖼️ ICONO</button>
+                    ${mod.icon ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="config.shopItems.modifiers[${idx}].icon=''; renderModifiers();">✕ Quitar</button>` : ''}
+                </div>
+                <div style="flex-grow:1;">
+                    <div class="field full"><label>Nombre del Modificador</label><input type="text" value="${mod.name}" onchange="config.shopItems.modifiers[${idx}].name = this.value"></div>
+                    <div class="field full" style="margin-top:0.5rem;"><label>Descripción / Lore</label><input type="text" value="${mod.desc || ''}" placeholder="Ej: Carga que aplica ralentización criogénica al impacto." onchange="config.shopItems.modifiers[${idx}].desc = this.value"></div>
+                </div>
+            </div>
+
+            <div class="form-grid" style="margin-top:1rem;">
+                <div class="field">
+                    <label>Efecto Balístico</label>
+                    <select onchange="config.shopItems.modifiers[${idx}].effectType = this.value; renderModifiers();">
+                        ${effectOptions.map(opt => `<option value="${opt.type}" ${(mod.effectType || 'slow') === opt.type ? 'selected' : ''}>${opt.label}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Tier del Efecto</label>
+                    <input type="number" min="1" max="10" value="${mod.tier || 1}" onchange="config.shopItems.modifiers[${idx}].tier = parseInt(this.value) || 1">
+                </div>
+                <div class="field">
+                    <label>Duración (ms)</label>
+                    <input type="number" value="${mod.duration !== undefined ? mod.duration : 2000}" onchange="config.shopItems.modifiers[${idx}].duration = parseInt(this.value) || 0">
+                </div>
+                <div class="field">
+                    <label>Potencia / Monto (% o DPS)</label>
+                    <input type="number" step="1" value="${mod.amount !== undefined ? mod.amount : 30}" onchange="config.shopItems.modifiers[${idx}].amount = parseFloat(this.value) || 0">
+                </div>
+                <div class="field">
+                    <label>Probabilidad de Activación (%)</label>
+                    <input type="number" min="1" max="100" value="${mod.chance !== undefined ? mod.chance : 100}" onchange="config.shopItems.modifiers[${idx}].chance = parseInt(this.value) || 100">
+                </div>
+                <div class="field">
+                    <label>Radio de Área (px, si aplica)</label>
+                    <input type="number" value="${mod.radius || 0}" onchange="config.shopItems.modifiers[${idx}].radius = parseInt(this.value) || 0">
+                </div>
+            </div>
+
+            <div class="price-group" style="margin-top:1rem; border-top:1px solid #333; padding-top:1rem;">
+                <div class="field"><label>Precio Hubs</label><input type="number" value="${mod.prices ? mod.prices.hubs : 0}" onchange="if(!config.shopItems.modifiers[${idx}].prices) config.shopItems.modifiers[${idx}].prices={}; config.shopItems.modifiers[${idx}].prices.hubs = parseInt(this.value) || 0"></div>
+                <div class="field"><label>Precio Ohcu</label><input type="number" value="${mod.prices ? mod.prices.ohcu : 0}" onchange="if(!config.shopItems.modifiers[${idx}].prices) config.shopItems.modifiers[${idx}].prices={}; config.shopItems.modifiers[${idx}].prices.ohcu = parseInt(this.value) || 0"></div>
+                <div class="field"><label>No Comerciable</label><input type="checkbox" ${mod.soulbound ? 'checked' : ''} onchange="config.shopItems.modifiers[${idx}].soulbound = this.checked"></div>
+            </div>
+
+            ${requirementsSectionHtml('req_mod_' + reqSectionIdSanitize(mod.id), `config.shopItems.modifiers[${idx}]`)}
+        `;
+        grid.appendChild(card);
+    });
+}
+
+window.toggleModifierVisibility = function(i) {
+    if (!config.shopItems.modifiers[i]) return;
+    config.shopItems.modifiers[i].hidden = !config.shopItems.modifiers[i].hidden;
+    renderModifiers();
+};
+
+window.addNewModifier = function() {
+    if (!config.shopItems) config.shopItems = {};
+    if (!config.shopItems.modifiers) config.shopItems.modifiers = [];
+    const count = config.shopItems.modifiers.length + 1;
+    const newMod = {
+        id: 'mod_' + Math.random().toString(36).substr(2, 6),
+        name: 'Nuevo Modificador ' + count,
+        desc: 'Modificador balístico equipable para municiones.',
+        type: 'modifier',
+        effectType: 'slow',
+        tier: 1,
+        duration: 2000,
+        amount: 30,
+        chance: 100,
+        radius: 0,
+        icon: '',
+        soulbound: false,
+        hidden: false,
+        prices: { hubs: 5000, ohcu: 25 },
+        requirements: []
+    };
+    config.shopItems.modifiers.push(newMod);
+    renderModifiers();
+};
+
+window.removeModifier = function(i) {
+    if (!config.shopItems.modifiers[i]) return;
+    if (confirm(`¿Eliminar el modificador "${config.shopItems.modifiers[i].name}"?`)) {
+        config.shopItems.modifiers.splice(i, 1);
+        renderModifiers();
+    }
 };

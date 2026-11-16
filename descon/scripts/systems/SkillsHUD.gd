@@ -3,7 +3,6 @@ extends Control
 # SkillsHUD.gd (v1.0 - Componente de Habilidades)
 
 var _ammo_nodes = {}
-var _ammo_menus = {}
 var _max_cds = {}
 var _touch_registry = {}
 var _is_interference_ui_active = false
@@ -101,6 +100,8 @@ func _ready():
 	_ammo_nodes[0] = get_node_or_null("LaserSlot/ammo-q")
 	_ammo_nodes[1] = get_node_or_null("MissileSlot/ammo-w")
 	_ammo_nodes[2] = get_node_or_null("MineSlot/ammo-e")
+	for idx in _ammo_nodes:
+		if is_instance_valid(_ammo_nodes[idx]): _ammo_nodes[idx].visible = false
 
 	if NetworkManager:
 		if not NetworkManager.interference_event.is_connected(_on_interference_event):
@@ -115,8 +116,6 @@ func _process(_delta):
 	var p_node = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(p_node) or p_node.get("is_dead") or p_node.get("entity_id") == "":
 		return
-	
-	_handle_ammo_selector()
 	
 	_update_skill_ui(0, p_node, get_node_or_null("LaserSlot"))
 	_update_skill_ui(1, p_node, get_node_or_null("MissileSlot"))
@@ -157,175 +156,6 @@ func set_interference_mode(p_active: bool):
 			slot.modulate = Color(1.0, 0.3, 0.3, 0.8) # Rojo Interferencia
 		else:
 			slot.modulate = Color(1, 1, 1, slot.modulate.a)
-
-func _handle_ammo_selector():
-	var focus_node = get_viewport().gui_get_focus_owner()
-	if focus_node is LineEdit or focus_node is TextEdit: return
-
-	var is_ctrl = Input.is_key_pressed(KEY_CTRL)
-	if is_ctrl:
-		if _ammo_menus.is_empty():
-			_create_ammo_menu()
-		_toggle_ammo_menu(true)
-	else:
-		if not _ammo_menus.is_empty():
-			_toggle_ammo_menu(false)
-
-func _toggle_ammo_menu(p_show: bool):
-	for type in _ammo_menus:
-		var m = _ammo_menus[type]
-		if is_instance_valid(m):
-			m.visible = p_show
-	
-	if p_show:
-		_update_ammo_menu_selection()
-
-func _create_ammo_menu():
-	var types = {
-		"laser": {"path": "LaserSlot", "count": 6},
-		"missile": {"path": "MissileSlot", "count": 3},
-		"mine": {"path": "MineSlot", "count": 3}
-	}
-	
-	for t in types:
-		var slot_node = get_node_or_null(types[t].path)
-		if not slot_node: continue
-		
-		var old = slot_node.get_node_or_null("AmmoMenu_" + t)
-		if old: old.queue_free()
-
-		var menu = VBoxContainer.new()
-		menu.name = "AmmoMenu_" + t
-		slot_node.add_child(menu)
-		_ammo_menus[t] = menu
-		
-		menu.z_index = 150
-		menu.z_as_relative = false
-		menu.add_theme_constant_override("separation", 5)
-		menu.visible = false
-		
-		for i in range(types[t].count - 1, -1, -1):
-			# v620.0: Ojito de visibilidad — tiers ocultos no se muestran ni se pueden seleccionar
-			if _is_ammo_tier_hidden(t, i):
-				continue
-			var slot_p = PanelContainer.new()
-			slot_p.custom_minimum_size = Vector2(40, 40)
-			slot_p.mouse_filter = Control.MOUSE_FILTER_STOP
-			slot_p.set_meta("tier_index", i)
-			
-			var sb = StyleBoxFlat.new()
-			sb.bg_color = Color(0, 0, 0, 0.9)
-			sb.set_border_width_all(1)
-			sb.border_color = Color(1, 1, 1, 0.1)
-			slot_p.add_theme_stylebox_override("panel", sb)
-			
-			# Icono de munición estilo skill (fondo del tier)
-			var ammo_tex = _get_ammo_icon(t)
-			if ammo_tex:
-				var tier_icon = TextureRect.new()
-				tier_icon.name = "AmmoTierIcon"
-				tier_icon.texture = ammo_tex
-				tier_icon.layout_mode = 1
-				tier_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				tier_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				tier_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				slot_p.add_child(tier_icon)
-				# Centrado simétrico dentro del botón del tier
-				tier_icon.anchor_left = 0.0
-				tier_icon.anchor_top = 0.0
-				tier_icon.anchor_right = 1.0
-				tier_icon.anchor_bottom = 1.0
-				tier_icon.offset_left = 2
-				tier_icon.offset_top = 2
-				tier_icon.offset_right = -2
-				tier_icon.offset_bottom = -2
-				# Fondo tenue para que el label Tn siga siendo legible
-				var dim = ColorRect.new()
-				dim.name = "TierLabelDim"
-				dim.color = Color(0, 0, 0, 0.35)
-				dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				slot_p.add_child(dim)
-				dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-			var lbl = Label.new()
-			lbl.name = "TierLabel"
-			lbl.text = "T" + str(i+1)
-			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			lbl.add_theme_font_size_override("font_size", 12)
-			lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-			lbl.add_theme_constant_override("outline_size", 4)
-			slot_p.add_child(lbl)
-
-			slot_p.gui_input.connect(_on_ammo_slot_clicked.bind(t, i))
-			menu.add_child(slot_p)
-		
-		menu.size = menu.get_combined_minimum_size()
-		var slot_width = 64 
-		if slot_node is Control: slot_width = slot_node.size.x
-		menu.position = Vector2((slot_width/2) - (menu.get_combined_minimum_size().x / 2), -menu.get_combined_minimum_size().y - 10)
-
-# v620.0: Ojito de visibilidad — ¿el tier de munición está oculto en la config del servidor?
-func _is_ammo_tier_hidden(ammo_type: String, tier_idx: int) -> bool:
-	var ammo_base = GameConstants.SHOP_ITEMS.get("ammo", {})
-	var list = ammo_base.get(ammo_type, [])
-	if typeof(list) != TYPE_ARRAY or tier_idx < 0 or tier_idx >= list.size():
-		return false
-	return list[tier_idx].get("hidden", false)
-
-func _update_ammo_menu_selection():
-	var p = get_tree().get_first_node_in_group("player")
-	if not is_instance_valid(p): return
-	
-	var sel_data = p.get("selected_ammo")
-	if sel_data == null: sel_data = {}
-	
-	for type in _ammo_menus:
-		var menu = _ammo_menus[type]
-		var current_sel = sel_data.get(type, 0)
-		
-		var count = menu.get_child_count()
-		for i in range(count):
-			var slot = menu.get_child(i)
-			# v620.0: Ojito de visibilidad — usar el índice real del tier guardado en el slot
-			var tier_index = int(slot.get_meta("tier_index", count - 1 - i)) 
-			
-			var sb = slot.get_theme_stylebox("panel").duplicate()
-			# v400.0: Requisitos de equipamiento — tiers bloqueados en rojo tenue
-			var tier_locked = false
-			if NetworkManager:
-				tier_locked = not NetworkManager.check_equip_requirements("", "", type, tier_index).get("ok", true)
-			if tier_locked:
-				sb.border_color = Color(1, 0.25, 0.25, 0.8)
-				sb.bg_color = Color(0.25, 0.05, 0.05, 0.4)
-				sb.set_border_width_all(1)
-				slot.modulate = Color(0.5, 0.5, 0.5, 0.7)
-			elif tier_index == current_sel:
-				sb.border_color = Color.CYAN
-				sb.set_border_width_all(2)
-				slot.modulate = Color(1.2, 1.2, 1.2, 1)
-			else:
-				sb.border_color = Color(1, 1, 1, 0.1)
-				sb.set_border_width_all(1)
-				slot.modulate = Color(0.7, 0.7, 0.7, 0.8)
-			slot.add_theme_stylebox_override("panel", sb)
-
-func _on_ammo_slot_clicked(event: InputEvent, type: String, tier: int):
-	if event is InputEventMouseButton and event.pressed:
-		var p = get_tree().get_first_node_in_group("player")
-		if p and p.has_method("change_ammo"): 
-			# v400.0: Requisitos de equipamiento de munición (validación local UX)
-			if NetworkManager:
-				var req_check = NetworkManager.check_equip_requirements("", "", type, tier)
-				if not req_check.get("ok", true):
-					NetworkManager.game_notification.emit({
-						"msg": "MUNICIÓN BLOQUEADA: " + str(req_check.get("msg", "Requisitos no cumplidos")),
-						"type": "error"
-					})
-					return
-			p.change_ammo(type, tier)
-			_update_ammo_menu_selection()
-			AudioManager.play_sfx("ui_click")
 
 func _sync_hud_keys():
 	var all_slots = find_children("*Slot", "Control", true, false)
@@ -371,7 +201,7 @@ func _sync_hud_keys():
 
 		for child in slot.get_children():
 			if child is Label and child.name != "BindingLabel" and child.name != "CD":
-				if child.name == "Key":
+				if child.name == "Key" or child.name == "ammo-q" or child.name == "ammo-w" or child.name == "ammo-e":
 					child.visible = false
 					continue
 				# El label central de tipo de munición se oculta si hay icono
@@ -379,10 +209,9 @@ func _sync_hud_keys():
 					child.visible = false
 					continue
 				child.visible = true
-				if child.name != "ammo-q" and child.name != "ammo-w" and child.name != "ammo-e":
-					child.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-					child.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-					child.grow_horizontal = Control.GROW_DIRECTION_BOTH
+				child.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				child.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+				child.grow_horizontal = Control.GROW_DIRECTION_BOTH
 
 func _format_val(v):
 	var s = str(int(v))
@@ -444,6 +273,8 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 	var l_fill = slot.get_node_or_null("Fill")
 	var l_cd = slot.get_node_or_null("CD")
 	var l_am = _ammo_nodes.get(slot_idx)
+	if is_instance_valid(l_am):
+		l_am.visible = false
 	
 	var cds = ref.get("cooldowns")
 	if cds == null: cds = {}
@@ -507,7 +338,7 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 			
 	if l_am and ref.get("ammo") != null:
 		var a_list = ref.get("ammo").get(type, [0])
-		var a_count = a_list[0] if a_list.size() > 0 else 0
+		var _a_count = a_list[0] if a_list.size() > 0 else 0
 		
 		var main_label = null
 		for child in slot.get_children():
@@ -531,18 +362,8 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 			if not has_icon:
 				main_label.text = type_names.get(type, type.to_upper())
 		
-		l_am.text = _format_val(a_count)
-		if rv > 0.05:
-			l_am.modulate = Color(0.5, 0.5, 0.5) # Modulado gris opaco en CD
-		else:
-			l_am.modulate = Color(0.0, 1.0, 0.0) # Verde brillante
-			
-		l_am.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		l_am.offset_bottom = -2 
-		l_am.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l_am.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l_am.add_theme_font_size_override("font_size", 9)
-		l_am.visible = true
+		# Munición como ítem directo: ocultar contador numérico de balas
+		l_am.visible = false
 
 func _update_sphere_ui(id: int, ref, slot):
 	if not slot: return

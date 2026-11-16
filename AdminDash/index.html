@@ -325,8 +325,8 @@
                 </div>
 
                 <div class="nav-group">
-                    <div class="nav-folder" onclick="toggleFolder('folder-market'); showTab('ammo')">💎 Mercado <span class="chevron">▶</span></div>
-                    <div id="folder-market" class="folder-content">
+                    <div class="nav-folder" onclick="toggleFolder('folder-equipment'); showTab('ammo')">🛡️ Equipamiento <span class="chevron">▶</span></div>
+                    <div id="folder-equipment" class="folder-content">
                         <div class="nav-link sub" onclick="toggleFolder('subfolder-ammo', event)" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                             <span>📦 Municiones</span>
                             <span class="chevron" style="font-size: 0.65rem; transition: transform 0.2s;">▶</span>
@@ -345,10 +345,16 @@
                         <div class="nav-link sub" onclick="showTab('shields')">🛡️ Escudos</div>
                         <div class="nav-link sub" onclick="showTab('engines')">🚀 Motores</div>
                         <div class="nav-link sub" onclick="showTab('spheres')">🔮 Esferas</div>
-                        <div class="nav-link sub" onclick="showTab('market')">🏪 Regulador de Mercado</div>
+                        <div class="nav-link sub" onclick="showTab('modifiers')">🧪 Modificadores</div>
                     </div>
                 </div>
 
+                <div class="nav-group">
+                    <div class="nav-folder" onclick="toggleFolder('folder-market'); showTab('market')">💎 Mercado <span class="chevron">▶</span></div>
+                    <div id="folder-market" class="folder-content">
+                        <div class="nav-link sub" onclick="showTab('market')">🏪 Regulador de Mercado</div>
+                    </div>
+                </div>
                 <div class="nav-group">
                     <div class="nav-folder" onclick="toggleFolder('folder-skills'); showTab('skills')">🌀 Habilidades <span class="chevron">▶</span></div>
                     <div id="folder-skills" class="folder-content">
@@ -586,6 +592,10 @@
                     <button class="btn btn-primary" onclick="addNewSphere()">➕ AGREGAR NUEVA ESFERA</button>
                 </div>
                 <div id="spheres-grid" class="grid"></div>
+            </div>
+
+            <div id="view-modifiers" class="view">
+                <div id="modifiers-grid" class="grid"></div>
             </div>
 
             <div id="view-market" class="view">
@@ -1031,7 +1041,7 @@
     <!-- Scripts Modularizados del Panel -->
     <script src="js/definitions.js?v=1.25"></script>
     <script src="js/renderers/renderRequirements.js?v=1.26"></script>
-    <script src="js/renderers/renderItems.js?v=1.24"></script>
+    <script src="js/renderers/renderItems.js?v=1.25"></script>
     <script src="js/renderers/renderEnemies.js?v=1.25"></script>
     <script src="js/renderers/renderMechanics.js?v=1.24"></script>
     <script src="js/renderers/renderMaps.js?v=1.27"></script>
@@ -1041,8 +1051,8 @@
     <script src="js/renderers/renderLoot.js?v=1.27"></script>
     <script src="js/renderers/renderModes.js?v=1.31"></script>
     <script src="js/renderers/renderRankingsReports.js?v=1.24"></script>
-    <script src="js/renderers.js?v=1.24"></script>
-    <script src="js/app.js?v=1.32"></script>
+    <script src="js/renderers.js?v=1.25"></script>
+    <script src="js/app.js?v=1.33"></script>
 
 </body>
 </html>

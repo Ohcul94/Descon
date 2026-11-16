@@ -43,17 +43,17 @@ var GAME_CONFIG = {
 }
 
 var MAPS_CONFIG = {
-	"1": { "name": "Loby", "desc": "Zona segura de reunión y comercio.", "color": "#ffffff", "warpCost": 0, "minLevel": 1, "music": { "enabled": true, "path": "res://assets/Musica/Descond.mp3", "volumePercent": 60 } },
-	"2": { "name": "Mapa 2", "desc": "Zona de entrenamiento básico y recolección.", "color": "#00ff00", "warpCost": 0, "minLevel": 1 },
-	"3": { "name": "Mapa 3", "desc": "Sector hostil con recursos de nivel medio.", "color": "#ffff00", "warpCost": 10, "minLevel": 5 },
-	"4": { "name": "Mapa 4", "desc": "Nebulosa densa con piratas espaciales.", "color": "#ffaa00", "warpCost": 25, "minLevel": 10 },
-	"5": { "name": "Mapa 5", "desc": "Zona de asteroides inestables.", "color": "#ff5500", "warpCost": 50, "minLevel": 15 },
-	"6": { "name": "Mapa 6", "desc": "Borde exterior: Peligro extremo.", "color": "#ff0000", "warpCost": 100, "minLevel": 20 },
-	"7": { "name": "Mapa 7", "desc": "Sector de invasión: Hordas detectadas.", "color": "#aa0000", "warpCost": 200, "minLevel": 25 },
-	"8": { "name": "Mapa 8", "desc": "Guarida de Jefes: Requiere escolta.", "color": "#550000", "warpCost": 500, "minLevel": 30 },
-	"9": { "name": "Arena PVP", "desc": "Zona de combate táctico y enfrentamiento por equipos. Destruye el nexo enemigo.", "color": "#aa00ff", "warpCost": 0, "minLevel": 1 },
-	"10": { "name": "Zona de Extracción", "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.", "color": "#ff0055", "warpCost": 50, "minLevel": 10 },
-	"11": { "name": "Defensa del Altar", "desc": "Protege el Altar Sagrado del ataque de las oleadas de naves enemigas.", "color": "#ff00aa", "warpCost": 100, "minLevel": 10 },
+	"1": { "name": "Loby", "desc": "Zona segura de reunión y comercio.", "color": "#ffffff", "warpCost": 0, "minLevel": 1, "minX": -9600.0, "minY": -6788.225, "width": 22400.0, "height": 15839.192, "music": { "enabled": true, "path": "res://assets/Musica/Descond.mp3", "volumePercent": 60 } },
+	"2": { "name": "Mapa 2", "desc": "Zona de entrenamiento básico y recolección.", "color": "#00ff00", "warpCost": 0, "minLevel": 1, "minX": -12800.0, "minY": -4525.483, "width": 28800.0, "height": 18101.934 },
+	"3": { "name": "Mapa 3", "desc": "Sector hostil con recursos de nivel medio.", "color": "#ffff00", "warpCost": 10, "minLevel": 5, "minX": -6400.0, "minY": -6788.225, "width": 16000.0, "height": 15839.192 },
+	"4": { "name": "Mapa 4", "desc": "Nebulosa densa con piratas espaciales.", "color": "#ffaa00", "warpCost": 25, "minLevel": 10, "minX": -6400.0, "minY": -4525.483, "width": 16000.0, "height": 13576.45 },
+	"5": { "name": "Mapa 5", "desc": "Zona de asteroides inestables.", "color": "#ff5500", "warpCost": 50, "minLevel": 15, "minX": 0.0, "minY": 0.0, "width": 9600.0, "height": 11313.709 },
+	"6": { "name": "Mapa 6", "desc": "Borde exterior: Peligro extremo.", "color": "#ff0000", "warpCost": 100, "minLevel": 20, "minX": 0.0, "minY": 0.0, "width": 10000.0, "height": 10000.0 },
+	"7": { "name": "Mapa 7", "desc": "Sector de invasión: Hordas detectadas.", "color": "#aa0000", "warpCost": 200, "minLevel": 25, "minX": 0.0, "minY": 0.0, "width": 10000.0, "height": 10000.0 },
+	"8": { "name": "Mapa 8", "desc": "Guarida de Jefes: Requiere escolta.", "color": "#550000", "warpCost": 500, "minLevel": 30, "minX": 0.0, "minY": 0.0, "width": 10000.0, "height": 10000.0 },
+	"9": { "name": "Arena PVP", "desc": "Zona de combate táctico y enfrentamiento por equipos. Destruye el nexo enemigo.", "color": "#aa00ff", "warpCost": 0, "minLevel": 1, "minX": 0.0, "minY": 0.0, "width": 10000.0, "height": 10000.0 },
+	"10": { "name": "Zona de Extracción", "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.", "color": "#ff0055", "warpCost": 50, "minLevel": 10, "minX": 0.0, "minY": 0.0, "width": 20000.0, "height": 20000.0 },
+	"11": { "name": "Defensa del Altar", "desc": "Protege el Altar Sagrado del ataque de las oleadas de naves enemigas.", "color": "#ff00aa", "warpCost": 100, "minLevel": 10, "minX": 0.0, "minY": 0.0, "width": 10000.0, "height": 10000.0 },
 }
 
 var HORDES_CONFIG = {

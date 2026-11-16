@@ -110,7 +110,8 @@ function showTab(tabId) {
         'maps': 'folder-maps', 'map-detail': 'folder-maps',
         'enemies': 'folder-enemies', 'enemy-detail': 'folder-enemies',
         'mechanics': 'folder-mechanics',
-        'ammo': 'folder-market', 'weapons': 'folder-market', 'shields': 'folder-market', 'engines': 'folder-market', 'spheres': 'folder-market', 'market': 'folder-market',
+        'ammo': 'folder-equipment', 'weapons': 'folder-equipment', 'shields': 'folder-equipment', 'engines': 'folder-equipment', 'spheres': 'folder-equipment', 'modifiers': 'folder-equipment',
+        'market': 'folder-market',
         'skills': 'folder-skills',
         'modes': 'folder-modes',
         'loot': 'folder-loot',
@@ -141,13 +142,30 @@ function showTab(tabId) {
         }
     }
 
+    if (tabId === 'ammo') {
+        const subAmmo = document.getElementById('subfolder-ammo');
+        if (subAmmo && 'subfolder-ammo' !== folderToggledThisClick) {
+            subAmmo.classList.add('show');
+            const subAmmoHeader = document.querySelector('[onclick*="subfolder-ammo"]');
+            if (subAmmoHeader) {
+                const chev = subAmmoHeader.querySelector('.chevron');
+                if (chev) chev.innerText = '▼';
+            }
+        }
+    }
+
     // Resetear flag al final del procesamiento de navegación
     folderToggledThisClick = null;
 
     const titles = {
         'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas',
-        'ammo': `Mercado: Munición ${(window.AMMO_NAMES && window.AMMO_NAMES[currentAmmoTab]) || (currentAmmoTab ? (currentAmmoTab.charAt(0).toUpperCase() + currentAmmoTab.slice(1)) : 'Láser')}`, 'weapons': 'Mercado: Armamento',
-        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Motores', 'spheres': 'Mercado: Esferas', 'market': 'Regulador de Mercado',
+        'ammo': `Equipamiento: Munición ${(window.AMMO_NAMES && window.AMMO_NAMES[currentAmmoTab]) || (currentAmmoTab ? (currentAmmoTab.charAt(0).toUpperCase() + currentAmmoTab.slice(1)) : 'Láser')}`,
+        'weapons': 'Equipamiento: Armamento',
+        'shields': 'Equipamiento: Escudos',
+        'engines': 'Equipamiento: Motores',
+        'spheres': 'Equipamiento: Esferas',
+        'modifiers': 'Equipamiento: Modificadores',
+        'market': 'Regulador de Mercado',
         'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
         'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema',
         'sessions': 'Auditoría de Sesiones Estelares',
@@ -636,7 +654,7 @@ function setAmmoTab(tab, btn) {
     const ammoName = (window.AMMO_NAMES && window.AMMO_NAMES[tab]) || (tab ? (tab.charAt(0).toUpperCase() + tab.slice(1)) : 'Láser');
     const titleEl = document.getElementById('current-view-title');
     if (titleEl && (typeof currentTab === 'undefined' || currentTab === 'ammo')) {
-        titleEl.innerText = `Mercado: Munición ${ammoName}`;
+        titleEl.innerText = `Equipamiento: Munición ${ammoName}`;
     }
     renderAmmo();
 }
