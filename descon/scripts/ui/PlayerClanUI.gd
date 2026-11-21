@@ -186,94 +186,189 @@ func hide_item_info():
 	pass
 
 func _show_modal(title: String, message: String, on_confirm: Callable, extra_control: Control = null):
+	_close_all_modales()
+
+	var overlay = PanelContainer.new()
+	overlay.name = "ClanConfirmModalOverlay"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	var sb_dim = StyleBoxFlat.new()
+	sb_dim.bg_color = Color(0.0, 0.0, 0.0, 0.72)
+	overlay.add_theme_stylebox_override("panel", sb_dim)
+	add_child(overlay)
+	active_modales.append(overlay)
+
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+
 	var m = PanelContainer.new()
-	m.z_index = 200
-	m.custom_minimum_size = Vector2(320, 150)
+	m.custom_minimum_size = Vector2(420, 180)
+	m.mouse_filter = Control.MOUSE_FILTER_STOP
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.015, 0.025, 0.04, 0.98)
+	sb.bg_color = Color(0.012, 0.022, 0.038, 0.98)
 	sb.border_width_left = 2; sb.border_width_top = 2
 	sb.border_width_right = 2; sb.border_width_bottom = 2
 	sb.border_color = Color.GOLD
-	sb.set_corner_radius_all(6)
+	sb.set_corner_radius_all(8)
+	sb.corner_detail = 12
+	sb.anti_aliasing = true
 	sb.shadow_color = Color(0, 0, 0, 0.8)
-	sb.shadow_size = 20
+	sb.shadow_size = 22
 	m.add_theme_stylebox_override("panel", sb)
+	center.add_child(m)
 
 	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.add_theme_constant_override("margin_left", 22)
+	margin.add_theme_constant_override("margin_right", 22)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_bottom", 18)
 	m.add_child(margin)
 
 	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 14)
 	margin.add_child(v)
 
-	var t = Label.new(); t.text = title; t.add_theme_font_size_override("font_size", 11); t.add_theme_color_override("font_color", Color.GOLD); v.add_child(t)
-	var rtl = RichTextLabel.new(); rtl.bbcode_enabled = true; rtl.text = message; rtl.custom_minimum_size.y = 50; rtl.fit_content = true; v.add_child(rtl)
+	var t = Label.new()
+	t.text = "🛡️  " + title.to_upper()
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.add_theme_font_size_override("font_size", 13)
+	t.add_theme_color_override("font_color", Color.GOLD)
+	v.add_child(t)
+
+	var rtl = RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.text = "[center]" + message + "[/center]"
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rtl.custom_minimum_size = Vector2(340, 0)
+	rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(rtl)
 
 	if is_instance_valid(extra_control):
 		v.add_child(extra_control)
 
 	var hb = HBoxContainer.new()
-	hb.alignment = BoxContainer.ALIGNMENT_END
-	hb.add_theme_constant_override("separation", 8)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 18)
 	v.add_child(hb)
 
-	var btn_ok = Button.new(); btn_ok.text = " CONFIRMAR "; btn_ok.add_theme_font_size_override("font_size", 9); btn_ok.modulate = Color.GOLD
+	var btn_ok = Button.new()
+	btn_ok.text = "CONFIRMAR"
+	btn_ok.custom_minimum_size = Vector2(130, 34)
+	btn_ok.add_theme_font_size_override("font_size", 10)
+	var sb_ok = StyleBoxFlat.new()
+	sb_ok.bg_color = Color(0.75, 0.6, 0.1, 0.35)
+	sb_ok.border_width_left = 1; sb_ok.border_width_top = 1; sb_ok.border_width_right = 1; sb_ok.border_width_bottom = 1
+	sb_ok.border_color = Color.GOLD
+	sb_ok.set_corner_radius_all(5)
+	btn_ok.add_theme_stylebox_override("normal", sb_ok)
 	btn_ok.pressed.connect(func():
-		active_modales.erase(m)
-		m.queue_free()
+		active_modales.erase(overlay)
+		overlay.queue_free()
 		on_confirm.call()
 	)
 	hb.add_child(btn_ok)
 
-	var btn_cancel = Button.new(); btn_cancel.text = " CANCELAR "; btn_cancel.add_theme_font_size_override("font_size", 9)
+	var btn_cancel = Button.new()
+	btn_cancel.text = "CANCELAR"
+	btn_cancel.custom_minimum_size = Vector2(130, 34)
+	btn_cancel.add_theme_font_size_override("font_size", 10)
+	var sb_c = StyleBoxFlat.new()
+	sb_c.bg_color = Color(0.08, 0.12, 0.16, 0.7)
+	sb_c.border_width_left = 1; sb_c.border_width_top = 1; sb_c.border_width_right = 1; sb_c.border_width_bottom = 1
+	sb_c.border_color = Color(0.3, 0.45, 0.6, 0.5)
+	sb_c.set_corner_radius_all(5)
+	btn_cancel.add_theme_stylebox_override("normal", sb_c)
 	btn_cancel.pressed.connect(func():
-		active_modales.erase(m)
-		m.queue_free()
+		active_modales.erase(overlay)
+		overlay.queue_free()
 	)
 	hb.add_child(btn_cancel)
 
-	add_child(m)
-	m.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	active_modales.append(m)
-
 
 func _show_result_modal(title: String, message: String):
+	_close_all_modales()
+
+	var overlay = PanelContainer.new()
+	overlay.name = "ClanResultModalOverlay"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	var sb_dim = StyleBoxFlat.new()
+	sb_dim.bg_color = Color(0.0, 0.0, 0.0, 0.72)
+	overlay.add_theme_stylebox_override("panel", sb_dim)
+	add_child(overlay)
+	active_modales.append(overlay)
+
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+
 	var m = PanelContainer.new()
-	m.z_index = 200
-	m.custom_minimum_size = Vector2(300, 130)
+	m.custom_minimum_size = Vector2(380, 160)
+	m.mouse_filter = Control.MOUSE_FILTER_STOP
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.015, 0.025, 0.04, 0.98)
+	sb.bg_color = Color(0.012, 0.022, 0.038, 0.98)
 	sb.border_width_left = 2; sb.border_width_top = 2
 	sb.border_width_right = 2; sb.border_width_bottom = 2
-	sb.border_color = Color(1.0, 0.4, 0.4)
-	sb.set_corner_radius_all(6)
+	sb.border_color = Color(1.0, 0.45, 0.45, 0.85)
+	sb.set_corner_radius_all(8)
+	sb.corner_detail = 12
+	sb.anti_aliasing = true
+	sb.shadow_color = Color(0, 0, 0, 0.8)
+	sb.shadow_size = 20
 	m.add_theme_stylebox_override("panel", sb)
+	center.add_child(m)
 
 	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
 	m.add_child(margin)
 
-	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 10); margin.add_child(v)
-	var t = Label.new(); t.text = title; t.add_theme_font_size_override("font_size", 11); t.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4)); v.add_child(t)
-	var rtl = RichTextLabel.new(); rtl.bbcode_enabled = true; rtl.text = message; rtl.custom_minimum_size.y = 40; rtl.fit_content = true; v.add_child(rtl)
+	var v = VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 14)
+	margin.add_child(v)
 
-	var btn_ok = Button.new(); btn_ok.text = " ENTENDIDO "; btn_ok.add_theme_font_size_override("font_size", 9)
+	var t = Label.new()
+	t.text = "⚠️  " + title.to_upper()
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.add_theme_font_size_override("font_size", 12)
+	t.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
+	v.add_child(t)
+
+	var rtl = RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.text = "[center]" + message + "[/center]"
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rtl.custom_minimum_size = Vector2(320, 0)
+	rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(rtl)
+
+	var btn_ok = Button.new()
+	btn_ok.text = "ENTENDIDO"
+	btn_ok.custom_minimum_size = Vector2(130, 34)
+	btn_ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn_ok.add_theme_font_size_override("font_size", 10)
+	var sb_ok = StyleBoxFlat.new()
+	sb_ok.bg_color = Color(0.8, 0.25, 0.25, 0.35)
+	sb_ok.border_width_left = 1; sb_ok.border_width_top = 1; sb_ok.border_width_right = 1; sb_ok.border_width_bottom = 1
+	sb_ok.border_color = Color(1.0, 0.4, 0.4)
+	sb_ok.set_corner_radius_all(5)
+	btn_ok.add_theme_stylebox_override("normal", sb_ok)
 	btn_ok.pressed.connect(func():
-		active_modales.erase(m)
-		m.queue_free()
+		active_modales.erase(overlay)
+		overlay.queue_free()
 	)
 	v.add_child(btn_ok)
-
-	add_child(m)
-	m.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	active_modales.append(m)
 
 
 func update_ui():

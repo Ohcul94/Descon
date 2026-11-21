@@ -1236,7 +1236,9 @@ func _try_add_pending(node_id: String):
 		return
 
 	if _is_node_locked(node_id):
-		if inv_main:
+		if NetworkManager and NetworkManager.has_signal("game_notification"):
+			NetworkManager.game_notification.emit({ "msg": "Bloqueado: Este talento requiere una misión para desbloquearse.", "type": "warning" })
+		elif inv_main and inv_main.has_method("_show_result_modal"):
 			inv_main._show_result_modal("BLOQUEADO", "Este talento requiere una misión para desbloquearse.")
 		return
 
@@ -1246,14 +1248,20 @@ func _try_add_pending(node_id: String):
 	var max_lvl = int(talent.get("maxLevel", 5))
 
 	if current >= max_lvl:
+		if NetworkManager and NetworkManager.has_signal("game_notification"):
+			NetworkManager.game_notification.emit({ "msg": "Nivel máximo alcanzado para este talento.", "type": "info" })
 		return
 
 	if skill_points - total_pending_cost <= 0:
+		if NetworkManager and NetworkManager.has_signal("game_notification"):
+			NetworkManager.game_notification.emit({ "msg": "No tienes puntos de talento disponibles.", "type": "warning" })
 		return
 
 	# Verificar requisitos de conexión
 	if not _check_connection_reqs(node_id, pend):
-		if inv_main:
+		if NetworkManager and NetworkManager.has_signal("game_notification"):
+			NetworkManager.game_notification.emit({ "msg": "Requisito: Necesitas invertir en un nodo conectado primero.", "type": "warning" })
+		elif inv_main and inv_main.has_method("_show_result_modal"):
 			inv_main._show_result_modal("REQUISITO", "Necesitas invertir en un nodo conectado primero.")
 		return
 
@@ -1368,8 +1376,12 @@ func _on_reset_pressed():
 		return
 	var msg = "¿Resetear todos tus talentos guardados?\nCosto: [color=yellow]5.000 OHCU[/color]\n[i](Se devolverán todos los puntos gastados)[/i]"
 	inv_main._show_modal("RESETEAR PROGRESIÓN", msg, func():
-		if inv_main.ohcu < 5000:
-			inv_main._show_result_modal("FONDOS INSUFICIENTES", "Necesitas 5.000 OHCU.")
+		var current_ohcu = _get_player_ohcu()
+		if current_ohcu < 5000:
+			if NetworkManager and NetworkManager.has_signal("game_notification"):
+				NetworkManager.game_notification.emit({ "msg": "Fondos insuficientes: Necesitas 5.000 OHCU para resetear.", "type": "warning" })
+			elif inv_main.has_method("_show_result_modal"):
+				inv_main._show_result_modal("FONDOS INSUFICIENTES", "Necesitas 5.000 OHCU.")
 			return
 		if is_instance_valid(talent_system):
 			talent_system.reset_talents()
@@ -1377,6 +1389,14 @@ func _on_reset_pressed():
 		pending_points.clear()
 		total_pending_cost = 0
 	)
+
+func _get_player_ohcu() -> int:
+	if inv_main and "ohcu" in inv_main:
+		return int(inv_main.ohcu)
+	var p = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(p) and "ohculianos" in p:
+		return int(p.ohculianos)
+	return 0
 
 # ═══════════════════════════════════════════════════════
 # TOOLTIP
