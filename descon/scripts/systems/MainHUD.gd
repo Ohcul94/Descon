@@ -3210,35 +3210,7 @@ func _setup_target_frame():
 	)
 	header.add_child(close_btn)
 	
-	# Shield bar (más compacta - arriba)
-	var sh_container = Control.new()
-	sh_container.custom_minimum_size = Vector2(0, 15)
-	_target_vbox.add_child(sh_container)
-	
-	_target_sh_bg = ColorRect.new()
-	_target_sh_bg.color = Color(0, 0.5, 0.5, 0.2)
-	_target_sh_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	sh_container.add_child(_target_sh_bg)
-	
-	_target_sh_bar = ColorRect.new()
-	_target_sh_bar.color = Color(0, 1, 1)
-	_target_sh_bar.anchor_top = 0.0
-	_target_sh_bar.anchor_bottom = 1.0
-	_target_sh_bar.anchor_left = 0.0
-	_target_sh_bar.anchor_right = 1.0
-	sh_container.add_child(_target_sh_bar)
-	
-	_target_sh_lbl = Label.new()
-	_target_sh_lbl.add_theme_font_size_override("font_size", 10)
-	_target_sh_lbl.add_theme_color_override("font_color", Color.WHITE)
-	_target_sh_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	_target_sh_lbl.add_theme_constant_override("outline_size", 4)
-	_target_sh_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_target_sh_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	sh_container.add_child(_target_sh_lbl)
-	_target_sh_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	
-	# HP bar (más compacta - abajo)
+	# HP bar (Vida - arriba)
 	var hp_container = Control.new()
 	hp_container.custom_minimum_size = Vector2(0, 15)
 	_target_vbox.add_child(hp_container)
@@ -3265,6 +3237,34 @@ func _setup_target_frame():
 	_target_hp_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hp_container.add_child(_target_hp_lbl)
 	_target_hp_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# Shield bar (Escudo - abajo)
+	var sh_container = Control.new()
+	sh_container.custom_minimum_size = Vector2(0, 15)
+	_target_vbox.add_child(sh_container)
+	
+	_target_sh_bg = ColorRect.new()
+	_target_sh_bg.color = Color(0, 0.5, 0.5, 0.2)
+	_target_sh_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sh_container.add_child(_target_sh_bg)
+	
+	_target_sh_bar = ColorRect.new()
+	_target_sh_bar.color = Color(0, 1, 1)
+	_target_sh_bar.anchor_top = 0.0
+	_target_sh_bar.anchor_bottom = 1.0
+	_target_sh_bar.anchor_left = 0.0
+	_target_sh_bar.anchor_right = 1.0
+	sh_container.add_child(_target_sh_bar)
+	
+	_target_sh_lbl = Label.new()
+	_target_sh_lbl.add_theme_font_size_override("font_size", 10)
+	_target_sh_lbl.add_theme_color_override("font_color", Color.WHITE)
+	_target_sh_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	_target_sh_lbl.add_theme_constant_override("outline_size", 4)
+	_target_sh_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_target_sh_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	sh_container.add_child(_target_sh_lbl)
+	_target_sh_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
 	# Debuff icons row (debajo de HP bar)
 	_target_debuff_hbox = HBoxContainer.new()
@@ -3393,8 +3393,9 @@ func _update_target_frame():
 		return
 
 	# Caso normal (Enemigos / Jugadores)
+	var max_sh = int(ent.max_shield) if "max_shield" in ent else 0
 	if is_instance_valid(_target_sh_bg) and is_instance_valid(_target_sh_bg.get_parent()):
-		_target_sh_bg.get_parent().visible = true
+		_target_sh_bg.get_parent().visible = (max_sh > 0)
 	if is_instance_valid(_target_hp_bg):
 		_target_hp_bg.color = Color(0, 0.4, 0, 0.2)
 	
@@ -3406,7 +3407,6 @@ func _update_target_frame():
 	var hp_bar = int(ent._display_hp) if "_display_hp" in ent else int(ent.current_hp)
 	var max_hp = int(ent.max_hp) if "max_hp" in ent else 1
 	var sh_bar = int(ent._display_shield) if "_display_shield" in ent else int(ent.current_shield)
-	var max_sh = int(ent.max_shield) if "max_shield" in ent else 1
 	
 	var hp_text = roundi(ent.current_hp) if "current_hp" in ent else 0
 	var sh_text = roundi(ent.current_shield) if "current_shield" in ent else 0

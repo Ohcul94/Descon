@@ -1257,11 +1257,11 @@ func is_currently_casting() -> bool:
 	return is_casting
 
 func _get_hud_base_y() -> float:
-	var base_y = -70.0
+	var base_y = -40.0
 	if is_in_group("player"):
-		base_y = -105.0
+		base_y = -35.0
 	elif entity_type >= 101:
-		base_y = -220.0
+		base_y = -180.0
 		
 	var is_projected = get_meta("is_single_world", false) and is_instance_valid(world_root_3d)
 	if is_projected:
@@ -1498,6 +1498,9 @@ func _recalculate_stats():
 	save_progress()
 	_update_tags()
 	_emit_stats()
+	if is_instance_valid(_ui_wrapper):
+		_ui_wrapper.queue_redraw()
+	_update_hud_offsets()
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
 	if is_in_strange_dimension or in_strange_dimension:
@@ -2133,7 +2136,12 @@ func _on_login_success(p_in):
 			get_parent().get_node("HUD/MainHUD").set_pvp_status(pvp_status)
 		
 		update_stats({"pvpEnabled": pvp_status, "isInvulnerable": p_in.get("isInvulnerable", false)})
-	_update_tags(); _emit_stats(); queue_redraw()
+	_update_tags()
+	_emit_stats()
+	if is_instance_valid(_ui_wrapper):
+		_ui_wrapper.queue_redraw()
+	_update_hud_offsets()
+	queue_redraw()
 	_is_initializing = false # v269.170: Restaurar guardado normal
 
 func _on_enemy_dead(_data): pass

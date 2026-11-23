@@ -528,8 +528,13 @@ func _ready():
 	
 	if name_tag:
 		if name_tag.get_parent() != _ui_wrapper: name_tag.reparent(_ui_wrapper)
-		name_tag.visible = not is_in_group("enemies"); name_tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-		name_tag.grow_horizontal = Control.GROW_DIRECTION_BOTH; name_tag.grow_vertical = Control.GROW_DIRECTION_BOTH
+		name_tag.visible = not is_in_group("enemies")
+		name_tag.anchor_left = 0.0
+		name_tag.anchor_top = 0.0
+		name_tag.anchor_right = 0.0
+		name_tag.anchor_bottom = 0.0
+		name_tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		name_tag.grow_vertical = Control.GROW_DIRECTION_BOTH
 		name_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	
 	if is_in_group("enemies") and is_instance_valid(_ui_wrapper):
@@ -780,6 +785,17 @@ func _process(delta):
 		_update_3d_root_sync()
 		
 		var is_single = get_meta("is_single_world", false)
+		if not is_single:
+			var current_map = _get_map_node()
+			if is_instance_valid(current_map) and "sub_viewport" in current_map and is_instance_valid(current_map.sub_viewport):
+				is_single = true
+				set_meta("is_single_world", true)
+				if "scale_factor" in current_map:
+					set_meta("map_scale", current_map.scale_factor)
+				if is_instance_valid(_ui_wrapper):
+					_ui_wrapper.queue_redraw()
+				_update_hud_offsets()
+		
 		var projected_pos_hud = global_position
 		var projected_pos_vfx = Vector2.ZERO
 		var has_projected = false
@@ -790,25 +806,35 @@ func _process(delta):
 			# Calibrada por tipo según la escala real del modelo.
 			# Los offsets locales del name_tag y barras se restan encima de este punto.
 			const HUD_HEIGHTS = {
-				-1: 2.2,  # Jugador
+				-1: 2.2,  # Jugador: altura en 3D del fuselaje de la nave
 				1: 2.4, 2: 2.4, 3: 2.4, 4: 3.2, 5: 2.4,
 				6: 3.0, 7: 2.4, 8: 2.4, 9: 2.4, 10: 2.4,
 				11: 2.4, 12: 2.4, 13: 2.4,
 				14: 2.6, 15: 2.8,
-				101: 5.5, 102: 5.5, 103: 5.5, 104: 6.5,
-				105: 6.5, 106: 6.5, 107: 6.5,
+				101: 6.0, 102: 6.0, 103: 6.0, 104: 7.0,
+				105: 7.2, 106: 7.2, 107: 7.2,
+				110: 4.5,
 				200: 4.0,
 			}
 			# Usar raw_entity_type primero (para "6-C"), si no, usar entity_type (para "6")
 			var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 			var lookup_key = -1 if is_in_group("player") else entity_type
-			var default_height = HUD_HEIGHTS.get(lookup_key, 5.5 if entity_type >= 101 else 2.4)
+			var default_height = HUD_HEIGHTS.get(lookup_key, 6.5 if entity_type >= 101 else 2.4)
 			var hud_height_3d: float = float(enemy_cfg.get("hudHeight", default_height))
 			# Si es un Boss escalado y no tiene hudHeight explícito, escalar la altura proporcionalmente
 			if not enemy_cfg.has("hudHeight") and entity_type >= 101 and enemy_cfg.has("scale"):
 				var cfg_scale = float(enemy_cfg.scale)
 				if cfg_scale > 6.0:
 					hud_height_3d = default_height * (cfg_scale / 6.0)
+			
+			# Auto-adaptación dinámica a la altura real del modelo 3D instanciado si existe AABB
+			if is_instance_valid(_3d_model) and _3d_model.has_meta("model_aabb_size"):
+				var aabb_sz = _3d_model.get_meta("model_aabb_size", Vector3.ZERO)
+				if aabb_sz.y > 0.0:
+					var model_h_3d = aabb_sz.y * _3d_model.scale.y
+					var can_float_check = bool(enemy_cfg.get("canFloat", true)) if is_in_group("enemies") else true
+					var calc_top = (model_h_3d * 0.55) if can_float_check else (model_h_3d * 1.02)
+					hud_height_3d = maxf(hud_height_3d, calc_top)
 			
 			hud_3d_pos = world_root_3d.global_position + Vector3(0, hud_height_3d, 0)
 			projected_pos_hud = _project_3d_pos_to_2d(hud_3d_pos)
@@ -836,7 +862,7 @@ func _process(delta):
 			_ui_wrapper.global_position = projected_pos_hud
 			_update_hud_zoom_scale(hud_3d_pos if has_projected else Vector3.ZERO)
 			if name_tag:
-				name_tag.visible = _ui_wrapper.visible and ((SettingsManager.show_enemy_tags or SettingsManager.show_enemy_stats) if is_in_group("enemies") else (SettingsManager.show_player_tags or SettingsManager.show_player_stats))
+				name_tag.visible = _ui_wrapper.visible and (SettingsManager.show_enemy_tags if is_in_group("enemies") else SettingsManager.show_player_tags)
 				_update_hud_offsets()
 		
 		# 3. Resto de efectos (ya se llamó _update_3d_root_sync arriba)
@@ -1297,25 +1323,33 @@ func _update_hud_offsets():
 		return
 		
 	var is_projected = get_meta("is_single_world", false) and is_instance_valid(world_root_3d)
-	var y_offset: float
 	
+	var tag_h = 16.0
+	if name_tag is RichTextLabel:
+		var ch = name_tag.get_content_height()
+		if ch > 0: tag_h = float(ch)
+		else: tag_h = name_tag.size.y
+	else:
+		tag_h = name_tag.size.y
+	if tag_h <= 0.0: tag_h = 16.0
+	
+	var y_offset: float
 	if is_projected:
 		# Modo 3D: el contenedor ya está proyectado sobre el modelo.
-		# Usamos offsets calibrados para que el nombre quede justo encima de las barras.
-		if is_in_group("player"):
-			y_offset = -75.0
-		elif entity_type >= 101: # Boss
-			y_offset = -75.0
-		else:
-			y_offset = -70.0
+		# Obtenemos el borde superior de las barras desde _ui_wrapper.
+		var hud_top_y = -29.0
+		if is_instance_valid(_ui_wrapper) and _ui_wrapper.has_method("get_hud_top_y"):
+			hud_top_y = _ui_wrapper.get_hud_top_y()
+		# El nombre queda exactamente a 3 píxeles de espacio libre por encima de la barra de vida
+		y_offset = (hud_top_y - 3.0) - tag_h
 	else:
-		# Modo 2D clásico: offsets originales en píxeles desde la base del sprite.
+		# Modo 2D clásico: offsets desde la base del sprite.
 		if is_in_group("player"):
-			y_offset = -180.0
-		elif entity_type >= 4:
-			y_offset = -300.0
+			y_offset = -55.0 - tag_h
+		elif entity_type >= 101:
+			y_offset = -200.0 - tag_h
 		else:
-			y_offset = -145.0
+			y_offset = -60.0 - tag_h
 	
 	name_tag.position.y = y_offset
 	var tag_w = name_tag.size.x
@@ -1724,8 +1758,7 @@ func _update_tags():
 	
 	var is_enemy = is_in_group("enemies")
 	var show_tag = SettingsManager.show_enemy_tags if is_enemy else SettingsManager.show_player_tags
-	var show_stats = SettingsManager.show_enemy_stats if is_enemy else SettingsManager.show_player_stats
-	var allow_tag_vis = (show_tag or show_stats) and visible and not is_dead and not get_meta("is_pooled", false)
+	var allow_tag_vis = show_tag and visible and not is_dead and not get_meta("is_pooled", false)
 	if is_enemy and (current_hp <= 0.0 or username == "" or username == "Unknown"):
 		allow_tag_vis = false
 	
@@ -1738,12 +1771,8 @@ func _update_tags():
 		if party_role == "" and username != "":
 			party_role = pm.get_member_role(username)
 
-	# Verificar si los valores realmente cambiaron para evitar reconstruir el RichTextLabel innecesariamente
+	# Verificar si los valores de identificación cambiaron para evitar reconstruir innecesariamente
 	if (
-		roundi(current_hp) == roundi(_last_rendered_hp) and
-		roundi(current_shield) == roundi(_last_rendered_shield) and
-		roundi(max_hp) == roundi(_last_rendered_max_hp) and
-		roundi(max_shield) == roundi(_last_rendered_max_shield) and
 		username == _last_rendered_username and
 		clan_tag == _last_rendered_clan_tag and
 		is_rage == _last_rendered_is_rage and
@@ -1751,10 +1780,9 @@ func _update_tags():
 		party_role == _last_rendered_party_role and
 		_execution_marker_active == _execution_marker_last
 	):
-		# Aún así, actualizar visibilidad por si cambió el setting externamente
 		if is_instance_valid(name_tag):
 			name_tag.visible = allow_tag_vis
-		return # No cambió nada visual, evitar recálculo
+		return
 
 	# Guardar valores actuales
 	_last_rendered_hp = current_hp
@@ -1781,7 +1809,10 @@ func _update_tags():
 		var parent = name_tag.get_parent()
 		if parent:
 			parent.add_child(rtl)
-			rtl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			rtl.anchor_left = 0.0
+			rtl.anchor_top = 0.0
+			rtl.anchor_right = 0.0
+			rtl.anchor_bottom = 0.0
 			rtl.grow_horizontal = Control.GROW_DIRECTION_BOTH
 			rtl.grow_vertical = Control.GROW_DIRECTION_BOTH
 			name_tag.queue_free()
@@ -1789,9 +1820,7 @@ func _update_tags():
 			
 	if name_tag:
 		var name_sz = SettingsManager.font_size_enemy_name if is_enemy else SettingsManager.font_size_player_name
-		var stats_sz = SettingsManager.font_size_enemy_stats if is_enemy else SettingsManager.font_size_player_stats
 		var name_bold = SettingsManager.bold_enemy_name if is_enemy else SettingsManager.bold_player_name
-		var stats_bold = SettingsManager.bold_enemy_stats if is_enemy else SettingsManager.bold_player_stats
 		
 		name_tag.add_theme_font_size_override("normal_font_size", name_sz)
 		name_tag.add_theme_font_size_override("bold_font_size", name_sz)
@@ -1818,12 +1847,8 @@ func _update_tags():
 			if _execution_marker_active:
 				var skull_sz = roundi(name_sz * 1.8)
 				txt += "[font_size=" + str(skull_sz) + "][color=#ff2222]💀[/color][/font_size]\n"
-
-			if _execution_marker_active:
-				var skull_sz = roundi(name_sz * 1.8)
-				txt += "[font_size=" + str(skull_sz) + "][color=#ff2222]💀[/color][/font_size]\n"
 			
-			# v244.110: Mostrar TAG de Flota con color según relación
+			# Mostrar TAG de Flota con color según relación
 			var name_str = username
 			if clan_tag != "":
 				var local_player = _get_player_node()
@@ -1842,17 +1867,10 @@ func _update_tags():
 			if show_tag:
 				var wrap_name_start = "[b]" if name_bold else ""
 				var wrap_name_end = "[/b]" if name_bold else ""
-				if is_rage: txt += wrap_name_start + "[wave amp=50 freq=2][color=" + n_color + "]" + name_str + "[/color][/wave]" + wrap_name_end + "\n"
-				else: txt += wrap_name_start + "[color=" + n_color + "]" + name_str + "[/color]" + wrap_name_end + "\n"
+				if is_rage: txt += wrap_name_start + "[wave amp=50 freq=2][color=" + n_color + "]" + name_str + "[/color][/wave]" + wrap_name_end
+				else: txt += wrap_name_start + "[color=" + n_color + "]" + name_str + "[/color]" + wrap_name_end
 			
-			if show_stats:
-				var wrap_stats_start = "[b]" if stats_bold else ""
-				var wrap_stats_end = "[/b]" if stats_bold else ""
-				if max_shield > 0:
-					txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
-				txt += wrap_stats_start + "[color=#00ff00][font_size=" + str(stats_sz) + "]HP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp)) + "[/font_size][/color]" + wrap_stats_end + "[/center]"
-			else:
-				txt += "[/center]"
+			txt += "[/center]"
 			
 			name_tag.text = txt
 			name_tag.visible = allow_tag_vis
@@ -1869,21 +1887,12 @@ func _update_tags():
 					"dps": role_icon_str = "⚔️"
 			if role_icon_str != "":
 				name_str = role_icon_str + "\n" + name_str
-			var stat_lines = ""
-			if show_stats:
-				if max_shield > 0:
-					stat_lines += "SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\n"
-				stat_lines += "HP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
-			if show_tag and show_stats:
-				name_tag.text = name_str + "\n" + stat_lines
-			elif show_tag:
+			if show_tag:
 				name_tag.text = name_str
-			elif show_stats:
-				name_tag.text = (role_icon_str + "\n" if role_icon_str != "" else "") + stat_lines
 			else:
 				name_tag.text = ""
 			name_tag.visible = allow_tag_vis
-			if name_bold or stats_bold:
+			if name_bold:
 				name_tag.add_theme_font_override("font", SettingsManager.get_bold_font())
 			else:
 				name_tag.remove_theme_font_override("font")

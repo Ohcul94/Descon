@@ -539,8 +539,11 @@ func apply_sfx_settings():
 
 func update_entity_tags_live():
 	for ent in get_tree().get_nodes_in_group("entities"):
-		if is_instance_valid(ent) and ent.has_method("_force_update_tags"):
-			ent._force_update_tags()
+		if is_instance_valid(ent):
+			if ent.has_method("_force_update_tags"):
+				ent._force_update_tags()
+			if is_instance_valid(ent.get("_ui_wrapper")):
+				ent._ui_wrapper.queue_redraw()
 
 func update_entity_hud_live():
 	for ent in get_tree().get_nodes_in_group("entities"):

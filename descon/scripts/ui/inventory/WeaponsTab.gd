@@ -436,19 +436,6 @@ func _make_unified_ammo_slot(w_id: String, slot_size: float, locked := false, ke
 		key_lbl.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 		key_lbl.position = Vector2(4, 2)
 
-	# Candado si está bloqueada
-	if locked:
-		var lock_badge = Label.new()
-		lock_badge.text = "🔒"
-		lock_badge.add_theme_font_size_override("font_size", 11)
-		lock_badge.add_theme_color_override("font_outline_color", Color.BLACK)
-		lock_badge.add_theme_constant_override("outline_size", 3)
-		lock_badge.modulate = Color(1, 0.3, 0.3)
-		lock_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		root.add_child(lock_badge)
-		lock_badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		lock_badge.position = Vector2(slot_size - 16, 2)
-
 	return root
 
 func setup(p_inv_main):
@@ -663,6 +650,10 @@ func _render_weapons_library(grid, p, is_comb):
 		sb.border_width_left = 3
 		sb.border_color = w_cfg["color"]
 		sb.set_corner_radius_all(4)
+		sb.content_margin_left = 10
+		sb.content_margin_top = 8
+		sb.content_margin_right = 10
+		sb.content_margin_bottom = 8
 		card.add_theme_stylebox_override("panel", sb)
 		
 		var hb = HBoxContainer.new()
@@ -679,11 +670,25 @@ func _render_weapons_library(grid, p, is_comb):
 		info_v.alignment = BoxContainer.ALIGNMENT_CENTER
 		hb.add_child(info_v)
 		
+		# Título con candado si está bloqueada (ubicación despejada donde marcó el usuario)
+		var title_h = HBoxContainer.new()
+		title_h.add_theme_constant_override("separation", 6)
+		info_v.add_child(title_h)
+		
+		if locked:
+			var lock_icon = Label.new()
+			lock_icon.text = "🔒"
+			lock_icon.add_theme_font_size_override("font_size", 11)
+			lock_icon.add_theme_color_override("font_outline_color", Color.BLACK)
+			lock_icon.add_theme_constant_override("outline_size", 2)
+			lock_icon.modulate = Color(1.0, 0.35, 0.35)
+			title_h.add_child(lock_icon)
+		
 		var name_lbl = Label.new()
 		name_lbl.text = w_cfg["name"]
 		name_lbl.add_theme_font_size_override("font_size", 11)
 		name_lbl.modulate = w_cfg["color"]
-		info_v.add_child(name_lbl)
+		title_h.add_child(name_lbl)
 		
 		var desc_lbl = Label.new()
 		desc_lbl.text = w_cfg["desc"]
