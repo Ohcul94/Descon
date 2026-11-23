@@ -999,8 +999,21 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 			s_type = 0 # Laser/Missile/Mine son Directional
 			var t_idx = selected_ammo.get(skill_id, 0)
 			var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
+			var ammo_entry = {}
 			if t_idx < ammo_list.size():
-				r_val = ammo_list[t_idx].get("range", 600.0)
+				ammo_entry = ammo_list[t_idx]
+				r_val = float(ammo_entry.get("range", 600.0))
+			
+			# Sincronizar bono dinámico de talentos de rango para que el indicador coincida exactamente con _shoot_skill
+			var ts = get_tree().get_first_node_in_group("talent_system")
+			var dyn_bonuses: Dictionary = ts.get_dynamic_bonuses() if is_instance_valid(ts) else {}
+			var r_bonus_key = "ammo:" + skill_id + ":range"
+			if dyn_bonuses.has(r_bonus_key):
+				var r_mod = dyn_bonuses[r_bonus_key]
+				if r_mod.get("flat", false):
+					r_val += float(r_mod.get("val", 0.0))
+				else:
+					r_val *= (1.0 + float(r_mod.get("val", 0.0)))
 		
 		# Auto-target self logic
 		if Input.is_action_pressed("auto_target_self") and skill_id.begins_with("sphere_"):
@@ -1012,7 +1025,13 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 			})
 			return
 		
-		_skill_controller.start_aiming({"id": skill_id, "type": s_type, "range": r_val, "filters": filters, "skill_name": s_name})
+		var aim_payload = {"id": skill_id, "type": s_type, "range": r_val, "filters": filters, "skill_name": s_name}
+		if s_type == 0 and selected_ammo.has(skill_id):
+			var a_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
+			var idx = selected_ammo.get(skill_id, 0)
+			if idx < a_list.size() and a_list[idx].has("explosionRadius"):
+				aim_payload["explosionRadius"] = a_list[idx].get("explosionRadius")
+		_skill_controller.start_aiming(aim_payload)
 
 func _on_skill_executed(p_data: Dictionary):
 	var id = p_data.skill_id

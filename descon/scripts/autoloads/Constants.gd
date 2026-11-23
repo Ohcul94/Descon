@@ -81,7 +81,7 @@ var SHIP_MODELS = [
 var SHOP_ITEMS = {
 	"ammo": {
 		"laser": [
-			{ "id": "am_l1", "name": "Láser", "prices": { "hubs": 1000, "ohcu": 10 }, "range": 600, "icon": "res://assets/Municiones/Iconos/laser/Laser.png" }
+			{ "id": "am_l1", "name": "Láser", "prices": { "hubs": 1000, "ohcu": 10 }, "range": 500, "icon": "res://assets/Municiones/Iconos/laser/Laser.png" }
 		],
 		"mine": [
 			{ "id": "am_n1", "name": "Mina", "prices": { "hubs": 10000, "ohcu": 1 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 150, "lifetimeMs": 10000, "deceleration": 2.0, "icon": "res://assets/Municiones/Iconos/mine/Mine.png" }
@@ -90,7 +90,7 @@ var SHOP_ITEMS = {
 			{ "id": "am_m1", "name": "Misil", "prices": { "hubs": 5000, "ohcu": 1 }, "range": 800, "icon": "res://assets/Municiones/Iconos/missile/Missile.png" }
 		],
 		"electron": [
-			{ "id": "am_el1", "name": "Electrón", "prices": { "hubs": 4000, "ohcu": 5 }, "range": 500, "icon": "res://assets/Municiones/Iconos/electron/Electron.png" }
+			{ "id": "am_el1", "name": "Electrón", "prices": { "hubs": 4000, "ohcu": 5 }, "range": 500, "bulletSpeed": 600, "explosionRadius": 100, "icon": "res://assets/Municiones/Iconos/electron/Electron.png" }
 		],
 		"siphon": [
 			{ "id": "am_s1", "name": "Vampire Beam", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 600, "bulletSpeed": 1200, "icon": "res://assets/Municiones/Iconos/siphon/Siphon.png" }

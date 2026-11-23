@@ -505,6 +505,7 @@ var _laser_sparks_particles: GPUParticles3D = null
 var _hook_chain_3d: MeshInstance3D = null
 var _bomb_ground_marker: Node3D = null
 var _bomb_radius: float = 150.0
+var _target_ground_height: float = 0.06
 
 # v410: Variables de polimorfia
 var poly_duration: float = 4.0
@@ -571,19 +572,26 @@ func _process(_delta):
 		var active_map = get_tree().get_first_node_in_group("map")
 		var s_factor = active_map.scale_factor if is_instance_valid(active_map) and "scale_factor" in active_map else 0.02
 		var correction_z = active_map.correction_z if is_instance_valid(active_map) and "correction_z" in active_map else 1.41421356
-		# El tipo "electron" maneja su propia posición 3D en _physics_process (parábola)
-		if type != "electron":
-			world_root_3d.position.x = global_position.x * s_factor
-			world_root_3d.position.z = global_position.y * s_factor * correction_z
-			
-			if type == "mine" or type == "orbital_mine":
+		world_root_3d.position.x = global_position.x * s_factor
+		world_root_3d.position.z = global_position.y * s_factor * correction_z
+		
+		if type == "mine" or type == "orbital_mine":
+			if type == "orbital_mine":
 				world_root_3d.position.y = 0.1
 			else:
-				world_root_3d.position.y = _aim_height()
+				var base_h = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
+				var curr_d = global_position.distance_to(_start_pos)
+				var prog = clamp(curr_d / max(max_range * 0.8, 1.0), 0.0, 1.0)
+				world_root_3d.position.y = lerp(base_h, 0.1, prog)
+		elif type != "electron":
+			world_root_3d.position.y = _aim_height()
+
+		var dir_2d = Vector2.RIGHT.rotated(rotation)
+		var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+		var target_yaw_3d = atan2(-diff_3d.x, -diff_3d.z)
+
 		if type == "mega_laser":
-			var dir_2d = Vector2.RIGHT.rotated(rotation)
-			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
-			world_root_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+			world_root_3d.rotation.y = target_yaw_3d
 			
 			# 1. Fluctuación y vibración dinámica del haz cilíndrico de plasma (v320)
 			var time = Time.get_ticks_msec() / 1000.0
@@ -619,8 +627,8 @@ func _process(_delta):
 				var forward = -world_root_3d.global_transform.basis.z.normalized()
 				_laser_hit_3d.global_position = world_root_3d.global_position + forward * beam_len_3d
 				_laser_hit_3d.global_position.y = world_root_3d.position.y + 0.1
-		else:
-			world_root_3d.rotation.y = -rotation - PI/2.0
+		elif type != "electron":
+			world_root_3d.rotation.y = target_yaw_3d
 
 		if type == "hook" and is_instance_valid(_hook_chain_3d) and is_instance_valid(_owner_node):
 			var map_n = get_tree().get_first_node_in_group("map")
@@ -1200,6 +1208,7 @@ func _setup_visual_sprite():
 			_ensure_projectile_static_cache()
 			world_root_3d = Node3D.new()
 			world_root_3d.name = "Bomb3D_" + str(get_instance_id())
+			world_root_3d.position = Vector3(global_position.x * s_factor, _aim_height(), global_position.y * s_factor * correction_z)
 			target_vp.add_child(world_root_3d)
 
 			var body = MeshInstance3D.new()
@@ -1242,19 +1251,8 @@ func _setup_visual_sprite():
 			var target_2d = _start_pos + Vector2(cos(rotation), sin(rotation)) * max_range
 			var exp_radius = _bomb_radius
 			var r3d_bomb = exp_radius * s_factor
-			var marker_h = 0.05
-			var _map_b = map_node
-			if is_instance_valid(_map_b) and is_instance_valid(_map_b.get("terrain_node")):
-				var em_node = get_tree().get_first_node_in_group("world_node")
-				if em_node and em_node.has_node("EntityManager"):
-					var mgr = em_node.get_node("EntityManager")
-					if mgr and mgr.has_method("_sample_terrain_height"):
-						marker_h = mgr._sample_terrain_height(target_2d, _map_b) + 0.06
-					elif _map_b.has_method("get_terrain_height_at_pos"):
-						marker_h = _map_b.get_terrain_height_at_pos(target_2d) + 0.06
-				elif _map_b.has_method("get_terrain_height_at_pos"):
-					marker_h = _map_b.get_terrain_height_at_pos(target_2d) + 0.06
-			var marker_pos = Vector3(target_2d.x * s_factor, marker_h, target_2d.y * s_factor * correction_z)
+			_target_ground_height = _aim_height()
+			var marker_pos = Vector3(target_2d.x * s_factor, _aim_height() + 0.02, target_2d.y * s_factor * correction_z)
 			_bomb_ground_marker = Node3D.new()
 			_bomb_ground_marker.name = "BombMarker_" + str(get_instance_id())
 			_bomb_ground_marker.position = marker_pos
@@ -1275,14 +1273,18 @@ func _setup_visual_sprite():
 			m_fill.top_radius = r3d_bomb * 0.88
 			m_fill.bottom_radius = r3d_bomb * 0.88
 			m_fill.height = 0.01
-			if is_instance_valid(_map_b) and is_instance_valid(_map_b.get("terrain_node")):
+			var used_conforming = false
+			if is_instance_valid(map_node) and is_instance_valid(map_node.get("terrain_node")):
 				var em_node2 = get_tree().get_first_node_in_group("world_node")
 				if em_node2 and em_node2.has_node("EntityManager"):
 					var mgr2 = em_node2.get_node("EntityManager")
 					if mgr2 and mgr2.has_method("_make_circle_disc_conforming"):
-						m_fill = mgr2._make_circle_disc_conforming(target_2d, exp_radius * 0.88, _map_b)
+						m_fill = mgr2._make_circle_disc_conforming(target_2d, exp_radius * 0.88, map_node)
+						used_conforming = true
 			marker_fill.mesh = m_fill
 			marker_fill.material_override = _cached_bomb_marker_fill_mat
+			if used_conforming:
+				marker_fill.scale = Vector3(1.0, 1.0, 1.0 / correction_z)
 			_bomb_ground_marker.add_child(marker_fill)
 
 			tree_exiting.connect(_safe_free_world_root_3d)
@@ -1862,12 +1864,14 @@ func _physics_process(delta):
 		velocity = Vector2.RIGHT.rotated(rotation) * speed
 	
 	elif type == "mine":
-		# La mina viaja a su velocidad hacia el objetivo y desacelera suavemente en el último tramo
+		# La mina viaja a su velocidad hacia el objetivo y desacelera suavemente en el último tramo hasta detenerse
 		if max_range > 0.0:
 			var curr_dist = global_position.distance_to(_start_pos)
-			if curr_dist >= max_range * 0.75:
-				var decel = _safe_float(_current_data.get("deceleration", 3.5), 3.5)
-				velocity = velocity.lerp(Vector2.ZERO, decel * 2.0 * delta)
+			if curr_dist >= max_range * 0.5:
+				var brake_factor = clamp((max_range - curr_dist) / (max_range * 0.5), 0.02, 1.0)
+				velocity = velocity.normalized() * (speed * brake_factor)
+				if curr_dist >= max_range - 2.0:
+					velocity = Vector2.ZERO
 		else:
 			var decel = _safe_float(_current_data.get("deceleration", 3.5), 3.5)
 			velocity = velocity.lerp(Vector2.ZERO, decel * delta)
@@ -2009,14 +2013,14 @@ func _physics_process(delta):
 			var t = clamp(_current_lifetime / total_flight_time, 0.0, 1.0)
 			var time = Time.get_ticks_msec() / 1000.0
 			
-			var max_h = 4.5 # Altura máxima del arco de la parábola
-			var height_y = sin(t * PI) * max_h
+			# Parábola 3D dinámica: sale desde la altura de disparo de la nave y salta hacia arriba en arco
+			var max_h = 4.0
+			var start_h = _aim_height()
+			var height_y = start_h + sin(t * PI) * max_h
 			
-			# La posición horizontal (X, Z) sigue a la posición 2D actual del proyectil en vuelo
 			world_root_3d.position.x = global_position.x * s_factor
 			world_root_3d.position.z = global_position.y * s_factor * correction_z
-			var base_h = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
-			world_root_3d.position.y = base_h + height_y
+			world_root_3d.position.y = height_y
 			
 			# Rotación constante en el aire para efecto de giro dinámico
 			world_root_3d.rotate_x(delta * 5.0)
@@ -2300,7 +2304,7 @@ func _explode():
 				flash_mat.emission_energy_multiplier = 8.0
 				flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				flash.material_override = flash_mat
-				flash.position = world_root_3d.position
+				flash.position = Vector3(world_root_3d.position.x, _target_ground_height + 0.02, world_root_3d.position.z)
 				vp.add_child(flash)
 				var tw_f = flash.create_tween()
 				tw_f.tween_property(flash, "scale", Vector3(2.5, 2.5, 2.5), 0.3)

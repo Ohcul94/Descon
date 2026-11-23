@@ -58,6 +58,8 @@ func _create_shop_card(it, cat, parent):
 	var p = PanelContainer.new()
 	if cat == "ships":
 		p.custom_minimum_size = Vector2(280, 135) # Más alto para acomodar el botón de detalles
+	elif cat == "ammo":
+		p.custom_minimum_size = Vector2(280, 140) # Más alto para mostrar las stats de munición
 	else:
 		p.custom_minimum_size = Vector2(280, 110)
 		
@@ -149,12 +151,109 @@ func _item_stats(it, cat) -> Array:
 		"engines":
 			if base_val != 0.0: out.append(["Velocidad: +" + _fmt_num(base_val), Color.YELLOW])
 			out.append_array(_mod_lines(it, ["shieldMod", "hpMod", "dmgMod"]))
+		"ammo":
+			out.append_array(_ammo_stats_lines(it))
 	return out
 
-func _fmt_num(v: float) -> String:
-	if v == floor(v):
-		return str(int(v))
-	return str(v)
+func _ammo_stats_lines(it: Dictionary) -> Array:
+	var out: Array = []
+	var a_type = str(it.get("ammo_type", ""))
+	var t_idx = int(it.get("tier_index", 0))
+
+	var ts = get_tree().get_first_node_in_group("talent_system")
+	var dyn_bonuses: Dictionary = ts.get_dynamic_bonuses() if is_instance_valid(ts) else {}
+	var dmg_bonus = dyn_bonuses.get("ammo:" + a_type + ":damage", null)
+	var r_bonus = dyn_bonuses.get("ammo:" + a_type + ":range", null)
+	var spd_bonus = dyn_bonuses.get("ammo:" + a_type + ":bulletSpeed", null)
+	var cd_bonus = dyn_bonuses.get("ammo:" + a_type + ":cooldown", null)
+
+	# 1. Daño
+	if GameConstants and a_type != "":
+		var mults = GameConstants.AMMO_MULTIPLIERS.get(a_type, [])
+		if typeof(mults) == TYPE_ARRAY and t_idx < mults.size() and mults[t_idx] != null:
+			var base_m = float(mults[t_idx])
+			if dmg_bonus:
+				var d_val = float(dmg_bonus.get("val", 0.0))
+				if dmg_bonus.get("flat", false):
+					var total_m = base_m + d_val
+					out.append(["Daño: x%s + %s = x%s" % [_fmt_num(base_m), _fmt_num(d_val), _fmt_num(total_m)], Color(1.0, 0.45, 0.45)])
+				elif d_val != 0.0:
+					var total_m = base_m * (1.0 + d_val)
+					var added_m = total_m - base_m
+					out.append(["Daño: x%s + %s (+%s%%) = x%s" % [_fmt_num(base_m), _fmt_num(added_m), _fmt_num(d_val * 100.0), _fmt_num(total_m)], Color(1.0, 0.45, 0.45)])
+				else:
+					out.append(["Daño: x%s" % [_fmt_num(base_m)], Color(1.0, 0.45, 0.45)])
+			else:
+				out.append(["Daño: x%s" % [_fmt_num(base_m)], Color(1.0, 0.45, 0.45)])
+
+	# 2. Alcance
+	if it.has("range"):
+		var base_r = float(it.range)
+		if r_bonus:
+			var r_val = float(r_bonus.get("val", 0.0))
+			if r_bonus.get("flat", false):
+				var total_r = base_r + r_val
+				out.append(["Alcance: %s + %s = %s" % [_fmt_num(base_r), _fmt_num(r_val), _fmt_num(total_r)], Color(0.35, 0.9, 1.0)])
+			elif r_val != 0.0:
+				var added = base_r * r_val
+				var total_r = base_r * (1.0 + r_val)
+				out.append(["Alcance: %s + %s (+%s%%) = %s" % [_fmt_num(base_r), _fmt_num(added), _fmt_num(r_val * 100.0), _fmt_num(total_r)], Color(0.35, 0.9, 1.0)])
+			else:
+				out.append(["Alcance: %s" % [_fmt_num(base_r)], Color(0.35, 0.9, 1.0)])
+		else:
+			out.append(["Alcance: %s" % [_fmt_num(base_r)], Color(0.35, 0.9, 1.0)])
+
+	# 3. Velocidad
+	if it.has("bulletSpeed"):
+		var base_spd = float(it.bulletSpeed)
+		if spd_bonus:
+			var s_val = float(spd_bonus.get("val", 0.0))
+			if spd_bonus.get("flat", false):
+				var total_spd = base_spd + s_val
+				out.append(["Velocidad: %s + %s = %s" % [_fmt_num(base_spd), _fmt_num(s_val), _fmt_num(total_spd)], Color(1.0, 0.9, 0.35)])
+			elif s_val != 0.0:
+				var added = base_spd * s_val
+				var total_spd = base_spd * (1.0 + s_val)
+				out.append(["Velocidad: %s + %s (+%s%%) = %s" % [_fmt_num(base_spd), _fmt_num(added), _fmt_num(s_val * 100.0), _fmt_num(total_spd)], Color(1.0, 0.9, 0.35)])
+			else:
+				out.append(["Velocidad: %s" % [_fmt_num(base_spd)], Color(1.0, 0.9, 0.35)])
+		else:
+			out.append(["Velocidad: %s" % [_fmt_num(base_spd)], Color(1.0, 0.9, 0.35)])
+
+	# 4. Cooldown
+	if it.has("cooldown"):
+		var base_cd_ms = float(it.cooldown)
+		var base_s = _fmt_num(base_cd_ms / 1000.0) + "s"
+		if cd_bonus:
+			var c_val = float(cd_bonus.get("val", 0.0))
+			if c_val != 0.0:
+				var total_cd_ms = max(50.0, base_cd_ms * (1.0 - abs(c_val)))
+				var diff_ms = base_cd_ms - total_cd_ms
+				var diff_s = diff_ms / 1000.0
+				var total_s = _fmt_num(total_cd_ms / 1000.0) + "s"
+				out.append(["Recarga: %s - %s (-%s%%) = %s" % [base_s, _fmt_num(diff_s) + "s", _fmt_num(abs(c_val) * 100.0), total_s], Color(0.4, 1.0, 0.5)])
+			else:
+				out.append(["Recarga: %s" % [base_s], Color(0.4, 1.0, 0.5)])
+		else:
+			out.append(["Recarga: %s" % [base_s], Color(0.4, 1.0, 0.5)])
+
+	if it.has("castTimeMs") and int(it.castTimeMs) > 0:
+		out.append(["Canalizado: " + _fmt_num(float(it.castTimeMs) / 1000.0) + "s", Color(0.85, 0.85, 1.0)])
+	if it.has("explosionRadius") and int(it.explosionRadius) > 0:
+		out.append(["Radio de explosión: " + _fmt_num(it.explosionRadius), Color(1.0, 0.65, 0.25)])
+
+	return out
+
+func _fmt_num(v) -> String:
+	var f = float(v)
+	if abs(f - round(f)) < 0.0001:
+		return str(int(round(f)))
+	var s = "%.2f" % f
+	while s.ends_with("0"):
+		s = s.substr(0, s.length() - 1)
+	if s.ends_with("."):
+		s = s.substr(0, s.length() - 1)
+	return s
 
 func _mod_lines(it, keys) -> Array:
 	var out: Array = []
@@ -177,6 +276,25 @@ func _mods_bbcode(it, cat) -> String:
 			if base_val != 0.0: out += " [color=aqua]Escudo: +" + _fmt_num(base_val) + "[/color]"
 		"engines":
 			if base_val != 0.0: out += " [color=yellow]Velocidad: +" + _fmt_num(base_val) + "[/color]"
+		"ammo":
+			var a_type = str(it.get("ammo_type", ""))
+			var t_idx = int(it.get("tier_index", 0))
+			if GameConstants and a_type != "":
+				var mults = GameConstants.AMMO_MULTIPLIERS.get(a_type, [])
+				if typeof(mults) == TYPE_ARRAY and t_idx < mults.size() and mults[t_idx] != null:
+					out += " [color=red]Daño: x" + _fmt_num(float(mults[t_idx])) + "[/color]"
+			if it.has("range"):
+				out += " [color=aqua]Alcance: " + _fmt_num(it.range) + "[/color]"
+			if it.has("bulletSpeed"):
+				out += " [color=yellow]Vel.: " + _fmt_num(it.bulletSpeed) + "[/color]"
+			if it.has("cooldown"):
+				var cd_s = _fmt_num(float(it.cooldown) / 1000.0) + "s"
+				out += " [color=green]CD: " + cd_s + "[/color]"
+			if it.has("castTimeMs") and int(it.castTimeMs) > 0:
+				out += " [color=silver]Canalizado: " + _fmt_num(float(it.castTimeMs) / 1000.0) + "s[/color]"
+			if it.has("explosionRadius") and int(it.explosionRadius) > 0:
+				out += " [color=orange]Radio: " + _fmt_num(it.explosionRadius) + "[/color]"
+			return "STATS:" + out + "\n\n"
 	var names = { "hpMod": "Vida", "shieldMod": "Escudo", "speedMod": "Velocidad", "dmgMod": "Ataque" }
 	var tags = { "hpMod": "green", "shieldMod": "aqua", "speedMod": "yellow", "dmgMod": "red" }
 	var keys = []
@@ -511,9 +629,12 @@ func _render_ammo_shop(parent, grid):
 	var ammo_base = GameConstants.SHOP_ITEMS.get("ammo", {})
 	var items = ammo_base.get(ammo_sub_tab, [])
 	var icon_path = str(AMMO_TYPE_ICONS.get(ammo_sub_tab, ""))
-	for it in items:
+	for idx in range(items.size()):
+		var it = items[idx]
 		if it.get("hidden", false): continue # v620.0: Ojito de visibilidad
 		var it_view = it.duplicate()
+		it_view["ammo_type"] = ammo_sub_tab
+		it_view["tier_index"] = idx
 		if icon_path != "" and str(it_view.get("icon", "")) == "":
 			it_view["icon"] = icon_path
 		_create_shop_card(it_view, "ammo", grid)

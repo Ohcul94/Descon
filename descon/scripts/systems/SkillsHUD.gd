@@ -110,6 +110,7 @@ func _ready():
 			NetworkManager.config_updated.disconnect(_on_config_updated)
 		NetworkManager.config_updated.connect(_on_config_updated)
 			
+	_ensure_ammo_popup()
 	set_process(true)
 
 func _process(_delta):
@@ -117,6 +118,24 @@ func _process(_delta):
 	if not is_instance_valid(p_node) or p_node.get("is_dead") or p_node.get("entity_id") == "":
 		return
 	
+	# Monitoreo de hover de 2 segundos para desplegar popup arriba del cuadrito
+	if is_instance_valid(_current_hover_slot):
+		var btn = _current_hover_slot.get_node_or_null("TouchButton") as Button
+		var is_hovering = false
+		if is_instance_valid(btn):
+			is_hovering = btn.is_hovered()
+		else:
+			is_hovering = _current_hover_slot.get_global_rect().has_point(_current_hover_slot.get_global_mouse_position())
+		
+		if not is_hovering:
+			_on_slot_mouse_exited(_current_hover_slot)
+		else:
+			if not _hover_triggered:
+				_hover_timer += _delta
+				if _hover_timer >= 2.0:
+					_hover_triggered = true
+					_show_ammo_popup_for_slot(_current_hover_slot)
+
 	_update_skill_ui(0, p_node, get_node_or_null("LaserSlot"))
 	_update_skill_ui(1, p_node, get_node_or_null("MissileSlot"))
 	_update_skill_ui(2, p_node, get_node_or_null("MineSlot"))
@@ -225,6 +244,294 @@ func _format_val(v):
 			c = 0
 	return r
 
+func _fmt_time_ms(v) -> String:
+	var sec = float(v) / 1000.0
+	return _fmt_num(sec) + "s"
+
+func _fmt_num(v) -> String:
+	var f = float(v)
+	if abs(f - round(f)) < 0.0001:
+		return str(int(round(f)))
+	var s = "%.2f" % f
+	while s.ends_with("0"):
+		s = s.substr(0, s.length() - 1)
+	if s.ends_with("."):
+		s = s.substr(0, s.length() - 1)
+	return s
+
+var _current_hover_slot: Control = null
+var _hover_timer: float = 0.0
+var _hover_triggered: bool = false
+var _ammo_popup: PanelContainer = null
+var _ammo_popup_content: VBoxContainer = null
+
+func _ensure_ammo_popup():
+	if is_instance_valid(_ammo_popup):
+		return
+	_ammo_popup = PanelContainer.new()
+	_ammo_popup.name = "AmmoHUDHoverPopup"
+	_ammo_popup.top_level = true
+	_ammo_popup.z_index = 250
+	_ammo_popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ammo_popup.visible = false
+	_ammo_popup.custom_minimum_size = Vector2(250, 0)
+
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.015, 0.04, 0.08, 0.95)
+	sb.border_color = Color(0.0, 0.85, 1.0, 0.85)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(8)
+	sb.shadow_color = Color(0, 0, 0, 0.7)
+	sb.shadow_size = 8
+	sb.shadow_offset = Vector2(0, 2)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	_ammo_popup.add_theme_stylebox_override("panel", sb)
+
+	_ammo_popup_content = VBoxContainer.new()
+	_ammo_popup_content.name = "ContentVBox"
+	_ammo_popup_content.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_ammo_popup_content.add_theme_constant_override("separation", 3)
+	_ammo_popup_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ammo_popup_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_ammo_popup_content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_ammo_popup.add_child(_ammo_popup_content)
+
+	var target_parent = get_parent()
+	if not is_instance_valid(target_parent):
+		target_parent = self
+	target_parent.add_child(_ammo_popup)
+
+func _on_slot_mouse_entered(slot_node: Control):
+	if slot_node != sl and slot_node != smi and slot_node != sei:
+		return
+	if _current_hover_slot == slot_node:
+		return
+	_current_hover_slot = slot_node
+	_hover_timer = 0.0
+	_hover_triggered = false
+
+func _on_slot_mouse_exited(slot_node: Control):
+	if _current_hover_slot == slot_node:
+		_current_hover_slot = null
+		_hover_timer = 0.0
+		_hover_triggered = false
+		_hide_ammo_popup()
+
+func _hide_ammo_popup():
+	if is_instance_valid(_ammo_popup):
+		_ammo_popup.visible = false
+
+func _show_ammo_popup_for_slot(slot: Control):
+	if not is_instance_valid(slot):
+		return
+	var p_node = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(p_node) or not p_node.get("ammo_slots"):
+		return
+
+	var slot_idx = -1
+	if slot == sl: slot_idx = 0
+	elif slot == smi: slot_idx = 1
+	elif slot == sei: slot_idx = 2
+
+	if slot_idx < 0 or slot_idx >= p_node.ammo_slots.size():
+		return
+	var type = str(p_node.ammo_slots[slot_idx]).to_lower()
+	if type.is_empty():
+		return
+
+	var t_idx = int(p_node.selected_ammo.get(type, 0)) if p_node.get("selected_ammo") else 0
+	_update_popup_content(type, t_idx, p_node)
+
+	_ammo_popup.visible = true
+	_ammo_popup.size = Vector2(250, 0)
+	_ammo_popup.reset_size()
+	var min_s = _ammo_popup.get_combined_minimum_size()
+	var popup_w = max(min_s.x, 250.0)
+	var popup_h = max(min_s.y, 40.0)
+	_ammo_popup.size = Vector2(popup_w, popup_h)
+
+	var slot_rect = slot.get_global_rect()
+	var center_x = slot_rect.position.x + (slot_rect.size.x * 0.5) - (popup_w * 0.5)
+	var top_y = slot_rect.position.y - popup_h - 12.0
+
+	var vp_size = get_viewport_rect().size
+	center_x = clamp(center_x, 10.0, vp_size.x - popup_w - 10.0)
+	top_y = max(10.0, top_y)
+
+	_ammo_popup.global_position = Vector2(center_x, top_y)
+
+func _update_popup_content(type: String, t_idx: int, ref):
+	_ensure_ammo_popup()
+	if not is_instance_valid(_ammo_popup_content):
+		return
+
+	for child in _ammo_popup_content.get_children():
+		_ammo_popup_content.remove_child(child)
+		child.queue_free()
+
+	var type_names = {
+		"laser": "LÁSER FRONTAL", "missile": "MISIL TÁCTICO", "mine": "MINA DE PROXIMIDAD",
+		"melee": "CORTADOR MELEE", "heal": "PROYECTIL CURATIVO", "siphon": "ROBO DE VIDA",
+		"emp": "PULSO EMP", "electron": "ELECTRÓN"
+	}
+	var type_colors = {
+		"laser": Color(0.3, 0.85, 1.0), "missile": Color(1.0, 0.55, 0.2), "mine": Color(1.0, 0.85, 0.2),
+		"melee": Color(1.0, 0.35, 0.35), "heal": Color(0.35, 1.0, 0.55), "siphon": Color(1.0, 0.45, 0.95),
+		"emp": Color(0.4, 0.65, 1.0), "electron": Color(0.35, 0.95, 1.0)
+	}
+
+	var name_str = type_names.get(type, type.to_upper())
+	var accent_color = type_colors.get(type, Color(0.0, 0.85, 1.0))
+
+	var sb = _ammo_popup.get_theme_stylebox("panel") as StyleBoxFlat
+	if sb:
+		sb.border_color = accent_color
+
+	var title_lbl = Label.new()
+	title_lbl.text = "=== " + name_str + " ==="
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 11)
+	title_lbl.add_theme_color_override("font_color", accent_color)
+	title_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	title_lbl.add_theme_constant_override("outline_size", 3)
+	_ammo_popup_content.add_child(title_lbl)
+
+	var cfg = {}
+	if GameConstants:
+		var ammo_base = GameConstants.SHOP_ITEMS.get("ammo", {})
+		var list = ammo_base.get(type, [])
+		if typeof(list) == TYPE_ARRAY and t_idx >= 0 and t_idx < list.size():
+			cfg = list[t_idx] if typeof(list[t_idx]) == TYPE_DICTIONARY else {}
+
+	var default_ranges = {"laser": 500.0, "missile": 800.0, "mine": 1100.0, "melee": 200.0, "heal": 600.0, "siphon": 600.0, "emp": 500.0, "electron": 500.0}
+	var default_speeds = {"laser": 1000.0, "missile": 800.0, "mine": 1200.0, "melee": 1500.0, "heal": 1000.0, "siphon": 1200.0, "emp": 800.0, "electron": 600.0}
+	var default_cds = {"laser": 1000.0, "missile": 3000.0, "mine": 5000.0, "melee": 1000.0, "heal": 2000.0, "siphon": 3000.0, "emp": 4000.0, "electron": 4000.0}
+
+	var ts = get_tree().get_first_node_in_group("talent_system")
+	var dyn_bonuses: Dictionary = ts.get_dynamic_bonuses() if is_instance_valid(ts) else {}
+	var dmg_bonus = dyn_bonuses.get("ammo:" + type + ":damage", null)
+	var r_bonus = dyn_bonuses.get("ammo:" + type + ":range", null)
+	var spd_bonus = dyn_bonuses.get("ammo:" + type + ":bulletSpeed", null)
+	var cd_bonus = dyn_bonuses.get("ammo:" + type + ":cooldown", null)
+
+	var ship_dmg = float(ref.base_laser_damage) if (is_instance_valid(ref) and "base_laser_damage" in ref) else 100.0
+
+	var add_line = func(text: String, col: Color):
+		var lbl = Label.new()
+		lbl.text = text
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.add_theme_color_override("font_color", col)
+		lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		lbl.add_theme_constant_override("outline_size", 2)
+		_ammo_popup_content.add_child(lbl)
+
+	# 1. Daño
+	var mults = GameConstants.AMMO_MULTIPLIERS.get(type, [1.0]) if GameConstants else [1.0]
+	var base_m = float(mults[t_idx]) if (typeof(mults) == TYPE_ARRAY and t_idx < mults.size() and mults[t_idx] != null) else 1.0
+	var base_dmg = round(ship_dmg * base_m)
+	if dmg_bonus:
+		var d_val = float(dmg_bonus.get("val", 0.0))
+		var total_m = base_m
+		if dmg_bonus.get("flat", false):
+			total_m += d_val
+			var final_dmg = round(ship_dmg * total_m)
+			var added_dmg = final_dmg - base_dmg
+			add_line.call("💥 Daño: %s + %s = %s DMG" % [_fmt_num(base_dmg), _fmt_num(added_dmg), _fmt_num(final_dmg)], Color(1.0, 0.45, 0.45))
+		elif d_val != 0.0:
+			total_m = base_m * (1.0 + d_val)
+			var final_dmg = round(ship_dmg * total_m)
+			var added_dmg = final_dmg - base_dmg
+			add_line.call("💥 Daño: %s + %s (+%s%%) = %s DMG" % [_fmt_num(base_dmg), _fmt_num(added_dmg), _fmt_num(d_val * 100.0), _fmt_num(final_dmg)], Color(1.0, 0.45, 0.45))
+		else:
+			add_line.call("💥 Daño: %s DMG (x%s)" % [_fmt_num(base_dmg), _fmt_num(base_m)], Color(1.0, 0.45, 0.45))
+	else:
+		add_line.call("💥 Daño: %s DMG (x%s)" % [_fmt_num(base_dmg), _fmt_num(base_m)], Color(1.0, 0.45, 0.45))
+
+	# 2. Alcance
+	var base_r = float(cfg.range) if cfg.has("range") else float(default_ranges.get(type, 500.0))
+	if r_bonus:
+		var r_val = float(r_bonus.get("val", 0.0))
+		if r_bonus.get("flat", false):
+			var total_r = base_r + r_val
+			add_line.call("🎯 Alcance: %s + %s = %s" % [_fmt_num(base_r), _fmt_num(r_val), _fmt_num(total_r)], Color(0.35, 0.9, 1.0))
+		elif r_val != 0.0:
+			var added = base_r * r_val
+			var total_r = base_r * (1.0 + r_val)
+			add_line.call("🎯 Alcance: %s + %s (+%s%%) = %s" % [_fmt_num(base_r), _fmt_num(added), _fmt_num(r_val * 100.0), _fmt_num(total_r)], Color(0.35, 0.9, 1.0))
+		else:
+			add_line.call("🎯 Alcance: %s" % [_fmt_num(base_r)], Color(0.35, 0.9, 1.0))
+	else:
+		add_line.call("🎯 Alcance: %s" % [_fmt_num(base_r)], Color(0.35, 0.9, 1.0))
+
+	# 3. Velocidad
+	var base_spd = float(cfg.bulletSpeed) if cfg.has("bulletSpeed") else float(default_speeds.get(type, 800.0))
+	if spd_bonus:
+		var s_val = float(spd_bonus.get("val", 0.0))
+		if spd_bonus.get("flat", false):
+			var total_spd = base_spd + s_val
+			add_line.call("⚡ Velocidad: %s + %s = %s" % [_fmt_num(base_spd), _fmt_num(s_val), _fmt_num(total_spd)], Color(1.0, 0.9, 0.35))
+		elif s_val != 0.0:
+			var added = base_spd * s_val
+			var total_spd = base_spd * (1.0 + s_val)
+			add_line.call("⚡ Velocidad: %s + %s (+%s%%) = %s" % [_fmt_num(base_spd), _fmt_num(added), _fmt_num(s_val * 100.0), _fmt_num(total_spd)], Color(1.0, 0.9, 0.35))
+		else:
+			add_line.call("⚡ Velocidad: %s" % [_fmt_num(base_spd)], Color(1.0, 0.9, 0.35))
+	else:
+		add_line.call("⚡ Velocidad: %s" % [_fmt_num(base_spd)], Color(1.0, 0.9, 0.35))
+
+	# 4. Cooldown
+	var base_cd_ms = float(cfg.cooldown) if cfg.has("cooldown") else float(default_cds.get(type, 1000.0))
+	if cd_bonus:
+		var c_val = float(cd_bonus.get("val", 0.0))
+		if c_val != 0.0:
+			var total_cd_ms = max(50.0, base_cd_ms * (1.0 - abs(c_val)))
+			var diff_ms = base_cd_ms - total_cd_ms
+			var base_cd_s = _fmt_time_ms(base_cd_ms)
+			var total_cd_s = _fmt_time_ms(total_cd_ms)
+			add_line.call("⏱️ Recarga: %s - %s (-%s%%) = %s" % [base_cd_s, _fmt_time_ms(diff_ms), _fmt_num(abs(c_val) * 100.0), total_cd_s], Color(0.4, 1.0, 0.5))
+		else:
+			add_line.call("⏱️ Recarga: %s" % [_fmt_time_ms(base_cd_ms)], Color(0.4, 1.0, 0.5))
+	else:
+		add_line.call("⏱️ Recarga: %s" % [_fmt_time_ms(base_cd_ms)], Color(0.4, 1.0, 0.5))
+
+	# 5. Canalizado
+	if cfg.has("castTimeMs") and int(cfg.castTimeMs) > 0:
+		add_line.call("⏳ Canalizado: " + _fmt_time_ms(cfg.castTimeMs), Color(0.85, 0.85, 1.0))
+
+	# 6. Radio de explosión
+	if cfg.has("explosionRadius") and int(cfg.explosionRadius) > 0:
+		add_line.call("💣 Radio de explosión: " + _fmt_num(cfg.explosionRadius), Color(1.0, 0.65, 0.25))
+
+	# 7. Duración en mapa
+	if cfg.has("lifetimeMs") and int(cfg.lifetimeMs) > 0:
+		add_line.call("⏳ Duración en mapa: " + _fmt_time_ms(cfg.lifetimeMs), Color(0.75, 0.75, 0.85))
+
+	# 8. Efectos específicos
+	match type:
+		"heal":
+			if cfg.has("healPctPvE"):
+				add_line.call("💚 Cura: +" + _fmt_num(cfg.healPctPvE) + "% de daño como vida (PvE)", Color(0.35, 1.0, 0.55))
+			if cfg.has("healPctVictimPvP") or cfg.has("healPctAttackerPvP"):
+				add_line.call("💚 Cura PvP: aliado +" + _fmt_num(cfg.get("healPctVictimPvP", 80)) + "% / atacante +" + _fmt_num(cfg.get("healPctAttackerPvP", 30)) + "%", Color(0.35, 1.0, 0.55))
+		"siphon":
+			if cfg.has("siphonPct"):
+				add_line.call("🔮 Robo de vida: absorbe +" + _fmt_num(cfg.siphonPct) + "% de daño", Color(1.0, 0.45, 0.95))
+		"emp":
+			if cfg.has("silenceDurationMs"):
+				add_line.call("📡 Silencio EMP: anula habilidades por " + _fmt_time_ms(cfg.silenceDurationMs), Color(0.4, 0.65, 1.0))
+		"melee":
+			if cfg.has("slowDurationMs"):
+				add_line.call("⚔️ Ralentización: %s (-%s vel.)" % [_fmt_time_ms(cfg.slowDurationMs), _fmt_num(cfg.get("slowAmount", 200))], Color(1.0, 0.55, 0.35))
+		"electron":
+			if cfg.has("speedBuffPct"):
+				add_line.call("⚛️ Buff Velocidad: +%s%% por impacto (%s, máx %s acum.)" % [_fmt_num(cfg.speedBuffPct), _fmt_time_ms(cfg.get("speedBuffDurationMs", 3000)), _fmt_num(cfg.get("speedBuffMaxStacks", 4))], Color(0.35, 0.95, 1.0))
+
 func _get_cooldown_fill_shader() -> Shader:
 	if _cooldown_fill_shader == null:
 		_cooldown_fill_shader = Shader.new()
@@ -304,6 +611,11 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 	
 	# Icono de munición del slot (según tipo equipado en ammo_slots)
 	_update_ammo_slot_icon(slot, type)
+	# Limpiar tooltip nativo del motor para usar el popup flotante centrado de 2s
+	slot.tooltip_text = ""
+	var btn_s = slot.get_node_or_null("TouchButton")
+	if is_instance_valid(btn_s):
+		btn_s.tooltip_text = ""
 
 	# Control de Overlay de Cooldown Oscuro (encima del icono)
 	var overlay = slot.get_node_or_null("CooldownOverlay") as ColorRect
@@ -671,7 +983,12 @@ func _make_clickable(node: Control, callback: Callable):
 		aim.add_theme_stylebox_override("panel", style_aim)
 		node.add_child(aim)
 	
-	btn.gui_input.connect(_on_touch_button_input.bind(node, callback))
+	if not btn.gui_input.is_connected(_on_touch_button_input.bind(node, callback)):
+		btn.gui_input.connect(_on_touch_button_input.bind(node, callback))
+	if not btn.mouse_entered.is_connected(_on_slot_mouse_entered.bind(node)):
+		btn.mouse_entered.connect(_on_slot_mouse_entered.bind(node))
+	if not btn.mouse_exited.is_connected(_on_slot_mouse_exited.bind(node)):
+		btn.mouse_exited.connect(_on_slot_mouse_exited.bind(node))
 	_touch_registry[node] = callback
 
 func _on_sphere_slot_gui_input(event: InputEvent, id: int):
@@ -736,6 +1053,10 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 				   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 	
 	if is_press:
+		_hide_ammo_popup()
+		_current_hover_slot = null
+		_hover_timer = 0.0
+		_hover_triggered = false
 		# Un solo aim a la vez: evita doble start por emulación touch→mouse
 		# y que un segundo dedo robe el apuntado.
 		if _aim_drag_active:

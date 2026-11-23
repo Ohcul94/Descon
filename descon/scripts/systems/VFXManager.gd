@@ -1370,6 +1370,8 @@ func _cache_materials_recursive(node: Node):
 	if node is GeometryInstance3D:
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		node.extra_cull_margin = 10000.0
+		node.ignore_occlusion_culling = true
 
 	if node is MeshInstance3D:
 		if node.material_override:
@@ -1444,11 +1446,30 @@ func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 		"res://VFX/scenes/vfx_std_fire_ball.tscn"
 	]
 	
-	# Contenedor temporal de precalentamiento fuera de cámara (durante la transición Warp)
+	# Contenedor temporal de precalentamiento DENTRO del cono de visión de la cámara activa.
+	# v1005.0: Se ancla directamente a Camera3D frente a la lente (Z = -2.0) con escala diminuta
+	# para garantizar que el Frustum Culling de Vulkan/Godot 4 NO descarte los draw calls.
+	# El telón negro de Warp cubre 100% la pantalla mientras la GPU compila los pipelines.
+	var active_cam: Camera3D = sub_vp.get_camera_3d()
+	if not is_instance_valid(active_cam):
+		active_cam = sub_vp.get_node_or_null("Camera3D")
+		if not is_instance_valid(active_cam):
+			for ch in sub_vp.get_children():
+				if ch is Camera3D:
+					active_cam = ch
+					break
+
 	var warmup_container = Node3D.new()
-	warmup_container.name = "WarmupOffscreenContainer"
-	warmup_container.position = Vector3(0.0, -9999.0, 0.0)
-	sub_vp.add_child(warmup_container)
+	warmup_container.name = "WarmupInCameraContainer"
+	
+	if is_instance_valid(active_cam):
+		active_cam.add_child(warmup_container)
+		warmup_container.position = Vector3(0.0, 0.0, -2.0)
+		warmup_container.scale = Vector3(0.005, 0.005, 0.005)
+	else:
+		sub_vp.add_child(warmup_container)
+		warmup_container.position = Vector3.ZERO
+		warmup_container.scale = Vector3(0.005, 0.005, 0.005)
 
 	for path in prewarm_scenes:
 		if not _vfx_pools.has(path):
@@ -1543,12 +1564,27 @@ func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
 		warmup_container.add_child(b_warm)
 		_cache_materials_recursive(b_warm)
 
+	# Precalentar mallas y materiales de proyectiles procedurales (Electrón, Minas, Hook, Siphon, etc.)
+	var p_warm = _create_projectiles_warmup_node()
+	if p_warm:
+		warmup_container.add_child(p_warm)
+		_cache_materials_recursive(p_warm)
+
+	# Precalentar mecánicas de enemigos (Domo, Tormenta de Hielo, Shaders de agua y scroll)
+	var mech_warm = _create_enemy_mechanics_warmup_node()
+	if mech_warm:
+		warmup_container.add_child(mech_warm)
+		_cache_materials_recursive(mech_warm)
+
+	# Precalentar modelos GLB de enemigos del mapa actual y Admin Dash
+	_prewarm_map_enemies(warmup_container, sub_vp)
+
 	# Permitir que el motor de renderizado procese los shaders durante la pantalla de carga (Warp) antes de liberar
 	var tw = warmup_container.create_tween()
 	tw.tween_interval(0.6)
 	tw.tween_callback(warmup_container.queue_free)
 
-	print("[VFXManager] Pool precalentado en SubViewport con éxito (38 escenas VFX profundas [18x proyectiles/hits, 8x escudos] + auras + Blink + Bosses + Projectiles).")
+	print("[VFXManager] Pool precalentado en SubViewport con éxito (38 escenas VFX + auras + Blink + Projectiles + Mecánicas + Enemigos del mapa).")
 
 func _create_meteor_warmup_node() -> Node3D:
 	var root = Node3D.new()
@@ -1969,3 +2005,206 @@ func _create_blink_warmup_node() -> Node3D:
 	root.add_child(s_sparks)
 
 	return root
+
+func _create_projectiles_warmup_node() -> Node3D:
+	var root = Node3D.new()
+	root.name = "ProjectilesWarmup"
+
+	var proj_script = load("res://scripts/entities/projectiles/Projectile.gd")
+	if not proj_script:
+		return root
+
+	if proj_script.has_method("_ensure_projectile_static_cache"):
+		proj_script._ensure_projectile_static_cache()
+
+	# Recoger todos los materiales de municiones cacheados en Projectile.gd
+	var mats = [
+		proj_script.get("_cached_mine_core_mat"),
+		proj_script.get("_cached_mine_ring_mat"),
+		proj_script.get("_cached_orb_mine_core_mat"),
+		proj_script.get("_cached_orb_mine_ring_mat"),
+		proj_script.get("_cached_hook_shaft_mat"),
+		proj_script.get("_cached_hook_tip_mat"),
+		proj_script.get("_cached_hook_ring_mat"),
+		proj_script.get("_cached_hook_orb_mat"),
+		proj_script.get("_cached_hook_chain_mat"),
+		proj_script.get("_cached_fear_core_mat"),
+		proj_script.get("_cached_fear_glow_mat"),
+		proj_script.get("_cached_electron_body_mat"),
+		proj_script.get("_cached_electron_glow_mat"),
+		proj_script.get("_cached_electron_fuse_mat"),
+		proj_script.get("_cached_electron_spark_mat"),
+		proj_script.get("_cached_electron_subspark_mat"),
+		proj_script.get("_cached_bomb_marker_mat"),
+		proj_script.get("_cached_bomb_marker_fill_mat"),
+		proj_script.get("_cached_shield_steal_core_mat"),
+		proj_script.get("_cached_shield_steal_ring_mat"),
+		proj_script.get("_cached_life_steal_core_mat"),
+		proj_script.get("_cached_life_steal_ring_mat"),
+		proj_script.get("_cached_poly_mat"),
+		proj_script.get("_cached_exec_bone_mat"),
+		proj_script.get("_cached_exec_eye_mat"),
+		proj_script.get("_cached_exec_jaw_mat")
+	]
+
+	var s_mesh = SphereMesh.new()
+	s_mesh.radius = 0.1
+	s_mesh.height = 0.2
+
+	for m in mats:
+		if m and m is Material:
+			var mi = MeshInstance3D.new()
+			mi.mesh = s_mesh
+			mi.material_override = m
+			root.add_child(mi)
+
+	return root
+
+func _create_enemy_mechanics_warmup_node() -> Node3D:
+	var root = Node3D.new()
+	root.name = "EnemyMechanicsWarmup"
+
+	# 1. Shaders procedurales de mecánicas de jefes (EntityMechanicsVFX)
+	var em_vfx = load("res://scripts/entities/EntityMechanicsVFX.gd")
+	if em_vfx:
+		if em_vfx.has_method("_ensure_mechanics_static_cache"):
+			em_vfx._ensure_mechanics_static_cache()
+		
+		var scroll_sh = em_vfx.get("_cached_scroll_shader")
+		if scroll_sh and scroll_sh is Shader:
+			var mi_s = MeshInstance3D.new()
+			mi_s.mesh = CylinderMesh.new()
+			var sm_s = ShaderMaterial.new()
+			sm_s.shader = scroll_sh
+			mi_s.material_override = sm_s
+			root.add_child(mi_s)
+
+		var water_sh = em_vfx.get("_cached_water_shader")
+		if water_sh and water_sh is Shader:
+			var mi_w = MeshInstance3D.new()
+			mi_w.mesh = SphereMesh.new()
+			var sm_w = ShaderMaterial.new()
+			sm_w.shader = water_sh
+			mi_w.material_override = sm_w
+			root.add_child(mi_w)
+
+	# 2. Shader del Domo de Supervivencia
+	var dome_shader_path = "res://resources/shaders/dome_force_field.gdshader"
+	if ResourceLoader.exists(dome_shader_path):
+		var d_sh = load(dome_shader_path)
+		if d_sh and d_sh is Shader:
+			var mi_d = MeshInstance3D.new()
+			mi_d.mesh = SphereMesh.new()
+			var sm_d = ShaderMaterial.new()
+			sm_d.shader = d_sh
+			mi_d.material_override = sm_d
+			root.add_child(mi_d)
+
+	# 3. Tormenta de Hielo de EntityManager
+	var em_script = load("res://scripts/systems/EntityManager.gd")
+	if em_script:
+		if em_script.has_method("_ensure_ice_storm_static_cache"):
+			em_script._ensure_ice_storm_static_cache()
+
+		var ice_mats = [
+			em_script.get("_is_charging_ground_mat"),
+			em_script.get("_is_charging_ring_mat"),
+			em_script.get("_is_ground_mat"),
+			em_script.get("_is_ring_outer_mat"),
+			em_script.get("_is_spike_mat"),
+			em_script.get("_is_fog_mat")
+		]
+
+		var cyl_m = CylinderMesh.new()
+		cyl_m.top_radius = 0.2
+		cyl_m.bottom_radius = 0.2
+		cyl_m.height = 0.4
+
+		for imat in ice_mats:
+			if imat and imat is Material:
+				var mi_i = MeshInstance3D.new()
+				mi_i.mesh = cyl_m
+				mi_i.material_override = imat
+				root.add_child(mi_i)
+
+	return root
+
+func _prewarm_map_enemies(warmup_container: Node3D, sub_vp: SubViewport) -> void:
+	var gc = get_node_or_null("/root/Constants")
+	if not gc:
+		gc = load("res://scripts/autoloads/Constants.gd")
+	var enemy_models_cfg = {}
+	if gc and "ENEMY_MODELS" in gc:
+		enemy_models_cfg = gc.ENEMY_MODELS
+	
+	# Detectar zona actual
+	var current_zone_id: int = 0
+	var world_node = sub_vp.get_tree().get_first_node_in_group("world_node")
+	if is_instance_valid(world_node) and "local_player" in world_node and is_instance_valid(world_node.local_player):
+		var p_zone = world_node.local_player.get("current_zone")
+		if p_zone != null:
+			current_zone_id = int(p_zone)
+	if current_zone_id == 0:
+		var map_node = sub_vp.get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and "zone_id" in map_node:
+			current_zone_id = int(map_node.zone_id)
+			
+	var types_to_warmup: Array[String] = []
+	
+	# 1. Leer tipos de la configuración de la zona en MAPS_CONFIG
+	if gc and "MAPS_CONFIG" in gc and gc.MAPS_CONFIG.has(str(current_zone_id)):
+		var map_cfg = gc.MAPS_CONFIG[str(current_zone_id)]
+		if map_cfg.has("spawns") and map_cfg.spawns is Array:
+			for sp in map_cfg.spawns:
+				if sp is Dictionary and sp.has("type"):
+					var st = str(sp.type)
+					if not types_to_warmup.has(st):
+						types_to_warmup.append(st)
+						
+	# 2. Tipos estándar y bosses si la lista está vacía
+	if types_to_warmup.is_empty():
+		types_to_warmup = ["1", "2", "3", "101"]
+	else:
+		for k in ["101", "102"]:
+			if not types_to_warmup.has(k) and types_to_warmup.size() < 8:
+				types_to_warmup.append(k)
+
+	# 3. Precargar e instanciar cada modelo GLB único
+	var loaded_paths: Array[String] = []
+	for t_str in types_to_warmup:
+		var glb_path = ""
+		var enemy_cfg = enemy_models_cfg.get(t_str, {})
+		if enemy_cfg.has("assetPath") and str(enemy_cfg.get("assetPath", "")) != "":
+			glb_path = enemy_cfg.assetPath
+		else:
+			var t_int = int(t_str)
+			match t_int:
+				1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13:
+					glb_path = "res://assets/Enemigos/3D/Enemigo" + str(t_int) + "/Enemigo" + str(t_int) + ".glb"
+				101:
+					glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
+				102:
+					glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
+				103:
+					glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
+				104:
+					glb_path = "res://assets/Enemigos/3D/Bosses/Boss4/Animaciones/AnimacionesBoss4.glb"
+				110:
+					glb_path = "res://assets/Enemigos/3D/Bosses/Boss10/ArañaRobotica.glb"
+				200:
+					glb_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
+					
+		if glb_path != "" and not loaded_paths.has(glb_path):
+			loaded_paths.append(glb_path)
+			if ResourceLoader.exists(glb_path):
+				var scene_res = get_cached_resource(glb_path)
+				if not scene_res:
+					scene_res = load(glb_path)
+					if scene_res:
+						_warmup_cache[glb_path] = scene_res
+				if scene_res:
+					var inst = scene_res.instantiate()
+					if inst is Node3D:
+						inst.scale = Vector3(0.001, 0.001, 0.001)
+						warmup_container.add_child(inst)
+						_cache_materials_recursive(inst)

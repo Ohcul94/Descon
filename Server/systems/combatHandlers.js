@@ -797,6 +797,10 @@ socket.on('playerFire', (fireData) => {
             targetId: fireData.targetId,
             range: Math.round(fireData.range !== undefined ? fireData.range : 600.0)
         };
+        if (fireData.bulletSpeed !== undefined) pData.bulletSpeed = fireData.bulletSpeed;
+        if (fireData.explosionRadius !== undefined) pData.explosionRadius = fireData.explosionRadius;
+        if (fireData.lifetimeMs !== undefined) pData.lifetimeMs = fireData.lifetimeMs;
+        if (fireData.deceleration !== undefined) pData.deceleration = fireData.deceleration;
 
         // v2.4: AOI adaptativo para playerFire
         // - Zonas especiales (arena_, extract_): broadcast completo para que todos vean los disparos

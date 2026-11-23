@@ -80,15 +80,19 @@ func _ammo_tier_cfg(w_id: String, t_idx: int) -> Dictionary:
 
 # Normaliza TODO tiempo a segundos (nunca mezclar ms y s en la UI del juego)
 func _fmt_time_ms(v) -> String:
-	return _fmt_num(snappedf(float(v) / 1000.0, 0.01)) + "s"
+	var sec = float(v) / 1000.0
+	return _fmt_num(sec) + "s"
 
 func _fmt_num(v) -> String:
-	if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
-		var f = float(v)
-		if f == floor(f):
-			return str(int(f))
-		return str(snappedf(f, 0.01))
-	return str(v)
+	var f = float(v)
+	if abs(f - round(f)) < 0.0001:
+		return str(int(round(f)))
+	var s = "%.2f" % f
+	while s.ends_with("0"):
+		s = s.substr(0, s.length() - 1)
+	if s.ends_with("."):
+		s = s.substr(0, s.length() - 1)
+	return s
 
 func _ammo_mechanics_text(cfg: Dictionary) -> String:
 	var mechs = cfg.get("mechanics", [])
@@ -150,12 +154,21 @@ func _ammo_mechanics_text(cfg: Dictionary) -> String:
 		out.append(line)
 	return " | ".join(out)
 
-# Devuelve una línea (o varias) con TODOS los inputs configurados en Admin Dash
-# para el tier indicado: daño, alcance, velocidad, CD/cadencia, canalizado y
-# los efectos específicos de cada munición (cura, sifón, silencio, ralentizado, buff...).
-func _ammo_stats_text(w_id: String, t_idx: int) -> String:
+# Desglose estructurado de estadísticas para la munición: Base, Modificador (talento/adición) y Total resultante
+func _get_ammo_breakdown(w_id: String, t_idx: int) -> Dictionary:
 	var cfg = _ammo_tier_cfg(w_id, t_idx)
-	var parts := PackedStringArray()
+	var res = {
+		"has_data": false,
+		"w_id": w_id,
+		"t_idx": t_idx,
+		"lines": []
+	}
+	if cfg.is_empty():
+		return res
+	res.has_data = true
+
+	var p = get_tree().get_first_node_in_group("player")
+	var ship_dmg = float(p.base_laser_damage) if (is_instance_valid(p) and "base_laser_damage" in p) else 100.0
 
 	var ts = get_tree().get_first_node_in_group("talent_system")
 	var dyn_bonuses: Dictionary = ts.get_dynamic_bonuses() if is_instance_valid(ts) else {}
@@ -164,62 +177,162 @@ func _ammo_stats_text(w_id: String, t_idx: int) -> String:
 	var spd_bonus = dyn_bonuses.get("ammo:" + w_id + ":bulletSpeed", null)
 	var cd_bonus = dyn_bonuses.get("ammo:" + w_id + ":cooldown", null)
 
+	# 1. Multiplicador de Daño
 	if GameConstants:
 		var mults = GameConstants.AMMO_MULTIPLIERS.get(w_id, [])
 		if typeof(mults) == TYPE_ARRAY and t_idx < mults.size() and mults[t_idx] != null:
-			var d_str = "Daño x" + _fmt_num(mults[t_idx])
-			if dmg_bonus and float(dmg_bonus.get("val", 0.0)) > 0.0:
-				d_str += " (+" + _fmt_num(float(dmg_bonus.val) * 100.0) + "% Talento)"
-			parts.append(d_str)
+			var base_m = float(mults[t_idx])
+			var base_dmg = round(ship_dmg * base_m)
+			var d_line = ""
+			if dmg_bonus:
+				var d_val = float(dmg_bonus.get("val", 0.0))
+				var total_m = base_m
+				if dmg_bonus.get("flat", false):
+					total_m += d_val
+					var final_dmg = round(ship_dmg * total_m)
+					var added_dmg = final_dmg - base_dmg
+					d_line = "💥 Daño: %s + %s = %s DMG" % [_fmt_num(base_dmg), _fmt_num(added_dmg), _fmt_num(final_dmg)]
+				elif d_val != 0.0:
+					total_m = base_m * (1.0 + d_val)
+					var final_dmg = round(ship_dmg * total_m)
+					var added_dmg = final_dmg - base_dmg
+					d_line = "💥 Daño: %s + %s (+%s%%) = %s DMG" % [_fmt_num(base_dmg), _fmt_num(added_dmg), _fmt_num(d_val * 100.0), _fmt_num(final_dmg)]
+				else:
+					d_line = "💥 Daño: %s DMG (x%s)" % [_fmt_num(base_dmg), _fmt_num(base_m)]
+			else:
+				d_line = "💥 Daño: %s DMG (x%s)" % [_fmt_num(base_dmg), _fmt_num(base_m)]
+			res.lines.append({
+				"tag": "dmg",
+				"text": d_line,
+				"color": Color(1.0, 0.45, 0.45)
+			})
 
+	# 2. Alcance
 	if cfg.has("range"):
-		var r_str = "Alcance " + str(int(cfg.range))
-		if r_bonus and float(r_bonus.get("val", 0.0)) > 0.0:
-			r_str += " (+" + _fmt_num(float(r_bonus.val) * 100.0) + "%)"
-		parts.append(r_str)
-	if cfg.has("bulletSpeed"):
-		var spd_str = "Velocidad " + str(int(cfg.bulletSpeed))
-		if spd_bonus and float(spd_bonus.get("val", 0.0)) > 0.0:
-			spd_str += " (+" + _fmt_num(float(spd_bonus.val) * 100.0) + "%)"
-		parts.append(spd_str)
-	if cfg.has("cooldown"):
-		var cd = int(cfg.cooldown)
-		var cd_str = "CD " + _fmt_time_ms(cd)
-		if cd_bonus and abs(float(cd_bonus.get("val", 0.0))) > 0.0:
-			cd_str += " (" + _fmt_num(float(cd_bonus.val) * 100.0) + "%)"
-		parts.append(cd_str)
-		if cd > 0:
-			parts.append("Cadencia " + _fmt_num(snappedf(100000.0 / float(cd), 0.01) / 100.0) + "/s")
-	if cfg.has("castTimeMs") and int(cfg.castTimeMs) > 0:
-		parts.append("Canalizado " + _fmt_time_ms(cfg.castTimeMs))
-	if cfg.has("explosionRadius"):
-		parts.append("Radio de explosión " + str(int(cfg.explosionRadius)))
-	if cfg.has("lifetimeMs"):
-		parts.append("Duración en mapa " + _fmt_time_ms(cfg.lifetimeMs))
+		var base_r = float(cfg.range)
+		var r_line = ""
+		if r_bonus:
+			var r_val = float(r_bonus.get("val", 0.0))
+			if r_bonus.get("flat", false):
+				var total_r = base_r + r_val
+				r_line = "🎯 Alcance: %s + %s = %s" % [_fmt_num(base_r), _fmt_num(r_val), _fmt_num(total_r)]
+			elif r_val != 0.0:
+				var added = base_r * r_val
+				var total_r = base_r * (1.0 + r_val)
+				r_line = "🎯 Alcance: %s + %s (+%s%%) = %s" % [_fmt_num(base_r), _fmt_num(added), _fmt_num(r_val * 100.0), _fmt_num(total_r)]
+			else:
+				r_line = "🎯 Alcance: %s" % [_fmt_num(base_r)]
+		else:
+			r_line = "🎯 Alcance: %s" % [_fmt_num(base_r)]
+		res.lines.append({
+			"tag": "range",
+			"text": r_line,
+			"color": Color(0.35, 0.9, 1.0)
+		})
 
+	# 3. Velocidad
+	if cfg.has("bulletSpeed"):
+		var base_spd = float(cfg.bulletSpeed)
+		var s_line = ""
+		if spd_bonus:
+			var s_val = float(spd_bonus.get("val", 0.0))
+			if spd_bonus.get("flat", false):
+				var total_spd = base_spd + s_val
+				s_line = "⚡ Velocidad: %s + %s = %s" % [_fmt_num(base_spd), _fmt_num(s_val), _fmt_num(total_spd)]
+			elif s_val != 0.0:
+				var added = base_spd * s_val
+				var total_spd = base_spd * (1.0 + s_val)
+				s_line = "⚡ Velocidad: %s + %s (+%s%%) = %s" % [_fmt_num(base_spd), _fmt_num(added), _fmt_num(s_val * 100.0), _fmt_num(total_spd)]
+			else:
+				s_line = "⚡ Velocidad: %s" % [_fmt_num(base_spd)]
+		else:
+			s_line = "⚡ Velocidad: %s" % [_fmt_num(base_spd)]
+		res.lines.append({
+			"tag": "speed",
+			"text": s_line,
+			"color": Color(1.0, 0.9, 0.35)
+		})
+
+	# 4. Cooldown y Cadencia
+	if cfg.has("cooldown"):
+		var base_cd_ms = float(cfg.cooldown)
+		var cd_line = ""
+		if cd_bonus:
+			var c_val = float(cd_bonus.get("val", 0.0))
+			if c_val != 0.0:
+				var total_cd_ms = max(50.0, base_cd_ms * (1.0 - abs(c_val)))
+				var diff_ms = base_cd_ms - total_cd_ms
+				var base_cd_s = _fmt_time_ms(base_cd_ms)
+				var total_cd_s = _fmt_time_ms(total_cd_ms)
+				cd_line = "⏱️ Recarga: %s - %s (-%s%%) = %s" % [base_cd_s, _fmt_time_ms(diff_ms), _fmt_num(abs(c_val) * 100.0), total_cd_s]
+			else:
+				cd_line = "⏱️ Recarga: %s" % [_fmt_time_ms(base_cd_ms)]
+		else:
+			cd_line = "⏱️ Recarga: %s" % [_fmt_time_ms(base_cd_ms)]
+		res.lines.append({
+			"tag": "cooldown",
+			"text": cd_line,
+			"color": Color(0.4, 1.0, 0.5)
+		})
+
+	# 5. Canalizado
+	if cfg.has("castTimeMs") and int(cfg.castTimeMs) > 0:
+		res.lines.append({
+			"tag": "castTime",
+			"text": "⏳ Canalizado: " + _fmt_time_ms(cfg.castTimeMs),
+			"color": Color(0.85, 0.85, 1.0)
+		})
+
+	# 6. Radio de explosión
+	if cfg.has("explosionRadius") and int(cfg.explosionRadius) > 0:
+		res.lines.append({
+			"tag": "explosionRadius",
+			"text": "💣 Radio de explosión: " + str(int(cfg.explosionRadius)),
+			"color": Color(1.0, 0.65, 0.25)
+		})
+
+	# 7. Duración en mapa
+	if cfg.has("lifetimeMs") and int(cfg.lifetimeMs) > 0:
+		res.lines.append({
+			"tag": "lifetime",
+			"text": "⏳ Duración en mapa: " + _fmt_time_ms(cfg.lifetimeMs),
+			"color": Color(0.75, 0.75, 0.85)
+		})
+
+	# 8. Efectos específicos de munición
 	match w_id:
 		"heal":
 			if cfg.has("healPctPvE"):
-				parts.append("Cura " + str(int(cfg.healPctPvE)) + "% del daño como vida (PvE)")
+				res.lines.append({"tag": "heal_pve", "text": "💚 Cura: +" + str(int(cfg.healPctPvE)) + "% del daño como vida (PvE)", "color": Color(0.35, 1.0, 0.55)})
 			if cfg.has("healPctVictimPvP") or cfg.has("healPctAttackerPvP"):
-				parts.append("PvP: aliado cura " + str(int(cfg.get("healPctVictimPvP", 80))) + "% / atacante " + str(int(cfg.get("healPctAttackerPvP", 30))) + "%")
+				res.lines.append({"tag": "heal_pvp", "text": "💚 Cura PvP: aliado +" + str(int(cfg.get("healPctVictimPvP", 80))) + "% / atacante +" + str(int(cfg.get("healPctAttackerPvP", 30))) + "%", "color": Color(0.35, 1.0, 0.55)})
 		"siphon":
 			if cfg.has("siphonPct"):
-				parts.append("Absorbe " + str(int(cfg.siphonPct)) + "% del daño como vida")
+				res.lines.append({"tag": "siphon", "text": "🔮 Robo de vida: absorbe +" + str(int(cfg.siphonPct)) + "% del daño infligido", "color": Color(1.0, 0.45, 0.95)})
 		"emp":
 			if cfg.has("silenceDurationMs"):
-				parts.append("Silencia " + _fmt_time_ms(cfg.silenceDurationMs))
+				res.lines.append({"tag": "emp", "text": "📡 Silencio EMP: desactiva habilidades por " + _fmt_time_ms(cfg.silenceDurationMs), "color": Color(0.4, 0.65, 1.0)})
 		"melee":
 			if cfg.has("slowDurationMs"):
-				parts.append("Ralentiza " + _fmt_time_ms(cfg.slowDurationMs) + " (-" + str(int(cfg.get("slowAmount", 200))) + " vel.)")
+				res.lines.append({"tag": "melee", "text": "⚔️ Ralentización: " + _fmt_time_ms(cfg.slowDurationMs) + " (-" + str(int(cfg.get("slowAmount", 200))) + " vel.)", "color": Color(1.0, 0.55, 0.35)})
 		"electron":
 			if cfg.has("speedBuffPct"):
-				parts.append("Buff velocidad +" + str(int(cfg.speedBuffPct)) + "% durante " + _fmt_time_ms(cfg.get("speedBuffDurationMs", 3000)) + " (máx " + str(int(cfg.get("speedBuffMaxStacks", 4))) + " acum.)")
+				res.lines.append({"tag": "electron", "text": "⚛️ Buff Velocidad: +" + str(int(cfg.speedBuffPct)) + "% por impacto (" + _fmt_time_ms(cfg.get("speedBuffDurationMs", 3000)) + ", máx " + str(int(cfg.get("speedBuffMaxStacks", 4))) + " acum.)", "color": Color(0.35, 0.95, 1.0)})
 
 	var mech_text = _ammo_mechanics_text(cfg)
 	if mech_text != "":
-		parts.append(mech_text)
+		res.lines.append({"tag": "mechanics", "text": "⚙️ " + mech_text, "color": Color(0.95, 0.85, 0.55)})
 
+	return res
+
+# Devuelve una línea (o varias) con TODOS los inputs configurados en Admin Dash
+func _ammo_stats_text(w_id: String, t_idx: int) -> String:
+	var breakdown = _get_ammo_breakdown(w_id, t_idx)
+	if not breakdown.has_data or breakdown.lines.is_empty():
+		return ""
+	var parts := PackedStringArray()
+	for l in breakdown.lines:
+		parts.append(l["text"])
 	return " · ".join(parts)
 
 func _ammo_icon_texture(w_id: String) -> Texture2D:
@@ -457,7 +570,7 @@ func _render_equipped_slots(parent, p, is_comb):
 		var _count = a_list[t_idx] if t_idx < a_list.size() else 0
 		
 		var slot_panel = PanelContainer.new()
-		slot_panel.custom_minimum_size = Vector2(0, 95)
+		slot_panel.custom_minimum_size = Vector2(0, 115)
 		parent.add_child(slot_panel)
 		
 		var sb = StyleBoxFlat.new()
@@ -506,15 +619,20 @@ func _render_equipped_slots(parent, p, is_comb):
 			ammo_lbl.modulate = Color(0.2, 0.9, 0.6, 0.8)
 			details_v.add_child(ammo_lbl)
 
-			# Stats dinámicas del tier equipado (Admin Dash)
-			var eq_stats = _ammo_stats_text(w_id, int(t_idx))
-			if eq_stats != "":
-				var eq_stats_lbl = Label.new()
-				eq_stats_lbl.text = eq_stats
-				eq_stats_lbl.add_theme_font_size_override("font_size", 8)
-				eq_stats_lbl.modulate = Color(0.35, 0.9, 1.0, 0.85)
-				eq_stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-				details_v.add_child(eq_stats_lbl)
+			# Stats dinámicas y desglose (Base + Modificador = Total) del tier equipado
+			var breakdown = _get_ammo_breakdown(w_id, int(t_idx))
+			if breakdown.has_data and not breakdown.lines.is_empty():
+				var stats_v = VBoxContainer.new()
+				stats_v.name = "EqStatsContainer"
+				stats_v.add_theme_constant_override("separation", 1)
+				for item in breakdown.lines:
+					var s_lbl = Label.new()
+					s_lbl.text = item["text"]
+					s_lbl.add_theme_font_size_override("font_size", 8)
+					s_lbl.modulate = item["color"]
+					s_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					stats_v.add_child(s_lbl)
+				details_v.add_child(stats_v)
 
 		# Efecto visual de deshabilitar si está en combate
 		if is_comb:
@@ -536,7 +654,7 @@ func _render_weapons_library(grid, p, is_comb):
 			lock_msg = str(req_check.get("msg", "REQUISITOS NO CUMPLIDOS"))
 		
 		var card = PanelContainer.new()
-		card.custom_minimum_size = Vector2(400, 78)
+		card.custom_minimum_size = Vector2(420, 115)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(card)
 		
@@ -574,16 +692,20 @@ func _render_weapons_library(grid, p, is_comb):
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		info_v.add_child(desc_lbl)
 
-		# Stats DINÁMICAS del tier seleccionado (todo lo configurado en Admin Dash)
-		var stats_text = _ammo_stats_text(w_id, t_idx)
-		if stats_text != "":
-			var stats_lbl = Label.new()
-			stats_lbl.name = "StatsLabel"
-			stats_lbl.text = stats_text
-			stats_lbl.add_theme_font_size_override("font_size", 9)
-			stats_lbl.modulate = Color(0.35, 0.9, 1.0, 0.95)
-			stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			info_v.add_child(stats_lbl)
+		# Stats DINÁMICAS y desglose (Base + Modificador = Total) del tier seleccionado
+		var breakdown = _get_ammo_breakdown(w_id, t_idx)
+		if breakdown.has_data and not breakdown.lines.is_empty():
+			var stats_v = VBoxContainer.new()
+			stats_v.name = "StatsContainer"
+			stats_v.add_theme_constant_override("separation", 2)
+			for item in breakdown.lines:
+				var s_lbl = Label.new()
+				s_lbl.text = item["text"]
+				s_lbl.add_theme_font_size_override("font_size", 9)
+				s_lbl.modulate = item["color"]
+				s_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				stats_v.add_child(s_lbl)
+			info_v.add_child(stats_v)
 
 		# v690.0: Aviso rojo de requisito faltante en la propia tarjeta
 		if locked:

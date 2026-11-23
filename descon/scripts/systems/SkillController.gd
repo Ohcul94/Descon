@@ -408,12 +408,20 @@ func _draw():
 	var s_factor = parent_map.scale_factor if is_instance_valid(parent_map) else 0.02
 	var correction_z = parent_map.correction_z if is_instance_valid(parent_map) else 1.41421356
 	
-	var _proj = func(offset_2d: Vector2) -> Vector2:
+	var aim_y = 1.0
+	if is_instance_valid(parent_entity):
+		if is_instance_valid(parent_entity.get("world_root_3d")):
+			aim_y = parent_entity.world_root_3d.position.y
+		elif parent_entity.has_method("_aim_height"):
+			aim_y = parent_entity._aim_height()
+
+	var _proj = func(offset_2d: Vector2, custom_y: float = -999.0) -> Vector2:
 		if not use_perspective:
 			return offset_2d
+		var h_3d = custom_y if custom_y > -900.0 else aim_y
 		var world_offset = offset_2d.rotated(parent_entity.rotation)
 		var world_2d = parent_entity.global_position + world_offset
-		var pos_3d = Vector3(world_2d.x * s_factor, 0.0, world_2d.y * s_factor * correction_z)
+		var pos_3d = Vector3(world_2d.x * s_factor, h_3d, world_2d.y * s_factor * correction_z)
 		if cam3d.is_position_behind(pos_3d):
 			return offset_2d
 		var sv_px = cam3d.unproject_position(pos_3d)
@@ -481,16 +489,14 @@ func _draw():
 		return
 	
 	var range_val: float = 0.0
-	if GameConstants and "SKILLS_DATA" in GameConstants and GameConstants.SKILLS_DATA.has(s_name):
+	if current_skill != null and current_skill.has("range"):
+		range_val = _safe_float(current_skill.get("range"), 0.0)
+	if range_val <= 0.0 and GameConstants and "SKILLS_DATA" in GameConstants and GameConstants.SKILLS_DATA.has(s_name):
 		var r_data = GameConstants.SKILLS_DATA[s_name].get("range")
 		if r_data != null:
 			range_val = _safe_float(r_data, 0.0)
 	if range_val <= 0.0:
-		var raw_r = current_skill.get("range", 500.0) if current_skill != null else 500.0
-		if raw_r != null:
-			range_val = _safe_float(raw_r, 500.0)
-		else:
-			range_val = 500.0
+		range_val = 500.0
 	var color = config.indicator_color
 	
 	# Obtener la posición visual del origen (la nave del jugador)
@@ -500,16 +506,18 @@ func _draw():
 		if vp != Vector2.ZERO:
 			origin_vis = vp
 	
-	# Dibujar círculo de rango máximo (proyectando puntos individuales en perspectiva)
+	# Dibujar círculo de rango máximo (proyectando puntos individuales a la altura de vuelo o al suelo)
 	if range_val > 0.0:
 		if use_perspective:
-			# Construir el arco punto a punto proyectado
+			# Construir el arco punto a punto proyectado a la altura de la nave (aim_y) o al suelo para habilidades de suelo/bombas
+			var is_ground_skill = (current_skill != null and (current_skill.get("type") == SkillType.AREA))
+			var circle_y = 0.0 if is_ground_skill else aim_y
 			var steps = 64
 			var pts = PackedVector2Array()
 			for i in range(steps + 1):
 				var ang = (float(i) / steps) * TAU
 				var local_pt = Vector2(cos(ang), sin(ang)) * range_val
-				pts.append(_proj.call(local_pt))
+				pts.append(_proj.call(local_pt, circle_y))
 			draw_polyline(pts, color, 2.0)
 		else:
 			draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
@@ -539,12 +547,12 @@ func _draw():
 		if range_val > 0 and dist > range_val:
 			end_point = aim_vec.normalized() * range_val
 		
-		# Punto final proyectado a espacio visual (perspectiva 3D)
-		var end_proj = _proj.call(end_point)
+		# Punto final proyectado a espacio visual (perspectiva 3D a la altura de la nave)
+		var end_proj = _proj.call(end_point, aim_y)
 		var origin_local = to_local(origin_vis) if use_perspective else Vector2.ZERO
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas
-		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and s_name != "DIMENSIÓN EXTRAÑA" and current_skill.id != "mine" and current_skill.id != "electron" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO":
+		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and s_name != "DIMENSIÓN EXTRAÑA" and current_skill.id != "mine" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO":
 			draw_line(origin_local, end_proj, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
 		if current_skill.id == "emp":
@@ -552,7 +560,7 @@ func _draw():
 			if aim_vec.length() < 0.1:
 				dir = Vector2.RIGHT
 			end_point = dir * range_val
-			end_proj = _proj.call(end_point)
+			end_proj = _proj.call(end_point, aim_y)
 			draw_line(origin_local, end_proj, Color(0.1, 0.5, 1.0, 0.25), 60.0)
 			draw_line(origin_local, end_proj, Color(0.3, 0.7, 1.0, 0.65), 3.0)
 		elif current_skill.id == "electron":
@@ -565,7 +573,7 @@ func _draw():
 				for i in range(steps + 1):
 					var ang = (float(i) / steps) * TAU
 					var pt = end_point + Vector2(cos(ang), sin(ang)) * radius_val
-					pts_circle.append(_proj.call(pt))
+					pts_circle.append(_proj.call(pt, aim_y))
 				draw_polyline(pts_circle, draw_color, 2.0)
 				draw_circle(end_proj, 8.0, draw_color)
 			else:
@@ -589,26 +597,26 @@ func _draw():
 				
 				var theta_izq = -PI/2.0 + t * (PI/2.0)
 				var pt_izq = Vector2(cos(theta_izq), sin(theta_izq)) * range_val
-				pts_izq.append(_proj.call(pt_izq.rotated(dir.angle())))
+				pts_izq.append(_proj.call(pt_izq.rotated(dir.angle()), aim_y))
 				
 				var theta_der = PI/2.0 - t * (PI/2.0)
 				var pt_der = Vector2(cos(theta_der), sin(theta_der)) * range_val
-				pts_der.append(_proj.call(pt_der.rotated(dir.angle())))
+				pts_der.append(_proj.call(pt_der.rotated(dir.angle()), aim_y))
 				
 				var theta_tras_izq = -PI/2.0 - t * (PI/2.0)
 				var pt_tras_izq = Vector2(cos(theta_tras_izq), sin(theta_tras_izq)) * range_val
-				pts_tras_izq.append(_proj.call(pt_tras_izq.rotated(dir.angle())))
+				pts_tras_izq.append(_proj.call(pt_tras_izq.rotated(dir.angle()), aim_y))
 				
 				var theta_tras_der = PI/2.0 + t * (PI/2.0)
 				var pt_tras_der = Vector2(cos(theta_tras_der), sin(theta_tras_der)) * range_val
-				pts_tras_der.append(_proj.call(pt_tras_der.rotated(dir.angle())))
+				pts_tras_der.append(_proj.call(pt_tras_der.rotated(dir.angle()), aim_y))
 				
 			draw_polyline(pts_izq, Color(1.0, 0.45, 0.0, 0.55), 4.0)
 			draw_polyline(pts_der, Color(1.0, 0.45, 0.0, 0.55), 4.0)
 			draw_polyline(pts_tras_izq, Color(1.0, 0.45, 0.0, 0.35), 4.0)
 			draw_polyline(pts_tras_der, Color(1.0, 0.45, 0.0, 0.35), 4.0)
 			draw_circle(end_proj, 10.0, Color(1.0, 0.3, 0.0, 0.75))
-			draw_circle(_proj.call(-end_point), 10.0, Color(1.0, 0.3, 0.0, 0.45))
+			draw_circle(_proj.call(-end_point, aim_y), 10.0, Color(1.0, 0.3, 0.0, 0.45))
 		elif s_name == "BARRERA DE VIENTO":
 			var width_val = 150.0
 			if GameConstants.SKILLS_DATA.has(s_name):
@@ -617,16 +625,16 @@ func _draw():
 			var perp_angle = end_point.angle() + (PI / 2.0)
 			var wall_offset = Vector2(cos(perp_angle), sin(perp_angle)) * half_w
 			
-			var pt_a_proj = _proj.call(end_point - wall_offset)
-			var pt_b_proj = _proj.call(end_point + wall_offset)
+			var pt_a_proj = _proj.call(end_point - wall_offset, aim_y)
+			var pt_b_proj = _proj.call(end_point + wall_offset, aim_y)
 			draw_line(pt_a_proj, pt_b_proj, Color(0.3, 0.9, 1.0, 0.85), 4.0)
 			
 			var push_dir = end_point.normalized()
 			var pt_a_raw = end_point - wall_offset
 			var pt_b_raw = end_point + wall_offset
-			draw_line(pt_a_proj, _proj.call(pt_a_raw + push_dir * 18.0), Color(0.3, 0.9, 1.0, 0.4), 2.0)
-			draw_line(pt_b_proj, _proj.call(pt_b_raw + push_dir * 18.0), Color(0.3, 0.9, 1.0, 0.4), 2.0)
-			draw_line(end_proj, _proj.call(end_point + push_dir * 25.0), Color(0.3, 0.9, 1.0, 0.6), 2.0)
+			draw_line(pt_a_proj, _proj.call(pt_a_raw + push_dir * 18.0, aim_y), Color(0.3, 0.9, 1.0, 0.4), 2.0)
+			draw_line(pt_b_proj, _proj.call(pt_b_raw + push_dir * 18.0, aim_y), Color(0.3, 0.9, 1.0, 0.4), 2.0)
+			draw_line(end_proj, _proj.call(end_point + push_dir * 25.0, aim_y), Color(0.3, 0.9, 1.0, 0.6), 2.0)
 		else:
 			draw_circle(end_proj, 8.0, color)
 		
@@ -635,7 +643,7 @@ func _draw():
 		var end_point = aim_vec
 		if range_val > 0 and dist > range_val:
 			end_point = aim_vec.normalized() * range_val
-		var end_proj = _proj.call(end_point)
+		var end_proj = _proj.call(end_point, 0.0)
 		var radius_val = 200.0
 		if GameConstants.SKILLS_DATA.has(s_name):
 			radius_val = _safe_float(GameConstants.SKILLS_DATA[s_name].get("radius", 200.0), 200.0)
@@ -655,7 +663,7 @@ func _draw():
 				var pts_c = PackedVector2Array()
 				for i in range(steps + 1):
 					var ang = (float(i) / steps) * TAU
-					pts_c.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
+					pts_c.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val, 0.0))
 				draw_polyline(pts_c, draw_color, 2.0)
 				draw_circle(end_proj, 8.0, draw_color)
 			else:
@@ -673,7 +681,7 @@ func _draw():
 				var pts_charge = PackedVector2Array()
 				for i in range(steps + 1):
 					var ang = (float(i) / steps) * TAU
-					pts_charge.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * charge_radius))
+					pts_charge.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * charge_radius, 0.0))
 				draw_polyline(pts_charge, Color(1.0, 0.55, 0.1, 0.65), 1.5)
 			else:
 				draw_arc(end_point, charge_radius, 0, TAU, 48, Color(1.0, 0.55, 0.1, 0.65), 1.5)

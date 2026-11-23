@@ -900,10 +900,10 @@ func _add_ammo_section(parent, player):
 	var ammo = player.ammo
 	var _selected = player.selected_ammo
 	var active_slots = player.ammo_slots
-	var ammo_types = ["laser", "missile", "mine", "melee", "heal", "siphon", "emp"]
+	var ammo_types = ["laser", "missile", "mine", "melee", "heal", "siphon", "emp", "electron"]
 	var ammo_names = {
 		"laser": "Láser", "missile": "Misil", "mine": "Mina",
-		"melee": "Melee", "heal": "Curación", "siphon": "Siphon", "emp": "EMP"
+		"melee": "Melee", "heal": "Curación", "siphon": "Siphon", "emp": "EMP", "electron": "Electrón"
 	}
 
 	var active_count = 0

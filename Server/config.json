@@ -13326,7 +13326,7 @@
                         "hubs": 4000,
                         "ohcu": 40
                     },
-                    "range": 300,
+                    "range": 500,
                     "requirements": [
                         {
                             "esferas": [
@@ -13490,7 +13490,7 @@
                         "hubs": 3000,
                         "ohcu": 30
                     },
-                    "range": 100,
+                    "range": 1100,
                     "sound": "",
                     "soundVolumePercent": 50,
                     "icon": "res://assets/Municiones/Iconos/mine/Mine.png"
