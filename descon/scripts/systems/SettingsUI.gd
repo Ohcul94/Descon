@@ -319,7 +319,7 @@ func _setup_ui():
 		"portal_jump": "INGRESAR AL PORTAL",
 		"toggle_free_camera": "MODO CÁMARA LIBRE 3D",
 		"loot_claim": "ABRIR BOTÍN / RECOLECTAR (ESPACIO)",
-		"ui_inspect": "INSPECCIONAR JUGADOR (Y)",
+		"ui_inspect": "INSPECCIONAR OBJETIVO (Y)",
 		"chat_toggle": "ABRIR / CERRAR CHAT"
 	}
 	_action_labels = slots.duplicate()

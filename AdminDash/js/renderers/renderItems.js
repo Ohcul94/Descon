@@ -1369,7 +1369,6 @@ window.addNewBoss = function() {
         rotZ: 0,
         scale: 6.0,
         isBoss: true,
-        rageTimer: 20,
         hp: 100000,
         shield: 50000,
         speed: 250,

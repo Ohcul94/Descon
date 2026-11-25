@@ -73,9 +73,18 @@ module.exports = class BossAI extends BaseAI {
         const angle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
         this.enemy.rotation = angle + Math.PI / 2; // MIRAR SIEMPRE AL TARGET (v238.95)
 
-        const rTime = this.config.rageTimer;
-        const rageLimit = (rTime > 0) ? (rTime * 1000) : Infinity; 
-        if (!this.isRage && (now - this.combatStartTime > rageLimit)) {
+        let shouldEnrage = false;
+        if (this.config.enrageEnabled) {
+            const mode = this.config.enrageMode || 'time';
+            const val = Number(this.config.enrageValue || 0);
+            if (mode === 'hp' && val > 0) {
+                const hpPct = (this.enemy.hp / (this.enemy.maxHp || 1)) * 100;
+                if (hpPct <= val) shouldEnrage = true;
+            } else if (mode === 'time' && val > 0) {
+                if (now - this.combatStartTime > val * 1000) shouldEnrage = true;
+            }
+        }
+        if (!this.isRage && shouldEnrage) {
             this.isRage = true;
             this.enemy.isRage = true;
         }
@@ -121,14 +130,24 @@ module.exports = class BossAI extends BaseAI {
     }
 
     phaseLasers(target, dist, angle, now, io) {
+        const laserMech = (this.config.mechanics && Array.isArray(this.config.mechanics))
+            ? (this.config.mechanics.find(m => m.type === 'laser') || this.config.mechanics[0])
+            : null;
+        if (!laserMech) return;
+
+        const cd = Number(laserMech.fireRate || laserMech.cooldown || 1000);
+        const bSpeed = Number(laserMech.bulletSpeed || 800);
+        const bDmg = Number(laserMech.bulletDamage !== undefined ? laserMech.bulletDamage : (laserMech.damage || 0));
+
         if (now > (this.nextLaserTime || 0)) {
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                 enemyId: this.enemy.id, targetId: target.socketId || target.id,
                 enemyType: this.enemy.type,
                 x: this.enemy.x, y: this.enemy.y, angle: angle,
-                damage: this.isRage ? (this.config.bulletDamage * 1.5) : this.config.bulletDamage
+                bulletSpeed: bSpeed,
+                damage: this.isRage ? (bDmg * 1.5) : bDmg
             });
-            this.nextLaserTime = now + (this.isRage ? 200 : 600);
+            this.nextLaserTime = now + (this.isRage ? Math.round(cd * 0.3) : cd);
         }
         if (!this.isRage) {
             const orbit = angle + Math.PI / 2;
@@ -163,6 +182,15 @@ module.exports = class BossAI extends BaseAI {
     }
 
     phaseHomingMissiles(players, dist, angle, now, io) {
+        const missileMech = (this.config.mechanics && Array.isArray(this.config.mechanics))
+            ? (this.config.mechanics.find(m => m.type === 'missile' || m.type === 'ice_missile') || this.config.mechanics.find(m => m.isHoming))
+            : null;
+        if (!missileMech) return;
+
+        const cd = Number(missileMech.fireRate || missileMech.cooldown || 4000);
+        const bSpeed = Number(missileMech.bulletSpeed || 400);
+        const bDmg = Number(missileMech.bulletDamage !== undefined ? missileMech.bulletDamage : (missileMech.damage || 0));
+
         if (now > (this.nextMissileTime || 0)) {
             const nearbyPlayers = Object.values(players || {}).filter(p => 
                 String(p.zone) === String(this.enemy.zone) && !p.isDead && p.user && typeof p.x === 'number'
@@ -173,11 +201,12 @@ module.exports = class BossAI extends BaseAI {
                     enemyId: this.enemy.id, targetId: p.socketId || p.id,
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: pAngle,
-                    type: 'missile', isHoming: true, life: 240, 
-                    damage: this.isRage ? (this.config.bulletDamage * 2.5) : (this.config.bulletDamage * 1.5)
+                    type: missileMech.type || 'missile', isHoming: true, life: 240,
+                    bulletSpeed: bSpeed,
+                    damage: this.isRage ? (bDmg * 2.0) : (bDmg * 1.5)
                 });
             });
-            this.nextMissileTime = now + (this.isRage ? 1500 : 4000); 
+            this.nextMissileTime = now + (this.isRage ? Math.round(cd * 0.4) : cd); 
         }
     }
 };

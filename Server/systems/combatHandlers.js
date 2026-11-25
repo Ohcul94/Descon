@@ -1405,7 +1405,7 @@ socket.on('playerFire', (fireData) => {
                 if (!cfg && state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels) {
                     cfg = state.SERVER_CONFIG.enemyModels[enemyType] || state.SERVER_CONFIG.enemyModels[enemyType.toString()];
                 }
-                let baseDmg = isClone ? 0 : (cfg ? cfg.bulletDamage : 50);
+                let baseDmg = isClone ? 0 : (data.baseDamage !== undefined ? Number(data.baseDamage) : (data.damage !== undefined ? Number(data.damage) : 0));
                 let matchedMechDmg = null;
                 
                 if (!isClone && cfg && cfg.mechanics) {

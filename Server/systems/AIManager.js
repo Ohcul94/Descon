@@ -141,24 +141,15 @@ class AIManager {
             spawnerInterval
         };
 
-        // v268.850: Soporte para Fases de Movimiento (Priorizar velocidad de la fase 0)
-        let rawSpeed = 3.5;
-        if (cfg) {
-            if (cfg.movementPhases && cfg.movementPhases.length > 0) {
-                rawSpeed = cfg.movementPhases[0].speed || cfg.speed || 3.5;
-            } else {
-                rawSpeed = cfg.speed || 3.5;
-            }
-        } else {
-            rawSpeed = (type === 1 ? 4.5 : 3.5);
+        // Soporte dinámico para Fases de Movimiento (velocidad modular de fase)
+        let rawSpeed = 0;
+        if (cfg && cfg.movementPhases && cfg.movementPhases.length > 0) {
+            rawSpeed = Number(cfg.movementPhases[0].speed) || 0;
         }
 
         const movSpeed = rawSpeed * 0.033;
-        // v500.3: NO mezclar phase0 dentro de aiConfig — evitar que campos de la fase de
-        // movimiento (stopDist, idealDist, startDelay, etc.) pisen valores raíz del cfg
-        // (regenDelayMs, regenIntervalMs, hpRegenPercent, etc.).
         // La fase 0 se aplica dinámicamente en BaseAI._evaluatePhaseConditions al primer tick.
-        const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (numericType * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
+        const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { speed: movSpeed };
         
         // v266.230: Asignación Dinámica de Cerebros basada en Configuración
         // v500.3: movementType se obtiene de cfg.movementAI o del tipo de la fase 0

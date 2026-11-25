@@ -227,8 +227,8 @@ module.exports = class BaseAI {
         const isAggressive = (this.ambienceBoost) ? true : (cfg.aggressive === true);
         this.enemy.isAggressive = isAggressive; // Restaurar propiedad para otros sistemas
 
-        // v266.999: Inyectar velocidad ambiental dinámicamente
-        if (!this._baseSpeed) this._baseSpeed = cfg.speed || 3.5;
+        // Inyectar velocidad ambiental dinámicamente según fase modular
+        if (!this._baseSpeed) this._baseSpeed = (cfg.movementPhases && cfg.movementPhases[0]) ? (Number(cfg.movementPhases[0].speed) * 0.033) : 0;
         const speedMult = (this.ambienceBoost ? (parseFloat(this.ambienceBoost.speedMult) || 1) : 1) * multiplicadorMult;
         cfg.speed = this._baseSpeed * speedMult;
         
@@ -561,7 +561,7 @@ module.exports = class BaseAI {
             this.enemy.lastSuccessHit || 0, 
             this.enemy.chaseStartTime || 0
         );
-        const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 5000);
+        const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 0);
         
         let inTime = (now - lastCombatTime) < delayMs;
 
@@ -625,8 +625,11 @@ module.exports = class BaseAI {
             this._interruptActiveMechanics(now, io);
         }
 
-        // Lógica de Regeneración Autoritaria (Fuera de Combate / Ocioso)
-        if (!this._inCombat && !this._isDefenseSkillActive) {
+        // Lógica de Regeneración Autoritaria (Fuera de Combate / Ocioso) - Cero hardcodeo: solo si está configurada
+        const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 0;
+        const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 0;
+
+        if (!this._inCombat && !this._isDefenseSkillActive && (hpRegen > 0 || shieldRegen > 0)) {
             if (this.enemy.lastRegenTime === undefined) this.enemy.lastRegenTime = now;
             const regenInterval = cfg.regenIntervalMs !== undefined ? Number(cfg.regenIntervalMs) : 1000;
             const elapsedMs = now - this.enemy.lastRegenTime;
@@ -634,8 +637,6 @@ module.exports = class BaseAI {
             if (elapsedMs >= regenInterval) {
                 const ticks = Math.floor(elapsedMs / regenInterval);
                 this.enemy.lastRegenTime = now - (elapsedMs % regenInterval); // Mantener el remanente de ms
-                const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 3;
-                const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 5;
                 
                 const oldHp = this.enemy.hp;
                 const oldShield = this.enemy.shield;
@@ -654,13 +655,13 @@ module.exports = class BaseAI {
                     io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
                         id: this.enemy.id, 
                         hp: this.enemy.hp, 
-                        shield: this.enemy.shield,
+                        shield: this.enemy.shield, 
                         amount: Math.max(0, this.enemy.hp - oldHp) 
                     });
                 }
             }
         } else {
-            // Si está en combate, actualizar lastRegenTime para evitar acumulaciones masivas al salir de combate
+            // Si está en combate o no regenera, actualizar lastRegenTime para evitar acumulaciones masivas
             this.enemy.lastRegenTime = now;
         }
 
@@ -860,8 +861,8 @@ module.exports = class BaseAI {
                 
                 if (now - this.enemy.lastRegenTime >= regenInterval) {
                     this.enemy.lastRegenTime = now;
-                    const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 3;
-                    const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 5;
+                    const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 0;
+                    const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 0;
                     
                     const oldHp = this.enemy.hp;
                     const oldShield = this.enemy.shield;
@@ -1537,7 +1538,7 @@ module.exports = class BaseAI {
 
         if (!target && mech.type !== "polymorph" && !isOngoing) return;
         
-        const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 800);
+        const enemyFireRange = Number(this.config?.fireRange || this.enemy?.fireRange || 0);
         const configVision = this.config ? Number(this.config.visionRange) : 0;
         const enemyVisionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy?.isHorde ? 10000 : (this.enemy?.visionRange ? Number(this.enemy.visionRange) : 800)));
         const fireRange = (mech.type === "meteor")
@@ -1750,7 +1751,7 @@ module.exports = class BaseAI {
                     angle: state.lockedAngle,
                     bulletSpeed: mech.bulletSpeed || 2000, 
                     bulletType: "mega_laser",
-                    damage: (mech.bulletDamage || 500) * (this.damageMult || 1),
+                    damage: (Number(mech.bulletDamage !== undefined ? mech.bulletDamage : (mech.damage || 0))) * (this.damageMult || 1),
                     lifetimeMs: lifetime,
                     range: (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange, // v266.715: Sincronía de Rango para el Proyectil
                     beamWidth: mech.beamWidth || 40 // Ancho del rayo en píxeles
@@ -1789,7 +1790,7 @@ module.exports = class BaseAI {
             const bombDelay = mech.bombDelayMs || 500;
             const fuseTime = (mech.fuseTimeMs !== undefined && Number(mech.fuseTimeMs) >= 0) ? Number(mech.fuseTimeMs) : 1000;
             const bulletSpeed = mech.bulletSpeed || 600;
-            const bulletDamage = Math.max(0, (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 300) * (this.damageMult || 1));
+            const bulletDamage = Math.max(0, (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : (mech.damage !== undefined ? Number(mech.damage) : 0)) * (this.damageMult || 1));
             const explosionRadius = mech.radius || 150;
             const cooldown = mech.cooldown || 5000;
 
@@ -2539,8 +2540,8 @@ module.exports = class BaseAI {
             const speed = mech.bulletSpeed || 600;
             const range = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
             const parkTimeMs = mech.parkTimeMs !== undefined ? mech.parkTimeMs : 1000;
-            const outDmg = (mech.bulletDamage || 10) * (this.damageMult || 1);
-            const returnDmg = (mech.returnDamage || 10) * (this.damageMult || 1);
+            const outDmg = Number(mech.bulletDamage !== undefined ? mech.bulletDamage : (mech.damage || 0)) * (this.damageMult || 1);
+            const returnDmg = Number(mech.returnDamage !== undefined ? mech.returnDamage : 0) * (this.damageMult || 1);
             const hitRadius = 35;
             const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible && !p.isInvulnerable && !p.inStrangeDimension);
 
@@ -2739,7 +2740,7 @@ module.exports = class BaseAI {
             const speed = mech.bulletSpeed || 500;
             const range = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
             const width = mech.wallWidth || 140;
-            const dmg = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 10) * (this.damageMult || 1);
+            const dmg = Number(mech.bulletDamage !== undefined ? mech.bulletDamage : (mech.damage || 0)) * (this.damageMult || 1);
             const pushDist = (mech.pushForce !== undefined ? Number(mech.pushForce) : 250);
             const startOffset = (mech.wallStartOffset !== undefined ? Number(mech.wallStartOffset) : 50);
             const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible && !p.isInvulnerable && !p.inStrangeDimension);
@@ -2929,7 +2930,7 @@ module.exports = class BaseAI {
             const fireRange = mech.fireRange !== undefined ? Number(mech.fireRange) : 140;
             const arcAngle = mech.arcAngle !== undefined ? Number(mech.arcAngle) : 120;
             const fullCircle = !!mech.fullCircle;
-            const bulletDamage = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 80) * (this.damageMult || 1);
+            const bulletDamage = Number(mech.bulletDamage !== undefined ? mech.bulletDamage : (mech.damage || 0)) * (this.damageMult || 1);
             const pushForce = mech.pushForce !== undefined ? Number(mech.pushForce) : 0;
             // Compat: si queda arcRadius viejo en config, ignorarlo y usar fireRange como radio de impacto
             const impactRadius = fireRange;
@@ -3093,7 +3094,7 @@ module.exports = class BaseAI {
             const travelSpeed = mech.burrowSpeed !== undefined ? Number(mech.burrowSpeed) : 600;
             const targetRange = (mech.fireRange !== undefined && Number(mech.fireRange) > 0) ? Number(mech.fireRange) : enemyFireRange;
             const radius = mech.radius !== undefined ? Number(mech.radius) : 250;
-            const dmg = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 25) * (this.damageMult || 1);
+            const dmg = Number(mech.bulletDamage !== undefined ? mech.bulletDamage : (mech.damage || 0)) * (this.damageMult || 1);
             const burstMode = mech.burstMode || "burst";
             const zoneDamage = (mech.zoneDamage !== undefined ? Number(mech.zoneDamage) : 25) * (this.damageMult || 1);
             const zoneDuration = mech.zoneDuration !== undefined ? Number(mech.zoneDuration) : 4000;
@@ -3477,11 +3478,8 @@ module.exports = class BaseAI {
                 }
                 const currentAngle = Math.atan2(aimTarget.y - this.enemy.y, aimTarget.x - this.enemy.x);
                 
-                // v266.240: Compatibilidad de tipos para el cliente Godot
-
-                const modelCfg = (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.enemyModels) ? this.state.SERVER_CONFIG.enemyModels[this.enemy.type.toString()] : null;
-                const fallbackDmg = modelCfg ? (modelCfg.bulletDamage !== undefined ? modelCfg.bulletDamage : (modelCfg.damage !== undefined ? modelCfg.damage : (this.enemy.type * 100))) : (this.enemy.type * 100);
-                const rawBaseDmg = (mech.bulletDamage !== undefined && mech.bulletDamage !== null ? mech.bulletDamage : fallbackDmg);
+                // Daño autoritativo extraído exclusivamente de la mecánica dinámica
+                const rawBaseDmg = Number(mech.bulletDamage !== undefined && mech.bulletDamage !== null ? mech.bulletDamage : (mech.damage !== undefined ? mech.damage : 0));
 
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
@@ -3748,7 +3746,7 @@ module.exports = class BaseAI {
     getSpeed() {
         const speedMult = this.ambienceBoost ? (this.ambienceBoost.speedMult || 1) : 1;
         const multiplicadorMult = this.multiplicadorMult || 1;
-        const baseSpeed = (this.config.speed || 3.5) * speedMult * multiplicadorMult;
+        const baseSpeed = (this.config.speed || 0) * speedMult * multiplicadorMult;
         const slowMult = this.enemy.slowMultiplier || 1.0;
         
         // v268.830: El bono viene en px/s del panel, convertir a px/tick (* 0.033)
@@ -3818,7 +3816,7 @@ module.exports = class BaseAI {
                     bulletSpeed: mech.bulletSpeed || 1200, 
                     bulletType: "orbital_mine",
                     strikeId: strikeId, 
-                    damage: (mech.bulletDamage || 100) * (this.damageMult || 1), 
+                    damage: Number(mech.bulletDamage !== undefined ? mech.bulletDamage : (mech.damage || 0)) * (this.damageMult || 1), 
                     range: mech.fireRange || 1000,
                     isOrbiting: true,
                     orbitRadius: radius,

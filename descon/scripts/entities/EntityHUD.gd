@@ -141,7 +141,7 @@ func _draw():
 	var font_size = clamp(cfg_font_size, 8, 10)
 	
 	var font = null
-	if SettingsManager.has_method("get_bold_font"):
+	if use_bold and SettingsManager.has_method("get_bold_font"):
 		font = SettingsManager.get_bold_font()
 	if not font:
 		font = ThemeDB.fallback_font

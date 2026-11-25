@@ -231,7 +231,7 @@ function renderEnemies() {
             <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px; margin-bottom:15px; display:grid;">
                 <div class="field"><label>HP (pts)</label><input type="number" value="${en.hp || 100}" onchange="config.enemyModels['${id}'].hp = parseInt(this.value); renderEnemies();"></div>
                 <div class="field"><label>Escudo (pts)</label><input type="number" value="${en.shield || 0}" onchange="config.enemyModels['${id}'].shield = parseInt(this.value); renderEnemies();"></div>
-                <div class="field"><label>Velocidad (px/s)</label><input type="number" value="${en.speed || 3.5}" onchange="config.enemyModels['${id}'].speed = parseFloat(this.value); renderEnemies();"></div>
+                <div class="field"><label>Velocidad Fase 0 (px/s)</label><input type="number" value="${(en.movementPhases && en.movementPhases[0] && en.movementPhases[0].speed !== undefined) ? en.movementPhases[0].speed : 0}" onchange="if(!config.enemyModels['${id}'].movementPhases || config.enemyModels['${id}'].movementPhases.length === 0) config.enemyModels['${id}'].movementPhases=[{type:'chase',speed:parseFloat(this.value),stopDist:150}]; else config.enemyModels['${id}'].movementPhases[0].speed = parseFloat(this.value); delete config.enemyModels['${id}'].speed; renderEnemies();"></div>
                 <div class="field"><label>Rango de Visión (px)</label><input type="number" value="${en.visionRange || 800}" onchange="config.enemyModels['${id}'].visionRange = parseInt(this.value); renderEnemies();"></div>
             </div>
         `;
@@ -267,7 +267,11 @@ function renderEnemyDetail() {
                     clone.name = `${parentModel.name || 'Enemigo ' + baseId} ${t.key}`;
                     clone.hp = parentModel.hp * t.mult;
                     clone.shield = parentModel.shield * t.mult;
-                    if (clone.bulletDamage !== undefined) clone.bulletDamage = parentModel.bulletDamage * t.mult;
+                    delete clone.bulletDamage;
+                    delete clone.bulletSpeed;
+                    delete clone.fireRate;
+                    delete clone.fireRange;
+                    delete clone.speed;
                     if (clone.rewardExp !== undefined) clone.rewardExp = parentModel.rewardExp * t.mult;
                     if (clone.rewardHubs !== undefined) clone.rewardHubs = parentModel.rewardHubs * t.mult;
                     if (clone.rewardOhcu !== undefined) clone.rewardOhcu = parentModel.rewardOhcu * t.mult;
@@ -292,8 +296,13 @@ function renderEnemyDetail() {
         en.mechanics = [{ type: "laser", bulletDamage: 10, bulletSpeed: 800, fireRange: 600, fireRate: 1000, startDelay: 0 }];
     }
     if (!en.movementPhases) {
-        en.movementPhases = [{ type: en.movementAI || "chase", speed: en.speed || 3.5, stopDist: en.stopDist || 150, startDelay: 0 }];
+        en.movementPhases = [{ type: en.movementAI || "chase", speed: 150, stopDist: 150, startDelay: 0 }];
     }
+    delete en.bulletDamage;
+    delete en.bulletSpeed;
+    delete en.fireRate;
+    delete en.fireRange;
+    delete en.speed;
     if (!en.defenseMechanics) en.defenseMechanics = [];
 
     container.innerHTML = `
@@ -374,10 +383,61 @@ function renderEnemyDetail() {
                         <div class="field"><label>Timeout Abandono (ms)</label><input type="number" value="${en.chaseIdleTimeout || 0}" onchange="config.enemyModels['${selectedEnemyId}'].chaseIdleTimeout = parseInt(this.value)"></div>
                         <div class="field"><label>Rango de Visión (px)</label><input type="number" value="${en.visionRange || 800}" onchange="config.enemyModels['${selectedEnemyId}'].visionRange = parseInt(this.value)"></div>
                         <div class="field"><label>Rango de Retorno al Spawn (px)</label><input type="number" value="${en.leashRange || 0}" onchange="config.enemyModels['${selectedEnemyId}'].leashRange = parseInt(this.value)"></div>
-                        <div class="field"><label>Regeneración de Vida Fuera de Combate (%)</label><input type="number" value="${en.hpRegenPercent !== undefined ? en.hpRegenPercent : 3}" onchange="config.enemyModels['${selectedEnemyId}'].hpRegenPercent = parseFloat(this.value)"></div>
-                        <div class="field"><label>Regeneración de Escudo Fuera de Combate (%)</label><input type="number" value="${en.shieldRegenPercent !== undefined ? en.shieldRegenPercent : 5}" onchange="config.enemyModels['${selectedEnemyId}'].shieldRegenPercent = parseFloat(this.value)"></div>
-                        <div class="field"><label>Tiempo Espera Fuera de Combate (ms)</label><input type="number" value="${en.regenDelayMs !== undefined ? en.regenDelayMs : (en.regenDelaySec !== undefined ? en.regenDelaySec * 1000 : 5000)}" onchange="config.enemyModels['${selectedEnemyId}'].regenDelayMs = parseInt(this.value); delete config.enemyModels['${selectedEnemyId}'].regenDelaySec;"></div>
-                        <div class="field"><label>Intervalo de Regeneración (ms)</label><input type="number" value="${en.regenIntervalMs !== undefined ? en.regenIntervalMs : 1000}" onchange="config.enemyModels['${selectedEnemyId}'].regenIntervalMs = parseInt(this.value)"></div>
+                        <div class="field"><label>Regeneración de Vida Fuera de Combate (%)</label><input type="number" value="${en.hpRegenPercent !== undefined ? en.hpRegenPercent : 0}" onchange="config.enemyModels['${selectedEnemyId}'].hpRegenPercent = parseFloat(this.value)"></div>
+                        <div class="field"><label>Regeneración de Escudo Fuera de Combate (%)</label><input type="number" value="${en.shieldRegenPercent !== undefined ? en.shieldRegenPercent : 0}" onchange="config.enemyModels['${selectedEnemyId}'].shieldRegenPercent = parseFloat(this.value)"></div>
+                        <div class="field"><label>Tiempo Espera Fuera de Combate (ms)</label><input type="number" value="${en.regenDelayMs !== undefined ? en.regenDelayMs : (en.regenDelaySec !== undefined ? en.regenDelaySec * 1000 : 0)}" onchange="config.enemyModels['${selectedEnemyId}'].regenDelayMs = parseInt(this.value); delete config.enemyModels['${selectedEnemyId}'].regenDelaySec;"></div>
+                        <div class="field"><label>Intervalo de Regeneración (ms)</label><input type="number" value="${en.regenIntervalMs !== undefined ? en.regenIntervalMs : 0}" onchange="config.enemyModels['${selectedEnemyId}'].regenIntervalMs = parseInt(this.value)"></div>
+
+                        <!-- ESTADO DE ENFURECIDO (ENRAGE) DINÁMICO -->
+                        <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.05); padding: 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.25); display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between;">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" id="check-enrage-${selectedEnemyId}" ${en.enrageEnabled ? 'checked' : ''} onchange="
+                                        config.enemyModels['${selectedEnemyId}'].enrageEnabled = this.checked;
+                                        if (this.checked && !config.enemyModels['${selectedEnemyId}'].enrageMode) {
+                                            config.enemyModels['${selectedEnemyId}'].enrageMode = 'time';
+                                            config.enemyModels['${selectedEnemyId}'].enrageValue = 30;
+                                        }
+                                        renderEnemyDetail();
+                                    ">
+                                    <label for="check-enrage-${selectedEnemyId}" style="margin:0; color:#ef4444; font-weight:bold; font-size:0.75rem; cursor:pointer;">
+                                        🔥 ESTADO DE ENFURECIDO (ENRAGE)
+                                    </label>
+                                </div>
+                                <span style="font-size:0.65rem; color:${en.enrageEnabled ? '#f87171' : '#64748b'}; font-weight:bold;">
+                                    ${en.enrageEnabled ? 'ACTIVO' : 'DESTILDADO (DEFAULT)'}
+                                </span>
+                            </div>
+
+                            ${en.enrageEnabled ? `
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:4px;">
+                                <div class="field" style="margin:0; background:transparent; border:none; padding:0;">
+                                    <label style="font-size:0.65rem; color:#fca5a5; display:block; margin-bottom:4px;">Disparador de Enfurecido</label>
+                                    <select style="background:#0f172a; border:1px solid #475569; color:white; font-size:0.75rem; border-radius:4px; padding:6px; width:100%; cursor:pointer;" onchange="
+                                        config.enemyModels['${selectedEnemyId}'].enrageMode = this.value;
+                                        if (this.value === 'time') {
+                                            config.enemyModels['${selectedEnemyId}'].enrageValue = config.enemyModels['${selectedEnemyId}'].enrageValue || 30;
+                                        } else {
+                                            config.enemyModels['${selectedEnemyId}'].enrageValue = config.enemyModels['${selectedEnemyId}'].enrageValue || 25;
+                                        }
+                                        renderEnemyDetail();
+                                    ">
+                                        <option value="time" ${en.enrageMode === 'time' || !en.enrageMode ? 'selected' : ''}>⏳ Por Tiempo en Combate</option>
+                                        <option value="hp" ${en.enrageMode === 'hp' ? 'selected' : ''}>🩸 Por % de Vida Restante</option>
+                                    </select>
+                                </div>
+                                <div class="field" style="margin:0; background:transparent; border:none; padding:0;">
+                                    <label style="font-size:0.65rem; color:#fca5a5; display:block; margin-bottom:4px;">
+                                        ${en.enrageMode === 'hp' ? 'Umbral de Vida Restante (% HP)' : 'Tiempo en Combate (Segundos)'}
+                                    </label>
+                                    <input type="number" style="background:#0f172a; border:1px solid #475569; color:white; font-size:0.75rem; border-radius:4px; padding:6px; width:100%;"
+                                        value="${en.enrageValue !== undefined ? en.enrageValue : (en.enrageMode === 'hp' ? 25 : 30)}"
+                                        placeholder="${en.enrageMode === 'hp' ? 'Ej: 25' : 'Ej: 30'}"
+                                        onchange="config.enemyModels['${selectedEnemyId}'].enrageValue = parseFloat(this.value) || 0;">
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
                 <div class="card" style="width:100%; margin-bottom: 2rem; border-color: #eab308; background: rgba(234, 179, 8, 0.05);">

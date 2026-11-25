@@ -160,7 +160,7 @@ function _handleAscensionLogic(mech, mId, target, dist, angle, now, io, players)
     const warnDelayMs = mech.warnDelayMs !== undefined ? Number(mech.warnDelayMs) : 600;
     const warnTimeMs = mech.warnTimeMs !== undefined ? Number(mech.warnTimeMs) : 1200;
     const radius = mech.radius || 250;
-    const landingDamage = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 150) * (this.damageMult || 1);
+    const landingDamage = Number(mech.bulletDamage !== undefined ? mech.bulletDamage : (mech.damage || 0)) * (this.damageMult || 1);
 
     const zonePlayers = () => Object.values(players || {}).filter(p => String(p.zone) === String(this.enemy.zone) && !p.isDead && !p.isInvisible && !p.isInvulnerable && !p.inStrangeDimension);
 
@@ -366,7 +366,7 @@ function _handleChoqueDevastadorLogic(mech, mId, target, dist, angle, now, io, p
     const chargeDurationMs = Number(mech.duration) || 1200;
     const chargeRange = Number(mech.range) || 900;
     const width = Number(mech.radius) || 200;
-    const bulletDamage = (mech.damage !== undefined ? Number(mech.damage) : 200) * (this.damageMult || 1);
+    const bulletDamage = Number(mech.damage !== undefined ? mech.damage : (mech.bulletDamage || 0)) * (this.damageMult || 1);
     const telegraphDurationMs = Number(mech.warnTimeMs) || 0;
     const pushOnHit = !!mech.pushOnHit;
     const pushForce = Number(mech.pushForce) || 200;

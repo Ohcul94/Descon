@@ -19,7 +19,7 @@ var default_keys = {
 	"toggle_free_camera": KEY_O, # Atajo para cámara libre 3D
 	"chat_toggle": KEY_ENTER, # Atajo para chat
 	"loot_claim": KEY_SPACE, # Atajo para abrir cofres de botín y recolectar
-	"ui_inspect": KEY_Y, # Atajo para inspeccionar jugador objetivo
+	"ui_inspect": KEY_Y, # Atajo para inspeccionar objetivo (jugadores y jefes/enemigos)
 	"stay_still": KEY_S # Atajo para quedarse quieto (detener navegación)
 }
 var cast_mode_cache: int = 1 # v267.10: Cache local del modo de casteo
