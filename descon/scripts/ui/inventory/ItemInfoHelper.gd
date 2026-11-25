@@ -80,7 +80,7 @@ static func _append_mod(parts: Array, label: String, raw, mod_type) -> void:
 	var t = str(mod_type)
 	if t == "flat":
 		var sign_ch = "+" if v > 0 else "-"
-		parts.append(label + ": " + sign_ch + str(int(round(absf(v)))) + " (fijo)")
+		parts.append(label + ": " + sign_ch + str(int(round(absf(v)))))
 	else:
 		var sign_ch = "+" if v > 0 else "-"
 		var pts = v * 100.0 if absf(v) < 1.0 else v

@@ -427,6 +427,53 @@ func _format_stat_value(val: float, is_flat: bool = false, show_plus: bool = tru
 	else:
 		return prefix + _format_clean_number(abs_val * 100.0, 2) + "%"
 
+func _format_dynamic_id(de_type: String, de_id: String) -> String:
+	match de_type:
+		"ammo":
+			match de_id:
+				"laser": return "Láser"
+				"missile": return "Misil"
+				"mine": return "Mina"
+				"melee": return "Melee"
+				"heal": return "Curación"
+				"siphon": return "Siphon"
+				"emp": return "EMP"
+				"electron": return "Electrón"
+				_: return de_id.capitalize()
+		"weapon":
+			match de_id:
+				"las1": return "Láser 1"
+				"las2": return "Láser 2"
+				_: return de_id.capitalize()
+		"skill":
+			var skill_names = {
+				"SK-ATK-01": "Reflect-Omega", "SK-ATK-02": "Esfera de Terror", "SK-ATK-03": "Hookshot",
+				"SK-DEF-01": "Escudo Celular", "SK-DEF-03": "Smoke-Bomb", "SK-DEF-04": "Frost-Trail",
+				"SK-DEF-05": "Barrera de Viento", "SK-DEF-06": "Provocación",
+				"SK-HEAL-01": "Auto-Reparación", "SK-HEAL-02": "Nano-Regeneración", "SK-HEAL-03": "Regeneración Alfa",
+				"SK-HEAL-04": "Vínculo Vital", "SK-HEAL-05": "Baliza de Curación",
+				"SK-UTIL-01": "Turbo-Impulso", "SK-UTIL-02": "Hyper-Dash", "SK-UTIL-03": "Invulnerabilidad",
+				"SK-UTIL-04": "Blink", "SK-UTIL-05": "Invisibilidad", "SK-UTIL-06": "Resurrección"
+			}
+			return skill_names.get(de_id, de_id)
+	return de_id.capitalize()
+
+func _format_dynamic_attr(de_attr: String) -> String:
+	match de_attr:
+		"damage": return "Daño"
+		"range": return "Alcance"
+		"cd", "cooldown": return "Reducción CD"
+		"castTimeMs": return "Tiempo de Cast"
+		"bulletSpeed": return "Vel. Proyectil"
+		"base": return "Daño Base"
+		"amount": return "Efectividad"
+		"heal_amount": return "Curación"
+		"duration": return "Duración"
+		"taunt_duration": return "Duración Provocación"
+		"radius": return "Radio"
+		"speed": return "Velocidad"
+		_: return de_attr.capitalize()
+
 func _update_summary_display():
 	if not summary_rtl or not is_instance_valid(summary_rtl):
 		return
@@ -568,19 +615,20 @@ func _update_summary_display():
 
 	# ═══ 1.5. EFECTOS DINÁMICOS (Skills, Armas, Munición) ═══
 	if active_dynamic_effects.size() > 0:
-		bb += "[center][color=#f97316][font_size=13][b]⚡ MEJORAS DE SKILLS / ARMAS[/b][/font_size][/color][/center]\n\n"
+		bb += "[center][color=#f97316][font_size=13][b]⚡ MEJORAS DE HABILIDADES Y MUNICIÓN[/b][/font_size][/color][/center]\n\n"
 		for de in active_dynamic_effects:
 			var de_parts = de["key"].split(":")
 			var de_type = de_parts[0]
 			var de_id = de_parts[1] if de_parts.size() > 1 else ""
 			var de_attr = de_parts[2] if de_parts.size() > 2 else ""
 			var de_icon = "🌀" if de_type == "skill" else ("🔫" if de_type == "weapon" else "💥")
-			var de_type_label = "Skill" if de_type == "skill" else ("Arma" if de_type == "weapon" else "Munición")
+			var de_type_label = "Habilidad" if de_type == "skill" else ("Arma" if de_type == "weapon" else "Munición")
+			var de_target_label = _format_dynamic_id(de_type, de_id)
+			var de_attr_label = _format_dynamic_attr(de_attr)
 			var de_flat = de["flat"]
 			var de_val = de["val"] * de["total"]
 			var de_str = _format_stat_value(de_val, de_flat, true)
-			var flat_tag = " [color=#ff9632](fijo)[/color]" if de_flat else ""
-			bb += de_icon + " [b]" + de_type_label + " " + de_id + " → " + de_attr + "[/b]" + flat_tag + ": [color=#10b981][b]" + de_str + "[/b][/color]\n"
+			bb += de_icon + " [b]" + de_type_label + " " + de_target_label + " · " + de_attr_label + "[/b]: [color=#10b981][b]" + de_str + "[/b][/color]\n"
 		bb += "\n[center][color=#1e2d3d]──────────────────────[/color][/center]\n\n"
 
 	# ═══ 2. BONIFICADORES TOTALES ACUMULADOS ═══
@@ -671,13 +719,15 @@ func _update_summary_display():
 							var did = dparts[1] if dparts.size() > 1 else ""
 							var dattr = dparts[2] if dparts.size() > 2 else ""
 							var dicon = "🌀" if dtype == "skill" else ("🔫" if dtype == "weapon" else "💥")
+							var dtype_label = "Habilidad" if dtype == "skill" else ("Arma" if dtype == "weapon" else "Munición")
+							var dtarget_label = _format_dynamic_id(dtype, did)
+							var dattr_label = _format_dynamic_attr(dattr)
 							var dyn_base_eff = float(effs[ek])
 							var dyn_cur_eff = dyn_base_eff * it["total"]
 							var dyn_emeta = effs_meta.get(ek, {})
 							var dyn_is_flat_eff = dyn_emeta.get("flat", false)
 							var dyn_eff_str = _format_stat_value(dyn_cur_eff, dyn_is_flat_eff, true)
-							var dyn_flat_label = " (Fijo)" if dyn_is_flat_eff else ""
-							bb += "    [color=#556677]↳[/color] " + dicon + " " + dtype + " " + did + " → " + dattr + dyn_flat_label + ": [color=#10b981]" + dyn_eff_str + "[/color]\n"
+							bb += "    [color=#556677]↳[/color] " + dicon + " " + dtype_label + " " + dtarget_label + " · " + dattr_label + ": [color=#10b981]" + dyn_eff_str + "[/color]\n"
 						continue
 					var base_eff = float(effs[ek])
 					var cur_eff = base_eff * it["total"]
@@ -1468,14 +1518,15 @@ func _update_tooltip(screen_pos: Vector2):
 				var fx_id = parts[1] if parts.size() > 1 else ""
 				var fx_attr = parts[2] if parts.size() > 2 else ""
 				var fx_icon = "🌀" if fx_type == "skill" else ("🔫" if fx_type == "weapon" else "💥")
-				var fx_type_label = "Skill" if fx_type == "skill" else ("Arma" if fx_type == "weapon" else "Munición")
+				var fx_type_label = "Habilidad" if fx_type == "skill" else ("Arma" if fx_type == "weapon" else "Munición")
+				var fx_target_label = _format_dynamic_id(fx_type, fx_id)
+				var fx_attr_label = _format_dynamic_attr(fx_attr)
 				var dyn_emeta = talent_effects_meta.get(key, {})
 				var dyn_is_flat = dyn_emeta.get("flat", false)
 				var dyn_applied_val = val * saved
 				var dyn_pend_val = val * pend
 				var dyn_applied_str = _format_stat_value(dyn_applied_val, dyn_is_flat, true)
-				var dyn_flat_tag = " [color=#ff9632](fijo)[/color]" if dyn_is_flat else ""
-				current_effects_text += "  " + fx_icon + " " + fx_type_label + " " + fx_id + " → " + fx_attr + dyn_flat_tag + ": [color=#10b981][b]" + dyn_applied_str + "[/b][/color]"
+				current_effects_text += "  " + fx_icon + " " + fx_type_label + " " + fx_target_label + " · " + fx_attr_label + ": [color=#10b981][b]" + dyn_applied_str + "[/b][/color]"
 				if pend > 0:
 					var dyn_p_str = _format_stat_value(dyn_pend_val, dyn_is_flat, true)
 					current_effects_text += " [color=#ffd700](" + dyn_p_str + " pend.)[/color]"

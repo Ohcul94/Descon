@@ -10,7 +10,6 @@ var _built = false
 var _structure_sig = ""
 var _status_tick = 0.0
 var _content_v = null
-var _ammo_box = null
 var _status_box = null
 var _lbl_hp = null
 var _lbl_shield = null
@@ -75,7 +74,6 @@ func _invalidate():
 	_built = false
 	_structure_sig = ""
 	_content_v = null
-	_ammo_box = null
 	_status_box = null
 	_lbl_hp = null
 	_lbl_shield = null
@@ -153,9 +151,6 @@ func _refresh_values(player):
 		_lbl_level.text = str(player.level)
 	_update_exp_refs(player)
 
-	if is_instance_valid(_ammo_box):
-		_clear_children(_ammo_box)
-		_add_ammo_section(_ammo_box, player)
 	if is_instance_valid(_status_box):
 		_clear_children(_status_box)
 		_add_status_effects(_status_box, player)
@@ -312,14 +307,17 @@ func _build_ui(player):
 			_add_item_mod_row(content_v, x.name, "HP Base", x.base_val, "+")
 
 	# Totales de equipamiento
-	if equip_mods.total_hp != 0.0 or equip_mods.total_shield != 0.0 or equip_mods.total_speed != 0.0 or equip_mods.total_dmg != 0.0:
+	if equip_mods.total_hp != 0.0 or equip_mods.hp_mod_pct != 0.0 \
+			or equip_mods.total_shield != 0.0 or equip_mods.shield_mod_pct != 0.0 \
+			or equip_mods.total_speed != 0.0 or equip_mods.speed_mod_pct != 0.0 \
+			or equip_mods.total_dmg != 0.0:
 		_add_separator(content_v)
 		_add_sub_header(content_v, "📊 TOTAL Equipamiento", Color(1.0, 0.85, 0.3))
-		if equip_mods.total_hp != 0.0:
+		if equip_mods.total_hp != 0.0 or equip_mods.hp_mod_pct != 0.0:
 			_add_mod_summary(content_v, "HP Equip", equip_mods.total_hp, equip_mods.hp_mod_pct)
-		if equip_mods.total_shield != 0.0:
+		if equip_mods.total_shield != 0.0 or equip_mods.shield_mod_pct != 0.0:
 			_add_mod_summary(content_v, "Escudo Equip", equip_mods.total_shield, equip_mods.shield_mod_pct)
-		if equip_mods.total_speed != 0.0:
+		if equip_mods.total_speed != 0.0 or equip_mods.speed_mod_pct != 0.0:
 			_add_mod_summary(content_v, "Vel. Equip", equip_mods.total_speed, equip_mods.speed_mod_pct)
 		if equip_mods.total_dmg != 0.0:
 			_add_mod_summary(content_v, "Daño Equip", equip_mods.total_dmg, 0.0)
@@ -362,21 +360,22 @@ func _build_ui(player):
 	else:
 		_add_info_row(content_v, "", "Sistema de esferas no disponible", Color.GRAY)
 
-	if sphere_mods.total_hp != 0.0 or sphere_mods.total_shield != 0.0 or sphere_mods.total_speed != 0.0 or sphere_mods.total_heal_pct != 0.0:
+	if sphere_mods.hp_flat != 0.0 or sphere_mods.hp_pct != 0.0 \
+			or sphere_mods.shield_flat != 0.0 or sphere_mods.shield_pct != 0.0 \
+			or sphere_mods.speed_flat != 0.0 or sphere_mods.speed_pct != 0.0 \
+			or sphere_mods.dmg_pct != 0.0 or sphere_mods.heal_pct != 0.0:
 		_add_separator(content_v)
 		_add_sub_header(content_v, "📊 TOTAL Esferas", Color(0.8, 0.5, 1.0))
-		if sphere_mods.total_hp != 0.0:
-			var hp_str = "+" + str(int(sphere_mods.total_hp)) + "%"
-			_add_info_row(content_v, "  HP", hp_str, Color(0.8, 0.5, 1.0))
-		if sphere_mods.total_shield != 0.0:
-			var sh_str = "+" + str(int(sphere_mods.total_shield)) + "%"
-			_add_info_row(content_v, "  Escudo", sh_str, Color(0.8, 0.5, 1.0))
-		if sphere_mods.total_speed != 0.0:
-			var spd_str = "+" + str(int(sphere_mods.total_speed)) + "%"
-			_add_info_row(content_v, "  Velocidad", spd_str, Color(0.8, 0.5, 1.0))
-		if sphere_mods.total_heal_pct != 0.0:
-			var heal_str = "+" + str(int(sphere_mods.total_heal_pct)) + "%"
-			_add_info_row(content_v, "  Curación", heal_str, Color(0.8, 0.5, 1.0))
+		if sphere_mods.hp_flat != 0.0 or sphere_mods.hp_pct != 0.0:
+			_add_mod_summary(content_v, "  HP", sphere_mods.hp_flat, sphere_mods.hp_pct)
+		if sphere_mods.shield_flat != 0.0 or sphere_mods.shield_pct != 0.0:
+			_add_mod_summary(content_v, "  Escudo", sphere_mods.shield_flat, sphere_mods.shield_pct)
+		if sphere_mods.speed_flat != 0.0 or sphere_mods.speed_pct != 0.0:
+			_add_mod_summary(content_v, "  Velocidad", sphere_mods.speed_flat, sphere_mods.speed_pct)
+		if sphere_mods.dmg_pct != 0.0:
+			_add_mod_summary(content_v, "  Daño", 0.0, sphere_mods.dmg_pct)
+		if sphere_mods.heal_pct != 0.0:
+			_add_mod_summary(content_v, "  Curación", 0.0, sphere_mods.heal_pct)
 
 	# ═══ SECCIÓN 6: BONIFICACIONES DE TALENTOS ═══
 	_add_section_header(content_v, "🌟 BONIFICACIONES DE TALENTOS", Color(0.75, 0.2, 1.0))
@@ -406,23 +405,17 @@ func _build_ui(player):
 		var dynamic = ts.get_dynamic_bonuses()
 		if dynamic.size() > 0:
 			_add_separator(content_v)
-			_add_sub_header(content_v, "⚡ Bonuses Dinámicos (Skills/Armas)", Color(1.0, 0.7, 0.2))
+			_add_sub_header(content_v, "⚡ Mejoras de Habilidades y Munición", Color(1.0, 0.7, 0.2))
 			for key in dynamic:
 				var d = dynamic[key]
 				var val = float(d.get("val", 0.0))
 				var is_flat = bool(d.get("flat", false))
-				_add_talent_bonus_row(content_v, key, val, is_flat)
+				var display_name = _format_dynamic_bonus_name(key)
+				_add_talent_bonus_row(content_v, display_name, val, is_flat)
 	else:
 		_add_info_row(content_v, "", "Sistema de talentos no disponible", Color.GRAY)
 
-	# ═══ SECCIÓN 7: MUNICIÓN ═══
-	_add_section_header(content_v, "💣 MUNICIÓN ACTUAL", Color(1.0, 0.6, 0.2))
-	_ammo_box = VBoxContainer.new()
-	_ammo_box.add_theme_constant_override("separation", 2)
-	content_v.add_child(_ammo_box)
-	_add_ammo_section(_ammo_box, player)
-
-	# ═══ SECCIÓN 8: ESTADOS ACTIVOS ═══
+	# ═══ SECCIÓN 7: ESTADOS ACTIVOS ═══
 	_add_section_header(content_v, "🔮 ESTADOS ACTIVOS", Color(0.8, 0.3, 0.5))
 	_status_box = VBoxContainer.new()
 	_status_box.add_theme_constant_override("separation", 2)
@@ -554,7 +547,12 @@ func _get_equipment_modifiers(player) -> Dictionary:
 	return result
 
 func _get_sphere_modifiers(player) -> Dictionary:
-	var result = {"total_hp": 0.0, "total_shield": 0.0, "total_speed": 0.0, "total_heal_pct": 0.0}
+	var result = {
+		"hp_flat": 0.0, "hp_pct": 0.0,
+		"shield_flat": 0.0, "shield_pct": 0.0,
+		"speed_flat": 0.0, "speed_pct": 0.0,
+		"dmg_pct": 0.0, "heal_pct": 0.0
+	}
 	var sm = player.get_node_or_null("SpheresManager")
 	if not is_instance_valid(sm):
 		return result
@@ -577,28 +575,24 @@ func _get_sphere_modifiers(player) -> Dictionary:
 		if master_stats.is_empty():
 			master_stats = sphere.get("stats", {})
 
+		var parse_entry = func(key: String, val: float):
+			match key:
+				"hpMod": result.hp_flat += val
+				"shieldMod": result.shield_flat += val
+				"speedMod": result.speed_flat += val
+				"hpPct", "hp_pct": result.hp_pct += val * 100.0 if abs(val) < 1.0 else val
+				"shieldPct", "shield_pct": result.shield_pct += val * 100.0 if abs(val) < 1.0 else val
+				"speedPct", "speed_pct": result.speed_pct += val * 100.0 if abs(val) < 1.0 else val
+				"dmgPct", "dmg_pct": result.dmg_pct += val * 100.0 if abs(val) < 1.0 else val
+				"healPct", "heal_pct": result.heal_pct += val * 100.0 if abs(val) < 1.0 else val
+
 		if typeof(master_stats) == TYPE_DICTIONARY:
 			for key in master_stats:
-				var val = float(master_stats[key])
-				if key == "hpMod": result.total_hp += val
-				elif key == "shieldMod": result.total_shield += val
-				elif key == "speedMod": result.total_speed += val
-				elif key == "hpPct": result.total_hp += val * 100.0
-				elif key == "shieldPct": result.total_shield += val * 100.0
-				elif key == "speedPct": result.total_speed += val * 100.0
-				elif key == "healPct": result.total_heal_pct += val * 100.0
+				parse_entry.call(str(key), float(master_stats[key]))
 		elif typeof(master_stats) == TYPE_ARRAY:
 			for entry in master_stats:
 				if typeof(entry) == TYPE_DICTIONARY:
-					var key = str(entry.get("key", ""))
-					var val = float(entry.get("val", 0))
-					if key == "hpMod": result.total_hp += val
-					elif key == "shieldMod": result.total_shield += val
-					elif key == "speedMod": result.total_speed += val
-					elif key == "hpPct": result.total_hp += val * 100.0
-					elif key == "shieldPct": result.total_shield += val * 100.0
-					elif key == "speedPct": result.total_speed += val * 100.0
-					elif key == "healPct": result.total_heal_pct += val * 100.0
+					parse_entry.call(str(entry.get("key", "")), float(entry.get("val", 0)))
 	return result
 
 func _get_talent_bonuses(_player) -> Dictionary:
@@ -610,19 +604,19 @@ func _get_talent_bonuses(_player) -> Dictionary:
 func _calculate_final(player, ship_base: Dictionary, equip_mods: Dictionary, sphere_mods: Dictionary, talent_bonuses: Dictionary) -> Dictionary:
 	var result = {"hp": 0.0, "shield": 0.0, "speed": 0.0, "damage": 0.0, "vision": 0.0}
 
-	var base_hp = ship_base.hp + equip_mods.total_hp + sphere_mods.total_hp
-	var base_sh = ship_base.shield + equip_mods.total_shield + sphere_mods.total_shield
-	var base_spd = ship_base.speed + equip_mods.total_speed + sphere_mods.total_speed
+	var base_hp = ship_base.hp + equip_mods.total_hp + sphere_mods.get("hp_flat", 0.0)
+	var base_sh = ship_base.shield + equip_mods.total_shield + sphere_mods.get("shield_flat", 0.0)
+	var base_spd = ship_base.speed + equip_mods.total_speed + sphere_mods.get("speed_flat", 0.0)
 	var base_dmg = ship_base.base_dmg + equip_mods.total_dmg
 
-	var hp_mod_mult = 1.0 + equip_mods.hp_mod_pct / 100.0
-	var sh_mod_mult = 1.0 + equip_mods.shield_mod_pct / 100.0
-	var spd_mod_mult = 1.0 + equip_mods.speed_mod_pct / 100.0
+	var hp_mod_mult = 1.0 + (equip_mods.hp_mod_pct + sphere_mods.get("hp_pct", 0.0)) / 100.0
+	var sh_mod_mult = 1.0 + (equip_mods.shield_mod_pct + sphere_mods.get("shield_pct", 0.0)) / 100.0
+	var spd_mod_mult = 1.0 + (equip_mods.speed_mod_pct + sphere_mods.get("speed_pct", 0.0)) / 100.0
 
 	var t_hp_pct = float(talent_bonuses.get("hp_pct", 0.0))
 	var t_sh_pct = float(talent_bonuses.get("sh_pct", 0.0))
 	var t_spd_pct = float(talent_bonuses.get("speed_pct", 0.0))
-	var t_dmg_pct = float(talent_bonuses.get("dmg_pct", 0.0))
+	var t_dmg_pct = float(talent_bonuses.get("dmg_pct", 0.0)) + sphere_mods.get("dmg_pct", 0.0) / 100.0
 
 	result.hp = round((base_hp) * (1.0 + t_hp_pct) * hp_mod_mult)
 	result.shield = round((base_sh) * (1.0 + t_sh_pct) * sh_mod_mult)
@@ -717,17 +711,17 @@ func _add_stat_row(parent, label: String, value: float, color: Color) -> Label:
 func _add_stat_mod_row(parent, key: String, val: float):
 	if abs(val) < 0.0001: return
 	var display = _get_stat_key_display(key)
-	var is_pct = key.ends_with("Pct") or key.ends_with("pct")
+	var is_pct = key.ends_with("Pct") or key.ends_with("pct") or key.ends_with("_pct")
 	var prefix = "+" if val > 0 else ""
 	var text = ""
 	if is_pct:
-		var pct_val = int(val * 100) if abs(val) < 1.0 else int(val)
-		text = prefix + str(pct_val) + "%"
+		var pct_val = val * 100.0 if abs(val) < 1.0 else val
+		text = prefix + _format_number(pct_val) + "%"
 	else:
 		text = prefix + _format_number(val)
 	_add_info_row(parent, "  " + display, text, Color(0.7, 0.8, 1.0))
 
-func _add_item_mod_row(parent, item_name: String, stat_name: String, val: float, prefix: String = "+", is_flat: bool = false):
+func _add_item_mod_row(parent, item_name: String, stat_name: String, val: float, prefix: String = "+", is_flat: bool = true):
 	if abs(val) < 0.0001: return
 	var h = HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
@@ -753,9 +747,10 @@ func _add_item_mod_row(parent, item_name: String, stat_name: String, val: float,
 	s.custom_minimum_size.x = 70.0
 	h.add_child(s)
 
-	var flat_tag = " (fijo)" if is_flat else ""
+	var sign_prefix = "-" if val < 0 else prefix
+	var suffix = "" if is_flat else "%"
 	var v = Label.new()
-	v.text = prefix + _format_number(abs(val)) + flat_tag
+	v.text = sign_prefix + _format_number(abs(val)) + suffix
 	v.add_theme_font_size_override("font_size", 9)
 	v.modulate = Color(0.2, 1.0, 0.5) if val > 0 else Color(1.0, 0.3, 0.3)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -775,10 +770,12 @@ func _add_mod_summary(parent, label: String, flat_val: float, pct_val: float):
 	h.add_child(l)
 
 	var parts = []
-	if flat_val != 0.0:
-		parts.append("+" + _format_number(flat_val) + " fijo")
-	if pct_val != 0.0:
-		parts.append("+" + str(int(pct_val)) + "%")
+	if abs(flat_val) > 0.0001:
+		var prefix = "+" if flat_val > 0 else ""
+		parts.append(prefix + _format_number(flat_val))
+	if abs(pct_val) > 0.0001:
+		var prefix = "+" if pct_val > 0 else ""
+		parts.append(prefix + _format_number(pct_val) + "%")
 	var v = Label.new()
 	v.text = " | ".join(parts)
 	v.add_theme_font_size_override("font_size", 10)
@@ -797,14 +794,16 @@ func _add_talent_bonus_row(parent, display_name: String, val: float, is_flat: bo
 	l.text = display_name
 	l.add_theme_font_size_override("font_size", 10)
 	l.modulate = Color(0.6, 0.65, 0.75)
-	l.custom_minimum_size.x = 160.0
+	l.custom_minimum_size.x = 180.0
 	h.add_child(l)
 
+	var prefix = "+" if val > 0 else ""
 	var display_val = ""
 	if is_flat:
-		display_val = "+" + _format_number(val) + " (fijo)"
+		display_val = prefix + _format_number(val)
 	else:
-		display_val = "+" + str(int(val * 100)) + "%"
+		var pct_val = val * 100.0 if abs(val) < 1.0 else val
+		display_val = prefix + _format_number(pct_val) + "%"
 
 	var v = Label.new()
 	v.text = display_val
@@ -896,35 +895,6 @@ func _add_exp_bar(parent, player):
 	_exp_bar = pb
 	_exp_lbl = pct_lbl
 
-func _add_ammo_section(parent, player):
-	var ammo = player.ammo
-	var _selected = player.selected_ammo
-	var active_slots = player.ammo_slots
-	var ammo_types = ["laser", "missile", "mine", "melee", "heal", "siphon", "emp", "electron"]
-	var ammo_names = {
-		"laser": "Láser", "missile": "Misil", "mine": "Mina",
-		"melee": "Melee", "heal": "Curación", "siphon": "Siphon", "emp": "EMP", "electron": "Electrón"
-	}
-
-	var active_count = 0
-	for atype in ammo_types:
-		if not ammo.has(atype): continue
-		var a_list = ammo[atype]
-		if typeof(a_list) != TYPE_ARRAY or a_list.is_empty(): continue
-		var count = int(a_list[0])
-		if count <= 0: continue
-
-		var is_active_type = atype in active_slots
-		var display = ammo_names.get(atype, atype)
-		var marker = ""
-		if is_active_type:
-			active_count += 1
-			marker = " [ACTIVA - Slot " + str(active_slots.find(atype) + 1) + "]"
-		var ammo_str = str(count) + marker
-		_add_info_row(parent, "💣 " + display, ammo_str, Color(1.0, 0.85, 0.3) if is_active_type else Color(0.6, 0.65, 0.7))
-
-	_add_info_row(parent, "", str(active_count) + " de 3 slots activos", Color(0.4, 0.5, 0.6))
-
 func _add_status_effects(parent, player):
 	var has_effects = false
 
@@ -989,9 +959,9 @@ func _get_effect_display_name(key: String) -> String:
 		"fire_rate_pct": "Cadencia de Fuego",
 		"evasion_pct": "Evasión",
 		"cooldown_reduction": "Reducción CD",
-		"cooldown_reduction_flat": "Reducción CD (Fijo)",
+		"cooldown_reduction_flat": "Reducción CD",
 		"cast_time_reduction": "Reducción Cast",
-		"cast_time_reduction_flat": "Reducción Cast (Fijo)",
+		"cast_time_reduction_flat": "Reducción Cast",
 		"ignore_shield_pct": "Perforación Escudo",
 		"accuracy_pct": "Precisión",
 		"ammo_bonus_pct": "Bonus Munición",
@@ -1004,22 +974,106 @@ func _get_effect_display_name(key: String) -> String:
 		"boss_loot_bonus": "Botín Jefes",
 		"dash_distance": "Distancia Dash",
 		"heal_pct": "Curación",
-		"heal_pct_flat": "Curación (Fijo)"
+		"heal_pct_flat": "Curación"
 	}
 	return names.get(key, key)
+
+func _format_dynamic_bonus_name(key: String) -> String:
+	if not key.contains(":"):
+		return _get_effect_display_name(key)
+
+	var parts = key.split(":")
+	if parts.size() < 3:
+		return key
+
+	var cat = parts[0]
+	var target_id = parts[1]
+	var attr = parts[2]
+
+	var target_name = target_id
+	match cat:
+		"ammo":
+			match target_id:
+				"laser": target_name = "Munición Láser"
+				"missile": target_name = "Munición Misil"
+				"mine": target_name = "Munición Mina"
+				"melee": target_name = "Munición Melee"
+				"heal": target_name = "Munición Curación"
+				"siphon": target_name = "Munición Siphon"
+				"emp": target_name = "Munición EMP"
+				"electron": target_name = "Munición Electrón"
+				_: target_name = "Munición " + target_id.capitalize()
+		"weapon":
+			match target_id:
+				"las1": target_name = "Arma Láser 1"
+				"las2": target_name = "Arma Láser 2"
+				_:
+					target_name = "Arma " + target_id.capitalize()
+					if NetworkManager and NetworkManager.server_config:
+						var weapons = NetworkManager.server_config.get("shopItems", {}).get("weapons", [])
+						for w in weapons:
+							if str(w.get("id", "")) == target_id:
+								target_name = "Arma " + str(w.get("name", target_id))
+								break
+		"skill":
+			var skill_names = {
+				"SK-ATK-01": "Reflect-Omega",
+				"SK-ATK-02": "Esfera de Terror",
+				"SK-ATK-03": "Hookshot",
+				"SK-DEF-01": "Escudo Celular",
+				"SK-DEF-03": "Smoke-Bomb",
+				"SK-DEF-04": "Frost-Trail",
+				"SK-DEF-05": "Barrera de Viento",
+				"SK-DEF-06": "Provocación",
+				"SK-HEAL-01": "Auto-Reparación",
+				"SK-HEAL-02": "Nano-Regeneración",
+				"SK-HEAL-03": "Regeneración Alfa",
+				"SK-HEAL-04": "Vínculo Vital",
+				"SK-HEAL-05": "Baliza de Curación",
+				"SK-UTIL-01": "Turbo-Impulso",
+				"SK-UTIL-02": "Hyper-Dash",
+				"SK-UTIL-03": "Invulnerabilidad",
+				"SK-UTIL-04": "Blink",
+				"SK-UTIL-05": "Invisibilidad",
+				"SK-UTIL-06": "Resurrección"
+			}
+			target_name = "Habilidad " + skill_names.get(target_id, target_id)
+			if NetworkManager and NetworkManager.server_config:
+				var sdata = NetworkManager.server_config.get("skillsData", {})
+				for sk_key in sdata:
+					var sitem = sdata[sk_key]
+					if typeof(sitem) == TYPE_DICTIONARY and str(sitem.get("id", "")) == target_id:
+						target_name = "Habilidad " + str(sitem.get("name", sitem.get("label", sk_key)))
+						break
+
+	var attr_name = attr
+	match attr:
+		"damage": attr_name = "Daño"
+		"range": attr_name = "Alcance"
+		"cd", "cooldown": attr_name = "Reducción CD"
+		"castTimeMs": attr_name = "Tiempo de Cast"
+		"bulletSpeed": attr_name = "Vel. Proyectil"
+		"base": attr_name = "Daño Base"
+		"amount": attr_name = "Efectividad"
+		"heal_amount": attr_name = "Curación"
+		"duration": attr_name = "Duración"
+		"taunt_duration": attr_name = "Duración Provocación"
+		"radius": attr_name = "Radio"
+		"speed": attr_name = "Velocidad"
+		_: attr_name = attr.capitalize()
+
+	return target_name + ": " + attr_name
 
 func _get_stat_key_display(key: String) -> String:
 	match key:
 		"hpMod": return "HP"
 		"shieldMod": return "Escudo"
 		"speedMod": return "Velocidad"
-		"hpPct": return "HP"
-		"shieldPct": return "Escudo"
-		"speedPct": return "Velocidad"
-		"healPct": return "Curación"
-		"healMod": return "Curación"
-		"dmgMod": return "Daño"
-		"dmgPct": return "Daño"
+		"hpPct", "hp_pct": return "HP"
+		"shieldPct", "shield_pct": return "Escudo"
+		"speedPct", "speed_pct": return "Velocidad"
+		"healPct", "heal_pct", "healMod": return "Curación"
+		"dmgMod", "dmgPct", "dmg_pct": return "Daño"
 		"critChance": return "Crítico Chance"
 		"critDmg": return "Crítico Daño"
 		"evasion": return "Evasión"
