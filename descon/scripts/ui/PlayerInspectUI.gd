@@ -1558,14 +1558,14 @@ func _render_enemy_behavior(cfg: Dictionary, target: Node = null):
 		if sh_regen > 0.0:
 			_create_param_pill(enemy_behavior_flow_regen, "🛡️", "Regen Escudo (Fuera de Combate): %s%% / %s" % [_format_float_clean(sh_regen), int_str], Color(0.2, 0.85, 1.0))
 
-		var delay_ms = 0.0
-		if cfg.has("regenDelayMs"):
-			delay_ms = float(cfg.regenDelayMs)
-		elif cfg.has("regenDelaySec"):
-			delay_ms = float(cfg.regenDelaySec) * 1000.0
+	var delay_ms = 0.0
+	if cfg.has("regenDelayMs"):
+		delay_ms = float(cfg.regenDelayMs)
+	elif cfg.has("regenDelaySec"):
+		delay_ms = float(cfg.regenDelaySec) * 1000.0
 
-		if delay_ms > 0.0:
-			_create_param_pill(enemy_behavior_flow_regen, "⏳", "Espera sin daño para curar: %s" % _format_ms_to_sec(delay_ms), Color(1.0, 0.8, 0.3))
+	if delay_ms > 0.0:
+		_create_param_pill(enemy_behavior_flow_regen, "⏳", "Espera sin daño para salir de combate: %s" % _format_ms_to_sec(delay_ms), Color(1.0, 0.8, 0.3))
 
 	var has_tactics = enemy_behavior_flow_tactics.get_child_count() > 0
 	var has_regen = enemy_behavior_flow_regen.get_child_count() > 0
